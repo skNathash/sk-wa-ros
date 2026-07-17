@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Amount from "~/components/core/amount/Amount";
 import AppButton from "~/components/core/button/AppButton";
 import AppModal from "~/components/core/modal/AppModal";
+import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import { DISCOUNT_DECIMAL_PLACES } from "~/constants";
 import useAppToast from "~/hooks/useAppToast";
 import CommonService from "~/services/CommonService";
@@ -155,15 +156,13 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
     >
       <AppModal.Title onClose={handleClose}>
         <div className="tw:flex tw:items-center tw:gap-2">
-          <div className="tw:w-8 tw:h-8 tw:rounded-lg tw:bg-blue-50 tw:flex tw:items-center tw:justify-center tw:shrink-0">
-            <Pencil className="tw:w-4 tw:h-4 tw:text-blue-600" />
+          <div className="tw:w-8 tw:h-8 tw:rounded-full tw:bg-primary/10 tw:flex tw:items-center tw:justify-center tw:shrink-0">
+            <Pencil className="tw:w-4 tw:h-4 tw:text-primary" />
           </div>
           <div className="tw:min-w-0 tw:flex-1">
-            <h2 className="tw:text-[11px] tw:font-medium tw:uppercase tw:tracking-wide tw:text-gray-400">
-              Edit Price
-            </h2>
+            <h2 className="wa-section-label">Edit Price</h2>
             {data?.dealName && (
-              <p className="tw:text-sm tw:font-bold tw:text-gray-900 tw:leading-tight tw:line-clamp-2">
+              <p className="tw:text-sm tw:font-bold tw:text-foreground tw:leading-tight tw:line-clamp-2">
                 {data.dealName}
               </p>
             )}
@@ -175,36 +174,34 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
         <div className="tw:flex tw:flex-col tw:gap-3">
           {/* Price summary cards */}
           <div className="tw:grid tw:grid-cols-3 tw:gap-2">
-            <div className="tw:bg-gray-50 tw:border tw:border-gray-100 tw:rounded-lg tw:px-2.5 tw:py-2">
+            <div className="tw:bg-muted tw:border tw:border-border tw:rounded-lg tw:px-2.5 tw:py-2">
               <div className="tw:flex tw:items-center tw:gap-1 tw:mb-1">
-                <Tag className="tw:w-3 tw:h-3 tw:text-gray-400" />
-                <div className="tw:text-[10px] tw:font-medium tw:uppercase tw:tracking-wide tw:text-gray-500">
-                  MRP
-                </div>
+                <Tag className="tw:w-3 tw:h-3 tw:text-muted-foreground" />
+                <div className="wa-section-label tw:text-[10px]">MRP</div>
               </div>
               <Amount
                 value={mrp}
                 decimalPlaces={2}
-                className="tw:text-sm tw:font-bold tw:text-gray-800"
+                className="wa-amount tw:text-sm tw:font-bold tw:text-foreground"
               />
             </div>
-            <div className="tw:bg-blue-50 tw:border tw:border-blue-100 tw:rounded-lg tw:px-2.5 tw:py-2">
+            <div className="tw:bg-primary/5 tw:border tw:border-primary/15 tw:rounded-lg tw:px-2.5 tw:py-2">
               <div className="tw:flex tw:items-center tw:gap-1 tw:mb-1">
-                <Tag className="tw:w-3 tw:h-3 tw:text-blue-500" />
-                <div className="tw:text-[10px] tw:font-medium tw:uppercase tw:tracking-wide tw:text-blue-700">
+                <Tag className="tw:w-3 tw:h-3 tw:text-primary" />
+                <div className="wa-section-label tw:text-[10px] tw:text-primary">
                   Actual Price
                 </div>
               </div>
               <Amount
                 value={dealPrice}
                 decimalPlaces={2}
-                className="tw:text-sm tw:font-bold tw:text-blue-700"
+                className="wa-amount tw:text-sm tw:font-bold tw:text-primary"
               />
             </div>
-            <div className="tw:bg-green-50 tw:border tw:border-green-100 tw:rounded-lg tw:px-2.5 tw:py-2">
+            <div className="wa-incart tw:rounded-lg tw:px-2.5 tw:py-2 tw:border tw:border-transparent">
               <div className="tw:flex tw:items-center tw:gap-1 tw:mb-1">
-                <TrendingDown className="tw:w-3 tw:h-3 tw:text-green-600" />
-                <div className="tw:text-[10px] tw:font-medium tw:uppercase tw:tracking-wide tw:text-green-700">
+                <TrendingDown className="tw:w-3 tw:h-3" />
+                <div className="wa-section-label tw:text-[10px]" style={{ color: "var(--wa-bubble-text)" }}>
                   Selling Now
                 </div>
               </div>
@@ -212,10 +209,10 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
                 <Amount
                   value={currentPrice}
                   decimalPlaces={2}
-                  className="tw:text-sm tw:font-bold tw:text-green-700"
+                  className="wa-amount tw:text-sm tw:font-bold"
                 />
                 {currentDiscountPct > 0 && (
-                  <span className="tw:text-[9px] tw:font-bold tw:text-green-700 tw:bg-green-100 tw:rounded-full tw:px-1 tw:py-0.5 tw:shrink-0">
+                  <span className="wa-mono tw:text-[9px] tw:font-bold tw:bg-white/60 tw:rounded-full tw:px-1 tw:py-0.5 tw:shrink-0">
                     {CommonService.roundedByDecimalPlace(currentDiscountPct, 1)}%
                   </span>
                 )}
@@ -226,11 +223,11 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
           {/* Price input */}
           <div>
             <div className="tw:flex tw:items-center tw:justify-between tw:mb-1.5">
-              <label className="tw:text-xs tw:font-semibold tw:text-gray-700">
+              <label className="tw:text-xs tw:font-semibold tw:text-foreground">
                 New Selling Price
               </label>
               {mrp > 0 && (
-                <span className="tw:text-[10px] tw:text-gray-400">
+                <span className="wa-mono tw:text-[10px] tw:text-muted-foreground">
                   Max ₹{CommonService.roundedByDecimalPlace(mrp, 2)}
                 </span>
               )}
@@ -238,7 +235,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
             <div className="tw:relative">
               <span
                 className={`tw:absolute tw:left-3 tw:top-1/2 tw:-translate-y-1/2 tw:text-base tw:font-semibold ${
-                  error ? "tw:text-red-400" : "tw:text-gray-400"
+                  error ? "tw:text-destructive" : "tw:text-muted-foreground"
                 }`}
               >
                 ₹
@@ -259,10 +256,10 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSave();
                 }}
-                className={`tw:w-full tw:border-2 tw:rounded-lg tw:pl-8 tw:pr-3 tw:py-2.5 tw:text-lg tw:font-bold tw:text-gray-900 tw:outline-none tw:transition-colors focus:tw:border-blue-500 ${
+                className={`wa-amount tw:w-full tw:border-2 tw:rounded-lg tw:pl-8 tw:pr-3 tw:py-2.5 tw:text-lg tw:font-bold tw:text-foreground tw:outline-none tw:transition-colors focus:tw:border-primary ${
                   error
-                    ? "tw:border-red-400 tw:bg-red-50"
-                    : "tw:border-gray-200 tw:bg-white"
+                    ? "tw:border-destructive tw:bg-destructive/5"
+                    : "tw:border-border tw:bg-card"
                 }`}
                 placeholder="0.00"
               />
@@ -271,9 +268,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
             {/* Quick discount presets */}
             {mrp > 0 && (
               <div className="tw:flex tw:items-center tw:gap-1.5 tw:mt-2">
-                <span className="tw:text-[10px] tw:font-medium tw:text-gray-400 tw:uppercase tw:tracking-wide">
-                  Quick:
-                </span>
+                <span className="wa-section-label">Quick off:</span>
                 {QUICK_DISCOUNTS.map((pct) => {
                   const presetPrice = CommonService.calculateDiscountedPrice(
                     pct,
@@ -285,13 +280,10 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
                       key={pct}
                       type="button"
                       onClick={() => applyQuickDiscount(pct)}
-                      className={`tw:text-[11px] tw:font-semibold tw:px-2 tw:py-1 tw:rounded-md tw:border tw:transition-colors ${
-                        isActive
-                          ? "tw:bg-blue-600 tw:border-blue-600 tw:text-white"
-                          : "tw:bg-white tw:border-gray-200 tw:text-gray-600 hover:tw:border-blue-400 hover:tw:text-blue-600"
-                      }`}
+                      data-active={isActive ? "true" : "false"}
+                      className="wa-chip wa-mono tw:text-[11px] tw:px-2 tw:py-1"
                     >
-                      {pct}%
+                      -{pct}%
                     </button>
                   );
                 })}
@@ -301,16 +293,16 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
             {/* Feedback line */}
             <div className="tw:mt-2 tw:min-h-[18px]">
               {error ? (
-                <p className="tw:text-[11px] tw:font-medium tw:text-red-500">
+                <p className="tw:text-[11px] tw:font-medium tw:text-destructive">
                   {error}
                 </p>
               ) : newDiscountPct !== null && priceChanged ? (
                 <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
-                  <span className="tw:text-[11px] tw:font-semibold tw:text-blue-600">
+                  <span className="wa-mono tw:text-[11px] tw:font-semibold tw:text-primary">
                     New Discount: {CommonService.roundedByDecimalPlace(newDiscountPct, 2)}%
                   </span>
                   {savingsAmount > 0 && (
-                    <span className="tw:text-[11px] tw:font-semibold tw:text-green-600">
+                    <span className="wa-mono tw:text-[11px] tw:font-semibold" style={{ color: "var(--wa-bubble-text)" }}>
                       Customer saves ₹{CommonService.roundedByDecimalPlace(savingsAmount, 2)}
                     </span>
                   )}
@@ -345,14 +337,15 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
                 </span>
               </AppButton>
             )}
-            <AppButton
+            <button
+              type="button"
               onClick={handleSave}
-              isLoading={saving}
               disabled={saving || removing || !isValidPrice}
-              className="tw:flex-1"
+              className="wa-cta tw:flex-1 tw:flex tw:items-center tw:justify-center tw:gap-1.5 tw:h-10 tw:rounded-xl tw:text-sm tw:font-bold tw:cursor-pointer tw:transition-all tw:disabled:cursor-not-allowed"
             >
+              {saving && <AppSpinner size="xs" />}
               Update Price
-            </AppButton>
+            </button>
           </div>
         </div>
       </AppModal.Content>

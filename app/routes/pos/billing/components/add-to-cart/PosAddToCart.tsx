@@ -717,13 +717,13 @@ const PosAddToCart = ({
         onChange={(e) => handleLooseQtyChange(e.target.value)}
         disabled={loading || disabledProp}
         placeholder="Qty"
-        className="tw:h-7 tw:w-14 tw:px-1.5 tw:text-xs tw:text-center tw:bg-white tw:border-slate-200 focus:tw:border-primary focus:tw:ring-1 focus:tw:ring-primary/20 tw:rounded-lg tw:font-semibold no-spinner"
+        className="wa-mono tw:h-7 tw:w-14 tw:px-1.5 tw:text-xs tw:text-center tw:bg-card tw:border-border focus:tw:border-primary focus:tw:ring-1 focus:tw:ring-primary/20 tw:rounded-lg tw:font-semibold no-spinner"
       />
       <select
         value={uom}
         onChange={(e) => handleLooseUomChange(e.target.value)}
         disabled={loading || disabledProp}
-        className="tw:h-7 tw:rounded-lg tw:border tw:border-slate-200 tw:bg-slate-50 tw:px-1.5 tw:text-xs tw:font-semibold tw:text-slate-600 focus:tw:outline-none focus:tw:border-primary tw:cursor-pointer"
+        className="wa-mono tw:h-7 tw:rounded-lg tw:border tw:border-border tw:bg-muted tw:px-1.5 tw:text-xs tw:font-semibold tw:text-muted-foreground focus:tw:outline-none focus:tw:border-primary tw:cursor-pointer"
       >
         <option value={selectedStockUom}>{selectedStockUom}</option>
         <option value={altUom}>{altUom}</option>
@@ -757,12 +757,12 @@ const PosAddToCart = ({
       {template === 2 && isLooseUom && looseUomInput}
 
       {template === 2 && !isLooseUom && (
-        <div className="tw:flex tw:items-center tw:bg-slate-100/80 tw:border tw:border-slate-200/50 tw:rounded-lg tw:p-0.5 tw:h-7">
+        <div className="tw:flex tw:items-center tw:bg-muted tw:border tw:border-border tw:rounded-lg tw:p-0.5 tw:h-7">
           <button
             type="button"
             onClick={() => onAddToCart("decr", Math.max(1, qty - 1))}
             disabled={qty <= 1 || loading}
-            className="tw:h-5 tw:w-5 tw:flex tw:items-center tw:justify-center tw:text-slate-500 hover:tw:text-slate-800 disabled:tw:opacity-40 tw:rounded-md tw:transition-colors tw:cursor-pointer"
+            className="tw:h-5 tw:w-5 tw:flex tw:items-center tw:justify-center tw:text-muted-foreground hover:tw:text-foreground disabled:tw:opacity-40 tw:rounded-md tw:transition-colors tw:cursor-pointer"
           >
             {loading && activeAction === "decr" ? (
               <Loader2 size={12} className="tw:animate-spin" />
@@ -775,10 +775,10 @@ const PosAddToCart = ({
             onClick={onQtyTap}
             disabled={loading || disabledProp}
             title="Click to view/change batch details"
-            className="tw:mx-1 tw:px-1.5 tw:h-5 tw:text-xs tw:font-bold tw:text-slate-800 hover:tw:text-primary tw:bg-white tw:border tw:border-slate-200/60 tw:rounded tw:transition-colors tw:cursor-pointer tw:flex tw:items-center tw:gap-1"
+            className="wa-mono tw:mx-1 tw:px-1.5 tw:h-5 tw:text-xs tw:font-bold tw:text-foreground hover:tw:text-primary tw:bg-card tw:border tw:border-border tw:rounded tw:transition-colors tw:cursor-pointer tw:flex tw:items-center tw:gap-1"
           >
             <span>{qty}</span>
-            <Pencil size={8} className="tw:text-slate-400 hover:tw:text-primary" />
+            <Pencil size={8} className="tw:text-muted-foreground hover:tw:text-primary" />
           </button>
           <button
             type="button"
@@ -787,7 +787,7 @@ const PosAddToCart = ({
               loading ||
               (typeof maxQty === "number" && maxQty > 0 && qty >= maxQty)
             }
-            className="tw:h-5 tw:w-5 tw:flex tw:items-center tw:justify-center tw:text-slate-500 hover:tw:text-slate-800 disabled:tw:opacity-40 tw:rounded-md tw:transition-colors tw:cursor-pointer"
+            className="tw:h-5 tw:w-5 tw:flex tw:items-center tw:justify-center tw:text-muted-foreground hover:tw:text-foreground disabled:tw:opacity-40 tw:rounded-md tw:transition-colors tw:cursor-pointer"
           >
             {loading && activeAction === "incr" ? (
               <Loader2 size={12} className="tw:animate-spin" />

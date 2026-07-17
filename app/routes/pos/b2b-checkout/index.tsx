@@ -568,22 +568,22 @@ const B2bCheckoutPage = () => {
           </span>
           <div className="tw:min-w-0 tw:flex-1">
             <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
-              <div className="tw:font-semibold tw:text-sm tw:text-gray-900 tw:truncate">
+              <div className="tw:font-semibold tw:text-sm tw:text-foreground tw:truncate">
                 {retailer.name || "-"}
               </div>
-              <div className="tw:text-[11px] tw:font-medium tw:text-gray-500 tw:shrink-0">
+              <div className="wa-mono tw:text-[11px] tw:font-medium tw:text-muted-foreground tw:shrink-0">
                 ID: {retailer.franchiseId || "-"}
               </div>
             </div>
-            <div className="tw:text-xs tw:text-gray-700 tw:mt-1 tw:flex tw:items-center tw:gap-1.5">
-              <Phone size={12} className="tw:text-gray-400 tw:shrink-0" />
+            <div className="wa-mono tw:text-xs tw:text-muted-foreground tw:mt-1 tw:flex tw:items-center tw:gap-1.5">
+              <Phone size={12} className="tw:text-muted-foreground tw:shrink-0" />
               {retailer.mobile || "-"}
             </div>
             {retailer.formatAddress && (
-              <div className="tw:text-xs tw:text-gray-700 tw:mt-1 tw:flex tw:items-start tw:gap-1.5">
+              <div className="tw:text-xs tw:text-muted-foreground tw:mt-1 tw:flex tw:items-start tw:gap-1.5">
                 <MapPin
                   size={12}
-                  className="tw:text-gray-400 tw:shrink-0 tw:mt-0.5"
+                  className="tw:text-muted-foreground tw:shrink-0 tw:mt-0.5"
                 />
                 <span>{retailer.formatAddress}</span>
               </div>
@@ -608,19 +608,17 @@ const B2bCheckoutPage = () => {
       ) : (
         <div className="tw:space-y-3">
           <div className="tw:flex tw:items-center tw:justify-between">
-            <div className="tw:text-xs tw:font-bold tw:text-gray-500 tw:uppercase tw:tracking-wider">
-              Payment Mode
-            </div>
+            <div className="wa-section-label">Payment Mode</div>
           </div>
 
           <div className="tw:flex tw:gap-2">
             {allowedPayments.cod && (
               <button
                 onClick={() => handleMethodSelect("COD")}
-                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-lg tw:border tw:cursor-pointer tw:transition-all ${
+                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-xl tw:border tw:cursor-pointer tw:transition-all ${
                   selectedMethod === "COD"
-                    ? "tw:bg-blue-50 tw:border-blue-500 tw:text-blue-700 tw:ring-1 tw:ring-blue-500"
-                    : "tw:bg-white tw:border-gray-200 tw:text-gray-600 tw:hover:bg-gray-50"
+                    ? "wa-incart tw:border-transparent tw:shadow-sm"
+                    : "tw:bg-card tw:border-border tw:text-muted-foreground tw:hover:bg-muted/40"
                 }`}
               >
                 <IndianRupee size={16} />
@@ -630,10 +628,10 @@ const B2bCheckoutPage = () => {
             {allowedPayments.prepaid && (
               <button
                 onClick={() => handleMethodSelect("PREPAID")}
-                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-lg tw:border tw:cursor-pointer tw:transition-all ${
+                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-xl tw:border tw:cursor-pointer tw:transition-all ${
                   selectedMethod === "PREPAID"
-                    ? "tw:bg-blue-50 tw:border-blue-500 tw:text-blue-700 tw:ring-1 tw:ring-blue-500"
-                    : "tw:bg-white tw:border-gray-200 tw:text-gray-600 tw:hover:bg-gray-50"
+                    ? "wa-incart tw:border-transparent tw:shadow-sm"
+                    : "tw:bg-card tw:border-border tw:text-muted-foreground tw:hover:bg-muted/40"
                 }`}
               >
                 <Wallet size={16} />
@@ -643,10 +641,10 @@ const B2bCheckoutPage = () => {
             {paylaterEligible && (
               <button
                 onClick={() => handleMethodSelect("PAYLATER")}
-                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-lg tw:border tw:cursor-pointer tw:transition-all ${
+                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-xl tw:border tw:cursor-pointer tw:transition-all ${
                   selectedMethod === "PAYLATER"
-                    ? "tw:bg-blue-50 tw:border-blue-500 tw:text-blue-700 tw:ring-1 tw:ring-blue-500"
-                    : "tw:bg-white tw:border-gray-200 tw:text-gray-600 tw:hover:bg-gray-50"
+                    ? "wa-incart tw:border-transparent tw:shadow-sm"
+                    : "tw:bg-card tw:border-border tw:text-muted-foreground tw:hover:bg-muted/40"
                 }`}
               >
                 <Wallet size={16} />
@@ -656,7 +654,7 @@ const B2bCheckoutPage = () => {
           </div>
 
           {selectedMethod === "PREPAID" && !prepaidPayment && (
-            <div className="tw:p-2.5 tw:bg-amber-50 tw:border tw:border-amber-200 tw:rounded-md tw:flex tw:items-center tw:gap-2 tw:flex-wrap">
+            <div className="tw:p-2.5 tw:bg-amber-50 tw:border tw:border-amber-200 tw:rounded-xl tw:flex tw:items-center tw:gap-2 tw:flex-wrap">
               <div className="tw:text-xs tw:text-amber-700 tw:font-medium">
                 Add the prepaid payment details to continue.
               </div>
@@ -671,20 +669,23 @@ const B2bCheckoutPage = () => {
           )}
 
           {selectedMethod === "PREPAID" && prepaidPayment && (
-            <div className="tw:p-1.5 tw:bg-blue-50 tw:border tw:border-blue-200 tw:rounded-md tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
-              <div className="tw:text-xs tw:font-semibold tw:text-blue-700 tw:bg-blue-100 tw:px-1.5 tw:py-0.5 tw:rounded">
+            <div className="wa-incart tw:p-1.5 tw:border tw:border-transparent tw:rounded-xl tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
+              <div
+                className="wa-mono tw:text-xs tw:font-semibold tw:px-1.5 tw:py-0.5 tw:rounded-full"
+                style={{ backgroundColor: "var(--wa-accent)", color: "var(--wa-accent-foreground)" }}
+              >
                 {prepaidPayment.type || "Prepaid"}
               </div>
-              <div className="tw:text-xs tw:text-blue-600 tw:font-medium">
+              <div className="wa-mono tw:text-xs tw:font-medium">
                 <Amount value={prepaidPayment.amount} />
               </div>
               {prepaidPayment.referenceNumber && (
-                <div className="tw:text-xs tw:text-gray-500">
+                <div className="wa-mono tw:text-xs tw:opacity-80">
                   Ref: {prepaidPayment.referenceNumber}
                 </div>
               )}
               {prepaidPayment.proof?.length > 0 && (
-                <div className="tw:text-xs tw:text-gray-500">
+                <div className="tw:text-xs tw:opacity-80">
                   Proof: {prepaidPayment.proof.length} file
                   {prepaidPayment.proof.length > 1 ? "s" : ""}
                 </div>
@@ -692,7 +693,7 @@ const B2bCheckoutPage = () => {
               <button
                 type="button"
                 onClick={openPrepaidModal}
-                className="tw:ml-auto tw:inline-flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-blue-600 hover:tw:text-blue-800 tw:cursor-pointer"
+                className="tw:ml-auto tw:inline-flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:cursor-pointer tw:hover:opacity-70"
               >
                 <Pencil size={12} />
                 Edit
@@ -701,22 +702,22 @@ const B2bCheckoutPage = () => {
           )}
 
           {selectedMethod === "PAYLATER" && (
-            <div className="tw:p-3 tw:rounded-lg tw:bg-blue-50/50 tw:border tw:border-blue-100 tw:animate-in tw:fade-in tw:duration-300">
+            <div className="tw:p-3 tw:rounded-xl tw:bg-primary/5 tw:border tw:border-primary/15 tw:animate-in tw:fade-in tw:duration-300">
               <div className="tw:flex tw:justify-between tw:items-center">
-                <div className="tw:text-[10px] tw:text-blue-700 tw:font-semibold tw:uppercase tw:tracking-tight">
+                <div className="wa-section-label tw:text-primary">
                   Paylater Limit
                 </div>
-                <div className="tw:text-sm tw:font-bold tw:text-blue-900">
+                <div className="wa-mono tw:text-sm tw:font-bold tw:text-primary">
                   <Amount value={paylaterBalance} />
                 </div>
               </div>
-              <div className="tw:text-[10px] tw:text-blue-600 tw:mt-1 tw:flex tw:items-center tw:gap-1">
-                <div className="tw:w-1 tw:h-1 tw:bg-blue-400 tw:rounded-full" />
+              <div className="tw:text-[10px] tw:text-primary/80 tw:mt-1 tw:flex tw:items-center tw:gap-1">
+                <div className="tw:w-1 tw:h-1 tw:bg-primary/60 tw:rounded-full" />
                 Amount will be debited from this limit.
               </div>
 
               {orderAmount > paylaterBalance && (
-                <div className="tw:mt-2 tw:p-2 tw:rounded tw:bg-red-50 tw:text-[10px] tw:text-red-600 tw:font-medium tw:border tw:border-red-100">
+                <div className="tw:mt-2 tw:p-2 tw:rounded-lg tw:bg-destructive/10 tw:text-[10px] tw:text-destructive tw:font-medium tw:border tw:border-destructive/20">
                   Insufficient limit to place this order via Paylater.
                 </div>
               )}
@@ -810,7 +811,7 @@ const B2bCheckoutPage = () => {
                 <button
                   type="button"
                   onClick={() => backToBilling()}
-                  className="tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-medium tw:text-gray-700 tw:cursor-pointer tw:px-2.5 tw:py-1 tw:rounded-md tw:hover:bg-gray-100 tw:transition-colors"
+                  className="tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-medium tw:text-muted-foreground tw:cursor-pointer tw:px-2.5 tw:py-1 tw:rounded-full tw:hover:bg-muted tw:hover:text-foreground tw:transition-colors"
                 >
                   <ArrowLeft size={16} />
                   {t("backToCart", "Back to cart")}
@@ -820,9 +821,9 @@ const B2bCheckoutPage = () => {
               <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:gap-5">
                 {/* Main content */}
                 <div className="tw:flex-1 tw:min-w-0">
-                  <div className="tw:bg-white tw:rounded-xl tw:border tw:border-gray-200 tw:shadow-sm tw:overflow-hidden tw:mb-3">
+                  <div className="tw:bg-card tw:rounded-xl tw:border tw:border-border tw:shadow-sm tw:overflow-hidden tw:mb-3">
                     {/* Desktop stepper */}
-                    <div className="tw:hidden tw:md:block tw:px-5 tw:pt-4 tw:pb-2 tw:border-b tw:border-gray-100 tw:bg-gray-50/50">
+                    <div className="tw:hidden tw:md:block tw:px-5 tw:pt-4 tw:pb-2 tw:border-b tw:border-border tw:bg-muted/50">
                       <AppSteps
                         steps={steps}
                         activeKey={currentStep}
@@ -832,21 +833,21 @@ const B2bCheckoutPage = () => {
                     </div>
 
                     {/* Mobile step indicator */}
-                    <div className="tw:md:hidden tw:px-4 tw:pt-4 tw:pb-3 tw:border-b tw:border-gray-100 tw:bg-gray-50/50">
+                    <div className="tw:md:hidden tw:px-4 tw:pt-4 tw:pb-3 tw:border-b tw:border-border tw:bg-muted/50">
                       <div className="tw:flex tw:items-baseline tw:justify-between tw:mb-2">
-                        <span className="tw:text-[11px] tw:font-semibold tw:tracking-wide tw:uppercase tw:text-primary">
+                        <span className="wa-section-label tw:text-primary">
                           {t("step", "Step")} {safeStepIndex + 1} /{" "}
                           {Math.max(steps.length, 1)}
                         </span>
                         {nextStepTitle && (
-                          <span className="tw:text-[11px] tw:text-gray-500 tw:flex tw:items-center tw:gap-0.5">
+                          <span className="tw:text-[11px] tw:text-muted-foreground tw:flex tw:items-center tw:gap-0.5">
                             {t("next", "Next")}
                             <ChevronRight size={12} />
                             {nextStepTitle}
                           </span>
                         )}
                       </div>
-                      <div className="tw:h-1.5 tw:bg-gray-200 tw:rounded-full tw:overflow-hidden">
+                      <div className="tw:h-1.5 tw:bg-muted tw:rounded-full tw:overflow-hidden">
                         <div
                           className="tw:h-full tw:bg-primary tw:rounded-full tw:transition-all tw:duration-300"
                           style={{ width: `${progressPct}%` }}
@@ -855,17 +856,17 @@ const B2bCheckoutPage = () => {
                     </div>
 
                     {/* Step header */}
-                    <div className="tw:px-4 tw:md:px-5 tw:pt-4 tw:pb-3 tw:border-b tw:border-gray-100">
+                    <div className="tw:px-4 tw:md:px-5 tw:pt-4 tw:pb-3 tw:border-b tw:border-border">
                       <div className="tw:flex tw:items-center tw:gap-3">
                         <span className="tw:flex tw:items-center tw:justify-center tw:w-7 tw:h-7 tw:rounded-full tw:bg-primary tw:text-white tw:text-xs tw:font-semibold tw:shrink-0">
                           {safeStepIndex + 1}
                         </span>
                         <div className="tw:min-w-0">
-                          <h2 className="tw:text-base tw:font-semibold tw:text-gray-900 tw:leading-tight">
+                          <h2 className="tw:text-base tw:font-semibold tw:text-foreground tw:leading-tight">
                             {steps[safeStepIndex]?.title}
                           </h2>
                           {stepHelper[currentStep] && (
-                            <p className="tw:text-xs tw:text-gray-500 tw:mt-0.5">
+                            <p className="tw:text-xs tw:text-muted-foreground tw:mt-0.5">
                               {stepHelper[currentStep]}
                             </p>
                           )}
@@ -888,7 +889,7 @@ const B2bCheckoutPage = () => {
                     {!loadingConfig &&
                       (currentStep === "payment" ||
                         currentStep === "delivery") && (
-                        <div className="tw:bg-gray-50/50 tw:border-t tw:border-gray-100 tw:px-4 tw:md:px-5 tw:py-3">
+                        <div className="tw:bg-muted/50 tw:border-t tw:border-border tw:px-4 tw:md:px-5 tw:py-3">
                           <div className="tw:flex tw:justify-between tw:items-center">
                             <div>
                               {currentStep !== "payment" && (
@@ -897,6 +898,7 @@ const B2bCheckoutPage = () => {
                                   isLoading={isProceeding}
                                   fill="outline"
                                   color="light"
+                                  className="tw:rounded-xl"
                                 >
                                   <ArrowLeft size={16} /> Back
                                 </AppButton>
@@ -904,12 +906,13 @@ const B2bCheckoutPage = () => {
                             </div>
 
                             <div>
-                              <AppButton
-                                color="primary"
+                              <button
+                                type="button"
                                 onClick={handleNextClick}
-                                isLoading={isProceeding}
-                                disabled={nextDisabled}
+                                disabled={nextDisabled || isProceeding}
+                                className="wa-cta tw:flex tw:items-center tw:justify-center tw:gap-1.5 tw:px-5 tw:h-10 tw:rounded-xl tw:text-sm tw:font-bold tw:cursor-pointer tw:transition-all tw:disabled:cursor-not-allowed"
                               >
+                                {isProceeding && <AppSpinner size="xs" />}
                                 {currentStep === "delivery" ||
                                 (!hasDeliveryStep && currentStep === "payment")
                                   ? !enableOtpForPOS
@@ -917,7 +920,7 @@ const B2bCheckoutPage = () => {
                                     : "Send OTP"
                                   : "Next"}{" "}
                                 <ArrowRight size={16} />
-                              </AppButton>
+                              </button>
                             </div>
                           </div>
                         </div>

@@ -32,14 +32,14 @@ const CustomerTypeModal: React.FC<CustomerTypeModalProps> = ({
       title: t("customerTypeModal.options.b2c.title"),
       description: t("customerTypeModal.options.b2c.description"),
       icon: <Users className="tw:w-5 tw:h-5" />,
-      iconClass: "tw:bg-blue-50 tw:text-blue-600",
+      iconClass: "tw:bg-primary/10 tw:text-primary",
     },
     {
       id: "b2b",
       title: t("customerTypeModal.options.b2b.title"),
       description: t("customerTypeModal.options.b2b.description"),
       icon: <Building2 className="tw:w-5 tw:h-5" />,
-      iconClass: "tw:bg-emerald-50 tw:text-emerald-600",
+      iconClass: "wa-incart",
     },
     {
       id: "b2b-quick",
@@ -88,7 +88,7 @@ const CustomerTypeModal: React.FC<CustomerTypeModalProps> = ({
             <button
               key={customerType.id}
               onClick={() => handleCustomerTypeSelect(customerType)}
-              className="tw:group tw:w-full tw:cursor-pointer tw:flex tw:items-center tw:gap-4 tw:p-4 tw:rounded-xl tw:border tw:border-border tw:bg-card tw:text-left tw:transition-all tw:duration-200 tw:hover:border-primary/40 tw:hover:shadow-sm tw:focus:outline-none tw:focus:ring-2 tw:focus:ring-primary/30"
+              className="tw:group tw:w-full tw:cursor-pointer tw:flex tw:items-center tw:gap-4 tw:p-4 tw:rounded-2xl tw:border tw:border-border tw:bg-card tw:text-left tw:transition-all tw:duration-200 tw:hover:border-primary/40 tw:hover:shadow-sm tw:focus:outline-none tw:focus:ring-2 tw:focus:ring-primary/30"
             >
               <span
                 className={`tw:flex tw:h-11 tw:w-11 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full ${customerType.iconClass}`}
