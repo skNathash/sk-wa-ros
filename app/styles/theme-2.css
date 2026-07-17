@@ -311,6 +311,118 @@
 [data-theme="theme-2"] {
   --wa-bubble: #d9fdd3; /* WhatsApp "sent message" green */
   --wa-bubble-text: #0a6b57;
+  /* Bright WhatsApp call-to-action green (distinct from the deep teal
+     `--primary`) — used for the "final action" buttons in the billing flow
+     (Take payment, Pay, Checkout CTA) so the single most important tap per
+     screen reads as unmistakably primary against the teal chrome. */
+  --wa-accent: #25d366;
+  --wa-accent-foreground: #ffffff;
+  /* Chat-wallpaper cream — same value as the mobile page background,
+     exposed as a token so cards/sheets can paint sub-panels in it. */
+  --wa-paper: #ece5dd;
+  --wa-paper-2: #e6ddcc;
+}
+
+/* IBM Plex Mono — theme-2 "receipt" typography: SKU/barcode strings,
+   timestamps, quantities, quick-add chip prices, tab counters. Anything that
+   reads as a scanned/printed data point rather than UI copy. Same specificity
+   trick as `.wa-amount` (0,2,0) to outrank the app-wide `*` font-family rule. */
+[data-theme="theme-2"] .wa-mono {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reusable "quick action" chip — quantity/discount presets, quick-add tiles,
+   filter chips. White fill, hairline border, pill/rounded corners; the
+   selected state flips to the WhatsApp sent-bubble green. */
+[data-theme="theme-2"] .wa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background-color: #fff;
+  color: var(--foreground);
+  font-weight: 700;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+[data-theme="theme-2"] .wa-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+[data-theme="theme-2"] .wa-chip[data-active="true"],
+[data-theme="theme-2"] .wa-chip.wa-chip-active {
+  background-color: var(--wa-bubble);
+  border-color: transparent;
+  color: var(--wa-bubble-text);
+}
+
+/* Bright-green CTA button — the single "final action" per billing screen
+   (Take payment, Pay ₹, primary checkout submit). Distinct from `--primary`
+   (teal chrome) so the one tap that matters is unmistakable, matching the
+   reference design's `waAccent` filled buttons. */
+[data-theme="theme-2"] .wa-cta {
+  background-color: var(--wa-accent);
+  color: var(--wa-accent-foreground);
+  box-shadow: 0 6px 14px -2px rgb(37 211 102 / 0.35);
+}
+[data-theme="theme-2"] .wa-cta:hover {
+  background-color: #1ebc59;
+}
+[data-theme="theme-2"] .wa-cta:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+/* Scan-capture card — the dashed-border camera target on the Scan tab, with
+   an animated laser line. Shared by Filter's scan panel. */
+[data-theme="theme-2"] .wa-scan-target {
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="theme-2"] .wa-scan-target::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  height: 2px;
+  background-color: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+  animation: wa-scanline 1.8s ease-in-out infinite;
+}
+@keyframes wa-scanline {
+  0%,
+  100% {
+    top: 20%;
+    opacity: 0.9;
+  }
+  50% {
+    top: 80%;
+    opacity: 0.4;
+  }
+}
+
+/* Section label — the small letter-spaced mono caption above a group of
+   controls ("QUICK ADD", "PAYMENT METHOD", "QUICK OFF" …). */
+[data-theme="theme-2"] .wa-section-label {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Sticky bottom cart/checkout bar — white surface lifted off the page with a
+   hairline top border, used for the persistent total+CTA footer inside cart
+   panels and checkout steps. */
+[data-theme="theme-2"] .wa-sticky-foot {
+  background-color: #fff;
+  border-top: 1px solid var(--border);
 }
 
 /* Amount figures (ledger bubbles, summary strip) are set in Fraunces — a

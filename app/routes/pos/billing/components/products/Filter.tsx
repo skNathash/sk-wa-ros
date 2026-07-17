@@ -223,10 +223,10 @@ const Filter = ({
       : "Type barcode or product…";
 
   return (
-    <AppCard noPadding={true}>
-      <div className="tw:px-4 tw:pt-3 tw:pb-3">
+    <AppCard noPadding={true} className="tw:overflow-visible">
+      <div className="tw:px-3 tw:pt-3 tw:pb-3">
         {/* Search-mode tabs — Scan / Name */}
-        <div className="tw:mb-3 tw:flex tw:gap-1 tw:rounded-full tw:bg-muted tw:p-1">
+        <div className="tw:mb-3 tw:flex tw:gap-1 tw:rounded-xl tw:bg-muted tw:p-1">
           {MODE_TABS.map(({ key, label, icon: Icon }) => {
             const active = mode === key;
             return (
@@ -234,9 +234,9 @@ const Filter = ({
                 key={key}
                 type="button"
                 onClick={() => handleModeChange(key)}
-                className={`tw:flex tw:flex-1 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-full tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:transition-colors tw:cursor-pointer ${
+                className={`tw:flex tw:flex-1 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-lg tw:px-3 tw:py-2 tw:text-sm tw:font-bold tw:transition-colors tw:cursor-pointer ${
                   active
-                    ? "tw:bg-card tw:text-primary tw:shadow-sm"
+                    ? "tw:bg-card tw:text-foreground tw:shadow-sm"
                     : "tw:text-muted-foreground tw:hover:text-foreground"
                 }`}
               >
@@ -252,20 +252,19 @@ const Filter = ({
           <button
             type="button"
             onClick={triggerNativeScan}
-            className="tw:mb-3 tw:w-full tw:rounded-xl tw:bg-primary/[0.04] tw:p-4 tw:text-center tw:cursor-pointer tw:transition-colors tw:hover:bg-primary/[0.07]"
+            className="tw:mb-3 tw:w-full tw:rounded-xl tw:bg-gradient-to-b tw:from-muted/60 tw:to-transparent tw:p-4 tw:text-center tw:cursor-pointer tw:transition-colors tw:hover:bg-muted/40"
           >
-            <div className="tw:relative tw:mx-auto tw:flex tw:h-28 tw:w-full tw:max-w-[220px] tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-lg tw:border-2 tw:border-dashed tw:border-primary/30 tw:bg-card">
+            <div className="wa-scan-target tw:relative tw:mx-auto tw:flex tw:h-24 tw:w-full tw:max-w-[220px] tw:items-center tw:justify-center tw:rounded-lg tw:border-2 tw:border-dashed tw:border-primary/30 tw:bg-card">
               <Scan
                 className="tw:text-primary/40"
-                size={40}
+                size={36}
                 strokeWidth={1.25}
               />
-              <span className="tw:absolute tw:left-4 tw:right-4 tw:h-0.5 tw:bg-primary tw:shadow-[0_0_8px] tw:shadow-primary/60 tw:animate-pulse" />
             </div>
-            <p className="tw:mt-3 tw:text-sm tw:font-semibold tw:text-foreground">
+            <p className="tw:mt-3 tw:text-sm tw:font-bold tw:text-foreground">
               Point camera at barcode
             </p>
-            <p className="tw:text-xs tw:text-muted-foreground">
+            <p className="tw:text-xs tw:text-muted-foreground tw:mt-0.5">
               or type barcode / name below
             </p>
           </button>
@@ -278,20 +277,20 @@ const Filter = ({
             placeholder={placeholder}
             register={register}
             className="tw:flex-1 tw:min-w-0"
-            inputClassName="tw:bg-gray-50 focus:tw:bg-white tw:rounded-full tw:pl-10"
+            inputClassName="tw:bg-muted focus:tw:bg-white tw:rounded-full tw:pl-10"
             onChange={handleSearchChange}
             onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
             leftIcon={
               mode === "name" ? (
-                <Search className="tw:text-gray-500" size={16} />
+                <Search className="tw:text-muted-foreground" size={16} />
               ) : (
-                <Barcode className="tw:text-gray-500" size={16} />
+                <Barcode className="tw:text-muted-foreground" size={16} />
               )
             }
             rightIcon={
               <VoiceSearch
                 callback={handleVoiceCallback}
-                className="tw:mt-1 tw:text-gray-500 tw:cursor-pointer tw:hover:text-gray-700"
+                className="tw:mt-1 tw:text-muted-foreground tw:cursor-pointer tw:hover:text-primary"
               >
                 <Mic size={18} />
               </VoiceSearch>
@@ -301,7 +300,7 @@ const Filter = ({
             <button
               type="button"
               onClick={onKeypadClick}
-              className="tw:p-2.5 tw:rounded-full tw:border tw:border-border tw:bg-card tw:text-muted-foreground tw:cursor-pointer tw:transition-colors tw:hover:bg-muted tw:hover:text-foreground"
+              className="tw:p-2.5 tw:rounded-full tw:border tw:border-border tw:bg-card tw:text-muted-foreground tw:cursor-pointer tw:transition-colors tw:hover:border-primary tw:hover:text-primary"
               aria-label="Open keypad"
             >
               <Keyboard size={20} />

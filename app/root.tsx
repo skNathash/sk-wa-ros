@@ -115,6 +115,12 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..800&display=swap",
   },
+  // IBM Plex Mono — theme-2 "receipt" labels: SKU/barcode strings, timestamps,
+  // quick-add chip prices, tab counters. See `.wa-mono` in theme-2.css.
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap",
+  },
 ];
 
 function GoogleMapsScript() {
