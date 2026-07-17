@@ -1,0 +1,399 @@
+/* theme-2 — activated via `data-theme="theme-2"` on <html>.
+   Overrides the design-token variables and applies a few app-wide layout
+   tweaks (primary-colored header, hidden breadcrumbs/page descriptions). */
+
+/* theme-2 uses Plus Jakarta Sans (loaded via a Google Fonts <link> in root.tsx)
+   in place of the app-wide Open Sans. app.css sets font-family on `*` (0,0,0);
+   `[data-theme="theme-2"] *` (0,1,0) outranks it, so it overrides everywhere
+   under a theme-2 root. Redeclare --font-sans too so Tailwind's `font-sans`
+   utility follows. */
+[data-theme="theme-2"],
+[data-theme="theme-2"] * {
+  font-family:
+    "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+[data-theme="theme-2"] {
+  --font-sans:
+    "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+[data-theme="theme-2"] {
+  --background: oklch(0.939 0.012 79.78);
+  --foreground: oklch(0.215 0.019 235.13);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.215 0.019 235.13);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.215 0.019 235.13);
+  --primary: #075e54;
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.957 0.067 141.12);
+  --secondary-foreground: oklch(0.215 0.019 235.13);
+  --muted: oklch(0.944 0.005 228.82);
+  --muted-foreground: oklch(0.559 0.025 233.72);
+  --accent: oklch(0.946 0.072 131.55);
+  --accent-foreground: oklch(0.215 0.019 235.13);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.876 0.009 236.58);
+  --input: oklch(0.876 0.009 236.58);
+  --ring: #075e54;
+  --chart-1: oklch(0.761 0.201 149.74);
+  --chart-2: oklch(0.651 0.128 170.43);
+  --chart-3: oklch(0.535 0.102 174.23);
+  --chart-4: oklch(0.576 0.1 182.4);
+  --chart-5: oklch(0.434 0.075 182.23);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.215 0.019 235.13);
+  --sidebar-primary: #075e54;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.957 0.067 141.12);
+  --sidebar-accent-foreground: oklch(0.215 0.019 235.13);
+  --sidebar-border: oklch(0.876 0.009 236.58);
+  --sidebar-ring: #075e54;
+}
+
+/* theme-2: primary-colored app header with light content */
+[data-theme="theme-2"] .app-header {
+  background-color: var(--primary);
+  border-color: transparent;
+}
+[data-theme="theme-2"] .app-header,
+[data-theme="theme-2"] .app-header h1,
+[data-theme="theme-2"] .app-header button,
+[data-theme="theme-2"] .app-header a,
+[data-theme="theme-2"] .app-header svg {
+  color: var(--primary-foreground);
+}
+/* Header buttons (e.g. Record Payment) use the outline/ghost variants whose
+   light background would render the now-light icon invisible on the primary
+   header. Make them transparent with a light border so they read correctly. */
+[data-theme="theme-2"] .app-header button {
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--primary-foreground) 40%, transparent);
+}
+[data-theme="theme-2"] .app-header button:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--primary-foreground) 15%,
+    transparent
+  );
+}
+/* SVG-image icons (e.g. hamburger) are rendered as <img>; recolor to light */
+[data-theme="theme-2"] .app-header img[src*="hamburger"] {
+  filter: brightness(0) invert(1);
+}
+
+/* theme-2 uses the WhatsApp chat "cream" as the page background on mobile, where
+   it reads as the familiar WhatsApp canvas. On desktop the large flat expanse of
+   cream muddies the white cards/inputs sitting on it, so switch to a clean light
+   neutral there to keep cards, borders and the primary header standing out. */
+[data-theme="theme-2"] .page-bg {
+  --page-bg: #ece5dd;
+}
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .page-bg {
+    --page-bg: #f7f8fa;
+  }
+}
+
+/* theme-2: form controls default to a transparent fill and so pick up the cream
+   page background. Give the text-entry controls (input, textarea, select) and the
+   toggle controls an explicit white surface so fields read as distinct inputs. */
+[data-theme="theme-2"] [data-slot="input"],
+[data-theme="theme-2"] [data-slot="textarea"],
+[data-theme="theme-2"] [data-slot="select-trigger"],
+[data-theme="theme-2"] [data-slot="checkbox"]:not([data-state="checked"]),
+[data-theme="theme-2"]
+  [data-slot="radio-group-item"]:not([data-state="checked"]) {
+  background-color: #fff;
+}
+
+/* theme-2: the default (segmented) tab bar uses a translucent grey track that
+   reads as the cream page background. Rework it as a WhatsApp-style segmented
+   control — a white track lifted off the cream page with a hairline border, quiet
+   muted labels, and the active tab painted as a WhatsApp "sent bubble" green pill
+   so the selection reads clearly (the base `--secondary` tint was too washed out
+   against white to register as selected). */
+[data-theme="theme-2"] [data-slot="app-tab"][data-variant="tabs"] {
+  background-color: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+[data-theme="theme-2"]
+  [data-slot="app-tab"][data-variant="tabs"]
+  [data-slot="app-tab-item"] {
+  color: var(--muted-foreground);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+[data-theme="theme-2"]
+  [data-slot="app-tab"][data-variant="tabs"]
+  [data-slot="app-tab-item"]:not([aria-selected="true"]):hover {
+  color: var(--primary);
+}
+[data-theme="theme-2"]
+  [data-slot="app-tab"][data-variant="tabs"]
+  [data-slot="app-tab-item"][aria-selected="true"] {
+  background-color: var(--wa-bubble);
+  color: var(--wa-bubble-text);
+  box-shadow: 0 1px 2px rgb(7 94 84 / 0.12);
+}
+
+/* Count / badge chips on the tabs default to indigo / green, which clash with
+   the teal-green theme. Repaint them in the WhatsApp palette: the count uses the
+   teal primary, the badge keeps a lighter accent. */
+[data-theme="theme-2"] [data-slot="app-tab"] [data-slot="app-tab-count"] {
+  background-color: var(--primary);
+}
+[data-theme="theme-2"]
+  [data-slot="app-tab"]
+  [data-slot="app-tab-item"][aria-selected="true"]
+  [data-slot="app-tab-count"] {
+  background-color: var(--wa-bubble-text);
+}
+
+/* theme-2 mobile: let a segmented tab track break out of the page's `p-4`
+   padding (negative x-margins) so it runs edge to edge / corner to corner on
+   small screens. Square off the corners since they'd sit flush to the viewport.
+   Everywhere else the tab keeps its normal inset + rounding. */
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .theme-2-edge-tabs {
+    /* Override the track's `w-full` (width:100%): a fixed width can't be
+       stretched by negative margins, so the right margin would leave a gap.
+       `width:auto` lets both negative margins expand it to touch both edges. */
+    width: auto;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+    /* Keep the track flush to the viewport but inset the tab labels so they
+       line up with the page content (search / cards) instead of touching the
+       edge. */
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* theme-2 removes the drop shadow from cards app-wide for a flatter look */
+[data-theme="theme-2"] [data-slot="card"] {
+  box-shadow: none;
+}
+
+/* theme-2 lets page content span the full width — drop the app-wide
+   `.app-container` max-width (max-w-7xl) so sections use the available space. */
+[data-theme="theme-2"] .app-container {
+  max-width: 100%;
+}
+
+/* theme-2 hides breadcrumbs and page descriptions app-wide (applied at the
+   component root, so every page picks this up automatically). Add
+   `hide-in-theme-2` to any other element that should follow the same rule. */
+[data-theme="theme-2"] .app-breadcrumbs,
+[data-theme="theme-2"] .app-page-description,
+[data-theme="theme-2"] .hide-in-theme-2 {
+  display: none;
+}
+
+/* theme-2 replaces the hidden breadcrumbs/description with a PageHeading
+   (title + description) so the space above the page content isn't left empty.
+   PageHeading is hidden everywhere else. */
+[data-theme="theme-2"] .app-page-heading {
+  display: block;
+}
+
+/* theme-2 shows the sticky bottom tab bar (height 4rem + safe-area inset).
+   Both it and the page's `.app-footer` are sticky at bottom:0, so without this
+   the footer sits behind the bottom tab. Lift the footer above the tab bar and
+   pad the page so content isn't hidden behind either. */
+[data-theme="theme-2"] .app-footer {
+  bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+[data-theme="theme-2"] .app-page.has-footer {
+  padding-bottom: calc(100px + 4rem + env(safe-area-inset-bottom));
+}
+
+/* Opt-in per page: add `theme-2-no-footer` to the `.app-page` element to hide
+   the page's (adjacent) sticky footer in theme-2 and drop the footer padding,
+   leaving only the room needed for the bottom tab bar. */
+[data-theme="theme-2"] .app-page.theme-2-no-footer.has-footer {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+[data-theme="theme-2"] .app-page.theme-2-no-footer + .app-footer {
+  display: none;
+}
+
+/* Elements that should appear ONLY in theme-2 on mobile viewports (< md).
+   Hidden everywhere by default; shown only when data-theme="theme-2" AND the
+   viewport is mobile. Add `theme-2-mobile-only` to any element that follows
+   this rule so the visibility logic stays in this one file. */
+.theme-2-mobile-only {
+  display: none;
+}
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .theme-2-mobile-only {
+    display: block;
+  }
+}
+
+/* Opposite of the above: hide an element ONLY in theme-2 on mobile viewports
+   (< md). Useful for rows whose content is entirely hidden on theme-2 mobile
+   (e.g. breadcrumbs + desktop-only actions) but whose margins would otherwise
+   leave an empty gap. Visible everywhere else. */
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .theme-2-mobile-hide {
+    display: none;
+  }
+}
+
+/* theme-2 drops the white fill on the AppModal title/header block so it blends
+   with the modal surface (the modal body itself is not white in theme-2). */
+[data-theme="theme-2"] .app-modal-title {
+  background-color: transparent;
+}
+
+/* Desktop section-menu rail (theme-2, lg+): a fixed, full-height left rail.
+
+   The `.section-menu-aside` stays in flow as a 14rem spacer (so `.section-content`
+   keeps its offset), while its inner wrapper (the `.sticky top-20` div in the page
+   JSX) is lifted out of flow and pinned as a fixed panel spanning from just below
+   the sticky app header down to the sticky bottom tab bar. The `SectionMenu` card
+   inside has `h-full`, so it fills the panel.
+
+   `left: 0` is safe here because theme-2 renders no in-flow app side menu
+   (`showSideMenu` is false — it uses an overlay menu), the container is full width
+   (`.app-container` max-width:100%), and the page runs edge to edge horizontally
+   (`.page-padding` left/right is 0). So the aside's left edge is the viewport left edge and
+   the fixed panel lands exactly over its spacer. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .section-menu-aside > div {
+    position: fixed;
+    top: 3.75rem; /* clears the sticky app header (h-15 = 3.75rem) */
+    bottom: calc(
+      4rem + env(safe-area-inset-bottom)
+    ); /* clears the bottom tab */
+    left: 0;
+    width: 14rem; /* matches the aside spacer (tw:w-56) */
+    z-index: 30; /* below the header/bottom-tab (z-50), above page content */
+    overflow-y: auto; /* long menus scroll within the rail */
+  }
+
+  /* Square off the menu card so the full-height rail reads as a side rail rather
+     than a rounded floating card (drops SectionMenu's `rounded-xl`). */
+  [data-theme="theme-2"] .section-menu-aside > div > nav {
+    border-radius: 0;
+  }
+
+  /* Shorten the first-column menu list so it doesn't run the full viewport
+     height in theme-2 (base is calc(100vh - 11rem)). */
+  [data-theme="theme-2"] .network-menu-list {
+    height: calc(100vh - 14rem);
+  }
+}
+
+/* ============================================================
+   theme-2 → WhatsApp look (POS Billing)
+
+   theme-2 already carries WhatsApp's identity through the tokens above:
+   `--primary: #075e54` (the teal header/accent) and the `#ece5dd` chat-wallpaper
+   page background. Components get the WhatsApp look purely from `primary`
+   utilities (`bg-primary`, `text-primary`, …) — no extra classes needed.
+
+   The only rules below are for the two things `primary` can't express:
+   1. `wa-incart` — the "in cart" chip painted as a WhatsApp sent-message bubble,
+      a lighter green than the teal primary.
+   2. `wa-above-tabbar` / `wa-above-cartbar` — positioning (not color) that lifts
+      floating billing controls above the sticky bottom tab bar, which only
+      exists in theme-2. In other themes the bar is absent and the controls keep
+      their base `bottom-*` offset.
+   ============================================================ */
+[data-theme="theme-2"] {
+  --wa-bubble: #d9fdd3; /* WhatsApp "sent message" green */
+  --wa-bubble-text: #0a6b57;
+}
+
+/* Amount figures (ledger bubbles, summary strip) are set in Fraunces — a
+   high-contrast serif that gives the money a "printed receipt" weight and sets
+   it apart from the Plus Jakarta Sans UI text.
+
+   `[data-theme="theme-2"] *` (0,1,0) above forces Plus Jakarta Sans on every
+   descendant, so this needs the extra class to outrank it — hence
+   `[data-theme="theme-2"] .wa-amount` (0,2,0) rather than a bare `.wa-amount`.
+   Amounts are also tabular so digits stay column-aligned down the feed. */
+[data-theme="theme-2"] .wa-amount {
+  font-family: "Fraunces", ui-serif, Georgia, Cambria, serif;
+  font-variant-numeric: tabular-nums;
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+/* "In cart" indicator styled as a WhatsApp sent-message bubble. */
+[data-theme="theme-2"] .wa-incart {
+  background-color: var(--wa-bubble);
+  color: var(--wa-bubble-text);
+}
+
+[data-theme="theme-2"] .wa-above-tabbar {
+  bottom: calc(4rem + env(safe-area-inset-bottom) + 0.5rem);
+}
+/* Sits one step higher, so a right-aligned FAB clears the cart summary bar. */
+[data-theme="theme-2"] .wa-above-cartbar {
+  bottom: calc(4rem + env(safe-area-inset-bottom) + 4rem);
+}
+
+/* Recent-transactions FAB is hidden in theme-2 — recent orders are reached
+   through the section navigation instead of a floating button. */
+[data-theme="theme-2"] .wa-recent-fab {
+  display: none;
+}
+
+/* theme-2 mobile pins the section-tab bar directly above the page content (the
+   page description that normally separates them is hidden). Add
+   `theme-2-mobile-gap-top` to the first content row to restore breathing room
+   between the sticky tabs and the content (e.g. the billing "Window" chips). */
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .theme-2-mobile-gap-top {
+    margin-top: 0.75rem;
+  }
+}
+
+/* Voice-search "listening" mic — recolor the blue/indigo gradient to the
+   WhatsApp teal→green palette so the voice modal matches the theme. */
+[data-theme="theme-2"] .listening-gradient {
+  background:
+    radial-gradient(
+      circle at 30% 30%,
+      rgba(37, 211, 102, 0.85) 0%,
+      rgba(37, 211, 102, 0.35) 35%,
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 70% 70%,
+      rgba(7, 94, 84, 0.75) 0%,
+      rgba(7, 94, 84, 0.32) 40%,
+      transparent 70%
+    ),
+    linear-gradient(135deg, rgba(37, 211, 102, 0.08), rgba(7, 94, 84, 0.08));
+  box-shadow: inset 0 6px 20px rgba(7, 94, 84, 0.08);
+}
+
+/* Cart view (mobile theme-2) sits above the sticky bottom tab bar and no longer
+   shows the switch block, so shrink the cart's scroll area to remove the tall
+   empty gap and pull the total/checkout footer up. */
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .wa-cart-scroll {
+    /* Fit the cart body to its items instead of a fixed height, so a short
+       cart is compact and doesn't leave a tall empty gap. It still scrolls
+       once the items exceed the available space above the bottom tab bar. */
+    height: auto;
+    max-height: calc(100vh - 330px - 5rem - env(safe-area-inset-bottom));
+  }
+
+  /* Breathing room around the mobile cart view so the card doesn't butt
+     against the header at the top or the sticky bottom tab bar at the base. */
+  [data-theme="theme-2"] .wa-cart-view {
+    margin-top: 0.75rem;
+    margin-bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
+  }
+}

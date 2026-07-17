@@ -1,0 +1,238 @@
+{
+  "tabs": {
+    "single": "एकल उत्पाद",
+    "bulk": "बल्क अपलोड",
+    "search": "उत्पाद खोजें",
+    "categories": "श्रेणियाँ ब्राउज़ करें",
+    "top": "शीर्ष उत्पाद",
+    "history": "सदस्यता इतिहास",
+    "brands": "ब्रांड ब्राउज़ करें",
+    "un-brands": "बिना ब्रांड"
+  },
+  "header": {
+    "title": "उत्पाद सदस्यता"
+  },
+  "breadcrumbs": {
+    "dashboard": "डैशबोर्ड",
+    "inventory": "इन्वेंटरी",
+    "subscription": "सदस्यता",
+    "addProduct": "उत्पाद जोड़ें",
+    "createProduct": "उत्पाद बनाएँ"
+  },
+  "actions": {
+    "addProduct": "उत्पाद बनाएँ",
+    "createProduct": "उत्पाद बनाएँ"
+  },
+  "form": {
+    "title": "नए उत्पाद जोड़ें",
+    "subtitle": "हमारे मार्केटप्लेस कैटलॉग में जोड़ने के लिए नए उत्पादों का अनुरोध करें",
+    "fields": {
+      "productName": {
+        "label": "उत्पाद का नाम",
+        "placeholder": "उत्पाद का नाम दर्ज करें"
+      },
+      "brand": {
+        "label": "ब्रांड"
+      },
+      "category": {
+        "label": "श्रेणी"
+      },
+      "model": {
+        "label": "मॉडल",
+        "placeholder": "मॉडल दर्ज करें"
+      },
+      "quantity": {
+        "label": "मात्रा",
+        "placeholder": "मात्रा दर्ज करें"
+      },
+      "storeStock": {
+        "label": "स्टोर स्टॉक",
+        "placeholder": "स्टोर स्टॉक दर्ज करें"
+      },
+      "mrp": {
+        "label": "एमआरपी",
+        "placeholder": "एमआरपी दर्ज करें"
+      },
+      "weight": {
+        "label": "वज़न",
+        "placeholder": "वज़न दर्ज करें"
+      },
+      "price": {
+        "label": "मूल्य",
+        "placeholder": "मूल्य दर्ज करें"
+      },
+      "unitType": {
+        "label": "इकाई प्रकार",
+        "placeholder": "इकाई प्रकार चुनें"
+      },
+      "barcode": {
+        "label": "बारकोड",
+        "placeholder": "बारकोड दर्ज करें"
+      },
+      "description": {
+        "label": "विवरण",
+        "placeholder": "उत्पाद का वर्णन करें, इसकी विशेषताएं, उपयोग"
+      },
+      "images": {
+        "uploadText": "उत्पाद छवियां अपलोड करने के लिए क्लिक करें"
+      },
+      "additionalInfo": {
+        "label": "अतिरिक्त जानकारी",
+        "placeholder": "उत्पाद के बारे में कोई अतिरिक्त जानकारी जोड़ें"
+      }
+    },
+    "actions": {
+      "submit": "समीक्षा के लिए जमा करें"
+    }
+  },
+  "messages": {
+    "validationFailed": "सत्यापन विफल",
+    "productSubmitted": "उत्पाद समीक्षा के लिए जमा किया गया!",
+    "failedToSubmit": "उत्पाद जमा करने में विफल"
+  },
+  "search": {
+    "searchedViaAI": "StoreKing AI के माध्यम से खोजा गया",
+    "topProducts": {
+      "title": "शीर्ष बिक्री वाले उत्पाद",
+      "subtitle": "अपनी कार्ट में जोड़ने के लिए हमारे सर्वश्रेष्ठ बिक्री वाले उत्पादों में से चुनें"
+    },
+    "loadMore": "और लोड करें",
+    "filter": {
+      "title": "उत्पाद खोजें और फ़िल्टर करें",
+      "searchType": {
+        "products": "उत्पाद",
+        "barcode": "बारकोड"
+      },
+      "placeholder": {
+        "barcode": "बारकोड स्कैन करें या दर्ज करें...",
+        "products": "उत्पाद नाम/बारकोड से खोजें..."
+      },
+      "menu": "मेनू से खोजें",
+      "category": "श्रेणी से खोजें",
+      "brand": "ब्रांड से खोजें"
+    },
+    "onlyMultipleVariants": "केवल बहु वेरिएंट",
+    "table": {
+      "headers": {
+        "product": "उत्पाद",
+        "category": "श्रेणी",
+        "price": "मूल्य",
+        "identifiers": "पहचानकर्ता",
+        "action": "कार्रवाई"
+      },
+      "actions": {
+        "subscribe": "सदस्यता लें",
+        "remove": "हटाएं",
+        "inInventory": "इन्वेंटरी में",
+        "subscribed": "सदस्यता ली गई"
+      },
+      "tooltips": {
+        "filterByBrand": "{{brandName}} द्वारा फ़िल्टर करने के लिए क्लिक करें"
+      },
+      "barcodes": {
+        "title": "सभी बारकोड"
+      },
+      "sku": "एसकेयू"
+    },
+    "toast": {
+      "productSubscribed": "उत्पाद सफलतापूर्वक सदस्यता ली गई",
+      "failedToSubscribe": "उत्पाद की सदस्यता लेने में विफल",
+      "productRemoved": "उत्पाद कार्ट से हटा दिया गया",
+      "failedToRemove": "कार्ट से उत्पाद हटाने में विफल",
+      "filteredByCategory": "श्रेणी द्वारा फ़िल्टर किया गया: {{categoryName}}",
+      "filteredByBrand": "ब्रांड द्वारा फ़िल्टर किया गया: {{brandName}}",
+      "productsSubscribed": "{{count}} उत्पाद सफलतापूर्वक सदस्यता ली गई"
+    },
+    "subscribeAllDisplayed": "सभी प्रदर्शित सदस्यता लें",
+    "showingCount": "{{count}} दिखाया गया",
+    "subscribeSelected": "{{count}} चयनित सदस्यता लें"
+  },
+  "browseCategory": {
+    "title": "श्रेणी द्वारा ब्राउज़ करें",
+    "subtitle": "उत्पादों का पता लगाने के लिए एक श्रेणी और ब्रांड चुनें।",
+    "menuSearch": {
+      "placeholder": "मेनू से खोजें"
+    },
+    "infoBlock": {
+      "categoryDescription": "उत्पादों का पता लगाने के लिए एक ब्रांड चुनें।",
+      "brandDescription": "वेरिएंट का पता लगाने के लिए एक उत्पाद चुनें।"
+    }
+  },
+  "browseBrand": {
+    "title": "ब्रांड द्वारा ब्राउज़ करें",
+    "subtitle": "उत्पादों का पता लगाने के लिए एक ब्रांड या श्रेणी चुनें।"
+  },
+  "sellerSubscribe": {
+    "availableProductsText": "आपके SK विक्रेता \"{{sellerName}}\" से सदस्यता के लिए उत्पाद उपलब्ध हैं",
+    "subscribeHint": "इन डील्स को अपनी इन्वेंटरी में जोड़ने के लिए सदस्यता लें",
+    "subscribing": "सदस्यता ली जा रही है...",
+    "subscribeAll": "सभी डील्स के लिए सदस्यता लें",
+    "confirmTitle": "सदस्यता की पुष्टि करें",
+    "confirmDescription": "सदस्यता लेने से सभी उत्पाद आपकी इन्वेंटरी में दिखाई देंगे। क्या आप जारी रखना चाहते हैं?",
+    "working": "कार्य प्रगति पर है...",
+    "confirm": "पुष्टि करें",
+    "cancel": "रद्द करें",
+    "modalTitle": "डील्स के लिए सदस्यता ली जा रही है",
+    "subscriptionsComplete": "सदस्यताएँ पूर्ण हो गई हैं",
+    "subscriptionsCompleteDescription": "चयनित डील्स के लिए सदस्यताओं की प्रक्रिया पूरी हो गई है। आप अपडेट की गई इन्वेंटरी देख सकते हैं या इस डायलॉग को बंद कर सकते हैं।",
+    "progressLabel": "प्रगति",
+    "subscribingPleaseWait": "सदस्यता लेते समय कृपया प्रतीक्षा करें...",
+    "close": "बंद करें",
+    "viewInventory": "इन्वेंटरी देखें"
+  },
+  "subscribeMain": {
+    "breadcrumbDashboard": "डैशबोर्ड",
+    "breadcrumbAllItems": "सभी आइटम",
+    "breadcrumbCreateMyCatalog": "मेरा कैटलॉग बनाएं",
+    "headerTitle": "मेरा कैटलॉग बनाएं",
+    "heroTitle": "आप उत्पाद कैसे जोड़ना चाहेंगे?",
+    "heroSubtitle": "अपने वर्तमान स्टॉक के लिए सबसे कुशल तरीका चुनकर अपनी इन्वेंटरी को व्यवस्थित करें।",
+    "quickLinksHeading": "त्वरित लिंक",
+    "subscriptionCart": "सब्सक्रिप्शन कार्ट ({{count}})",
+    "tiles": {
+      "scan": {
+        "label": "बारकोड स्कैन करें",
+        "description": "ज्ञात आइटम जोड़ने का सबसे तेज़ तरीका।"
+      },
+      "photo": {
+        "label": "SK Image Search AI",
+        "description": "उत्पाद की तस्वीर लें।"
+      },
+      "voice": {
+        "label": "SK Voice Search AI",
+        "description": "उत्पाद का नाम ज़ोर से बोलें।"
+      },
+      "catalog": {
+        "label": "पूर्ण कैटलॉग",
+        "description": "पूरी निर्देशिका ब्राउज़ करें।"
+      },
+      "nearby": {
+        "label": "SK Nearby AI",
+        "description": "अपने क्षेत्र में आम उत्पाद खोजें।"
+      },
+      "create": {
+        "label": "नया बनाएं",
+        "description": "अद्वितीय या स्थानीय आइटम के लिए।"
+      }
+    },
+    "quickLinks": {
+      "unbranded": {
+        "label": "अनब्रांडेड",
+        "description": "खुले और स्थानीय आइटम"
+      },
+      "brands": {
+        "label": "ब्रांड द्वारा ब्राउज़ करें",
+        "description": "ब्रांड सूची से चुनें"
+      },
+      "approval": {
+        "label": "अनुमोदन इतिहास",
+        "description": "सबमिशन ट्रैक करें"
+      },
+      "bulk": {
+        "label": "बल्क अपलोड",
+        "description": "एक साथ कई जोड़ें"
+      }
+    },
+    "aiPoweredBadge": "AI powered"
+  }
+}

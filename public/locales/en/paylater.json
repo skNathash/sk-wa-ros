@@ -1,0 +1,19 @@
+{
+  "overdue": {
+    "dueToday": "Due Today",
+    "dueTomorrow": "Due Tomorrow",
+    "totalAmount": "Total Amount",
+    "totalUsers": "Total Users",
+    "view": "View",
+    "b2c": "B2C",
+    "b2b": "B2B",
+    "total": "Total",
+    "users": "users"
+  },
+  "summary": {
+    "b2cWallets": "B2C Wallets",
+    "b2bWallets": "B2B Wallets",
+    "totalOutstandingBalance": "Total Outstanding Balance",
+    "totalCreditLimit": "Total Credit Limit"
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "breadcrumbs": {
+    "pos": "POS",
+    "billing": "POS ಬಿಲ್ಲಿಂಗ್"
+  },
+  "items": "ವಸ್ತುಗಳು",
+  "retailerSelectedSuccessfully": "ರಿಟೈಲರ್ ಯಶಸ್ವಿಯಾಗಿ ಆಯ್ಕೆ ಮಾಡಲಾಗಿದೆ",
+  "header": {
+    "b2bBilling": "B2B ಬಿಲ್ಲಿಂಗ್",
+    "b2cBilling": "B2C ಬಿಲ್ಲಿಂಗ್",
+    "walkinBilling": "ವಾಕ್-ಇನ್ ಬಿಲ್ಲಿಂಗ್",
+    "billing": "POS ಬಿಲ್ಲಿಂಗ್",
+    "assistedOrder": "Assisted Order"
+  },
+  "actions": {
+    "switchMode": "ಮೋಡ್ ಬದಲಾಯಿಸಿ"
+  },
+  "cart": {
+    "title": "ಕಾರ್ಟ್",
+    "totalItems": "ಒಟ್ಟು ವಸ್ತುಗಳು",
+    "emptyCart": {
+      "title": "ನಿಮ್ಮ ಕಾರ್ಟ್ ಖಾಲಿಯಾಗಿದೆ",
+      "subtitle": "ಪ್ರಾರಂಭಿಸಲು ವಸ್ತುಗಳನ್ನು ಸೇರಿಸಿ"
+    },
+    "summary": {
+      "subTotal": "ಉಪ-ಒಟ್ಟು",
+      "couponDiscount": "ಕೂಪನ್ ರಿಯಾಯಿತಿ",
+      "coinsDiscount": "ನಾಣ್ಯಗಳ ರಿಯಾಯಿತಿ",
+      "totalDiscount": "ಒಟ್ಟು ರಿಯಾಯಿತಿ",
+      "total": "ಒಟ್ಟು"
+    },
+    "actions": {
+      "proceedToCheckout": "ಚೆಕ್ಔಟ್‌ಗೆ ಮುಂದುವರಿಯಿರಿ"
+    },
+    "itemAlreadyInCart": "ವಸ್ತು ಈಗಾಗಲೇ ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ",
+    "itemAlreadyInCartDesc": "ಈ ವಸ್ತು ಈಗಾಗಲೇ ನಿಮ್ಮ ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ. ನೀವು ಅದನ್ನು ಕಾರ್ಟ್‌ನಲ್ಲಿ ನೋಡಲು ಬಯಸುವಿರಾ?",
+    "viewInCart": "ಕಾರ್ಟ್‌ನಲ್ಲಿ ನೋಡಿ",
+    "messages": {
+      "addProductsToCart": "ಚೆಕ್ಔಟ್‌ಗೆ ಮುಂದುವರಿಯುವ ಮೊದಲು ಕಾರ್ಟ್‌ನಲ್ಲಿ ಉತ್ಪನ್ನಗಳನ್ನು ಸೇರಿಸಿ.",
+      "minCartNotSatisfied": "The minimum cart value to proceed is ₹{{value}}. Please add more items to your cart.",
+      "cartIdNotFound": "ಕಾರ್ಟ್ ID ಕಂಡುಬಂದಿಲ್ಲ. ದಯವಿಟ್ಟು ಪುಟವನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿ.",
+      "itemRemoved": "ಕಾರ್ಟ್‌ನಿಂದ ವಸ್ತು ತೆಗೆದುಹಾಕಲಾಗಿದೆ",
+      "failedToRemoveItem": "ವಸ್ತು ತೆಗೆದುಹಾಕಲು ವಿಫಲ",
+      "itemIdNotFound": "ವಸ್ತು ID ಕಂಡುಬಂದಿಲ್ಲ. ದಯವಿಟ್ಟು ಪುಟವನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿ."
+    }
+  },
+  "customerTypeModal": {
+    "title": "ಗ್ರಾಹಕ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "subtitle": "ಸೂಕ್ತವಾದ ಬೆಲೆಯನ್ನು ಪ್ರದರ್ಶಿಸಲು ಗ್ರಾಹಕ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "options": {
+      "b2c": {
+        "title": "B2C ಗ್ರಾಹಕ",
+        "description": "ವೈಯಕ್ತಿಕ ಗ್ರಾಹಕರಿಗೆ ಚಿಲ್ಲರೆ ಬೆಲೆಗಳು"
+      },
+      "b2b": {
+        "title": "B2B ಗ್ರಾಹಕ",
+        "description": "ವ್ಯವಹಾರ ಗ್ರಾಹಕರಿಗೆ ಸಗಟು ಬೆಲೆಗಳು"
+      },
+      "b2bQuick": {
+        "title": "B2B ಕ್ವಿಕ್ ಚೆಕ್‌ಔಟ್",
+        "description": "ತಕ್ಷಣದ ಸ್ಟಾಕ್ ಡೆಬಿಟ್, ಇನ್‌ವಾಯ್ಸ್ ಮತ್ತು ಡೆಲಿವರಿಯೊಂದಿಗೆ ರಿಟೇಲರ್‌ಗೆ ಬಿಲ್ ಮಾಡಿ"
+      },
+      "walkin": {
+        "title": "ವಾಕ್-ಇನ್ ಗ್ರಾಹಕ",
+        "description": "ಪ್ರಮಾಣಿತ ಚಿಲ್ಲರೆ ಬೆಲೆ"
+      }
+    }
+  },
+  "checkoutModal": {
+    "title": "ಚೆಕ್ಔಟ್",
+    "steps": {
+      "selectCustomer": "ಗ್ರಾಹಕರನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      "selectRetailer": "ಚಿಲ್ಲರೆ ವ್ಯಾಪಾರಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      "choosePayment": "ಪಾವತಿ ಆಯ್ಕೆಮಾಡಿ",
+      "confirmation": "ದೃಢೀಕರಣ"
+    },
+    "customer": {
+      "title": "ಈ ಆದೇಶ ಯಾರಿಗಾಗಿ?",
+      "options": {
+        "walkin": "ವಾಕ್-ಇನ್ ಗ್ರಾಹಕ",
+        "b2c": "B2C ಗ್ರಾಹಕ"
+      },
+      "search": {
+        "placeholder": "ಗ್ರಾಹಕರನ್ನು ಹುಡುಕಿ",
+        "searching": "ಹುಡುಕುತ್ತಿದ್ದೇನೆ, ದಯವಿಟ್ಟು ನಿರೀಕ್ಷಿಸಿ...",
+        "noCustomerFound": "ಯಾವುದೇ ಗ್ರಾಹಕ ಕಂಡುಬಂದಿಲ್ಲ, ದಯವಿಟ್ಟು ಹೊಸ ಗ್ರಾಹಕರನ್ನು ರಚಿಸಿ",
+        "namePlaceholder": "ಹೆಸರನ್ನು ನಮೂದಿಸಿ"
+      },
+      "customerCard": {
+        "pointsAvailable": "ಲಭ್ಯವಿದೆ:",
+        "pointsCount": "{{count}} ಅಂಕಗಳು"
+      },
+      "validation": {
+        "enterName": "ದಯವಿಟ್ಟು ಹೆಸರನ್ನು ನಮೂದಿಸಿ",
+        "enterMobile": "ದಯವಿಟ್ಟು ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
+        "validMobile": "ದಯವಿಟ್ಟು ಮಾನ್ಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
+        "customerNotFound": "ಗ್ರಾಹಕ ಕಂಡುಬಂದಿಲ್ಲ",
+        "sameAsRetailer": "ಗ್ರಾಹಕರ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಿಮ್ಮ ಅಂಗಡಿ ಸಂಖ್ಯೆಯಂತೆಯೇ ಇರುವಂತಿಲ್ಲ"
+      },
+      "messages": {
+        "customerCreated": "ಗ್ರಾಹಕರನ್ನು ಯಶಸ್ವಿಯಾಗಿ ರಚಿಸಲಾಗಿದೆ",
+        "failedToCreateCustomer": "ಗ್ರಾಹಕರನ್ನು ರಚಿಸಲು ವಿಫಲ"
+      },
+      "actions": {
+        "createCustomer": "ಗ್ರಾಹಕರನ್ನು ರಚಿಸಿ",
+        "continue": "ಮುಂದುವರಿಸಿ",
+        "select": "Select"
+      }
+    },
+    "retailer": {
+      "title": "ಚಿಲ್ಲರೆ ವ್ಯಾಪಾರಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      "search": {
+        "placeholder": "ಚಿಲ್ಲರೆ ವ್ಯಾಪಾರಿಯನ್ನು ಹುಡುಕಿ",
+        "searching": "ಹುಡುಕುತ್ತಿದ್ದೇನೆ, ದಯವಿಟ್ಟು ನಿರೀಕ್ಷಿಸಿ...",
+        "noDataFound": "ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯೊಂದಿಗೆ ಯಾವುದೇ ಚಿಲ್ಲರೆ ವ್ಯಾಪಾರಿ ಕಂಡುಬಂದಿಲ್ಲ"
+      },
+      "validation": {
+        "selectRetailer": "ಮುಂದುವರಿಸಲು ದಯವಿಟ್ಟು ಚಿಲ್ಲರೆ ವ್ಯಾಪಾರಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ"
+      },
+      "actions": {
+        "continue": "ಮುಂದುವರಿಸಿ"
+      }
+    },
+    "payment": {
+      "loyaltyPoints": {
+        "title": "ನಿಷ್ಠೆ ಅಂಕಗಳನ್ನು ಬಳಸಿ",
+        "placeholder": "0",
+        "max": "ಗರಿಷ್ಠ",
+        "available": "ಲಭ್ಯವಿದೆ:"
+      },
+      "coupon": {
+        "title": "ಕೂಪನ್ ಕೋಡ್ (ಐಚ್ಛಿಕ)",
+        "placeholder": "ಕೂಪನ್ ನಮೂದಿಸಿ",
+        "apply": "ಅನ್ವಯಿಸಿ"
+      },
+      "method": {
+        "title": "ಪಾವತಿ ವಿಧಾನ",
+        "cash": "ನಗದು",
+        "card": "ಕಾರ್ಡ್"
+      },
+      "actions": {
+        "back": "ಹಿಂದೆ",
+        "continue": "ಮುಂದುವರಿಸಿ"
+      }
+    },
+    "summary": {
+      "title": "ಆದೇಶ ಸಾರಾಂಶ",
+      "selectedCustomer": "ಆಯ್ಕೆಯಾದ ಗ್ರಾಹಕ",
+      "subtotal": "ಉಪ-ಒಟ್ಟು",
+      "couponDiscount": "ಕೂಪನ್ ರಿಯಾಯಿತಿ",
+      "coinsDiscount": "ನಾಣ್ಯಗಳ ರಿಯಾಯಿತಿ",
+      "totalDiscount": "ಒಟ್ಟು ರಿಯಾಯಿತಿ",
+      "total": "ಒಟ್ಟು",
+      "customer": "ಗ್ರಾಹಕ:",
+      "payment": "ಪಾವತಿ:",
+      "walkinCustomer": "ವಾಕ್-ಇನ್ ಗ್ರಾಹಕ",
+      "actions": {
+        "back": "ಹಿಂದೆ",
+        "pay": "ಪಾವತಿಸಿ"
+      }
+    },
+    "messages": {
+      "orderPlaced": "ಆದೇಶವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಇಡಲಾಗಿದೆ!",
+      "failedToPlaceOrder": "ಆದೇಶ ಇಡಲು ವಿಫಲ",
+      "errorPlacingOrder": "ಆದೇಶ ಇಡುವಾಗ ದೋಷ ಸಂಭವಿಸಿದೆ"
+    }
+  }
+}

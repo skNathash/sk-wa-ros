@@ -1,0 +1,17 @@
+table.table-sm.condensed tbody td,
+table.table-sm.condensed thead th,
+table.table-sm.condensed tfoot td {
+  @apply tw:text-xs tw:!px-2 tw:!py-1;
+}
+
+table.table-sm tbody td,
+table.table-sm thead th,
+table.table-sm tfoot td {
+  @apply tw:text-sm;
+}
+
+table.table-md tbody td,
+table.table-md thead th,
+table.table-md tfoot td {
+  @apply tw:text-sm;
+}

@@ -1,0 +1,41 @@
+export const defaultSummaryData = [
+  {
+    label: "Total GST Collected",
+    value: 0,
+    key: "totalGstInward",
+    color: "primary",
+    valueKey: "gstCollected",
+  },
+  {
+    label: "Total GST Inwarded",
+    value: 0,
+    key: "totalGstInwarded",
+    color: "success",
+    valueKey: "gstInwarded",
+  },
+  {
+    label: "Gst payable",
+    value: 0,
+    key: "gstPayable",
+    color: "danger",
+    valueKey: "gstPayable",
+    template: 2,
+    info: "Gst payable (NetGSTLiable) is the GST liability before final adjustments.",
+  },
+  {
+    label: "Final GST to Pay",
+    value: 0,
+    key: "finalGstToPay",
+    color: "danger",
+    valueKey: "finalGstToPay",
+    template: 2,
+    info: "Final GST to Pay (NetGSTPayable) is the GST amount after adjustments.",
+  },
+  {
+    label: "Unique HSN Codes",
+    value: 0,
+    key: "uniqueHsnCodes",
+    color: "warning",
+    valueKey: "uniqueHsnCodes",
+  },
+];

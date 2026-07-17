@@ -1,0 +1,166 @@
+{
+  "breadcrumbs": {
+    "pos": "POS",
+    "billing": "பில்லிங்"
+  },
+  "header": {
+    "b2bBilling": "B2B பில்லிங்",
+    "b2cBilling": "B2C பில்லிங்",
+    "walkinBilling": "வாக்-இன் பில்லிங்",
+    "billing": "பில்லிங்",
+    "assistedOrder": "Assisted Order"
+  },
+  "actions": {
+    "switchMode": "மோட் மாற்று"
+  },
+  "cart": {
+    "title": "கார்ட்",
+    "totalItems": "மொத்த பொருட்கள்",
+    "emptyCart": {
+      "title": "உங்கள் கார்ட் காலியாக உள்ளது",
+      "subtitle": "தொடங்க பொருட்களை சேர்க்கவும்"
+    },
+    "summary": {
+      "subTotal": "துணை மொத்தம்",
+      "couponDiscount": "கூப்பன் தள்ளுபடி",
+      "coinsDiscount": "நாணயங்கள் தள்ளுபடி",
+      "totalDiscount": "மொத்த தள்ளுபடி",
+      "total": "மொத்தம்"
+    },
+    "actions": {
+      "proceedToCheckout": "செக்அவுட்டுக்கு செல்லுங்கள்"
+    },
+    "itemAlreadyInCart": "பொருள் ஏற்கனவே கார்ட்டில் உள்ளது",
+    "itemAlreadyInCartDesc": "இந்த பொருள் ஏற்கனவே உங்கள் கார்ட்டில் உள்ளது. கார்ட்டில் பார்க்க விரும்புகிறீர்களா?",
+    "viewInCart": "கார்ட்டில் பார்க்கவும்",
+    "messages": {
+      "addProductsToCart": "செக்அவுட்டுக்கு செல்வதற்கு முன் கார்ட்டில் பொருட்களை சேர்க்கவும்.",
+      "minCartNotSatisfied": "The minimum cart value to proceed is ₹{{value}}. Please add more items to your cart.",
+      "cartIdNotFound": "கார்ட் ID கிடைக்கவில்லை. தயவுசெய்து பக்கத்தை புதுப்பிக்கவும்.",
+      "itemRemoved": "கார்ட்டிலிருந்து பொருள் நீக்கப்பட்டது",
+      "failedToRemoveItem": "பொருளை நீக்க முடியவில்லை",
+      "itemIdNotFound": "பொருள் ID கிடைக்கவில்லை. தயவுசெய்து பக்கத்தை புதுப்பிக்கவும்."
+    }
+  },
+  "customerTypeModal": {
+    "title": "வாடிக்கையாளர் வகையைத் தேர்ந்தெடுக்கவும்",
+    "subtitle": "பொருத்தமான விலையைக் காட்ட வாடிக்கையாளர் வகையைத் தேர்ந்தெடுக்கவும்",
+    "options": {
+      "b2c": {
+        "title": "B2C வாடிக்கையாளர்",
+        "description": "தனிப்பட்ட வாடிக்கையாளர்களுக்கான சில்லறை விலைகள்"
+      },
+      "b2b": {
+        "title": "B2B வாடிக்கையாளர்",
+        "description": "வணிக வாடிக்கையாளர்களுக்கான மொத்த விலைகள்"
+      },
+      "b2bQuick": {
+        "title": "B2B விரைவு செக்அவுட்",
+        "description": "உடனடி ஸ்டாக் பற்று, இன்வாய்ஸ் மற்றும் டெலிவரியுடன் ரீடெய்லருக்கு பில் செய்யவும்"
+      },
+      "walkin": {
+        "title": "வாக்-இன் வாடிக்கையாளர்",
+        "description": "நிலையான சில்லறை விலை"
+      }
+    }
+  },
+  "checkoutModal": {
+    "title": "செக்அவுட்",
+    "steps": {
+      "selectCustomer": "வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்",
+      "selectRetailer": "சில்லறை விற்பனையாளரைத் தேர்ந்தெடுக்கவும்",
+      "choosePayment": "கட்டணத்தைத் தேர்ந்தெடுக்கவும்",
+      "confirmation": "உறுதிப்படுத்தல்"
+    },
+    "customer": {
+      "title": "இந்த ஆர்டர் யாருக்காக?",
+      "options": {
+        "walkin": "வாக்-இன் வாடிக்கையாளர்",
+        "b2c": "B2C வாடிக்கையாளர்"
+      },
+      "search": {
+        "placeholder": "வாடிக்கையாளரைத் தேடுங்கள்",
+        "searching": "தேடுகிறேன், தயவுசெய்து காத்திருக்கவும்...",
+        "noCustomerFound": "வாடிக்கையாளர் கிடைக்கவில்லை, தயவுசெய்து புதிய வாடிக்கையாளரை உருவாக்கவும்",
+        "namePlaceholder": "பெயரை உள்ளிடவும்"
+      },
+      "customerCard": {
+        "pointsAvailable": "கிடைக்கும்:",
+        "pointsCount": "{{count}} புள்ளிகள்"
+      },
+      "validation": {
+        "enterName": "தயவுசெய்து பெயரை உள்ளிடவும்",
+        "enterMobile": "தயவுசெய்து மொபைல் எண்ணை உள்ளிடவும்",
+        "validMobile": "தயவுசெய்து சரியான மொபைல் எண்ணை உள்ளிடவும்",
+        "customerNotFound": "வாடிக்கையாளர் கிடைக்கவில்லை",
+        "sameAsRetailer": "வாடிக்கையாளர் மொபைல் எண் உங்கள் கடை எண்ணுடன் ஒரே மாதிரியாக இருக்கக்கூடாது"
+      },
+      "messages": {
+        "customerCreated": "வாடிக்கையாளர் வெற்றிகரமாக உருவாக்கப்பட்டார்",
+        "failedToCreateCustomer": "வாடிக்கையாளரை உருவாக்க முடியவில்லை"
+      },
+      "actions": {
+        "createCustomer": "வாடிக்கையாளரை உருவாக்கு",
+        "continue": "தொடரவும்",
+        "select": "Select"
+      }
+    },
+    "retailer": {
+      "title": "சில்லறை விற்பனையாளரைத் தேர்ந்தெடுக்கவும்",
+      "search": {
+        "placeholder": "சில்லறை விற்பனையாளரைத் தேடுங்கள்",
+        "searching": "தேடுகிறேன், தயவுசெய்து காத்திருக்கவும்...",
+        "noDataFound": "இந்த மொபைல் எண்ணுடன் சில்லறை விற்பனையாளர் எவரும் கிடைக்கவில்லை"
+      },
+      "validation": {
+        "selectRetailer": "தொடர கடைக்காரரைத் தேர்ந்தெடுக்கவும்"
+      },
+      "actions": {
+        "continue": "தொடரவும்"
+      }
+    },
+    "payment": {
+      "loyaltyPoints": {
+        "title": "விசுவாச புள்ளிகளைப் பயன்படுத்து",
+        "placeholder": "0",
+        "max": "அதிகபட்சம்",
+        "available": "கிடைக்கும்:"
+      },
+      "coupon": {
+        "title": "கூப்பன் கோட் (விருப்ப)",
+        "placeholder": "கூப்பனை உள்ளிடவும்",
+        "apply": "பயன்படுத்து"
+      },
+      "method": {
+        "title": "கட்டண முறை",
+        "cash": "பணம்",
+        "card": "அட்டை"
+      },
+      "actions": {
+        "back": "பின்செல்",
+        "continue": "தொடரவும்"
+      }
+    },
+    "summary": {
+      "title": "ஆர்டர் சுருக்கம்",
+      "subtotal": "துணை மொத்தம்",
+      "couponDiscount": "கூப்பன் தள்ளுபடி",
+      "coinsDiscount": "நாணயங்கள் தள்ளுபடி",
+      "totalDiscount": "மொத்த தள்ளுபடி",
+      "total": "மொத்தம்",
+      "customer": "வாடிக்கையாளர்:",
+      "payment": "கட்டணம்:",
+      "walkinCustomer": "வாக்-இன் வாடிக்கையாளர்",
+      "selectedCustomer": "Selected Customer",
+      "actions": {
+        "back": "பின்செல்",
+        "pay": "பணம் செலுத்து"
+      }
+    },
+    "messages": {
+      "orderPlaced": "ஆர்டர் வெற்றிகரமாக வைக்கப்பட்டது!",
+      "failedToPlaceOrder": "ஆர்டரை வைக்க முடியவில்லை",
+      "errorPlacingOrder": "ஆர்டரை வைக்கும்போது பிழை ஏற்பட்டது"
+    }
+  }
+}

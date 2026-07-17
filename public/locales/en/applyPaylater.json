@@ -1,0 +1,77 @@
+{
+  "title": "Apply For Paylater",
+  "howItWorks": {
+    "title": "How it works",
+    "description": "Please provide the required information below to complete your paylater application.",
+    "steps": {
+      "1": {
+        "title": "Create Request",
+        "desc": "Fill the form with required documents and submit a request."
+      },
+      "2": {
+        "title": "Linked Seller Notified",
+        "desc": "The request is routed to the linked seller for review."
+      },
+      "3": {
+        "title": "Seller Approves or Rejects",
+        "desc": "Seller will either approve or reject the request. You'll be notified of the outcome."
+      }
+    }
+  },
+  "documents": {
+    "aadhaar": {
+      "title": "Aadhaar",
+      "numberLabel": "Aadhaar Number",
+      "front": "Aadhaar Front",
+      "back": "Aadhaar Back",
+      "uploadLabel": "Upload Aadhaar"
+    },
+    "voter": {
+      "title": "Voter ID",
+      "numberLabel": "Voter ID Number",
+      "uploadLabel": "Upload Voter ID"
+    },
+    "drivingLicense": {
+      "title": "Driving License",
+      "numberLabel": "DL Number",
+      "uploadLabel": "Upload DL"
+    }
+  },
+  "nominee": {
+    "title": "Nominee Details",
+    "name": "Name",
+    "mobile": "Mobile",
+    "relationship": "Relationship",
+    "relationships": {
+      "spouse": "Spouse",
+      "son": "Son",
+      "daughter": "Daughter",
+      "parent": "Parent",
+      "other": "Other"
+    }
+  },
+  "validation": {
+    "nomineeNameRequired": "Nominee name is required",
+    "nomineeMobileRequired": "Nominee mobile is required",
+    "nomineeMobileInvalid": "Nominee mobile is invalid",
+    "nomineeRelationshipRequired": "Nominee relationship is required",
+    "nomineeMobileSameAsUser": "Nominee mobile cannot be the same as your mobile number",
+    "atLeastOneNomineeRequired": "At least one nominee is required",
+    "duplicateNomineeMobile": "Duplicate mobile numbers are not allowed for nominees",
+    "documentTypeRequired": "Document type is required",
+    "referenceNoRequired": "Reference number is required",
+    "frontImageRequired": "Front image is required",
+    "aadhaarFrontBackRequired": "Aadhaar front and back are required when Aadhaar number is provided",
+    "aadhaarInvalid": "Aadhaar number is invalid",
+    "voterFileRequiredWhenNumberProvided": "Voter ID file is required when Voter number is provided",
+    "dlFileRequiredWhenNumberProvided": "Driving licence file is required when DL number is provided",
+    "aadhaarNumberRequiredWhenDocProvided": "Aadhaar number is required when Aadhaar document (front/back) is provided",
+    "voterNumberRequiredWhenFileProvided": "Voter ID number is required when Voter ID file is provided",
+    "dlNumberRequiredWhenFileProvided": "Driving licence number is required when DL file is provided",
+    "atLeastOneDocumentRequired": "At least one document is mandatory",
+    "passed": "Validation passed"
+  },
+  "form": {
+    "submit": "Submit Request"
+  }
+}

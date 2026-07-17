@@ -1,0 +1,32 @@
+// Font size utility classes using rem values
+// These classes provide consistent font sizing throughout the application
+
+// Extra small font size
+.font-xs {
+  font-size: 0.75rem; // 12px
+}
+
+// Small font size
+.font-sm {
+  font-size: 0.875rem; // 14px
+}
+
+// Medium font size
+.font-md {
+  font-size: 1rem; // 16px
+}
+
+// Normal font size (alias for medium)
+.font-normal {
+  font-size: 1rem; // 16px
+}
+
+// Large font size
+.font-lg {
+  font-size: 1.125rem; // 18px
+}
+
+// Extra large font size
+.font-xl {
+  font-size: 1.25rem; // 20px
+}

@@ -1,0 +1,48 @@
+.offcanvas-modal {
+  --height: 100% !important;
+  justify-content: end;
+}
+
+ion-modal.transparent-modal,
+ion-modal.transparent-modal ion-content {
+  --background: transparent;
+  --box-shadow: none;
+}
+
+ion-modal.transparent-modal::part(content) {
+  background: transparent;
+}
+
+.modal-top-rounded {
+  --background: transparent;
+}
+
+.modal-top-rounded.sm .ion-page {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.modal-top-rounded .ion-page {
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  overflow: hidden;
+}
+
+.show-close-btn-modal ion-toolbar {
+  --background: transparent;
+  text-align: center;
+}
+
+.show-close-btn-modal .cnt-rounded {
+  border-top-right-radius: 10px;
+  border-top-left-radius: 10px;
+  overflow: inherit;
+}
+
+.product-detail-screen-modal {
+  --height: 100%;
+  position: absolute;
+  bottom: 0px;
+  align-items: end;
+  --backdrop-opacity: 0.8;
+}

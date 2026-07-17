@@ -1,0 +1,36 @@
+.intro-hero-bg {
+    background:
+        linear-gradient(270deg, #1e2e48 0%, #0d2137 40%, #0f1c27 100%);
+    position: relative;
+}
+
+.intro-hero-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+}
+
+.intro-platform-bg {
+    background: linear-gradient(180deg, #eaf4fb 0%, #f5faff 100%);
+}
+
+.intro-how-it-works-bg {
+    background: linear-gradient(135deg, #0a1628 0%, #0d2137 40%, #132d4a 100%);
+}
+
+.intro-feature-card {
+    background: #fbf9fc;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 640px) {
+    .intro-feature-card {
+        border-radius: 24px;
+    }
+}

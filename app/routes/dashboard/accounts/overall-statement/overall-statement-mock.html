@@ -1,0 +1,1764 @@
+<!doctype html>
+<html lang="en" data-theme="theme-2">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Accounts — theme-2 mock (Payables · Overall Statement · Platform Fee · SK Wallet)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* =========================================================================
+         Static design mock for the Accounts section (theme-2 / WhatsApp look).
+         Not wired into the app — open this file directly in a browser.
+
+         Every token below is lifted from the real source so mock and app cannot
+         drift:
+           --primary / --wa-bubble / --wa-bubble-text  → app/styles/theme-2.css
+           --chat-bg + doodle, dark values             → app/app.css (.wa-chat-bg)
+         Labels come from public/locales/en/common.json + the accounts layout.
+
+         Responsive: the mobile/desktop switch uses CONTAINER queries on
+         `.viewport`, not viewport media queries, so the "Phone" preview toggle
+         renders the true mobile design inside a desktop browser.
+         ========================================================================= */
+
+      /* ---------------- tokens ---------------- */
+      :root {
+        --primary: #075e54;
+        --primary-ink: #ffffff;
+
+        --wa-bubble: #d9fdd3;
+        --wa-bubble-text: #0a6b57;
+        --bubble-in-bg: var(--wa-bubble);
+        --bubble-out-bg: #ffffff;
+
+        --chat-bg: #e5ddd5;
+        --chat-doodle: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9b99a' fill-opacity='0.12'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+
+        --surface: #ffffff;
+        --page: #f7f8fa;
+        --ink: #17282d;
+        --ink-muted: #64757b;
+        --line: #e2e8f0;
+
+        --in: #15803d;
+        --out: #dc2626;
+        --in-tint: #f0fdf4;
+        --out-tint: #fef2f2;
+        --chip: rgb(0 0 0 / 0.05);
+        --chip-ink: #4b5b61;
+        --tick: #34b7f1;
+
+        --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+          "Segoe UI", sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      /* Dark values mirror app.css `.dark .wa-chat-bg` / `.dark .wa-bubble-out`. */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary: #0b3f39;
+          --wa-bubble: #005c4b;
+          --wa-bubble-text: #d1f4cc;
+          --bubble-in-bg: #005c4b;
+          --bubble-out-bg: #202c33;
+          --chat-bg: #0b141a;
+          --chat-doodle: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+          --surface: #111b21;
+          --page: #0d1418;
+          --ink: #e9edef;
+          --ink-muted: rgba(233, 237, 239, 0.6);
+          --line: #2a3942;
+          --in: #4ade80;
+          --out: #f87171;
+          --in-tint: rgb(74 222 128 / 0.1);
+          --out-tint: rgb(248 113 113 / 0.1);
+          --chip: rgb(255 255 255 / 0.08);
+          --chip-ink: rgba(233, 237, 239, 0.75);
+        }
+      }
+      /* An explicit choice must beat the OS preference in BOTH directions, so
+         each theme is restated as a data-appearance override. */
+      :root[data-appearance="dark"] {
+        --primary: #0b3f39;
+        --wa-bubble: #005c4b;
+        --wa-bubble-text: #d1f4cc;
+        --bubble-in-bg: #005c4b;
+        --bubble-out-bg: #202c33;
+        --chat-bg: #0b141a;
+        --chat-doodle: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        --surface: #111b21;
+        --page: #0d1418;
+        --ink: #e9edef;
+        --ink-muted: rgba(233, 237, 239, 0.6);
+        --line: #2a3942;
+        --in: #4ade80;
+        --out: #f87171;
+        --in-tint: rgb(74 222 128 / 0.1);
+        --out-tint: rgb(248 113 113 / 0.1);
+        --chip: rgb(255 255 255 / 0.08);
+        --chip-ink: rgba(233, 237, 239, 0.75);
+      }
+      :root[data-appearance="light"] {
+        --primary: #075e54;
+        --wa-bubble: #d9fdd3;
+        --wa-bubble-text: #0a6b57;
+        --bubble-in-bg: #d9fdd3;
+        --bubble-out-bg: #ffffff;
+        --chat-bg: #e5ddd5;
+        --chat-doodle: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9b99a' fill-opacity='0.12'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        --surface: #ffffff;
+        --page: #f7f8fa;
+        --ink: #17282d;
+        --ink-muted: #64757b;
+        --line: #e2e8f0;
+        --in: #15803d;
+        --out: #dc2626;
+        --in-tint: #f0fdf4;
+        --out-tint: #fef2f2;
+        --chip: rgb(0 0 0 / 0.05);
+        --chip-ink: #4b5b61;
+      }
+
+      /* ---------------- base ---------------- */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        font-family: var(--font);
+      }
+      body {
+        background: var(--page);
+        color: var(--ink);
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid #25d366;
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+      .amt {
+        font-variant-numeric: tabular-nums;
+      }
+      .mono {
+        font-family: var(--mono);
+      }
+
+      /* ---------------- mock chrome (not app UI) ---------------- */
+      .mockbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+      }
+      .mockbar h1 {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+        margin-right: auto;
+      }
+      .seg {
+        display: inline-flex;
+        background: var(--chip);
+        border-radius: 99px;
+        padding: 2px;
+        gap: 2px;
+      }
+      .seg button {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 99px;
+        padding: 5px 11px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--ink-muted);
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--surface);
+        color: var(--primary);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+      }
+
+      .stage {
+        padding: 16px;
+        display: flex;
+        justify-content: center;
+      }
+      /* `container-type: inline-size` makes every @container rule below resolve
+         against THIS element's width — so shrinking it to a phone width flips the
+         layout exactly as a real 390px device would. */
+      .viewport {
+        container-type: inline-size;
+        width: 100%;
+        background: var(--page);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .stage[data-preview="phone"] .viewport {
+        width: 390px;
+        height: 780px;
+        overflow-y: auto;
+        border-radius: 28px;
+        border: 9px solid #0b0f0e;
+        box-shadow: 0 18px 50px rgb(0 0 0 / 0.3);
+      }
+      .viewport::-webkit-scrollbar {
+        width: 0;
+      }
+
+      /* ---------------- app header ---------------- */
+      .app-header {
+        background: var(--primary);
+        color: var(--primary-ink);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+      .icon-btn {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        flex: none;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        background: rgb(255 255 255 / 0.15);
+      }
+      .avatar {
+        width: 36px;
+        height: 36px;
+        flex: none;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: rgb(255 255 255 / 0.18);
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .htitles {
+        flex: 1;
+        min-width: 0;
+      }
+      .htitles h2 {
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-wrap: balance;
+      }
+      .htitles p {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: rgb(255 255 255 / 0.72);
+      }
+      .hactions {
+        display: none;
+        align-items: center;
+        gap: 8px;
+      }
+      .ghost-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgb(255 255 255 / 0.4);
+        background: transparent;
+        color: inherit;
+        border-radius: 7px;
+        padding: 6px 11px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .ghost-btn:hover {
+        background: rgb(255 255 255 / 0.15);
+      }
+
+      /* ---------------- page + rail ---------------- */
+      .page {
+        display: block;
+      }
+      .rail {
+        display: none;
+        background: var(--surface);
+        border-right: 1px solid var(--line);
+        padding: 12px 0;
+      }
+      .rail h3 {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+        padding: 6px 16px 10px;
+      }
+      .rail a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        text-decoration: none;
+        border-left: 3px solid transparent;
+      }
+      .rail a:hover {
+        background: var(--chip);
+      }
+      .rail a[aria-current="page"] {
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 8%, transparent);
+        border-left-color: var(--primary);
+      }
+      .content {
+        padding: 12px;
+        min-width: 0;
+      }
+
+      .crumbs {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      .crumbs nav {
+        font-size: 12px;
+        color: var(--ink-muted);
+        font-weight: 500;
+      }
+      .crumbs nav b {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .date-pill,
+      .field {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 7px 10px;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--ink);
+      }
+      .solid-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 0;
+        background: var(--primary);
+        color: #fff;
+        border-radius: 7px;
+        padding: 8px 12px;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .solid-btn:hover {
+        filter: brightness(1.12);
+      }
+
+      /* ---------------- section tabs ---------------- */
+      .tabs {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 5px;
+        margin-bottom: 12px;
+        scrollbar-width: none;
+      }
+      .tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex: none;
+        border: 0;
+        background: transparent;
+        border-radius: 99px;
+        padding: 8px 12px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--ink-muted);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background-color 0.15s ease, color 0.15s ease;
+      }
+      .tab:hover:not([aria-selected="true"]):not(:disabled) {
+        color: var(--primary);
+      }
+      .tab[aria-selected="true"] {
+        background: var(--wa-bubble);
+        color: var(--wa-bubble-text);
+        box-shadow: 0 1px 2px rgb(7 94 84 / 0.12);
+      }
+      .tab:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .tab .badge {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        background: var(--primary);
+        color: #fff;
+        border-radius: 99px;
+        padding: 2px 6px;
+      }
+      .tab[aria-selected="true"] .badge {
+        background: var(--wa-bubble-text);
+      }
+
+      /* sub-tabs — AppTab variant="underline" */
+      .subtabs {
+        display: flex;
+        gap: 18px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 12px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .subtabs::-webkit-scrollbar {
+        display: none;
+      }
+      .subtab {
+        border: 0;
+        background: transparent;
+        padding: 9px 2px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        white-space: nowrap;
+      }
+      .subtab[aria-selected="true"] {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+      }
+
+      /* ---------------- summary strip ---------------- */
+      .summary {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+      .stat {
+        padding: 10px 12px 12px;
+        border-left: 1px solid var(--line);
+      }
+      .stat:first-child {
+        border-left: 0;
+      }
+      .stat-label {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+      }
+      .stat-value {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-top: 3px;
+        line-height: 1.25;
+      }
+      .stat-value.in {
+        color: var(--in);
+      }
+      .stat-value.out {
+        color: var(--out);
+      }
+      .stat-sub {
+        font-size: 10.5px;
+        font-weight: 500;
+        color: var(--ink-muted);
+        margin-top: 2px;
+      }
+
+      /* ---------------- filters row ---------------- */
+      .filters {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .search {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        padding: 8px 12px;
+        color: var(--ink-muted);
+      }
+      .search input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        font-size: 12.5px;
+        font-weight: 500;
+      }
+      .search input::placeholder {
+        color: var(--ink-muted);
+      }
+      select.field {
+        cursor: pointer;
+        background: var(--surface);
+      }
+      .toggle-group {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        overflow: hidden;
+        flex: none;
+      }
+      .toggle-group button {
+        border: 0;
+        background: var(--surface);
+        padding: 7px 9px;
+        cursor: pointer;
+        color: var(--ink-muted);
+        display: grid;
+        place-items: center;
+      }
+      .toggle-group button[aria-pressed="true"] {
+        background: var(--primary);
+        color: #fff;
+      }
+
+      /* ---------------- wallet banner ---------------- */
+      .banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--wa-bubble);
+        color: var(--wa-bubble-text);
+        border-radius: 10px;
+        padding: 11px 13px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .banner .grow {
+        flex: 1;
+      }
+      .banner b {
+        font-weight: 800;
+      }
+      .banner button {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+      }
+
+      /* ---------------- chat feed ---------------- */
+      .chat {
+        background-color: var(--chat-bg);
+        background-image: var(--chat-doodle);
+        border-radius: 10px;
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .pill-row {
+        display: flex;
+        justify-content: center;
+        margin: 2px 0;
+      }
+      .pill {
+        background: var(--bubble-out-bg);
+        color: var(--ink-muted);
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 5px 12px;
+        border-radius: 99px;
+        box-shadow: 0 1px 1px rgb(0 0 0 / 0.08);
+        text-align: center;
+      }
+      .bubble {
+        position: relative;
+        width: 85%;
+        max-width: 420px;
+        padding: 7px 10px 6px;
+        border-radius: 8px;
+        box-shadow: 0 1px 1px rgb(0 0 0 / 0.12);
+      }
+      .bubble.in {
+        align-self: flex-end;
+        background: var(--bubble-in-bg);
+        border-top-right-radius: 0;
+      }
+      .bubble.out {
+        align-self: flex-start;
+        background: var(--bubble-out-bg);
+        border-top-left-radius: 0;
+      }
+      .bubble::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        width: 0;
+        height: 0;
+        border-top: 8px solid transparent;
+      }
+      .bubble.in::after {
+        right: -8px;
+        border-left: 8px solid var(--bubble-in-bg);
+      }
+      .bubble.out::after {
+        left: -8px;
+        border-right: 8px solid var(--bubble-out-bg);
+      }
+      .bubble-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .who {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--ink);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .chip {
+        flex: none;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 2px 5px;
+        border-radius: 4px;
+        background: var(--chip);
+        color: var(--chip-ink);
+      }
+      .bubble .amount {
+        display: block;
+        margin-top: 1px;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .bubble.in .amount {
+        color: var(--in);
+      }
+      .bubble.out .amount {
+        color: var(--out);
+      }
+      .bubble .note {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--ink-muted);
+        margin-top: 1px;
+        line-height: 1.4;
+      }
+      /* Running balance — the ledger screens (Overall Statement, Platform Fee,
+         SK Wallet) carry opening/closing on every row, so it rides inside the
+         bubble as a hairline-separated meta line. */
+      .bal {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 5px;
+        padding-top: 5px;
+        border-top: 1px solid rgb(0 0 0 / 0.07);
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--ink-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .bal b {
+        color: var(--ink);
+        font-weight: 800;
+      }
+      .stamp {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 3px;
+        margin-top: 3px;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--ink-muted);
+      }
+      .tick {
+        color: var(--tick);
+      }
+
+      /* composer — from the shared screenshot (mobile, Overall Statement) */
+      .composer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .fab {
+        width: 40px;
+        height: 40px;
+        flex: none;
+        border: 0;
+        border-radius: 50%;
+        background: var(--primary);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgb(7 94 84 / 0.4);
+      }
+      .fab:hover {
+        filter: brightness(1.12);
+      }
+
+      /* ---------------- desktop table ---------------- */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .table-scroll {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+      }
+      thead th {
+        text-align: left;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+        white-space: nowrap;
+      }
+      thead th.num {
+        text-align: right;
+      }
+      tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      tbody tr:hover {
+        background: var(--chip);
+      }
+      td.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      td .sub {
+        display: block;
+        font-size: 10.5px;
+        color: var(--ink-muted);
+        font-weight: 500;
+        margin-top: 2px;
+      }
+      .link {
+        color: var(--primary);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .link:hover {
+        text-decoration: underline;
+      }
+      .in-txt {
+        color: var(--in);
+        font-weight: 700;
+      }
+      .out-txt {
+        color: var(--out);
+        font-weight: 700;
+      }
+      .dash {
+        color: var(--ink-muted);
+      }
+      .badge-pill {
+        display: inline-block;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--chip);
+        color: var(--chip-ink);
+        white-space: nowrap;
+      }
+      .badge-pill.ok {
+        background: var(--in-tint);
+        color: var(--in);
+      }
+
+      .listfoot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--ink-muted);
+      }
+      .loadmore {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--primary);
+        border-radius: 7px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .loadmore:hover {
+        background: var(--chip);
+      }
+
+      /* ---------------- active plan card (Platform Fee) ---------------- */
+      .plan {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 13px;
+        margin-bottom: 12px;
+      }
+      .plan-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .plan-head h4 {
+        font-size: 14.5px;
+        font-weight: 800;
+      }
+      .plan-sub {
+        font-size: 11.5px;
+        color: var(--ink-muted);
+        font-weight: 500;
+        margin-top: 3px;
+      }
+      .plan-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 11px;
+      }
+      .plan-stat span {
+        display: block;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+      }
+      .plan-stat b {
+        font-size: 14px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .usage {
+        margin-top: 12px;
+      }
+      .usage-top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--ink-muted);
+        margin-bottom: 5px;
+      }
+      .bar {
+        height: 7px;
+        border-radius: 99px;
+        background: var(--chip);
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+        background: var(--primary);
+      }
+      .plan-actions {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .plan-actions .loadmore {
+        font-size: 11.5px;
+      }
+
+      /* ---------------- responsive: container queries ---------------- */
+      .d-only {
+        display: none;
+      }
+      .m-only {
+        display: block;
+      }
+
+      @container (min-width: 768px) {
+        .d-only {
+          display: block;
+        }
+        .m-only {
+          display: none;
+        }
+        .hactions {
+          display: flex;
+        }
+        .crumbs {
+          display: flex;
+        }
+        .content {
+          padding: 16px;
+        }
+        .plan-stats {
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .htitles p {
+          display: none;
+        }
+        button.d-only,
+        .solid-btn.d-only {
+          display: inline-flex;
+        }
+      }
+
+      @container (min-width: 1024px) {
+        .page {
+          display: grid;
+          grid-template-columns: 14rem 1fr;
+          align-items: start;
+        }
+        .rail {
+          display: block;
+          min-height: 640px;
+        }
+      }
+
+      .footnote {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 4px 16px 24px;
+        font-size: 11.5px;
+        line-height: 1.6;
+        color: var(--ink-muted);
+        text-align: center;
+      }
+      .footnote code {
+        font-family: var(--mono);
+        font-size: 10.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Mock chrome — not part of the app UI -->
+    <div class="mockbar">
+      <h1>Accounts · theme-2 design mock</h1>
+      <div class="seg" role="group" aria-label="Preview width">
+        <button id="pv-resp" aria-pressed="true">Responsive</button>
+        <button id="pv-phone" aria-pressed="false">Phone</button>
+      </div>
+      <div class="seg" role="group" aria-label="Appearance">
+        <button id="ap-light" aria-pressed="true">Light</button>
+        <button id="ap-dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+
+    <div class="stage" id="stage" data-preview="resp">
+      <div class="viewport">
+        <!-- ============ app header ============ -->
+        <header class="app-header">
+          <button class="icon-btn" aria-label="Back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          </button>
+          <span class="avatar">₹</span>
+          <div class="htitles">
+            <h2>Accounts Summary</h2>
+            <p>Today · Fri 17 Jul</p>
+          </div>
+          <div class="hactions">
+            <span class="ghost-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></svg>
+              01 Apr 2026 – 17 Jul 2026
+            </span>
+            <button class="ghost-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              Deposit Money
+            </button>
+          </div>
+          <button class="icon-btn" aria-label="Search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
+          </button>
+        </header>
+
+        <div class="page">
+          <!-- ============ desktop rail (lg+) ============ -->
+          <aside class="rail">
+            <h3>Manage Business</h3>
+            <a href="#">Customers</a>
+            <a href="#">Staff</a>
+            <a href="#">Loyalty</a>
+            <a href="#">Paylater</a>
+            <a href="#" aria-current="page">Accounts</a>
+            <a href="#">Expenses</a>
+            <a href="#">Reports</a>
+          </aside>
+
+          <div class="content">
+            <div class="crumbs">
+              <nav>Dashboard · <b>Accounts Summary</b></nav>
+            </div>
+
+            <!-- ============ section tabs ============ -->
+            <nav class="tabs" role="tablist" aria-label="Accounts">
+              <button class="tab" role="tab" data-screen="payables" aria-selected="true">Payables / Receivables</button>
+              <button class="tab" role="tab" data-screen="overall" aria-selected="false">Overall Statement</button>
+              <button class="tab" role="tab" data-screen="platform" aria-selected="false">Platform Fee <span class="badge">Active</span></button>
+              <button class="tab" role="tab" data-screen="wallet" aria-selected="false">My Statement (SK Wallet)</button>
+              <button class="tab" role="tab" disabled title="Lives under Reports — not part of this mock">GST Reports</button>
+            </nav>
+
+            <!-- ================================================================
+                 SCREEN 1 — Payables / Receivables
+                 ================================================================ -->
+            <section id="screen-payables" data-screen-panel>
+              <div class="subtabs" role="tablist" aria-label="Payables or receivables">
+                <button class="subtab" role="tab" data-side="payables" aria-selected="true">Payables</button>
+                <button class="subtab" role="tab" data-side="receivables" aria-selected="false">Receivables</button>
+              </div>
+
+              <div class="summary">
+                <div class="stat">
+                  <div class="stat-label">Money In</div>
+                  <div class="stat-value in amt">+₹2,84,650</div>
+                  <div class="stat-sub">Receivables</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Money Out</div>
+                  <div class="stat-value out amt">-₹4,12,300</div>
+                  <div class="stat-sub">Payables</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Net</div>
+                  <div class="stat-value out amt">-₹1,27,650</div>
+                  <div class="stat-sub">You owe more</div>
+                </div>
+              </div>
+
+              <div class="filters">
+                <label class="search">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
+                  <input placeholder="Search by name..." aria-label="Search by name" />
+                </label>
+                <select class="field" aria-label="Party Type">
+                  <option>All Parties</option>
+                  <option>Customer</option>
+                  <option>Vendor</option>
+                  <option>Retailer</option>
+                </select>
+                <div class="toggle-group">
+                  <button aria-label="List view" aria-pressed="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+                  </button>
+                  <button aria-label="Card view" aria-pressed="false">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+                  </button>
+                </div>
+                <button class="solid-btn d-only">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 3h12M6 8h12M9 13h6M6 3v5a6 6 0 0 0 6 6M12 14v7" /></svg>
+                  Record Payment
+                </button>
+              </div>
+
+              <!-- mobile: chat feed (payables = white bubbles left) -->
+              <div class="m-only">
+                <div class="chat" data-side-panel="payables">
+                  <div class="pill-row"><span class="pill">You owe · 7 parties</span></div>
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Sri Lakshmi Traders</span><span class="chip">Vendor</span></div>
+                    <span class="amount amt">₹1,24,500.00</span>
+                    <div class="stamp">Since 04 Jul 2026</div>
+                  </article>
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Hindustan Unilever Distributors</span><span class="chip">Vendor</span></div>
+                    <span class="amount amt">₹86,240.50</span>
+                    <div class="stamp">Since 28 Jun 2026</div>
+                  </article>
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Balaji Super Market</span><span class="chip">Retailer</span></div>
+                    <span class="amount amt">₹63,800.00</span>
+                    <div class="stamp">Since 21 Jun 2026</div>
+                  </article>
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Anand Agencies</span><span class="chip">Vendor</span></div>
+                    <span class="amount amt">₹47,125.75</span>
+                    <div class="stamp">Since 12 Jun 2026</div>
+                  </article>
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Nandini Milk Agency</span><span class="chip">Vendor</span></div>
+                    <span class="amount amt">₹22,284.00</span>
+                    <div class="stamp">Since 05 May 2026</div>
+                  </article>
+                </div>
+                <div class="chat" data-side-panel="receivables" hidden>
+                  <div class="pill-row"><span class="pill">Owed to you · 5 parties</span></div>
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Green Valley Stores</span><span class="chip">Retailer</span></div>
+                    <span class="amount amt">₹94,300.00</span>
+                    <div class="stamp">Since 02 Jul 2026
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Deepa Provisions</span><span class="chip">Retailer</span></div>
+                    <span class="amount amt">₹87,519.50</span>
+                    <div class="stamp">Since 01 Jun 2026
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Priya Enterprises</span><span class="chip">Retailer</span></div>
+                    <span class="amount amt">₹71,600.50</span>
+                    <div class="stamp">Since 25 Jun 2026
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Suresh Kumar</span><span class="chip">Customer</span></div>
+                    <span class="amount amt">₹18,750.00</span>
+                    <div class="stamp">Since 09 Jul 2026
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Mohammed Irfan</span><span class="chip">Customer</span></div>
+                    <span class="amount amt">₹12,480.00</span>
+                    <div class="stamp">Since 14 Jun 2026
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <!-- desktop: table -->
+              <div class="d-only">
+                <div class="card">
+                  <div class="table-scroll">
+                    <table data-side-panel="payables">
+                      <thead>
+                        <tr><th style="width:5%">#</th><th style="width:30%">Name</th><th style="width:20%">Party</th><th style="width:20%">Since</th><th style="width:25%" class="num">Amount</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>1</td><td><a class="link" href="#">Sri Lakshmi Traders</a></td><td>Vendor</td><td>04 Jul 2026</td><td class="num out-txt">₹1,24,500.00</td></tr>
+                        <tr><td>2</td><td><a class="link" href="#">Hindustan Unilever Distributors</a></td><td>Vendor</td><td>28 Jun 2026</td><td class="num out-txt">₹86,240.50</td></tr>
+                        <tr><td>3</td><td><a class="link" href="#">Balaji Super Market</a></td><td>Retailer</td><td>21 Jun 2026</td><td class="num out-txt">₹63,800.00</td></tr>
+                        <tr><td>4</td><td><a class="link" href="#">Anand Agencies</a></td><td>Vendor</td><td>12 Jun 2026</td><td class="num out-txt">₹47,125.75</td></tr>
+                        <tr><td>5</td><td><a class="link" href="#">Venkateshwara Enterprises</a></td><td>Vendor</td><td>30 May 2026</td><td class="num out-txt">₹38,900.00</td></tr>
+                        <tr><td>6</td><td><a class="link" href="#">Ramesh Kirana Store</a></td><td>Retailer</td><td>18 May 2026</td><td class="num out-txt">₹29,450.25</td></tr>
+                        <tr><td>7</td><td><a class="link" href="#">Nandini Milk Agency</a></td><td>Vendor</td><td>05 May 2026</td><td class="num out-txt">₹22,284.00</td></tr>
+                      </tbody>
+                    </table>
+                    <table data-side-panel="receivables" hidden>
+                      <thead>
+                        <tr><th style="width:5%">#</th><th style="width:30%">Name</th><th style="width:20%">Party</th><th style="width:20%">Since</th><th style="width:25%" class="num">Amount</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>1</td><td><a class="link" href="#">Green Valley Stores</a></td><td>Retailer</td><td>02 Jul 2026</td><td class="num in-txt">₹94,300.00</td></tr>
+                        <tr><td>2</td><td><a class="link" href="#">Deepa Provisions</a></td><td>Retailer</td><td>01 Jun 2026</td><td class="num in-txt">₹87,519.50</td></tr>
+                        <tr><td>3</td><td><a class="link" href="#">Priya Enterprises</a></td><td>Retailer</td><td>25 Jun 2026</td><td class="num in-txt">₹71,600.50</td></tr>
+                        <tr><td>4</td><td><a class="link" href="#">Suresh Kumar</a></td><td>Customer</td><td>09 Jul 2026</td><td class="num in-txt">₹18,750.00</td></tr>
+                        <tr><td>5</td><td><a class="link" href="#">Mohammed Irfan</a></td><td>Customer</td><td>14 Jun 2026</td><td class="num in-txt">₹12,480.00</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="listfoot">
+                <span>Showing 7 of 312 records</span>
+                <button class="loadmore">Load More 7/312</button>
+              </div>
+            </section>
+
+            <!-- ================================================================
+                 SCREEN 2 — Overall Statement
+                 ================================================================ -->
+            <section id="screen-overall" data-screen-panel hidden>
+              <div class="summary">
+                <div class="stat">
+                  <div class="stat-label">Money In</div>
+                  <div class="stat-value in amt">₹18,400</div>
+                  <div class="stat-sub">32 txns</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Money Out</div>
+                  <div class="stat-value out amt">₹8,200</div>
+                  <div class="stat-sub">11 txns</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Net</div>
+                  <div class="stat-value in amt">+₹10,200</div>
+                  <div class="stat-sub">▲ ₹1.4K vs yday</div>
+                </div>
+              </div>
+
+              <!-- mobile: the shared screenshot -->
+              <div class="m-only">
+                <div class="chat">
+                  <div class="pill-row"><span class="pill">Today · 15 Jul</span></div>
+
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Ramesh (walk-in)</span><span class="chip">B2C</span></div>
+                    <span class="amount amt">+₹240.00</span>
+                    <div class="note">UPI · Amul, Britannia, Colgate</div>
+                    <div class="bal"><span>Opening ₹36,299.50</span><span>Closing <b>₹36,539.50</b></span></div>
+                    <div class="stamp">9:12
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Sri Sai Kirana</span><span class="chip">B2B</span></div>
+                    <span class="amount amt">+₹1,850.00</span>
+                    <div class="note">Paylater cleared · INV-2091</div>
+                    <div class="bal"><span>Opening ₹36,539.50</span><span>Closing <b>₹38,389.50</b></span></div>
+                    <div class="stamp">9:34
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+
+                  <div class="pill-row"><span class="pill">Invoice INV-2101 · sent via WhatsApp</span></div>
+
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Sri Mahalakshmi Traders</span><span class="chip">Vendor</span></div>
+                    <span class="amount amt">−₹4,200.00</span>
+                    <div class="note">UPI · Cleared INV-4821 (PO-121)</div>
+                    <div class="bal"><span>Opening ₹38,389.50</span><span>Closing <b>₹34,189.50</b></span></div>
+                    <div class="stamp">10:48</div>
+                  </article>
+
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Cash counter</span><span class="chip">B2C</span></div>
+                    <span class="amount amt">+₹3,420.00</span>
+                    <div class="note">14 walk-in bills · 9:30–11 am</div>
+                    <div class="bal"><span>Opening ₹34,189.50</span><span>Closing <b>₹37,609.50</b></span></div>
+                    <div class="stamp">11:05
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Electricity</span><span class="chip">Expense</span></div>
+                    <span class="amount amt">−₹1,860.00</span>
+                    <div class="note">BESCOM · scanned bill · Jul</div>
+                    <div class="bal"><span>Opening ₹37,609.50</span><span>Closing <b>₹35,749.50</b></span></div>
+                    <div class="stamp">11:22</div>
+                  </article>
+
+                  <div class="pill-row"><span class="pill">12 PM</span></div>
+                </div>
+
+                <div class="composer">
+                  <label class="search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                    <input placeholder="Add income · expense · note" aria-label="Add income, expense or note" />
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.2-2h8.2l1.2 2h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z" /><circle cx="12" cy="13" r="3.4" /></svg>
+                  </label>
+                  <button class="fab" aria-label="Voice note">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" /><path d="M18 11a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.9V19h-2a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.1A6 6 0 0 0 18 11z" /></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- desktop: ledger table -->
+              <div class="d-only">
+                <div class="card">
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr><th>Date</th><th>Type</th><th>ID</th><th>Description</th><th class="num">Opening Balance</th><th class="num">Credit</th><th class="num">Debit</th><th class="num">Closing Balance</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>15 Jul 2026<span class="sub">09:12 AM</span></td>
+                          <td><span class="badge-pill">B2C</span></td>
+                          <td class="mono">INV-2088</td>
+                          <td>UPI · Amul, Britannia, Colgate<span class="sub">Ramesh (walk-in)</span></td>
+                          <td class="num">₹36,299.50</td><td class="num in-txt">₹240.00</td><td class="num dash">-</td><td class="num"><b>₹36,539.50</b></td>
+                        </tr>
+                        <tr>
+                          <td>15 Jul 2026<span class="sub">09:34 AM</span></td>
+                          <td><span class="badge-pill">B2B</span></td>
+                          <td class="mono">INV-2091</td>
+                          <td>Paylater cleared<span class="sub">Sri Sai Kirana</span></td>
+                          <td class="num">₹36,539.50</td><td class="num in-txt">₹1,850.00</td><td class="num dash">-</td><td class="num"><b>₹38,389.50</b></td>
+                        </tr>
+                        <tr>
+                          <td>15 Jul 2026<span class="sub">10:48 AM</span></td>
+                          <td><span class="badge-pill">Payment</span></td>
+                          <td class="mono">INV-4821</td>
+                          <td>UPI · Cleared against PO-121<span class="sub">Vendor: Sri Mahalakshmi Traders</span></td>
+                          <td class="num">₹38,389.50</td><td class="num dash">-</td><td class="num out-txt">₹4,200.00</td><td class="num"><b>₹34,189.50</b></td>
+                        </tr>
+                        <tr>
+                          <td>15 Jul 2026<span class="sub">11:05 AM</span></td>
+                          <td><span class="badge-pill">B2C</span></td>
+                          <td class="mono">CASH-0915</td>
+                          <td>14 walk-in bills · 9:30–11 am<span class="sub">Cash counter</span></td>
+                          <td class="num">₹34,189.50</td><td class="num in-txt">₹3,420.00</td><td class="num dash">-</td><td class="num"><b>₹37,609.50</b></td>
+                        </tr>
+                        <tr>
+                          <td>15 Jul 2026<span class="sub">11:22 AM</span></td>
+                          <td><span class="badge-pill">Expense</span></td>
+                          <td class="mono">EXP-0771</td>
+                          <td>BESCOM · scanned bill · Jul<span class="sub">Electricity</span></td>
+                          <td class="num">₹37,609.50</td><td class="num dash">-</td><td class="num out-txt">₹1,860.00</td><td class="num"><b>₹35,749.50</b></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="listfoot">
+                <span>Showing 5 of 43 records</span>
+                <button class="loadmore">Load More 5/43</button>
+              </div>
+            </section>
+
+            <!-- ================================================================
+                 SCREEN 3 — Platform Fee
+                 ================================================================ -->
+            <section id="screen-platform" data-screen-panel hidden>
+              <div class="subtabs" role="tablist" aria-label="Platform fee">
+                <button class="subtab" role="tab" aria-selected="false">Benefits</button>
+                <button class="subtab" role="tab" aria-selected="false">Plans</button>
+                <button class="subtab" role="tab" aria-selected="true">Statement</button>
+              </div>
+
+              <div class="plan">
+                <div class="plan-head">
+                  <h4>Growth Plan ₹999</h4>
+                  <span class="badge-pill ok">Active</span>
+                  <span class="badge-pill">Hybrid</span>
+                </div>
+                <p class="plan-sub">Fee: ₹999.00 for 3 months · Expires on 01 Sep 2026</p>
+                <div class="plan-stats">
+                  <div class="plan-stat"><span>Purchase Capacity</span><b class="amt">₹3,00,000.00</b></div>
+                  <div class="plan-stat"><span>Purchases Made</span><b class="amt">₹1,84,320.50</b></div>
+                  <div class="plan-stat"><span>Remaining</span><b class="amt">₹1,15,679.50</b></div>
+                  <div class="plan-stat"><span>Days Left</span><b>46 Days</b></div>
+                </div>
+                <div class="usage">
+                  <div class="usage-top"><span>Usage</span><span class="amt">61.4%</span></div>
+                  <div class="bar"><i style="width: 61.4%"></i></div>
+                </div>
+                <div class="plan-actions">
+                  <button class="solid-btn">Top Up</button>
+                  <button class="loadmore">Renew</button>
+                  <button class="loadmore">Invoice</button>
+                  <button class="loadmore">Cancel Plan</button>
+                </div>
+              </div>
+
+              <div class="filters">
+                <label class="search">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
+                  <input placeholder="Search by Reference ID" aria-label="Search by Reference ID" />
+                </label>
+                <select class="field" aria-label="Plan">
+                  <option>Select</option>
+                  <option>Growth Plan ₹999</option>
+                  <option>Starter Plan ₹499</option>
+                </select>
+                <button class="loadmore d-only">Download</button>
+              </div>
+
+              <!-- mobile: chat feed -->
+              <div class="m-only">
+                <div class="chat">
+                  <div class="pill-row"><span class="pill">Growth Plan ₹999 · PLN0001274</span></div>
+
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Plan subscription credit</span><span class="chip">Credit</span></div>
+                    <span class="amount amt">+₹2,50,000.00</span>
+                    <div class="note">Growth Plan ₹999 · <span class="mono">SKSP2607140093</span></div>
+                    <div class="bal"><span>Opening ₹0.00</span><span>Closing <b>₹2,50,000.00</b></span></div>
+                    <div class="stamp">14 Jul · 11:02 AM
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Platform fee (1%)</span><span class="chip">Debit</span></div>
+                    <span class="amount amt">−₹184.50</span>
+                    <div class="note">On purchase order · <span class="mono">PO0025519</span></div>
+                    <div class="bal"><span>Opening ₹2,50,000.00</span><span>Closing <b>₹2,49,815.50</b></span></div>
+                    <div class="stamp">14 Jul · 03:41 PM</div>
+                  </article>
+
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Platform fee (1%)</span><span class="chip">Debit</span></div>
+                    <span class="amount amt">−₹1,247.00</span>
+                    <div class="note">On purchase order · <span class="mono">PO0025604</span></div>
+                    <div class="bal"><span>Opening ₹2,49,815.50</span><span>Closing <b>₹2,48,568.50</b></span></div>
+                    <div class="stamp">15 Jul · 10:15 AM</div>
+                  </article>
+
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Plan top-up</span><span class="chip">Credit</span></div>
+                    <span class="amount amt">+₹50,000.00</span>
+                    <div class="note">Wallet · <span class="mono">SKSP2607160118</span></div>
+                    <div class="bal"><span>Opening ₹2,48,568.50</span><span>Closing <b>₹2,98,568.50</b></span></div>
+                    <div class="stamp">16 Jul · 09:28 AM
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Platform fee (1%)</span><span class="chip">Debit</span></div>
+                    <span class="amount amt">−₹3,410.75</span>
+                    <div class="note">On purchase order · <span class="mono">PO0025731</span></div>
+                    <div class="bal"><span>Opening ₹2,98,568.50</span><span>Closing <b>₹2,95,157.75</b></span></div>
+                    <div class="stamp">17 Jul · 04:12 PM</div>
+                  </article>
+                </div>
+              </div>
+
+              <!-- desktop: table -->
+              <div class="d-only">
+                <div class="card">
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr><th>Date</th><th>ID</th><th>Description</th><th>Reference ID</th><th class="num">Opening Balance</th><th class="num">Credit</th><th class="num">Debit</th><th class="num">Closing Balance</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>14 Jul 2026<span class="sub">11:02 AM</span></td>
+                          <td class="mono">SFS0004821</td>
+                          <td>Plan subscription credit — Growth Plan<span class="sub">Plan: Growth Plan ₹999 · Ref ID: PLN0001274</span></td>
+                          <td><a class="link mono" href="#">SKSP2607140093</a></td>
+                          <td class="num">₹0.00</td><td class="num in-txt">₹2,50,000.00</td><td class="num dash">-</td><td class="num"><b>₹2,50,000.00</b></td>
+                        </tr>
+                        <tr>
+                          <td>14 Jul 2026<span class="sub">03:41 PM</span></td>
+                          <td class="mono">SFS0004833</td>
+                          <td>Platform fee (1%) on purchase order<span class="sub">Plan: Growth Plan ₹999</span></td>
+                          <td><a class="link mono" href="#">PO0025519</a></td>
+                          <td class="num">₹2,50,000.00</td><td class="num dash">-</td><td class="num out-txt">₹184.50</td><td class="num"><b>₹2,49,815.50</b></td>
+                        </tr>
+                        <tr>
+                          <td>15 Jul 2026<span class="sub">10:15 AM</span></td>
+                          <td class="mono">SFS0004847</td>
+                          <td>Platform fee (1%) on purchase order<span class="sub">Plan: Growth Plan ₹999</span></td>
+                          <td><a class="link mono" href="#">PO0025604</a></td>
+                          <td class="num">₹2,49,815.50</td><td class="num dash">-</td><td class="num out-txt">₹1,247.00</td><td class="num"><b>₹2,48,568.50</b></td>
+                        </tr>
+                        <tr>
+                          <td>16 Jul 2026<span class="sub">09:28 AM</span></td>
+                          <td class="mono">SFS0004902</td>
+                          <td>Plan top-up<span class="sub">Plan: Growth Plan ₹999</span></td>
+                          <td><a class="link mono" href="#">SKSP2607160118</a></td>
+                          <td class="num">₹2,48,568.50</td><td class="num in-txt">₹50,000.00</td><td class="num dash">-</td><td class="num"><b>₹2,98,568.50</b></td>
+                        </tr>
+                        <tr>
+                          <td>17 Jul 2026<span class="sub">04:12 PM</span></td>
+                          <td class="mono">SFS0004915</td>
+                          <td>Platform fee (1%) on purchase order<span class="sub">Plan: Growth Plan ₹999</span></td>
+                          <td><a class="link mono" href="#">PO0025731</a></td>
+                          <td class="num">₹2,98,568.50</td><td class="num dash">-</td><td class="num out-txt">₹3,410.75</td><td class="num"><b>₹2,95,157.75</b></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="listfoot">
+                <span>Showing 1 to 5 of 46 records</span>
+                <button class="loadmore">Load More 5/46</button>
+              </div>
+            </section>
+
+            <!-- ================================================================
+                 SCREEN 4 — My Statement (SK Wallet)
+                 ================================================================ -->
+            <section id="screen-wallet" data-screen-panel hidden>
+              <div class="banner">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5" /><circle cx="16.5" cy="13" r="1.3" fill="currentColor" stroke="none" /></svg>
+                <span class="grow">Hello <b>Sri Lakshmi Stores</b>, your wallet balance with StoreKing is <b class="amt">₹48,250.00</b></span>
+                <button aria-label="Refresh balance">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4" /><path d="M21 3v6h-6" /></svg>
+                </button>
+              </div>
+
+              <div class="filters">
+                <label class="search">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
+                  <input placeholder="Search by Reference ID" aria-label="Search by Reference ID" />
+                </label>
+                <select class="field" aria-label="Entry">
+                  <option>All Entry</option>
+                  <option>Credit</option>
+                  <option>Debit</option>
+                </select>
+                <div class="toggle-group">
+                  <button aria-label="Filters" aria-pressed="false">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z" /></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- mobile: chat feed -->
+              <div class="m-only">
+                <div class="chat">
+                  <div class="pill-row"><span class="pill">SK Wallet · last 3 months</span></div>
+
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Purchase Order</span><span class="chip">Debit</span></div>
+                    <span class="amount amt">−₹14,290.00</span>
+                    <div class="note">Purchase order confirmed · <span class="mono">SPO-2026-04412</span></div>
+                    <div class="bal"><span>Opening ₹62,540.00</span><span>Closing <b>₹48,250.00</b></span></div>
+                    <div class="stamp">17 Jul · 10:42 AM</div>
+                  </article>
+
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Deposit</span><span class="chip">Credit</span></div>
+                    <span class="amount amt">+₹25,000.00</span>
+                    <div class="note">Express deposit via UPI · HDFC0001234</div>
+                    <div class="bal"><span>Opening ₹37,540.00</span><span>Closing <b>₹62,540.00</b></span></div>
+                    <div class="stamp">16 Jul · 06:15 PM
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+
+                  <article class="bubble in">
+                    <div class="bubble-head"><span class="who">Order Refund</span><span class="chip">Credit</span></div>
+                    <span class="amount amt">+₹1,240.50</span>
+                    <div class="note">Refund for cancelled order · <span class="mono">ORD-88213</span></div>
+                    <div class="bal"><span>Opening ₹36,299.50</span><span>Closing <b>₹37,540.00</b></span></div>
+                    <div class="stamp">15 Jul · 02:08 PM
+                      <svg class="tick" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m1 13 4 4L14 8" /><path d="m9 13 4 4L23 7" /></svg>
+                    </div>
+                  </article>
+
+                  <article class="bubble out">
+                    <div class="bubble-head"><span class="who">Recharge</span><span class="chip">Debit</span></div>
+                    <span class="amount amt">−₹499.00</span>
+                    <div class="note">Prepaid recharge · Jio 9845012345</div>
+                    <div class="bal"><span>Opening ₹36,798.50</span><span>Closing <b>₹36,299.50</b></span></div>
+                    <div class="stamp">15 Jul · 11:20 AM</div>
+                  </article>
+                </div>
+              </div>
+
+              <!-- desktop: table -->
+              <div class="d-only">
+                <div class="card">
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr><th>Date</th><th>Type</th><th>Description</th><th>Reference</th><th class="num">Opening Balance</th><th class="num">Credit</th><th class="num">Debit</th><th class="num">Closing Balance</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>17 Jul 2026<span class="sub">10:42 AM</span></td>
+                          <td><span class="badge-pill">Purchase Order</span></td>
+                          <td>Purchase order SPO-2026-04412 confirmed</td>
+                          <td><a class="link mono" href="#">SPO-2026-04412</a></td>
+                          <td class="num">₹62,540.00</td><td class="num dash">--</td><td class="num out-txt">₹14,290.00</td><td class="num"><b>₹48,250.00</b></td>
+                        </tr>
+                        <tr>
+                          <td>16 Jul 2026<span class="sub">06:15 PM</span></td>
+                          <td><span class="badge-pill">Deposit</span></td>
+                          <td>Express deposit via UPI - HDFC0001234</td>
+                          <td class="mono">TXN20260716181502</td>
+                          <td class="num">₹37,540.00</td><td class="num in-txt">₹25,000.00</td><td class="num dash">--</td><td class="num"><b>₹62,540.00</b></td>
+                        </tr>
+                        <tr>
+                          <td>15 Jul 2026<span class="sub">02:08 PM</span></td>
+                          <td><span class="badge-pill">Order Refund</span></td>
+                          <td>Refund for cancelled order ORD-88213</td>
+                          <td><a class="link mono" href="#">ORD-88213</a></td>
+                          <td class="num">₹36,299.50</td><td class="num in-txt">₹1,240.50</td><td class="num dash">--</td><td class="num"><b>₹37,540.00</b></td>
+                        </tr>
+                        <tr>
+                          <td>15 Jul 2026<span class="sub">11:20 AM</span></td>
+                          <td><span class="badge-pill">Recharge</span></td>
+                          <td>Prepaid recharge - Jio 9845012345</td>
+                          <td class="mono">RCH2026071500884</td>
+                          <td class="num">₹36,798.50</td><td class="num dash">--</td><td class="num out-txt">₹499.00</td><td class="num"><b>₹36,299.50</b></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="listfoot">
+                <span>Showing 4 of 137 records</span>
+                <button class="loadmore">Load More 4/137</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="footnote">
+      Static design mock — no app code. Tokens mirror <code>app/styles/theme-2.css</code>
+      and <code>app/app.css</code>; labels mirror <code>public/locales/en/common.json</code>.
+      Resize the window, or use <b>Phone</b>, to see the mobile layout.
+    </p>
+
+    <script>
+      // Section tabs
+      const panels = document.querySelectorAll("[data-screen-panel]");
+      document.querySelectorAll(".tab[data-screen]").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document
+            .querySelectorAll(".tab[data-screen]")
+            .forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
+          const id = "screen-" + tab.dataset.screen;
+          panels.forEach((p) => (p.hidden = p.id !== id));
+        });
+      });
+
+      // Payables / Receivables sub-tabs — swap both the chat feed and the table
+      document.querySelectorAll(".subtab[data-side]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const side = btn.dataset.side;
+          document
+            .querySelectorAll(".subtab[data-side]")
+            .forEach((b) => b.setAttribute("aria-selected", String(b === btn)));
+          document.querySelectorAll("[data-side-panel]").forEach((p) => {
+            p.hidden = p.dataset.sidePanel !== side;
+          });
+        });
+      });
+
+      // Platform Fee sub-tabs are display-only in this mock
+      const feeTabs = document.querySelectorAll("#screen-platform .subtab");
+      feeTabs.forEach((btn) => {
+        btn.addEventListener("click", () =>
+          feeTabs.forEach((b) => b.setAttribute("aria-selected", String(b === btn))),
+        );
+      });
+
+      // Preview width — drives the container query, not the viewport
+      const stage = document.getElementById("stage");
+      const setPreview = (mode) => {
+        stage.dataset.preview = mode;
+        document
+          .getElementById("pv-resp")
+          .setAttribute("aria-pressed", String(mode === "resp"));
+        document
+          .getElementById("pv-phone")
+          .setAttribute("aria-pressed", String(mode === "phone"));
+      };
+      document
+        .getElementById("pv-resp")
+        .addEventListener("click", () => setPreview("resp"));
+      document
+        .getElementById("pv-phone")
+        .addEventListener("click", () => setPreview("phone"));
+
+      // Appearance
+      const setAppearance = (mode) => {
+        document.documentElement.dataset.appearance = mode;
+        document
+          .getElementById("ap-light")
+          .setAttribute("aria-pressed", String(mode === "light"));
+        document
+          .getElementById("ap-dark")
+          .setAttribute("aria-pressed", String(mode === "dark"));
+      };
+      document
+        .getElementById("ap-light")
+        .addEventListener("click", () => setAppearance("light"));
+      document
+        .getElementById("ap-dark")
+        .addEventListener("click", () => setAppearance("dark"));
+      setAppearance(
+        window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+      );
+    </script>
+  </body>
+</html>

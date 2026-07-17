@@ -1,0 +1,11 @@
+.app-input {
+  @apply tw:w-full tw:outline-none tw:border tw:rounded-md tw:border-gray-300 tw:text-base tw:p-2;
+}
+
+.app-input:focus {
+  @apply tw:border-gray-400;
+}
+
+.app-input.app-input-sm {
+  @apply tw:text-xs tw:p-2;
+}

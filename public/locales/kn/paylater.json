@@ -1,0 +1,19 @@
+{
+  "overdue": {
+    "dueToday": "ಇಂದು ಬಾಕಿ",
+    "dueTomorrow": "ನಾಳೆ ಬಾಕಿ",
+    "totalAmount": "ಒಟ್ಟು ಮೊತ್ತ",
+    "totalUsers": "ಒಟ್ಟು ಬಳಕೆದಾರರು",
+    "view": "ವೀಕ್ಷಿಸಿ",
+    "b2c": "B2C",
+    "b2b": "B2B",
+    "total": "ಒಟ್ಟು",
+    "users": "ಬಳಕೆದಾರರು"
+  },
+  "summary": {
+    "b2cWallets": "B2C ವಾಲೆಟ್‌ಗಳು",
+    "b2bWallets": "B2B ವಾಲೆಟ್‌ಗಳು",
+    "totalOutstandingBalance": "ಒಟ್ಟು ಬಾಕಿ ಶಿಲ್ಕು",
+    "totalCreditLimit": "ಒಟ್ಟು ಕ್ರೆಡಿಟ್ ಮಿತಿ"
+  }
+}

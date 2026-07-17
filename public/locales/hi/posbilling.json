@@ -1,0 +1,166 @@
+{
+  "breadcrumbs": {
+    "pos": "POS",
+    "billing": "बिलिंग"
+  },
+  "header": {
+    "b2bBilling": "B2B बिलिंग",
+    "b2cBilling": "B2C बिलिंग",
+    "walkinBilling": "वॉक-इन बिलिंग",
+    "billing": "बिलिंग",
+    "assistedOrder": "Assisted Order"
+  },
+  "actions": {
+    "switchMode": "मोड बदलें"
+  },
+  "cart": {
+    "title": "कार्ट",
+    "totalItems": "कुल आइटम",
+    "emptyCart": {
+      "title": "आपकी कार्ट खाली है",
+      "subtitle": "शुरू करने के लिए आइटम जोड़ें"
+    },
+    "summary": {
+      "subTotal": "उप-कुल",
+      "couponDiscount": "कूपन छूट",
+      "coinsDiscount": "सिक्के छूट",
+      "totalDiscount": "कुल छूट",
+      "total": "कुल"
+    },
+    "actions": {
+      "proceedToCheckout": "चेकआउट के लिए आगे बढ़ें"
+    },
+    "itemAlreadyInCart": "आइटम पहले से कार्ट में है",
+    "itemAlreadyInCartDesc": "यह आइटम पहले से आपकी कार्ट में है। क्या आप इसे कार्ट में देखना चाहेंगे?",
+    "viewInCart": "कार्ट में देखें",
+    "messages": {
+      "addProductsToCart": "चेकआउट के लिए आगे बढ़ने से पहले कार्ट में उत्पाद जोड़ें।",
+      "minCartNotSatisfied": "The minimum cart value to proceed is ₹{{value}}. Please add more items to your cart.",
+      "cartIdNotFound": "कार्ट ID नहीं मिला। कृपया पेज रिफ्रेश करें।",
+      "itemRemoved": "कार्ट से आइटम हटा दिया गया",
+      "failedToRemoveItem": "आइटम हटाने में विफल",
+      "itemIdNotFound": "आइटम ID नहीं मिला। कृपया पेज रिफ्रेश करें।"
+    }
+  },
+  "customerTypeModal": {
+    "title": "ग्राहक प्रकार चुनें",
+    "subtitle": "उचित मूल्य प्रदर्शित करने के लिए ग्राहक प्रकार चुनें",
+    "options": {
+      "b2c": {
+        "title": "B2C ग्राहक",
+        "description": "व्यक्तिगत ग्राहकों के लिए खुदरा मूल्य"
+      },
+      "b2b": {
+        "title": "B2B ग्राहक",
+        "description": "व्यवसाय ग्राहकों के लिए थोक मूल्य"
+      },
+      "b2bQuick": {
+        "title": "B2B क्विक चेकआउट",
+        "description": "तुरंत स्टॉक डेबिट, इनवॉइस और डिलीवरी के साथ रिटेलर की बिलिंग करें"
+      },
+      "walkin": {
+        "title": "वॉक-इन ग्राहक",
+        "description": "मानक खुदरा मूल्य"
+      }
+    }
+  },
+  "checkoutModal": {
+    "title": "चेकआउट",
+    "steps": {
+      "selectCustomer": "ग्राहक चुनें",
+      "selectRetailer": "खुदरा विक्रेता चुनें",
+      "choosePayment": "भुगतान चुनें",
+      "confirmation": "पुष्टि"
+    },
+    "customer": {
+      "title": "यह ऑर्डर किसके लिए है?",
+      "options": {
+        "walkin": "वॉक-इन ग्राहक",
+        "b2c": "B2C ग्राहक"
+      },
+      "search": {
+        "placeholder": "ग्राहक खोजें",
+        "searching": "खोज रहे हैं, कृपया प्रतीक्षा करें...",
+        "noCustomerFound": "कोई ग्राहक नहीं मिला, कृपया नया ग्राहक बनाएं",
+        "namePlaceholder": "नाम दर्ज करें"
+      },
+      "customerCard": {
+        "pointsAvailable": "उपलब्ध:",
+        "pointsCount": "{{count}} अंक"
+      },
+      "validation": {
+        "enterName": "कृपया नाम दर्ज करें",
+        "enterMobile": "कृपया मोबाइल नंबर दर्ज करें",
+        "validMobile": "कृपया वैध मोबाइल नंबर दर्ज करें",
+        "customerNotFound": "ग्राहक नहीं मिला",
+        "sameAsRetailer": "ग्राहक का मोबाइल नंबर आपके स्टोर के नंबर के समान नहीं हो सकता"
+      },
+      "messages": {
+        "customerCreated": "ग्राहक सफलतापूर्वक बनाया गया",
+        "failedToCreateCustomer": "ग्राहक बनाने में विफल"
+      },
+      "actions": {
+        "createCustomer": "ग्राहक बनाएं",
+        "continue": "जारी रखें",
+        "select": "Select"
+      }
+    },
+    "retailer": {
+      "title": "खुदरा विक्रेता चुनें",
+      "search": {
+        "placeholder": "खुदरा विक्रेता खोजें",
+        "searching": "खोज रहे हैं, कृपया प्रतीक्षा करें...",
+        "noDataFound": "इस मोबाइल नंबर के साथ कोई खुदरा विक्रेता नहीं मिला"
+      },
+      "validation": {
+        "selectRetailer": "जारी रखने के लिए कृपया एक खुदरा विक्रेता चुनें"
+      },
+      "actions": {
+        "continue": "जारी रखें"
+      }
+    },
+    "payment": {
+      "loyaltyPoints": {
+        "title": "लॉयल्टी अंक का उपयोग करें",
+        "placeholder": "0",
+        "max": "अधिकतम",
+        "available": "उपलब्ध:"
+      },
+      "coupon": {
+        "title": "कूपन कोड (वैकल्पिक)",
+        "placeholder": "कूपन दर्ज करें",
+        "apply": "लागू करें"
+      },
+      "method": {
+        "title": "भुगतान विधि",
+        "cash": "नकद",
+        "card": "कार्ड"
+      },
+      "actions": {
+        "back": "वापस",
+        "continue": "जारी रखें"
+      }
+    },
+    "summary": {
+      "title": "ऑर्डर सारांश",
+      "selectedCustomer": "चयनित ग्राहक",
+      "subtotal": "उप-कुल",
+      "couponDiscount": "कूपन छूट",
+      "coinsDiscount": "सिक्के छूट",
+      "totalDiscount": "कुल छूट",
+      "total": "कुल",
+      "customer": "ग्राहक:",
+      "payment": "भुगतान:",
+      "walkinCustomer": "वॉक-इन ग्राहक",
+      "actions": {
+        "back": "वापस",
+        "pay": "भुगतान करें"
+      }
+    },
+    "messages": {
+      "orderPlaced": "ऑर्डर सफलतापूर्वक रखा गया!",
+      "failedToPlaceOrder": "ऑर्डर रखने में विफल",
+      "errorPlacingOrder": "ऑर्डर रखते समय एक त्रुटि हुई"
+    }
+  }
+}

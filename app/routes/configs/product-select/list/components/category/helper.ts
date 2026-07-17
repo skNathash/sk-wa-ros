@@ -1,0 +1,76 @@
+import SellerCatalogService from "~/services/SellerCatalogService";
+import type { PaginationState } from "~/types/CommonTypes";
+import CommonService from "~/services/CommonService";
+
+export const prepareParams = (
+  filter: {
+    search?: string;
+    alpha?: string;
+    status?: string;
+    feature?: string;
+    notConfiguredOnly?: boolean;
+    onlyOffers?: boolean;
+  } = {},
+  pagination: PaginationState,
+): Record<string, any> => {
+  const params: Record<string, any> = {
+    page: pagination?.activePage,
+    limit: pagination?.rowsPerPage,
+    filter: {},
+  };
+
+  const { search, alpha } = filter || {};
+
+  if (search) {
+    params.filter["applicableCategory.categoryName"] = {
+      $regex: search,
+      $options: "i",
+    };
+  }
+
+  if (alpha) {
+    params.filter["applicableCategory.categoryName"] =
+      CommonService.prepareAlphaRegexFilter(alpha);
+  }
+
+  if (filter?.feature === "PriceUpdate" && filter?.notConfiguredOnly) {
+    params.networkPriceConfig = "NoOffer";
+  }
+
+  if (filter?.notConfiguredOnly) {
+    if (filter.feature === "PackUpdate") {
+      params.filter.isPackageTypeUpdated = false;
+    } else if (filter.feature === "PriceUpdate") {
+      params.filter.isPriceUpdated = false;
+    }
+  }
+
+  return params;
+};
+
+export const getData = async (params: Record<string, any>) => {
+  try {
+    const response = await SellerCatalogService.getCategories(params);
+    return {
+      data: SellerCatalogService.formatCategoryResponse(
+        response.data?.data || [],
+      ),
+    };
+  } catch (error) {
+    console.error(error);
+    return { data: [] };
+  }
+};
+
+export const getCount = async (params: Record<string, any>) => {
+  try {
+    const response = await SellerCatalogService.getCategories({
+      ...params,
+      outputType: "count",
+    });
+    return response.data?.count || 0;
+  } catch (error) {
+    console.error(error);
+    return 0;
+  }
+};

@@ -1,0 +1,201 @@
+{
+  "intro": {
+    "pageTitle": "Signup",
+    "heroTitle": "Join Our Retailer Network",
+    "heroSubtitle": "Register your store with us & unlock a world of benefits & opportunities",
+    "ctaRegister": "REGISTER YOUR STORE",
+    "whyRegisterTitle": "Why Register with Us?",
+    "grids": {
+      "expandBusiness": {
+        "title": "Expand Your Business",
+        "description": "Reach new customers & increase sales"
+      },
+      "betterMargins": {
+        "title": "Better Margins",
+        "description": "Gain access to exclusive pricing"
+      },
+      "easyManagement": {
+        "title": "Easy Management",
+        "description": "Simplified inventory & order management tools"
+      },
+      "dedicatedSupport": {
+        "title": "Dedicated Support",
+        "description": "Get personalized assistance & business growth advice"
+      }
+    }
+  },
+  "register": {
+    "pageTitle": "Register",
+    "headingTitle": "Register Your Store",
+    "headingSubtitle": "Complete the form below to register your store with us",
+    "contact": {
+      "title": "Personal Information",
+      "mobile": {
+        "label": "Mobile",
+        "placeholder": "Please enter your mobile number",
+        "note": "OTP will be sent to this number for verification",
+        "isWhatsapp": "Is WhatsApp Number"
+      },
+      "name": {
+        "label": "Name",
+        "placeholder": "Enter your name"
+      },
+      "email": {
+        "label": "Email (Optional)",
+        "placeholder": "Enter your email",
+        "verify": "Verify Email",
+        "verified": "Email Verified",
+        "optionalHint": "You can add and verify your email later from your profile to receive notifications"
+      }
+    },
+    "store": {
+      "title": "Store Information",
+      "storeName": {
+        "label": "Store Name",
+        "placeholder": "Enter your store name"
+      },
+      "storeSize": {
+        "label": "Store Size (sq ft)",
+        "placeholder": "Enter store size (e.g., 1500 sq ft)"
+      },
+      "doorNo": {
+        "label": "Building No.",
+        "placeholder": "Enter Building No."
+      },
+      "address": {
+        "label": "Address",
+        "placeholder": "Address"
+      },
+      "pincode": {
+        "label": "Pincode",
+        "placeholder": "Enter 6-digit pincode"
+      },
+      "useLocation": "Use Location",
+      "addLocationOnMap": "Add location on map",
+      "storeLocation": {
+        "title": "Store Location",
+        "selectPrompt": "Select location using the map"
+      },
+      "primaryBusiness": {
+        "label": "Primary Business",
+        "placeholder": "Select primary business"
+      },
+      "secondaryBusiness": {
+        "label": "Secondary Business",
+        "placeholder": "Select secondary business (optional)"
+      },
+      "timings": {
+        "title": "Store Timings",
+        "openTime": {
+          "label": "Open Time",
+          "placeholder": "Select open time"
+        },
+        "closeTime": {
+          "label": "Close Time",
+          "placeholder": "Select close time"
+        },
+        "primaryBusiness": {
+          "label": "Primary Business",
+          "placeholder": "Select primary business"
+        },
+        "secondaryBusiness": {
+          "label": "Secondary Business",
+          "placeholder": "Select secondary business (optional)"
+        }
+      }
+    },
+    "steps": {
+      "personalInfo": "Personal Information",
+      "storeInfo": "Store Information"
+    },
+    "modals": {
+      "geoLocationTitle": "Select Store Location"
+    },
+    "terms": {
+      "agreePrefix": "I agree to the",
+      "and": "and",
+      "terms": "Terms & Conditions",
+      "privacy": "Privacy Policy",
+      "agreeError": "Please agree to Terms & Privacy Policy",
+      "fetchLoading": "Fetching terms and privacy...",
+      "fetchFailed": "Failed to fetch terms",
+      "viewed": "Terms viewed/accepted"
+    },
+    "otp": {
+      "checkingMobile": "Checking mobile number...",
+      "mobileExists": "This mobile number is already registered",
+      "sent": "OTP sent to your mobile number",
+      "failedVerify": "Failed to verify OTP",
+      "enter": "Please enter OTP",
+      "resending": "Resending OTP...",
+      "resent": "OTP re-sent successfully",
+      "resendFailed": "Failed to resend OTP",
+      "verified": "Mobile number verified successfully",
+      "title": "OTP Verification",
+      "subtitle": "Enter your mobile number to send one time password"
+    },
+    "submit": {
+      "creating": "Creating your account...",
+      "success": "Registration successful",
+      "failed": "Registration failed",
+      "button": "Submit",
+      "continue": "Continue",
+      "next": "Next",
+      "confirmTitle": "Register Store",
+      "confirmDescription": "Are you sure you want to Register Store?",
+      "confirm": "Register Store"
+    },
+    "validation": {
+      "storeNameRequired": "Please enter your store name",
+      "storeSizeRequired": "Please enter your store size",
+      "timingsRequired": "Store timings are required",
+      "doorNoRequired": "Please enter your Building No.",
+      "addressRequired": "Please enter your full address",
+      "pincodeRequired": "Please enter a valid pincode",
+      "invalidPincode": "Please enter a valid pincode",
+      "openTimeRequired": "Store open time is required",
+      "invalidOpenTime": "Invalid open time format",
+      "closeTimeRequired": "Store close time is required",
+      "invalidCloseTime": "Invalid close time format",
+      "closingAfterOpening": "Closing time must be after opening time",
+      "ownerNameRequired": "Please enter your name",
+      "emailRequired": "Please enter your email address",
+      "invalidEmail": "Please enter a valid email address",
+      "mobileRequired": "Please provide your mobile number",
+      "invalidMobile": "Please enter a valid 10-digit mobile number",
+      "districtRequired": "Please enter your district",
+      "townRequired": "Please enter your town",
+      "monthlyTurnOverRequired": "Please provide monthly turnover",
+      "yearsOfExperienceRequired": "Please provide years of experience",
+      "pleaseProvideValidEmail": "Please provide a valid email address"
+    },
+    "location": {
+      "selected": "Location selected successfully"
+    },
+    "selectMonthlyTurnover": "Select Monthly Turnover",
+    "selectYearsOfExperience": "Select Years of Experience",
+    "monthlyTurnover": "Monthly Turnover",
+    "yearsOfExperience": "Years of Experience"
+  },
+  "thankyou": {
+    "headerTitle": "Registration Successful",
+    "heroTitle": "Thank you for registering!",
+    "heroSubtitle": "We’ve successfully received your franchise registration. Here’s what happens next:",
+    "steps": {
+      "review": {
+        "title": "Review by StoreKing Team",
+        "description": "Our team will verify the details you’ve submitted."
+      },
+      "approval": {
+        "title": "Approval Notification",
+        "description": "Once approved, you’ll get a WhatsApp message on your registered number."
+      },
+      "getStarted": {
+        "title": "Get Started",
+        "description": "After approval, you can now login to your store online — and you can start managing your store with StoreKing!"
+      }
+    },
+    "buttonBackToHome": "Back to Home",
+    "pageTitle": "Success"
+  }
+}

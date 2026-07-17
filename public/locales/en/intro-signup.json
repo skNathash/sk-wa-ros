@@ -1,0 +1,107 @@
+{
+  "pageTitle": "Introducing StoreKing ROS",
+  "hero": {
+    "title": "StoreKing ROS",
+    "subtitle": "Powering Every Local Store",
+    "description": "Upgrade your daily operations with our all-in-one StoreKing ROS, designed specifically for YOU."
+  },
+  "platform": {
+    "title": "One Platform",
+    "subtitle": "Six Powerful Capabilities",
+    "description": "Everything a local retailer needs connected seamlessly"
+  },
+  "features": [
+    {
+      "title": "Virtual Warehouse",
+      "subtitle": "Access 5,000+ Items Zero Inventory Risk",
+      "description": "Never say no to customers again. With StoreKing's virtual warehouse, retailers can offer a wide range of items.",
+      "bullets": [
+        "Unlimited item access",
+        "No dead inventory",
+        "Faster fulfilment"
+      ],
+      "image": "virtual-warehouse.jpg"
+    },
+    {
+      "title": "PayLater Engine",
+      "subtitle": "Flexible Credit That Grows Your Business",
+      "description": "Enable smarter purchasing with data-backed credit decisions. Retailers using Pay Later see stronger cash flow and higher basket values.",
+      "bullets": [
+        "Flexible credit limits",
+        "Faster purchase decisions",
+        "Designed for kirana economics"
+      ],
+      "image": "paylater-engine.jpg"
+    },
+    {
+      "title": "One-Click GST Compliance",
+      "subtitle": "Instant Compliance. Zero Auditor Fear.",
+      "description": "Let compliance work silently in the background. StoreKing automates GST workflows so retailers stay compliant without complexity.",
+      "bullets": [
+        "Auto-organized records",
+        "Stress-free filings",
+        "Built-in compliance confidence"
+      ],
+      "image": "one-click-gst-compliance.jpg"
+    },
+    {
+      "title": "Digital Store Front",
+      "subtitle": "Your Store, Online, 24x7",
+      "description": "Turn your physical store into a digital business. Accept orders anytime and reach customers beyond your shopfront.",
+      "bullets": [
+        "Online ordering enabled",
+        "Mobile-first experience",
+        "New customer reach"
+      ],
+      "image": "digital-store-front.jpg"
+    },
+    {
+      "title": "Logistics Network",
+      "subtitle": "Slotted Delivery for T2/T3 Towns",
+      "description": "Our logistics network is optimized for small towns and local roads—ensuring consistent, dependable delivery.",
+      "bullets": [
+        "Local-first distribution",
+        "Smooth last-mile operations",
+        "High on-time delivery reliability"
+      ],
+      "image": "logistics-network.jpg"
+    },
+    {
+      "title": "Loyalty Program",
+      "subtitle": "Turn First-Time Buyers into Repeat Customers",
+      "description": "Reward loyalty automatically and build long-term customer relationships.",
+      "bullets": [
+        "Earn & redeem rewards",
+        "Encourage repeat purchases",
+        "Stronger customer retention"
+      ],
+      "image": "loyalty-program.jpg"
+    }
+  ],
+  "howItWorks": {
+    "title": "How Storeking ROS Works",
+    "subtitle": "Everything a local retailer needs connected seamlessly",
+    "steps": [
+      {
+        "title": "Stock Organized Digitally",
+        "description": "Say goodbye to messy stock registers and manual counting. Track every item in your shop straight from your phone, so you always know what to restock before it runs out.",
+        "image": "stock-organized-digitally.png"
+      },
+      {
+        "title": "Orders, Credit & Payments Enabled",
+        "description": "Make billing simple and accept any digital payment with zero hassle. Keep a safe, digital record of customer credit to ensure you always get your money on time.",
+        "image": "orders-credit-and-payments-enabled.png"
+      },
+      {
+        "title": "Delivered Seamlessly to Customers",
+        "description": "Reach more buyers in your town by offering fast and reliable home delivery. Keep your local customers happy and returning while easily managing their orders from one screen.",
+        "image": "delivered-seamlesslyto-customers.png"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Let's Grow Your Business Together",
+    "subtitle": "The future of retail belongs to local store owners like you.",
+    "buttonText": "JOIN NOW"
+  }
+}

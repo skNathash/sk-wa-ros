@@ -1,0 +1,238 @@
+{
+  "tabs": {
+    "single": "ಏಕೈಕ ಉತ್ಪನ್ನ",
+    "bulk": "ಬಲ್ಕ್ ಅಪ್‌ಲೋಡ್",
+    "search": "ಉತ್ಪನ್ನಗಳನ್ನು ಹುಡುಕಿ",
+    "categories": "ವರ್ಗಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ",
+    "top": "ಟಾಪ್ ಉತ್ಪನ್ನಗಳು",
+    "history": "ಚಂದಾ ಇತಿಹಾಸ",
+    "brands": "ಬ್ರ್ಯಾಂಡ್ಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ",
+    "un-brands": "ಅನಬ್ರ್ಯಾಂಡ್ಗಳು"
+  },
+  "header": {
+    "title": "ಉತ್ಪನ್ನ ಚಂದಾ"
+  },
+  "breadcrumbs": {
+    "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "inventory": "ಸರಕು",
+    "subscription": "ಚಂದಾ",
+    "addProduct": "ಉತ್ಪನ್ನ ಸೇರಿಸಿ",
+    "createProduct": "ಉತ್ಪನ್ನ ರಚಿಸಿ"
+  },
+  "actions": {
+    "addProduct": "ಉತ್ಪನ್ನವನ್ನು ಸೇರಿಸಿ",
+    "createProduct": "ಉತ್ಪನ್ನವನ್ನು ರಚಿಸಿ"
+  },
+  "form": {
+    "title": "ಹೊಸ ಉತ್ಪನ್ನಗಳನ್ನು ಸೇರಿಸಿ",
+    "subtitle": "ನಮ್ಮ ಮಾರುಕಟ್ಟೆ ಕ್ಯಾಟಲಾಗ್‌ನಲ್ಲಿ ಸೇರಿಸಲು ಹೊಸ ಉತ್ಪನ್ನಗಳನ್ನು ವಿನಂತಿಸಿ",
+    "fields": {
+      "productName": {
+        "label": "ಉತ್ಪನ್ನದ ಹೆಸರು",
+        "placeholder": "ಉತ್ಪನ್ನದ ಹೆಸರನ್ನು ನಮೂದಿಸಿ"
+      },
+      "brand": {
+        "label": "ಬ್ರ್ಯಾಂಡ್"
+      },
+      "category": {
+        "label": "ವರ್ಗ"
+      },
+      "model": {
+        "label": "ಮಾದರಿ",
+        "placeholder": "ಮಾದರಿಯನ್ನು ನಮೂದಿಸಿ"
+      },
+      "quantity": {
+        "label": "ಪರಿಮಾಣ",
+        "placeholder": "ಪರಿಮಾಣವನ್ನು ನಮೂದಿಸಿ"
+      },
+      "storeStock": {
+        "label": "ಸ್ಟೋರ್ ಸ್ಟಾಕ್",
+        "placeholder": "ಸ್ಟೋರ್ ಸ್ಟಾಕ್ ಅನ್ನು ನಮೂದಿಸಿ"
+      },
+      "mrp": {
+        "label": "ಗರಿಷ್ಠ ಮಾರಾಟ ಬೆಲೆ",
+        "placeholder": "ಗರಿಷ್ಠ ಮಾರಾಟ ಬೆಲೆಯನ್ನು ನಮೂದಿಸಿ"
+      },
+      "weight": {
+        "label": "ತೂಕ",
+        "placeholder": "ತೂಕವನ್ನು ನಮೂದಿಸಿ"
+      },
+      "price": {
+        "label": "ಖರೀದಿ ಬೆಲೆ",
+        "placeholder": "ಖರೀದಿ ಬೆಲೆಯನ್ನು ನಮೂದಿಸಿ"
+      },
+      "unitType": {
+        "label": "ಘಟಕ ಪ್ರಕಾರ",
+        "placeholder": "ಘಟಕ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ"
+      },
+      "barcode": {
+        "label": "ಬಾರ್‌ಕೋಡ್",
+        "placeholder": "ಬಾರ್‌ಕೋಡ್ ನಮೂದಿಸಿ"
+      },
+      "description": {
+        "label": "ವಿವರಣೆ",
+        "placeholder": "ಉತ್ಪನ್ನವನ್ನು ವಿವರಿಸಿ, ಅದರ ವೈಶಿಷ್ಟ್ಯಗಳು, ಬಳಕೆ"
+      },
+      "images": {
+        "uploadText": "ಉತ್ಪನ್ನ ಚಿತ್ರಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ"
+      },
+      "additionalInfo": {
+        "label": "ಹೆಚ್ಚುವರಿ ಮಾಹಿತಿ",
+        "placeholder": "ಉತ್ಪನ್ನದ ಬಗ್ಗೆ ಯಾವುದೇ ಹೆಚ್ಚುವರಿ ಮಾಹಿತಿಯನ್ನು ಸೇರಿಸಿ"
+      }
+    },
+    "actions": {
+      "submit": "ಪರಿಶೀಲನೆಗಾಗಿ ಸಲ್ಲಿಸಿ"
+    }
+  },
+  "messages": {
+    "validationFailed": "ಪರಿಶೀಲನೆ ವಿಫಲ",
+    "productSubmitted": "ಉತ್ಪನ್ನವನ್ನು ಪರಿಶೀಲನೆಗಾಗಿ ಸಲ್ಲಿಸಲಾಗಿದೆ!",
+    "failedToSubmit": "ಉತ್ಪನ್ನವನ್ನು ಸಲ್ಲಿಸಲು ವಿಫಲ"
+  },
+  "search": {
+    "searchedViaAI": "StoreKing AI ಮೂಲಕ ಹುಡುಕಲಾಗಿದೆ",
+    "topProducts": {
+      "title": "ಮುಖ್ಯ ಮಾರಾಟ ಉತ್ಪನ್ನಗಳು",
+      "subtitle": "ನಿಮ್ಮ ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಲು ನಮ್ಮ ಅತ್ಯುತ್ತಮ ಮಾರಾಟ ಉತ್ಪನ್ನಗಳಿಂದ ಆಯ್ಕೆಮಾಡಿ"
+    },
+    "loadMore": "ಹೆಚ್ಚು ಲೋಡ್ ಮಾಡಿ",
+    "filter": {
+      "title": "ಉತ್ಪನ್ನಗಳನ್ನು ಹುಡುಕಿ ಮತ್ತು ಫಿಲ್ಟರ್ ಮಾಡಿ",
+      "searchType": {
+        "products": "ಉತ್ಪನ್ನಗಳು",
+        "barcode": "ಬಾರ್‌ಕೋಡ್"
+      },
+      "placeholder": {
+        "barcode": "ಬಾರ್‌ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ ಅಥವಾ ನಮೂದಿಸಿ...",
+        "products": "ಉತ್ಪನ್ನ ಹೆಸರಿನಿಂದ/ ಬಾರ್‌ಕೋಡ್ ನಮೂದಿಸಿ..."
+      },
+      "menu": "ಮೆನುವಿನಿಂದ ಹುಡುಕಿ",
+      "category": "ವರ್ಗದಿಂದ ಹುಡುಕಿ",
+      "brand": "ಬ್ರ್ಯಾಂಡ್‌ದಿಂದ ಹುಡುಕಿ"
+    },
+    "onlyMultipleVariants": "ಮಾತ್ರ ಬಹು ವೈವಿಧ್ಯಗಳು",
+    "table": {
+      "headers": {
+        "product": "ಉತ್ಪನ್ನ",
+        "category": "ವರ್ಗ",
+        "price": "ಬೆಲೆ",
+        "identifiers": "ಗುರುತಿಸುವಿಕೆಗಳು",
+        "action": "ಕ್ರಿಯೆ"
+      },
+      "actions": {
+        "subscribe": "ಚಂದಾದಾರರಾಗಿ",
+        "remove": "ತೆಗೆದುಹಾಕಿ",
+        "inInventory": "ಸರಕುಗಳಲ್ಲಿ",
+        "subscribed": "ಚಂದಾದಾರರಾಗಿದ್ದಾರೆ"
+      },
+      "tooltips": {
+        "filterByBrand": "{{brandName}} ಮೂಲಕ ಫಿಲ್ಟರ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ"
+      },
+      "barcodes": {
+        "title": "ಎಲ್ಲಾ ಬಾರ್‌ಕೋಡ್‌ಗಳು"
+      },
+      "sku": "ಎಸ್‌ಕೆ‌ಯು"
+    },
+    "toast": {
+      "productSubscribed": "ಉತ್ಪನ್ನವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಚಂದಾದಾರರಾಗಿದ್ದಾರೆ",
+      "failedToSubscribe": "ಉತ್ಪನ್ನವನ್ನು ಚಂದಾದಾರರಾಗಲು ವಿಫಲ",
+      "productRemoved": "ಉತ್ಪನ್ನವನ್ನು ಕಾರ್ಟ್‌ನಿಂದ ತೆಗೆದುಹಾಕಲಾಗಿದೆ",
+      "failedToRemove": "ಕಾರ್ಟ್‌ನಿಂದ ಉತ್ಪನ್ನವನ್ನು ತೆಗೆದುಹಾಕಲು ವಿಫಲ",
+      "filteredByCategory": "ವರ್ಗದಿಂದ ಫಿಲ್ಟರ್ ಮಾಡಲಾಗಿದೆ: {{categoryName}}",
+      "filteredByBrand": "ಬ್ರ್ಯಾಂಡ್‌ದಿಂದ ಫಿಲ್ಟರ್ ಮಾಡಲಾಗಿದೆ: {{brandName}}",
+      "productsSubscribed": "{{count}} ಉತ್ಪನ್ನಗಳನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಚಂದಾದಾರರಾಗಿದ್ದಾರೆ"
+    },
+    "subscribeAllDisplayed": "ಎಲ್ಲಾ ಪ್ರದರ್ಶಿಸಲಾದವುಗಳಿಗೆ ಚಂದಾದಾರರಾಗಿ",
+    "showingCount": "{{count}} ತೋರಿಸಲಾಗಿದೆ",
+    "subscribeSelected": "{{count}} ಆಯ್ಕೆಮಾಡಿದ ಚಂದಾದಾರರಾಗಿ"
+  },
+  "browseCategory": {
+    "title": "ವರ್ಗದಿಂದ ಬ್ರೌಸ್ ಮಾಡಿ",
+    "subtitle": "ಉತ್ಪನ್ನಗಳನ್ನು ಅನ್ವೇಷಿಸಲು ವರ್ಗ ಮತ್ತು ಬ್ರ್ಯಾಂಡ್ ಆಯ್ಕೆಮಾಡಿ.",
+    "menuSearch": {
+      "placeholder": "ಮೆನುವಿನಿಂದ ಹುಡುಕಿ"
+    },
+    "infoBlock": {
+      "categoryDescription": "ಉತ್ಪನ್ನಗಳನ್ನು ಅನ್ವೇಷಿಸಲು ಬ್ರ್ಯಾಂಡ್ ಆಯ್ಕೆಮಾಡಿ.",
+      "brandDescription": "ರೂಪಾಂತರಗಳನ್ನು ಅನ್ವೇಷಿಸಲು ಉತ್ಪನ್ನ ಆಯ್ಕೆಮಾಡಿ."
+    }
+  },
+  "browseBrand": {
+    "title": "ಬ್ರ್ಯಾಂಡ್ ಮೂಲಕ ಬ್ರೌಸ್ ಮಾಡಿ",
+    "subtitle": "ಉತ್ಪನ್ನಗಳನ್ನು ಅನ್ವೇಷಿಸಲು ಬ್ರ್ಯಾಂಡ್ ಅಥವಾ ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ."
+  },
+  "sellerSubscribe": {
+    "availableProductsText": "ನಿಮ್ಮ SK ಮಾರಾಟಗಾರ \"{{sellerName}}\" ನಿಂದ ಚಂದಾದಾರಿಕೆಗೆ ಉತ್ಪನ್ನಗಳು ಲಭ್ಯವಿವೆ",
+    "subscribeHint": "ಈ ಒಪ್ಪಂದಗಳನ್ನು ನಿಮ್ಮ ಸರಕುಪಟ್ಟಿಗೆ ಸೇರಿಸಲು ಚಂದಾದಾರಿಕೆ ಮಾಡಿ",
+    "subscribing": "ಚಂದಾದಾರಿಕೆ ಮಾಡಲಾಗುತ್ತಿದೆ...",
+    "subscribeAll": "ಎಲ್ಲಾ ಒಪ್ಪಂದಗಳಿಗೆ ಚಂದಾದಾರಿಕೆ ಮಾಡಿ",
+    "confirmTitle": "ಚಂದಾದಾರಿಕೆಯನ್ನು ದೃಢೀಕರಿಸಿ",
+    "confirmDescription": "ಚಂದಾದಾರಿಕೆ ಮಾಡುವುದರಿಂದ ಎಲ್ಲಾ ಉತ್ಪನ್ನಗಳು ನಿಮ್ಮ ಸರಕುಪಟ್ಟಿಯಲ್ಲಿ ಗೋಚರಿಸುತ್ತವೆ. ಮುಂದುವರಿಯುವಿರಾ?",
+    "working": "ಕೆಲಸ ಮಾಡಲಾಗುತ್ತಿದೆ...",
+    "confirm": "ದೃಢೀಕರಿಸಿ",
+    "cancel": "ರದ್ದುಮಾಡಿ",
+    "modalTitle": "ಒಪ್ಪಂದಗಳಿಗೆ ಚಂದಾದಾರಿಕೆ ಮಾಡಲಾಗುತ್ತಿದೆ",
+    "subscriptionsComplete": "ಚಂದಾದಾರಿಕೆಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ",
+    "subscriptionsCompleteDescription": "ಆಯ್ಕೆ ಮಾಡಿದ ಒಪ್ಪಂದಗಳಿಗೆ ಚಂದಾದಾರಿಕೆಯನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುವುದು ಪೂರ್ಣಗೊಂಡಿದೆ. ನೀವು ನವೀಕೃತ ಸರಕುಪಟ್ಟಿಯನ್ನು ವೀಕ್ಷಿಸಬಹುದು ಅಥವಾ ಈ ಸಂವಾದವನ್ನು ಮುಚ್ಚಬಹುದು.",
+    "progressLabel": "ಪ್ರಗತಿ",
+    "subscribingPleaseWait": "ಚಂದಾದಾರಿಕೆ ಮಾಡುವಾಗ ದಯವಿಟ್ಟು ಕಾಯಿರಿ...",
+    "close": "ಮುಚ್ಚಿ",
+    "viewInventory": "ಸರಕುಪಟ್ಟಿಯನ್ನು ವೀಕ್ಷಿಸಿ"
+  },
+  "subscribeMain": {
+    "breadcrumbDashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "breadcrumbAllItems": "ಎಲ್ಲಾ ಐಟಂಗಳು",
+    "breadcrumbCreateMyCatalog": "ನನ್ನ ಕ್ಯಾಟಲಾಗ್ ರಚಿಸಿ",
+    "headerTitle": "ನನ್ನ ಕ್ಯಾಟಲಾಗ್ ರಚಿಸಿ",
+    "heroTitle": "ನೀವು ಉತ್ಪನ್ನಗಳನ್ನು ಹೇಗೆ ಸೇರಿಸಲು ಬಯಸುತ್ತೀರಿ?",
+    "heroSubtitle": "ನಿಮ್ಮ ಪ್ರಸ್ತುತ ದಾಸ್ತಾನಿಗೆ ಅತ್ಯಂತ ಪರಿಣಾಮಕಾರಿ ವಿಧಾನವನ್ನು ಆಯ್ಕೆ ಮಾಡುವ ಮೂಲಕ ನಿಮ್ಮ ಸರಕುಪಟ್ಟಿಯನ್ನು ಸುವ್ಯವಸ್ಥಿತಗೊಳಿಸಿ.",
+    "quickLinksHeading": "ತ್ವರಿತ ಲಿಂಕ್‌ಗಳು",
+    "subscriptionCart": "ಚಂದಾದಾರಿಕೆ ಕಾರ್ಟ್ ({{count}})",
+    "tiles": {
+      "scan": {
+        "label": "ಬಾರ್‌ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+        "description": "ತಿಳಿದ ಐಟಂಗಳನ್ನು ಸೇರಿಸಲು ವೇಗವಾದ ಮಾರ್ಗ."
+      },
+      "photo": {
+        "label": "SK Image Search AI",
+        "description": "ಉತ್ಪನ್ನದ ಚಿತ್ರ ತೆಗೆಯಿರಿ."
+      },
+      "voice": {
+        "label": "SK Voice Search AI",
+        "description": "ಉತ್ಪನ್ನದ ಹೆಸರನ್ನು ಜೋರಾಗಿ ಹೇಳಿ."
+      },
+      "catalog": {
+        "label": "ಪೂರ್ಣ ಕ್ಯಾಟಲಾಗ್",
+        "description": "ಸಂಪೂರ್ಣ ಡೈರೆಕ್ಟರಿಯನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ."
+      },
+      "nearby": {
+        "label": "SK Nearby AI",
+        "description": "ನಿಮ್ಮ ಪ್ರದೇಶದಲ್ಲಿ ಸಾಮಾನ್ಯ ಉತ್ಪನ್ನಗಳನ್ನು ಹುಡುಕಿ."
+      },
+      "create": {
+        "label": "ಹೊಸದನ್ನು ರಚಿಸಿ",
+        "description": "ವಿಶಿಷ್ಟ ಅಥವಾ ಸ್ಥಳೀಯ ಐಟಂಗಳಿಗಾಗಿ."
+      }
+    },
+    "quickLinks": {
+      "unbranded": {
+        "label": "ಬ್ರ್ಯಾಂಡ್ ಇಲ್ಲದ",
+        "description": "ಬಿಡಿ ಮತ್ತು ಸ್ಥಳೀಯ ಐಟಂಗಳು"
+      },
+      "brands": {
+        "label": "ಬ್ರ್ಯಾಂಡ್ ಮೂಲಕ ಬ್ರೌಸ್ ಮಾಡಿ",
+        "description": "ಬ್ರ್ಯಾಂಡ್ ಪಟ್ಟಿಯಿಂದ ಆಯ್ಕೆಮಾಡಿ"
+      },
+      "approval": {
+        "label": "ಅನುಮೋದನೆ ಇತಿಹಾಸ",
+        "description": "ಸಲ್ಲಿಕೆಗಳನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ"
+      },
+      "bulk": {
+        "label": "ಬೃಹತ್ ಅಪ್‌ಲೋಡ್",
+        "description": "ಒಂದೇ ಬಾರಿಗೆ ಹಲವನ್ನು ಸೇರಿಸಿ"
+      }
+    },
+    "aiPoweredBadge": "AI powered"
+  }
+}

@@ -1,0 +1,24 @@
+/* Page/modal background handling.
+   Defaults to white; override per page by setting the --page-bg variable via
+   one of the .page-bg-* modifier classes below, e.g.
+   <div className="app-page page-bg page-bg-muted tw:p-4">. */
+
+.page-bg,
+.modal-bg {
+  background-color: var(--page-bg, white);
+  @apply tw:text-foreground;
+}
+
+/* Per-page background overrides — add next to `page-bg`. */
+.page-bg-muted {
+  --page-bg: var(--muted);
+}
+.page-bg-theme {
+  --page-bg: var(--background);
+}
+.page-bg-accent {
+  --page-bg: var(--accent);
+}
+.page-bg-secondary {
+  --page-bg: var(--secondary);
+}

@@ -1,0 +1,29 @@
+{
+  "acceptPreOrder": {
+    "acceptOrdersWithoutStock": "Accept Orders Without Stock",
+    "acceptOrdersWithoutStockDescription": "Allow accepting orders even when stock is not available. Useful for pre-orders or backorders.",
+    "enableAcceptOrdersWithoutStock": "Enable Accept Orders Without Stock?",
+    "enableAcceptOrdersWithoutStockDescription": "When enabled, the system will accept sales orders even if stock is not available (pre-orders).",
+    "disableAcceptOrdersWithoutStock": "Disable Accept Orders Without Stock?",
+    "disableAcceptOrdersWithoutStockDescription": "When disabled, orders will be blocked when stock is not available.",
+    "acceptingPreOrders": "Currently accepting pre-orders.",
+    "rejectingPreOrders": "Currently not accepting pre-orders.",
+    "toggleWillRequireConfirmation": "Toggling this setting will require confirmation.",
+    "updatedSuccessfully": "Settings updated successfully!",
+    "updateFailed": "Failed to update settings. Please try again.",
+    "configurationOptions": "Configuration Options"
+  },
+  "unsubscribedDeals": {
+    "title": "Show default store deals in CLUB APP",
+    "description": "When enabled, items from your linked primary business ({{primary}}){{secondaryText}} catalogs will be shown on the CLUB APP even if they are not in your subscribed list.",
+    "enableTitle": "Enable Showing default store deals?",
+    "enableDescription": "Enabling this will allow you to see and sell items from your primary business ({{primary}}){{secondaryText}} catalogs even if they are not in your subscribed list.",
+    "disableTitle": "Disable Showing default store deals?",
+    "disableDescription": "Disabling this will restrict you to only seeing and selling your subscribed items.",
+    "showing": "Currently showing default store deals.",
+    "notShowing": "Currently not showing default store deals.",
+    "andSecondaryBusiness": "and secondary business"
+  },
+  "enable": "Enable",
+  "disable": "Disable"
+}

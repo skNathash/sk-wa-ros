@@ -1,0 +1,19 @@
+.app-tab {
+  @apply tw:text-sm tw:font-medium tw:text-center tw:text-gray-500 tw:border-b tw:border-gray-200 dark:tw:text-gray-400 dark:tw:border-gray-700;
+}
+
+.app-tab .inner {
+  @apply tw:flex tw:flex-wrap tw:gap-2;
+}
+
+.app-tab .inner .item {
+  @apply tw:me-2;
+}
+
+.app-tab .inner .item a {
+  @apply tw:inline-block tw:p-4 tw:border-b-2 tw:border-transparent tw:rounded-t-lg tw:hover:text-gray-600 tw:hover:border-gray-300 dark:tw:hover:text-gray-300;
+}
+
+.app-tab .inner .item a.active {
+  @apply tw:!text-blue-500 tw:!border-blue-500;
+}

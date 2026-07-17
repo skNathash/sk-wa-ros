@@ -1,0 +1,18 @@
+.signup-bg {
+  /* background-color: #f3f3f3; */
+}
+
+.signup-bg-2 {
+  background-color: #fef8fa;
+}
+
+.signup-page-img {
+  width: 90%;
+  object-fit: cover;
+}
+
+@media screen and (min-width: 768px) {
+  .signup-page-img {
+    width: 70%;
+  }
+}

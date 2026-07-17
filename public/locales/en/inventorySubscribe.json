@@ -1,0 +1,239 @@
+{
+  "tabs": {
+    "single": "Single Item",
+    "bulk": "Bulk Upload",
+    "search": "Search Items",
+    "categories": "Browse Categories",
+    "brands": "Browse Brands",
+    "top": "In and Around",
+    "history": "Approval History",
+    "un-brands": "Un-Branded"
+  },
+  "header": {
+    "title": "Create My Catalog"
+  },
+  "breadcrumbs": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "subscription": "Create My Catalog",
+    "addProduct": "Add Item",
+    "createProduct": "Create Item"
+  },
+  "actions": {
+    "addProduct": "Add Item",
+    "createProduct": "Create Item"
+  },
+  "form": {
+    "title": "Add a New Item",
+    "subtitle": "Take a photo to auto-fill the details with StoreKing AI, or fill them in yourself",
+    "fields": {
+      "productName": {
+        "label": "Item Name",
+        "placeholder": "Enter item name"
+      },
+      "brand": {
+        "label": "Brand"
+      },
+      "category": {
+        "label": "Category"
+      },
+      "model": {
+        "label": "Model",
+        "placeholder": "Enter model"
+      },
+      "quantity": {
+        "label": "Quantity",
+        "placeholder": "Enter quantity"
+      },
+      "storeStock": {
+        "label": "Store Stock",
+        "placeholder": "Enter store stock"
+      },
+      "mrp": {
+        "label": "MRP",
+        "placeholder": "Enter MRP"
+      },
+      "weight": {
+        "label": "Weight",
+        "placeholder": "Enter weight"
+      },
+      "price": {
+        "label": "Purchase Price",
+        "placeholder": "Enter purchase price"
+      },
+      "unitType": {
+        "label": "Unit Type",
+        "placeholder": "Select unit type"
+      },
+      "barcode": {
+        "label": "Barcode",
+        "placeholder": "Enter barcode"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Describe the item, its features, usage"
+      },
+      "images": {
+        "uploadText": "Click to upload item images"
+      },
+      "additionalInfo": {
+        "label": "Additional Information",
+        "placeholder": "Add any additional information about the item"
+      }
+    },
+    "actions": {
+      "submit": "Submit For Review"
+    }
+  },
+  "messages": {
+    "validationFailed": "Validation failed",
+    "productSubmitted": "Item submitted for review!",
+    "failedToSubmit": "Failed to submit item"
+  },
+  "search": {
+    "searchedViaAI": "Searched via StoreKing AI",
+    "topProducts": {
+      "title": "Top Selling Items",
+      "subtitle": "Ranked by nearby store subscriptions within {{km}} km. Change the distance to see other trends.",
+      "rankLabel": "#{{rank}}"
+    },
+    "loadMore": "Load More",
+    "filter": {
+      "title": "Search & Filter Items",
+      "searchType": {
+        "products": "Items",
+        "barcode": "Barcode"
+      },
+      "placeholder": {
+        "barcode": "Scan or enter barcode...",
+        "products": "Search by item name/barcode..."
+      },
+      "menu": "Search by menu",
+      "category": "Search by category",
+      "brand": "Search by brand"
+    },
+    "onlyMultipleVariants": "Only Multiple Variants",
+    "table": {
+      "headers": {
+        "product": "Item",
+        "category": "Category",
+        "price": "Price",
+        "identifiers": "Identifiers",
+        "action": "Action"
+      },
+      "actions": {
+        "subscribe": "Subscribe",
+        "remove": "Remove",
+        "inInventory": "In Inventory",
+        "subscribed": "Subscribed"
+      },
+      "tooltips": {
+        "filterByBrand": "Click to filter by {{brandName}}"
+      },
+      "barcodes": {
+        "title": "All Barcodes"
+      },
+      "sku": "SKU"
+    },
+    "toast": {
+      "productSubscribed": "Item subscribed successfully",
+      "failedToSubscribe": "Failed to subscribe item",
+      "productRemoved": "Item removed from cart",
+      "failedToRemove": "Failed to remove item from cart",
+      "filteredByCategory": "Filtered by category: {{categoryName}}",
+      "filteredByBrand": "Filtered by brand: {{brandName}}",
+      "productsSubscribed": "{{count}} items subscribed successfully"
+    },
+    "subscribeAllDisplayed": "Subscribe all displayed",
+    "showingCount": "{{count}} shown",
+    "subscribeSelected": "Subscribe {{count}} selected items"
+  },
+  "browseCategory": {
+    "title": "Browse by Category",
+    "subtitle": "Select a category and brand to explore items.",
+    "menuSearch": {
+      "placeholder": "Search by menu"
+    },
+    "infoBlock": {
+      "categoryDescription": "Select a brand to explore items.",
+      "brandDescription": "Select a item to explore variants."
+    }
+  },
+  "browseBrand": {
+    "title": "Browse by Brands",
+    "subtitle": "Select a brand or category to explore items."
+  },
+  "sellerSubscribe": {
+    "availableProductsText": "items are available to subscribe from your SK Seller \"{{sellerName}}\"",
+    "subscribeHint": "Subscribe to add these deals to your inventory",
+    "subscribing": "Subscribing...",
+    "subscribeAll": "Subscribe to All Deals",
+    "confirmTitle": "Confirm subscription",
+    "confirmDescription": "Subscribing makes all items visible in your inventory. Continue?",
+    "working": "Working...",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "modalTitle": "Subscribing to Deals",
+    "subscriptionsComplete": "Subscriptions complete",
+    "subscriptionsCompleteDescription": "We finished processing subscriptions for the selected deals. You can view the updated inventory or close this dialog.",
+    "progressLabel": "Progress",
+    "subscribingPleaseWait": "Please wait while subscribing...",
+    "close": "Close",
+    "viewInventory": "View Inventory"
+  },
+  "subscribeMain": {
+    "breadcrumbDashboard": "Dashboard",
+    "breadcrumbAllItems": "All Items",
+    "breadcrumbCreateMyCatalog": "Create My Catalog",
+    "headerTitle": "Create My Catalog",
+    "heroTitle": "How would you like to add products?",
+    "heroSubtitle": "Streamline your inventory by choosing the most efficient method for your current stock arrival.",
+    "quickLinksHeading": "Quick Links",
+    "subscriptionCart": "Subscription Cart ({{count}})",
+    "tiles": {
+      "scan": {
+        "label": "Scan Barcode",
+        "description": "Quickest way to add known items."
+      },
+      "photo": {
+        "label": "SK Image Search AI",
+        "description": "Snap a picture of the product."
+      },
+      "voice": {
+        "label": "SK Voice Search AI",
+        "description": "Say the product name aloud."
+      },
+      "catalog": {
+        "label": "Full Catalog",
+        "description": "Browse the complete directory."
+      },
+      "nearby": {
+        "label": "SK Nearby AI",
+        "description": "Find products common in your area."
+      },
+      "create": {
+        "label": "Create New",
+        "description": "For unique or local items."
+      }
+    },
+    "quickLinks": {
+      "unbranded": {
+        "label": "Unbranded",
+        "description": "Loose & local items"
+      },
+      "brands": {
+        "label": "Browse by Brand",
+        "description": "Pick from brand list"
+      },
+      "approval": {
+        "label": "Approval History",
+        "description": "Track submissions"
+      },
+      "bulk": {
+        "label": "Bulk Upload",
+        "description": "Add many at once"
+      }
+    },
+    "aiPoweredBadge": "AI powered"
+  }
+}

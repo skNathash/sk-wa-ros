@@ -1,0 +1,7 @@
+{
+  "version": "2.0.0",
+  "broadcast": {
+    "id": "2.0.0",
+    "message": "Please complete all pending billing and day-end closure before 10 PM tonight due to a planned server upgrade."
+  }
+}

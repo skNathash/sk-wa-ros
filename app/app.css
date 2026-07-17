@@ -1,0 +1,751 @@
+@import "tailwindcss" prefix(tw);
+
+@import "animate.css";
+
+@import "flatpickr/dist/flatpickr.min.css";
+
+@import "swiper/css";
+@import "swiper/css/navigation";
+@import "swiper/css/pagination";
+@import "swiper/css/mousewheel";
+
+@import "react-toastify/dist/ReactToastify.css";
+
+@import "./styles/table.css";
+@import "./styles/input.css";
+@import "./styles/modal.css";
+@import "./styles/rack-bin.css";
+@import "tw-animate-css";
+
+@import "./styles/signup.css";
+@import "./styles/theme-1.css";
+@import "./styles/theme-2.css";
+@import "./styles/page-bg.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans:
+    "Open Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+* {
+  font-family:
+    "Open Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+.dark {
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.488 0.243 264.376);
+  --primary-foreground: oklch(0.97 0.014 254.604);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.623 0.214 259.815);
+  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@layer base {
+  * {
+    @apply tw:border-border tw:outline-ring/50;
+  }
+  body {
+    @apply tw:bg-background tw:text-foreground;
+  }
+}
+
+html,
+body {
+  /* Don't lock the body to a fixed viewport height. On mobile a fixed
+     `height: 100vh` makes the body an overflow box shorter than its content, so
+     the document's sticky app header (position: sticky; top: 0) scrolls away
+     with the content instead of pinning. `min-height` lets the body grow with
+     content and keeps the viewport as the scroll container, so sticky holds.
+     `dvh` tracks the mobile browser's dynamic toolbar. */
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+}
+
+.skeleton-loader {
+  animation: skeleton-loading 1s linear infinite alternate;
+  background: #f6f7f8;
+  background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
+  background-size: 800px 100px;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* A stripe that sweeps left→right forever — overlaid on a progress fill so it
+   keeps reading as "actively working" even while parked between polls. */
+@keyframes ai-progress-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.ai-progress-sweep {
+  animation: ai-progress-sweep 1.4s ease-in-out infinite;
+}
+
+table.fixed-layout {
+  table-layout: fixed;
+}
+
+.table-header-sticky thead {
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  background: var(--bs-table-bg);
+}
+
+.table-striped.table-header-sticky > thead > tr > th {
+  background-color: var(--bs-table-striped-bg, #f9fafb);
+}
+
+.table-hover.table-header-sticky > thead > tr > th {
+  background-color: var(--bs-table-hover-bg, #f9fafb);
+}
+
+.table-bordered.table-header-sticky > thead > tr > th {
+  border-bottom-width: 2px;
+}
+
+/* Fix for table header when scrolling */
+.table-responsive {
+  overflow-y: visible;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.discount-badge {
+  @apply tw:bg-green-600 tw:text-white tw:text-xs tw:font-medium tw:z-10 tw:px-2 tw:py-0.5 tw:rounded-sm;
+}
+
+.swiper {
+  width: 100%;
+  max-width: 100%;
+}
+
+.swiper-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0; /* For flexbox */
+  overflow: hidden; /* For grid */
+}
+
+.swiper .swiper-wrapper {
+  width: 100%;
+  max-width: 100%;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  z-index: 10;
+  height: 44px;
+}
+
+.swiper-button-next::after,
+.swiper-button-prev::after {
+  font-size: 24px;
+}
+
+ion-button.ion-no-shadow {
+  --box-shadow: none;
+}
+
+.btn-thin-border {
+  --border-width: 1px;
+}
+
+ion-modal.auto-height-modal {
+  --height: auto;
+}
+
+ion-searchbar.custom-searchbar {
+  --box-shadow: none;
+  border: 1px solid #e0e0e0;
+  padding: 0px;
+}
+
+#app-progress-bar.hide {
+  display: none;
+}
+
+.discount-bg {
+  @apply tw:bg-emerald-500;
+}
+
+.app-page {
+  /* `.app-page` sits in normal flow between two sticky bars that also occupy
+     flow space: the app header (h-15 = 3.75rem) above and the bottom tab
+     (h-16 = 4rem) below. A bare 100vh made the column `100vh + 3.75rem + 4rem`,
+     forcing a scrollbar even when content fit. Subtract both bars so a short
+     page fills exactly one viewport with no overflow. The extra 2px covers the
+     1px border-b on the header and 1px border-t on the bottom tab. */
+  min-height: calc(100vh - 3.75rem - 4rem - 2px);
+  max-width: 100%;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .app-container {
+    @apply tw:max-w-7xl tw:mx-auto;
+  }
+}
+
+.app-page.has-footer {
+  padding-bottom: 100px;
+}
+
+/* Standard page gutter. Default themes inset the page content by 1rem (the old
+   inline `tw:p-4`); theme-2 goes edge to edge so the section menu and content
+   run to the screen edges (the section tabs/menu manage their own spacing). */
+.page-padding {
+  padding: 1rem;
+}
+
+/* theme-2 mobile: keep a horizontal gutter so page content isn't jammed against
+   the screen edges, plus a top gutter so it clears the sticky app header. The
+   mobile sticky section tabs break out of both gutters (see
+   `.section-menu-container`) so the tab bar/underline still run edge to edge. */
+[data-theme="theme-2"] .page-padding {
+  padding: 1rem 1rem 0;
+}
+
+/* Desktop theme-2: the fixed left rail supplies the left gutter, but the content
+   column otherwise runs to the right viewport edge. Add a right gutter so content
+   isn't flush against the screen edge. Left stays 0 so the rail's in-flow spacer
+   aligns with the fixed panel at the viewport edge; mobile stays edge to edge. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .page-padding {
+    padding-left: 0;
+    padding-right: 1rem;
+  }
+}
+
+.app-footer {
+  position: sticky;
+  bottom: 0px;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: white;
+  padding: 10px;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bin-empty {
+  @apply tw:bg-slate-50 tw:text-slate-900 tw:border-slate-200;
+}
+.bin-low {
+  @apply tw:bg-green-50 tw:text-green-900 tw:border-green-200;
+}
+.bin-medium {
+  @apply tw:bg-yellow-50 tw:text-yellow-900 tw:border-yellow-200;
+}
+.bin-high {
+  @apply tw:bg-orange-50 tw:text-orange-900 tw:border-orange-200;
+}
+.bin-full {
+  @apply tw:bg-red-50 tw:text-red-900 tw:border-red-200;
+}
+
+/* Sticky container for the mobile section-menu (horizontal tab scroller pinned
+   under the app header in theme-2). The theme-2 page now carries a 1rem
+   horizontal gutter, so the bar uses negative left/right margins to break out
+   and let its bottom border reach the screen edges (see below). The negative
+   `margin-top` cancels the page's top gutter so the bar sits flush under the
+   header and sticks immediately on scroll with no initial travel. */
+.section-menu-container {
+  position: sticky;
+  top: 3.75rem; /* tw:top-15 — clears the sticky app header */
+  /* Break out of the theme-2 page gutters: cancel the top gutter so the bar sits
+     flush under the header, and cancel the left/right gutter (re-adding it as
+     inner padding) so the background/border run edge to edge while the tab labels
+     stay aligned with the padded page content. */
+  margin-top: -1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  z-index: 40;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+}
+
+/* Desktop-only left rail that holds the vertical section menu. Hidden below the
+   lg breakpoint (mobile uses the horizontal `.section-menu-container`); a fixed
+   14rem column that never shrinks at lg and up. */
+/* Two-column layout for section pages: a fixed-width left rail (section menu)
+   and a fluid right content column. Stacks below lg; becomes a row at lg+. The
+   rail itself only appears in theme-2 (see `.section-menu-aside`), so in other
+   themes the content column simply spans the full width. */
+.section-layout {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .section-layout {
+    display: flex;
+    gap: 1.5rem; /* tw:gap-6 */
+  }
+
+  /* Tighter rail-to-content gap for pages that want the section menu to sit
+     closer to the content (e.g. buy-from-other-retailer products main). */
+  .section-layout--tight {
+    gap: 0.75rem;
+  }
+}
+
+/* Left rail width. Hidden by default; shown only in theme-2 at lg+ (mobile uses
+   the horizontal `.section-menu-container`). `flex-shrink: 0` keeps it from
+   collapsing as the content column grows. */
+.section-menu-aside {
+  display: none;
+  width: 14rem; /* tw:w-56 */
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .section-menu-aside {
+    display: block;
+  }
+}
+
+/* Right content column. `min-width: 0` lets it shrink instead of overflowing
+   the row; `flex: 1` makes it absorb the remaining width (the full row when the
+   rail is hidden). */
+.section-content {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+
+/* Three-column browse grids (brand/menu list → sub-list → products). In
+   theme-2 the section side rail (`.section-menu-aside`) occupies the left
+   14rem at lg+, so tighten the list columns and cap the products column so it
+   stays readable instead of stretching into the reduced content width. Gated
+   at lg to match when the rail appears; below lg the Tailwind grid template
+   (1fr products) stays in effect. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .browse-grid--brand {
+    grid-template-columns: 18rem 20rem minmax(0, 1fr);
+  }
+
+  [data-theme="theme-2"] .browse-grid--category {
+    grid-template-columns: 14rem 20rem minmax(0, 1fr);
+  }
+}
+
+/* Bottom tab bar — the primary navigation in theme-2 (which has no side menu).
+   Hidden in every other theme; the rule is gated here so the visibility logic
+   stays in one place rather than a JS `theme` check in the layout. */
+.bottom-tab {
+  display: none;
+}
+
+[data-theme="theme-2"] .bottom-tab {
+  display: block;
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+}
+
+.tranparent-scrollbar {
+  scrollbar-color: #ccc transparent;
+}
+
+#ozonetelFrame {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 350px;
+  height: 600px;
+  border: 1px solid #f0f0f0;
+  z-index: 1100;
+  transition: transform 0.3s ease-in-out;
+  transform: translateY(100%);
+
+  /* &.open {
+    transform: translateY(0); // Slide up to show
+  } */
+}
+
+#ozonetelFrame.open {
+  transform: translateY(0);
+}
+
+#ozonetelToggle {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  z-index: 1100;
+}
+
+/* Highlight animation used when duplicate item is detected */
+.duplicate-animate,
+.highlight-animate {
+  animation: duplicate-pulse 0.6s ease-in-out infinite;
+  /* slightly elevate and add a subtle border to make it noticeable */
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.08);
+}
+
+/* Listening animated gradient used in VoiceSearchModal */
+.listening-gradient {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(
+      circle at 30% 30%,
+      rgba(56, 189, 248, 0.85) 0%,
+      rgba(56, 189, 248, 0.35) 35%,
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 70% 70%,
+      rgba(99, 102, 241, 0.75) 0%,
+      rgba(99, 102, 241, 0.32) 40%,
+      transparent 70%
+    ),
+    linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(99, 102, 241, 0.08));
+  background-blend-mode: screen, screen, normal;
+  box-shadow: inset 0 6px 20px rgba(99, 102, 241, 0.08);
+  border-radius: inherit;
+  animation: listening-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes listening-pulse {
+  0% {
+    transform: scale(1);
+    filter: blur(0.2px) saturate(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scale(1.06);
+    filter: blur(1px) saturate(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    filter: blur(0.2px) saturate(1);
+    opacity: 0.95;
+  }
+}
+
+/* Small helpers to match used Tailwind-prefixed utility classes */
+
+@keyframes duplicate-pulse {
+  0% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(250, 204, 21, 0.28);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.rdp-day:last-child {
+  width: var(--cell-size, 2rem) !important;
+  height: var(--cell-size, 2rem) !important;
+}
+
+.rdp-day:last-child button {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner[type="number"] {
+  -moz-appearance: textfield;
+}
+
+[data-slot="scroll-area"].no-table
+  [data-radix-scroll-area-viewport]
+  > div:first-child {
+  display: block !important;
+}
+
+[data-vaul-drawer] {
+  will-change: unset !important;
+}
+
+/* WhatsApp chat preview styles */
+.wa-chat-bg {
+  background-color: #e5ddd5;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9b99a' fill-opacity='0.12'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.dark .wa-chat-bg {
+  background-color: #0b141a;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.wa-bubble-out {
+  background-color: #d9fdd3;
+  padding: 6px 8px 4px 8px;
+  border-radius: 8px 0 8px 8px;
+  position: relative;
+}
+
+.wa-bubble-out::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid #d9fdd3;
+  border-top: 8px solid transparent;
+}
+
+.dark .wa-bubble-out {
+  background-color: #005c4b;
+}
+
+.dark .wa-bubble-out .tw\:text-gray-900 {
+  color: #e9edef;
+}
+
+.dark .wa-bubble-out .tw\:text-gray-500 {
+  color: rgba(233, 237, 239, 0.6);
+}
+
+.dark .wa-bubble-out::after {
+  border-left-color: #005c4b;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Restore list/heading formatting for rich text (e.g. Quill editor HTML),
+   which Tailwind's preflight reset otherwise strips of bullets/numbers. */
+.rich-text ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.rich-text ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.rich-text li {
+  display: list-item;
+  margin: 0.125rem 0;
+}
+
+.rich-text table {
+  border-collapse: collapse;
+  width: auto;
+  margin: 0.5rem 0;
+}
+
+.rich-text th,
+.rich-text td {
+  border: 1px solid #d1d5db;
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rich-text th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+/* Apply these styles only when inside .compact-calendar */
+.compact-calendar .rdp {
+  --cell-size: 28px !important;
+  --rdp-cell-size: 28px !important;
+  padding: 0px !important;
+  margin: 0px !important;
+}
+
+.compact-calendar .rdp-months {
+  gap: 4px !important;
+}
+
+.compact-calendar .rdp-month {
+  gap: 4px !important;
+}
+
+.compact-calendar .rdp-nav {
+  height: 28px !important;
+}
+
+.compact-calendar .rdp-button_previous,
+.compact-calendar .rdp-button_next {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.compact-calendar .rdp-caption {
+  height: 32px !important;
+  padding: 0 !important;
+}
+
+.compact-calendar .rdp-caption_label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+/* Weekday headers */
+.compact-calendar .rdp-head_cell {
+  font-size: 11px !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  padding: 0 !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+/* Day cells */
+.compact-calendar .rdp-day {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 12px !important;
+  padding: 0 !important;
+}
+
+.compact-calendar .rdp-day_button {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+/* Custom button inside DayButton */
+.compact-calendar .rdp-day button {
+  width: 100% !important;
+  height: 100% !important;
+  font-size: 12px !important;
+}
+
+/* Preset selector tweaks inside compact-calendar context */
+.compact-calendar [data-slot="select-trigger"] {
+  height: 28px !important;
+  font-size: 12px !important;
+}
+
+.compact-calendar .rdp-week {
+  margin-top: 2px !important;
+}
+
+.compact-calendar .rdp-months {
+  gap: 3px !important;
+}
+
+.compact-calendar .rdp-month {
+  gap: 3px !important;
+}

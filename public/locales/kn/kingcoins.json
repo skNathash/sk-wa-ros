@@ -1,0 +1,42 @@
+{
+  "earningTitle": "ಕಾಯಿನ್ ಗಳಿಸುವದು",
+  "coin": "ಕಾಯಿನ್",
+  "coin_plural": "ಕಾಯಿನ್‌ಗಳು",
+  "get": "ಸ್ವೀಕರಿಸಿ",
+  "firstCoin": "1 ಕಾಯಿನ್",
+  "forYourFirst": "ನಿಮ್ಮ ಮೊದಲ {{amount}} માટે",
+  "then": "ನಂತರ",
+  "afterCoin": "1 ಕಾಯಿನ್",
+  "forEvery": "ಪ್ರತಿ {{amount}} ನಿರಂತರವಾಗಿ",
+  "coinValueNote": "💰 1 ಕಾಯಿನ್ = ₹1 (ಮರುಆದಾಯಯೋಗ್ಯ ಮೌಲ್ಯ)",
+
+  "redeemTitle": "ಕಾಯಿನ್ ರಿಡೀಮ್ ಮಾಡುವುದು",
+  "redeemDescription": "ನೀವು ಈ ಅಂಗಡಿಯಲ್ಲಿ ಗಳಿಸಿದ ಕಾಯಿನ್ ಗಳನ್ನು ಮಾತ್ರ ರಿಡೀಮ್ ಮಾಡಬಹುದು. ಭವಿಷ್ಯದ ಖರೀದಿಗಳ ಮೇಲೆ ರಿಯಾಯಿತಿಯನ್ನು ಪಡೆಯಲು ನಿಮ್ಮ ಗಳಿಸಿದ ಕಾಯಿನ್ ಗಳನ್ನು ಬಳಸಿಕೊಳ್ಳಿ.",
+
+  "quickReference": "ವೇಗದ ಉಲ್ಲೇಖ",
+  "quickReference_firstLabel": "ಮೊದಲ {{amount}}:",
+  "quickReference_firstValue": "1 ಕಾಯಿನ್",
+  "quickReference_everyLabel": "ಪ್ರತಿ {{amount}} ನಂತರ:",
+  "quickReference_everyValue": "1 ಕಾಯಿನ್",
+  "quickReference_coinValueLabel": "ಕಾಯಿನ್ ಮೌಲ್ಯ:",
+  "quickReference_coinValueValue": "1 ಕಾಯಿನ್ = ₹1",
+  "quickReference_redemptionLabel": "ರಿಡೆಂಪ್ಶನ್:",
+  "quickReference_redemptionValue": "ಅಂಗಡಿ‌ನಲ್ಲಿ ಗಳಿಸಿದವು ಮಾತ್ರ",
+
+  "exclusionsTitle": "ಕಾಯಿನ್ ಬಹುಮಾನದಿಂದ ಹೊರತುಪಡಿಸಲಾಗಿದೆ",
+  "exclusionsSubtitle": "ಕೆಳಗಿನ ವಸ್ತುಗಳಿರುವ ಆರ್ಡರ್‌ಗಳಿಗೆ ಕಾಯಿನ್ ದೊರಕುವುದಿಲ್ಲ.",
+  "excludeMenu": "ಮೆನು",
+  "excludeCategory": "ವರ್ಗ",
+  "excludeBrand": "ಬ್ರಾಂಡ್",
+  "calculationExamplesTitle": "ಗಣನೆ ಉದಾಹರಣೆಗಳು",
+  "table": {
+    "orderValue": "ಆರ್ಡರ್ ಮೌಲ್ಯ",
+    "coinsEarned": "ಅರ್ಜಿಸಿದ ಕಾಯಿನ್ ಗಳು",
+    "breakdown": "ವಿಶ್ಲೇಷಣೆ"
+  },
+
+  "importantNotesTitle": "ಮುಖ್ಯ ಟಿಪ್ಪಣಿಗಳು",
+  "note_1": "ಕಾಯಿನ್ ಗಳು ಯಶಸ್ವಿಯಾದ ಆರ್ಡರ್ ಪೂರ್ಣತೆಯಲ್ಲಿಯೇ ಮತ್ತು ವಿತರಿಸಿದ ನಂತರ ಮಾತ್ರ ದೊರಕುತ್ತವೆ",
+  "note_2": "ನೀವು ಈ ವಿಶೇಷ ಅಂಗಡಿಯಲ್ಲಿ ಗಳಿಸಿದ ಕಾಯಿನ್ ಗಳನ್ನೇ ರಿಡೀಮ್ ಮಾಡಬಹುದು",
+  "note_3": "ಖರೀದಿ ಮಾಡುವ ಮೊದಲು ನಿಮ್ಮ ಕಾಯಿನ್_BALANCE ಪರಿಶೀಲಿಸಿ"
+}

@@ -1,0 +1,170 @@
+{
+  "breadcrumbs": {
+    "pos": "POS",
+    "billing": "POS Billing"
+  },
+  "items": "items",
+  "retailerSelectedSuccessfully": "Retailer selected successfully",
+  "header": {
+    "b2bBilling": "B2B Billing",
+    "b2cBilling": "B2C Billing",
+    "walkinBilling": "Walk-in Billing",
+    "billing": "POS Billing",
+    "assistedOrder": "Assisted Order"
+  },
+  "actions": {
+    "switchMode": "Switch Mode"
+  },
+  "cart": {
+    "title": "Cart",
+    "totalItems": "Total items",
+    "emptyCart": {
+      "title": "Your cart is empty",
+      "subtitle": "Add items to get started"
+    },
+    "summary": {
+      "subTotal": "Sub Total",
+      "couponDiscount": "Coupon Discount",
+      "coinsDiscount": "Coins Discount",
+      "totalDiscount": "Total Discount",
+      "cartDiscount": "Cart Discount",
+      "total": "Total"
+    },
+    "actions": {
+      "proceedToCheckout": "Proceed to checkout"
+    },
+    "itemAlreadyInCart": "Item Already in Cart",
+    "itemAlreadyInCartDesc": "This item is already in your cart. Would you like to view it in the cart?",
+    "viewInCart": "View in Cart",
+    "messages": {
+      "addProductsToCart": "Please add items to the cart before proceeding to checkout.",
+      "minCartNotSatisfied": "The minimum cart value to proceed is ₹{{value}}. Please add more items to your cart.",
+      "cartIdNotFound": "Cart ID not found. Please refresh the page.",
+      "itemRemoved": "Item removed from cart",
+      "failedToRemoveItem": "Failed to remove item",
+      "itemIdNotFound": "Item ID not found. Please refresh the page."
+    }
+  },
+  "customerTypeModal": {
+    "title": "Select Customer Type",
+    "subtitle": "Choose the customer type to display appropriate pricing",
+    "options": {
+      "b2c": {
+        "title": "B2C Customer",
+        "description": "Retail prices for individual customers"
+      },
+      "b2b": {
+        "title": "B2B Retailer",
+        "description": "Wholesale prices for business retailers"
+      },
+      "b2bQuick": {
+        "title": "B2B Quick Checkout",
+        "description": "Bill a retailer with instant stock debit, invoice and delivery"
+      },
+      "walkin": {
+        "title": "Walk-in Customer",
+        "description": "Standard retail pricing"
+      }
+    }
+  },
+  "checkoutModal": {
+    "title": "Checkout",
+    "steps": {
+      "selectCustomer": "Select Customer",
+      "selectRetailer": "Select Retailer",
+      "choosePayment": "Choose Payment",
+      "confirmation": "Confirmation"
+    },
+    "customer": {
+      "title": "Who is this order for?",
+      "options": {
+        "walkin": "Walkin Customer",
+        "b2c": "B2C Customer"
+      },
+      "search": {
+        "placeholder": "Search customer mobile",
+        "searching": "Searching, please wait...",
+        "noCustomerFound": "No customer found, please create a new customer",
+        "namePlaceholder": "Enter name"
+      },
+      "customerCard": {
+        "pointsAvailable": "Available : ",
+        "pointsCount": "{{count}} coins"
+      },
+      "validation": {
+        "enterName": "Please enter name",
+        "enterMobile": "Please enter mobile number",
+        "validMobile": "Please enter valid mobile number",
+        "customerNotFound": "Customer not found",
+        "sameAsRetailer": "Customer mobile number cannot be the same as your store number"
+      },
+      "messages": {
+        "customerCreated": "Customer created successfully",
+        "failedToCreateCustomer": "Failed to create customer"
+      },
+      "actions": {
+        "createCustomer": "Create Customer",
+        "continue": "Continue",
+        "select": "Select"
+      }
+    },
+    "retailer": {
+      "title": "Select Retailer",
+      "search": {
+        "placeholder": "Search retailer",
+        "searching": "Searching, please wait...",
+        "noDataFound": "No retailer found with this mobile number"
+      },
+      "validation": {
+        "selectRetailer": "Please select a retailer to continue"
+      },
+      "actions": {
+        "continue": "Continue"
+      }
+    },
+    "payment": {
+      "loyaltyPoints": {
+        "title": "Use Loyalty Points",
+        "placeholder": "0",
+        "max": "Max",
+        "available": "Available:"
+      },
+      "coupon": {
+        "title": "Coupon Code (Optional)",
+        "placeholder": "Enter coupon",
+        "apply": "Apply"
+      },
+      "method": {
+        "title": "Payment Method",
+        "cash": "Cash",
+        "card": "Card"
+      },
+      "actions": {
+        "back": "Back",
+        "continue": "Continue"
+      }
+    },
+    "summary": {
+      "title": "Order Summary",
+      "subtotal": "Subtotal",
+      "couponDiscount": "Coupon Discount",
+      "coinsDiscount": "Coins Discount",
+      "totalDiscount": "Total Discount",
+      "cartDiscount": "Cart Discount",
+      "total": "Total",
+      "customer": "Customer:",
+      "selectedCustomer": "Selected Customer",
+      "payment": "Payment:",
+      "walkinCustomer": "Walk-in Customer",
+      "actions": {
+        "back": "Back",
+        "pay": "Pay"
+      }
+    },
+    "messages": {
+      "orderPlaced": "Order placed successfully!",
+      "failedToPlaceOrder": "Failed to place order",
+      "errorPlacingOrder": "An error occurred while placing the order"
+    }
+  }
+}

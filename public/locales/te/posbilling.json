@@ -1,0 +1,166 @@
+{
+  "breadcrumbs": {
+    "pos": "POS",
+    "billing": "బిల్లింగ్"
+  },
+  "header": {
+    "b2bBilling": "B2B బిల్లింగ్",
+    "b2cBilling": "B2C బిల్లింగ్",
+    "walkinBilling": "వాక్-ఇన్ బిల్లింగ్",
+    "billing": "బిల్లింగ్",
+    "assistedOrder": "Assisted Order"
+  },
+  "actions": {
+    "switchMode": "మోడ్ మార్చు"
+  },
+  "cart": {
+    "title": "కార్ట్",
+    "totalItems": "మొత్తం వస్తువులు",
+    "emptyCart": {
+      "title": "మీ కార్ట్ ఖాళీగా ఉంది",
+      "subtitle": "ప్రారంభించడానికి వస్తువులను జోడించండి"
+    },
+    "summary": {
+      "subTotal": "ఉప మొత్తం",
+      "couponDiscount": "కూపన్ తగ్గింపు",
+      "coinsDiscount": "నాణేల తగ్గింపు",
+      "totalDiscount": "మొత్తం తగ్గింపు",
+      "total": "మొత్తం"
+    },
+    "actions": {
+      "proceedToCheckout": "చెక్అవుట్‌కు ముందుకు వెళ్లండి"
+    },
+    "itemAlreadyInCart": "వస్తువు ఇప్పటికే కార్ట్‌లో ఉంది",
+    "itemAlreadyInCartDesc": "ఈ వస్తువు ఇప్పటికే మీ కార్ట్‌లో ఉంది. మీరు దానిని కార్ట్‌లో చూడాలనుకుంటున్నారా?",
+    "viewInCart": "కార్ట్‌లో చూడండి",
+    "messages": {
+      "addProductsToCart": "చెక్అవుట్‌కు ముందుకు వెళ్లే ముందు కార్ట్‌లో ఉత్పత్తులను జోడించండి.",
+      "minCartNotSatisfied": "The minimum cart value to proceed is ₹{{value}}. Please add more items to your cart.",
+      "cartIdNotFound": "కార్ట్ ID కనుగొనబడలేదు. దయచేసి పేజీని రిఫ్రెష్ చేయండి.",
+      "itemRemoved": "కార్ట్ నుండి వస్తువు తీసివేయబడింది",
+      "failedToRemoveItem": "వస్తువును తీసివేయడంలో విఫలం",
+      "itemIdNotFound": "వస్తువు ID కనుగొనబడలేదు. దయచేసి పేజీని రిఫ్రెష్ చేయండి."
+    }
+  },
+  "customerTypeModal": {
+    "title": "కస్టమర్ రకాన్ని ఎంచుకోండి",
+    "subtitle": "సరైన ధరను ప్రదర్శించడానికి కస్టమర్ రకాన్ని ఎంచుకోండి",
+    "options": {
+      "b2c": {
+        "title": "B2C కస్టమర్",
+        "description": "వ్యక్తిగత కస్టమర్లకు రిటైల్ ధరలు"
+      },
+      "b2b": {
+        "title": "B2B కస్టమర్",
+        "description": "వ్యాపార కస్టమర్లకు హోల్‌సేల్ ధరలు"
+      },
+      "b2bQuick": {
+        "title": "B2B క్విక్ చెక్అవుట్",
+        "description": "తక్షణ స్టాక్ డెబిట్, ఇన్వాయిస్ మరియు డెలివరీతో రిటైలర్‌కు బిల్ చేయండి"
+      },
+      "walkin": {
+        "title": "వాక్-ఇన్ కస్టమర్",
+        "description": "ప్రమాణ రిటైల్ ధర"
+      }
+    }
+  },
+  "checkoutModal": {
+    "title": "చెక్అవుట్",
+    "steps": {
+      "selectCustomer": "కస్టమర్‌ని ఎంచుకోండి",
+      "selectRetailer": "రిటైలర్‌ని ఎంచుకోండి",
+      "choosePayment": "చెల్లింపును ఎంచుకోండి",
+      "confirmation": "నిర్ధారణ"
+    },
+    "customer": {
+      "title": "ఈ ఆర్డర్ ఎవరికోసం?",
+      "options": {
+        "walkin": "వాక్-ఇన్ కస్టమర్",
+        "b2c": "B2C కస్టమర్"
+      },
+      "search": {
+        "placeholder": "కస్టమర్‌ని శోధించండి",
+        "searching": "శోధిస్తున్నాను, దయచేసి వేచి ఉండండి...",
+        "noCustomerFound": "కస్టమర్ కనుగొనబడలేదు, దయచేసి కొత్త కస్టమర్‌ని సృష్టించండి",
+        "namePlaceholder": "పేరును నమోదు చేయండి"
+      },
+      "customerCard": {
+        "pointsAvailable": "అందుబాటులో:",
+        "pointsCount": "{{count}} పాయింట్లు"
+      },
+      "validation": {
+        "enterName": "దయచేసి పేరును నమోదు చేయండి",
+        "enterMobile": "దయచేసి మొబైల్ నంబర్‌ని నమోదు చేయండి",
+        "validMobile": "దయచేసి చెల్లుబాటు అయ్యే మొబైల్ నంబర్‌ని నమోదు చేయండి",
+        "customerNotFound": "కస్టమర్ కనుగొనబడలేదు",
+        "sameAsRetailer": "కస్టమర్ మొబైల్ నంబర్ మీ స్టోర్ నంబర్‌తో సమానంగా ఉండకూడదు"
+      },
+      "messages": {
+        "customerCreated": "కస్టమర్‌ని విజయవంతంగా సృష్టించారు",
+        "failedToCreateCustomer": "కస్టమర్‌ని సృష్టించడంలో విఫలం"
+      },
+      "actions": {
+        "createCustomer": "కస్టమర్‌ని సృష్టించండి",
+        "continue": "కొనసాగించండి",
+        "select": "Select"
+      }
+    },
+    "retailer": {
+      "title": "రిటైలర్‌ని ఎంచుకోండి",
+      "search": {
+        "placeholder": "రిటైలర్‌ని శోధించండి",
+        "searching": "శోధిస్తున్నాను, దయచేసి వేచి ఉండండి...",
+        "noDataFound": "ఈ మొబైల్ నంబర్‌తో ఎవరూ రిటైలర్ కనుగొనబడలేదు"
+      },
+      "validation": {
+        "selectRetailer": "కొనసాగించడానికి దయచేసి రిటైలర్‌ని ఎంచుకోండి"
+      },
+      "actions": {
+        "continue": "కొనసాగించండి"
+      }
+    },
+    "payment": {
+      "loyaltyPoints": {
+        "title": "లాయల్టీ పాయింట్లను ఉపయోగించండి",
+        "placeholder": "0",
+        "max": "గరిష్టం",
+        "available": "అందుబాటులో:"
+      },
+      "coupon": {
+        "title": "కూపన్ కోడ్ (ఐచ్ఛికం)",
+        "placeholder": "కూపన్‌ని నమోదు చేయండి",
+        "apply": "వర్తించు"
+      },
+      "method": {
+        "title": "చెల్లింపు పద్ధతి",
+        "cash": "నగదు",
+        "card": "కార్డ్"
+      },
+      "actions": {
+        "back": "వెనుకకు",
+        "continue": "కొనసాగించండి"
+      }
+    },
+    "summary": {
+      "title": "ఆర్డర్ సారాంశం",
+      "selectedCustomer": "Selected Customer",
+      "subtotal": "ఉప మొత్తం",
+      "couponDiscount": "కూపన్ తగ్గింపు",
+      "coinsDiscount": "నాణేల తగ్గింపు",
+      "totalDiscount": "మొత్తం తగ్గింపు",
+      "total": "మొత్తం",
+      "customer": "కస్టమర్:",
+      "payment": "చెల్లింపు:",
+      "walkinCustomer": "వాక్-ఇన్ కస్టమర్",
+      "actions": {
+        "back": "వెనుకకు",
+        "pay": "చెల్లించండి"
+      }
+    },
+    "messages": {
+      "orderPlaced": "ఆర్డర్‌ని విజయవంతంగా ఉంచారు!",
+      "failedToPlaceOrder": "ఆర్డర్‌ని ఉంచడంలో విఫలం",
+      "errorPlacingOrder": "ఆర్డర్‌ని ఉంచేటప్పుడు లోపం సంభవించింది"
+    }
+  }
+}
