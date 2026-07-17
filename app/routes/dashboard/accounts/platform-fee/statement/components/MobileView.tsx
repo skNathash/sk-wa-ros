@@ -102,14 +102,15 @@ const MobileView: React.FC<MobileViewProps> = ({
                     </div>
                   </div>
                   <div className="tw:flex tw:flex-col tw:gap-2 tw:items-end">
-                    <AppBadge
-                      variant={
-                        row.transactionType === "Credit" ? "success" : "danger"
-                      }
-                      className="tw:text-xs"
+                    <span
+                      className={`wa-tag ${
+                        row.transactionType === "Credit"
+                          ? "wa-tag-in"
+                          : "wa-tag-out"
+                      }`}
                     >
                       {row.transactionType?.toUpperCase() || "-"}
-                    </AppBadge>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -222,40 +223,46 @@ const MobileView: React.FC<MobileViewProps> = ({
 
                 {/* Credit/Debit Amount */}
                 {row.transactionType === "Credit" ? (
-                  <div className="tw:flex tw:justify-between tw:items-center tw:bg-green-50 tw:rounded-md tw:px-3 tw:py-2 tw:-mx-1">
+                  <div className="tw:flex tw:justify-between tw:items-center tw:bg-[color:var(--wa-domain-in-bg)] tw:rounded-md tw:px-3 tw:py-2 tw:-mx-1">
                     <div className="tw:flex tw:items-center tw:gap-2">
-                      <ArrowUp size={16} className="tw:text-green-600" />
+                      <ArrowUp
+                        size={16}
+                        className="tw:text-[color:var(--wa-domain-in)]"
+                      />
                       <span className="tw:text-sm tw:text-gray-700 tw:font-semibold">
                         {t("credit")}
                       </span>
                     </div>
                     <div className="tw:flex tw:items-center tw:gap-1">
-                      <span className="tw:text-sm tw:text-green-600 tw:font-bold">
+                      <span className="tw:text-sm tw:text-[color:var(--wa-domain-in)] tw:font-bold">
                         +
                       </span>
                       <Amount
                         value={row.amount ?? 0}
                         decimalPlaces={2}
-                        className="tw:text-base tw:text-green-600 tw:font-bold"
+                        className="wa-amount tw:text-base tw:font-bold tw:text-[color:var(--wa-domain-in)]"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="tw:flex tw:justify-between tw:items-center tw:bg-red-50 tw:rounded-md tw:px-3 tw:py-2 tw:-mx-1">
+                  <div className="tw:flex tw:justify-between tw:items-center tw:bg-[color:var(--wa-domain-out-bg)] tw:rounded-md tw:px-3 tw:py-2 tw:-mx-1">
                     <div className="tw:flex tw:items-center tw:gap-2">
-                      <ArrowDown size={16} className="tw:text-red-600" />
+                      <ArrowDown
+                        size={16}
+                        className="tw:text-[color:var(--wa-domain-out)]"
+                      />
                       <span className="tw:text-sm tw:text-gray-700 tw:font-semibold">
                         {t("debit")}
                       </span>
                     </div>
                     <div className="tw:flex tw:items-center tw:gap-1">
-                      <span className="tw:text-sm tw:text-red-600 tw:font-bold">
+                      <span className="tw:text-sm tw:text-[color:var(--wa-domain-out)] tw:font-bold">
                         -
                       </span>
                       <Amount
                         value={row.amount ?? 0}
                         decimalPlaces={2}
-                        className="tw:text-base tw:text-red-600 tw:font-bold"
+                        className="wa-amount tw:text-base tw:font-bold tw:text-[color:var(--wa-domain-out)]"
                       />
                     </div>
                   </div>

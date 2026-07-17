@@ -81,7 +81,7 @@ const AccountsHeader = ({
               {tab.name}
               {tab.count ? (
                 <span
-                  className={`tw:inline-flex tw:min-w-5 tw:items-center tw:justify-center tw:rounded-full tw:px-1 tw:py-px tw:text-[11px] tw:font-semibold ${
+                  className={`wa-mono tw:inline-flex tw:min-w-5 tw:items-center tw:justify-center tw:rounded-full tw:px-1 tw:py-px tw:text-[11px] tw:font-bold ${
                     isActive
                       ? "tw:bg-primary tw:text-white"
                       : "tw:bg-white/25 tw:text-white"

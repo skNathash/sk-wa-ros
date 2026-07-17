@@ -33,7 +33,7 @@ const OsAccountsMain = () => {
   const [activeTab, setActiveTab] = useState("home");
 
   return (
-    <div className="tw:flex tw:h-dvh tw:flex-col tw:overflow-hidden tw:bg-[#ece5dd]">
+    <div className="tw:flex tw:h-dvh tw:flex-col tw:overflow-hidden tw:bg-[color:var(--wa-paper)]">
       <AccountsHeader
         tabs={TABS}
         activeTab={activeTab}

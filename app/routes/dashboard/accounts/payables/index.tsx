@@ -48,7 +48,7 @@ const Payables = () => {
 
   return (
     <>
-      <AppCard className="tw:border-l-4 tw:border-green-500 tw:mb-4">
+      <AppCard className="tw:border-l-4 tw:border-l-[color:var(--wa-domain-in)] tw:mb-4">
         <div className="tw:flex tw:md:items-center tw:md:justify-between tw:flex-col tw:md:flex-row tw:gap-4">
           <div className="tw:text-sm tw:text-slate-600 tw:font-semibold tw:flex tw:items-center tw:gap-2">
             <IndianRupee size={20} />

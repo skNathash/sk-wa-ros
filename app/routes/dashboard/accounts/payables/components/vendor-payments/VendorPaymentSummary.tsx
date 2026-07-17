@@ -139,7 +139,7 @@ const VendorPaymentSummary = ({
                     <Amount
                       value={item.totalAmount}
                       decimalPlaces={2}
-                      className="tw:text-lg tw:font-semibold tw:text-red-600"
+                      className="wa-amount tw:text-lg tw:font-semibold tw:text-[color:var(--wa-domain-out)]"
                     />
                     <div className="tw:text-xs tw:text-gray-500">
                       {t("pending")}

@@ -509,3 +509,141 @@
     margin-bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
   }
 }
+
+/* ============================================================
+   theme-2 → domain accents + row tags
+   (Supply · Accounts · Catalog · Customer/Paylater modules)
+
+   See docs/design-system/README.md §2.4/§3. Each StoreKing OS module
+   (beyond POS billing, which already has `--wa-accent`/`--wa-bubble`)
+   carries one accent colour used consistently for that module's chrome
+   (icons, active states, highlighted totals) — and every list/table row
+   that indicates a lane/direction/channel/movement gets a small pill tag
+   painted in the matching colour, per the design-flow handoff's rule
+   "Colour-coded tags on every list row" (FAST/SLOW/OUT for catalog,
+   IN/OUT for money, SK/PEER/LOCAL for supply, B2C/B2B/CLUB for orders).
+
+   Tokens are exposed as CSS variables (for one-off inline use, e.g. an SVG
+   `stroke`) and paired with a `.wa-tag-*` pill class for the common case of
+   a row-level badge. Both are additive — no existing selector changed.
+   ============================================================ */
+[data-theme="theme-2"] {
+  /* Supply — three source lanes */
+  --wa-domain-sk: #2e5aa8; /* Buy from StoreKing (also POS/retail accent) */
+  --wa-domain-sk-bg: #e0e8f5;
+  --wa-domain-peer: #0d8f7f; /* Sellers on StoreKing network */
+  --wa-domain-peer-bg: #d8f0ec;
+  --wa-domain-local: #c85a1d; /* Local vendors */
+  --wa-domain-local-bg: #fbe4d3;
+
+  /* Accounts / Money */
+  --wa-domain-in: #1f8a4f; /* Money in / receivable */
+  --wa-domain-in-bg: #e0f0dc;
+  --wa-domain-out: #c85a1d; /* Money out / payable */
+  --wa-domain-out-bg: #fbe4d3;
+  --wa-domain-docs: #7a4bc0; /* GST / statutory documents */
+  --wa-domain-docs-bg: #efe7fa;
+  --wa-domain-pending: #c67312; /* Awaiting action */
+  --wa-domain-pending-bg: #fdf1cd;
+
+  /* Catalog */
+  --wa-domain-catalog-own: #0d8f7f; /* My Catalog */
+  --wa-domain-catalog-lib: #2e5aa8; /* SK Library */
+  --wa-domain-catalog-shelf: #7a4bc0; /* Store Shelf / bins */
+  --wa-domain-catalog-price: #c67312; /* Pricing */
+
+  /* Orders / channel */
+  --wa-domain-b2c: #2e5aa8;
+  --wa-domain-b2c-bg: #e0e8f5;
+  --wa-domain-b2b: #8a6a1a;
+  --wa-domain-b2b-bg: #f3ead0;
+  --wa-domain-club: #0d8f7f;
+  --wa-domain-club-bg: #d8f0ec;
+
+  /* Shared negative/positive states used across modules */
+  --wa-domain-danger: #d93732; /* out-of-stock, non-moving, overdue-bad */
+  --wa-domain-danger-bg: #fbe3e1;
+}
+
+/* Base pill shape shared by every `.wa-tag-*` colour variant — small
+   uppercase mono label, matches `.wa-section-label`'s letter-spacing so row
+   tags and section captions read as the same typographic family. */
+[data-theme="theme-2"] .wa-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border-radius: 0.3rem;
+  padding: 0.0625rem 0.375rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Supply lanes */
+[data-theme="theme-2"] .wa-tag-sk {
+  background-color: var(--wa-domain-sk-bg);
+  color: var(--wa-domain-sk);
+}
+[data-theme="theme-2"] .wa-tag-peer {
+  background-color: var(--wa-domain-peer-bg);
+  color: var(--wa-domain-peer);
+}
+[data-theme="theme-2"] .wa-tag-local {
+  background-color: var(--wa-domain-local-bg);
+  color: var(--wa-domain-local);
+}
+
+/* Accounts direction */
+[data-theme="theme-2"] .wa-tag-in {
+  background-color: var(--wa-domain-in-bg);
+  color: var(--wa-domain-in);
+}
+[data-theme="theme-2"] .wa-tag-out {
+  background-color: var(--wa-domain-out-bg);
+  color: var(--wa-domain-out);
+}
+[data-theme="theme-2"] .wa-tag-docs {
+  background-color: var(--wa-domain-docs-bg);
+  color: var(--wa-domain-docs);
+}
+[data-theme="theme-2"] .wa-tag-pending {
+  background-color: var(--wa-domain-pending-bg);
+  color: var(--wa-domain-pending);
+}
+
+/* Catalog movement */
+[data-theme="theme-2"] .wa-tag-fast {
+  background-color: var(--wa-domain-in-bg);
+  color: var(--wa-domain-in);
+}
+[data-theme="theme-2"] .wa-tag-slow {
+  background-color: var(--wa-domain-pending-bg);
+  color: var(--wa-domain-pending);
+}
+[data-theme="theme-2"] .wa-tag-out-of-stock,
+[data-theme="theme-2"] .wa-tag-danger {
+  background-color: var(--wa-domain-danger-bg);
+  color: var(--wa-domain-danger);
+}
+
+/* Orders / channel */
+[data-theme="theme-2"] .wa-tag-b2c {
+  background-color: var(--wa-domain-b2c-bg);
+  color: var(--wa-domain-b2c);
+}
+[data-theme="theme-2"] .wa-tag-b2b {
+  background-color: var(--wa-domain-b2b-bg);
+  color: var(--wa-domain-b2b);
+}
+[data-theme="theme-2"] .wa-tag-club {
+  background-color: var(--wa-domain-club-bg);
+  color: var(--wa-domain-club);
+}
+[data-theme="theme-2"] .wa-tag-pos {
+  background-color: var(--wa-bubble);
+  color: var(--wa-bubble-text);
+}

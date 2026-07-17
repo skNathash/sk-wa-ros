@@ -84,10 +84,10 @@ const DesktopView = ({
                     value={item.outstandingAmount}
                     decimalPlaces={2}
                     className={clsx(
-                      "tw:text-sm tw:font-bold",
+                      "wa-amount tw:text-sm tw:font-bold",
                       type === "payables"
-                        ? "tw:text-red-600"
-                        : "tw:text-green-600",
+                        ? "tw:text-[color:var(--wa-domain-out)]"
+                        : "tw:text-[color:var(--wa-domain-in)]",
                     )}
                   />
                 </AppTable.Cell>

@@ -28,7 +28,7 @@ const Item: React.FC<Props> = ({ data }) => {
           </div>
         </div>
         <div className="tw:text-right">
-          <div className="tw:font-semibold tw:text-red-600">
+          <div className="wa-amount tw:font-semibold tw:text-[color:var(--wa-domain-out)]">
             <Amount value={amount} />
           </div>
         </div>

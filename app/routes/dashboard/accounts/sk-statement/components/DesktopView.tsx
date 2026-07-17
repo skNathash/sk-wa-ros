@@ -151,7 +151,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   <Amount
                     value={row.amount}
                     decimalPlaces={2}
-                    className="tw:text-green-500"
+                    className="wa-amount tw:text-[color:var(--wa-domain-in)]"
                   />
                 ) : (
                   "--"
@@ -162,7 +162,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   <Amount
                     value={row.amount}
                     decimalPlaces={2}
-                    className="tw:text-red-500"
+                    className="wa-amount tw:text-[color:var(--wa-domain-out)]"
                   />
                 ) : (
                   "--"

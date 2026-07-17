@@ -202,10 +202,10 @@ const RecentTransactions: React.FC<Props> = ({ activeTab, refreshSignal }) => {
                           {/* Right: Amount and IN/OUT stacked */}
                           <div className="tw:text-right tw:ml-4 tw:flex tw:flex-col tw:items-end">
                             <div
-                              className={clsx("tw:text-lg tw:font-semibold", {
-                                "tw:text-green-600":
+                              className={clsx("wa-amount tw:text-lg tw:font-semibold", {
+                                "tw:text-[color:var(--wa-domain-in)]":
                                   row?.paymentType === "credit",
-                                "tw:text-red-600":
+                                "tw:text-[color:var(--wa-domain-out)]":
                                   row?.paymentType !== "credit",
                                 "tw:text-gray-700": !(row.amount || 0),
                               })}
@@ -213,21 +213,17 @@ const RecentTransactions: React.FC<Props> = ({ activeTab, refreshSignal }) => {
                               <Amount value={row.amount} decimalPlaces={2} />
                             </div>
                             {/* IN/OUT below amount */}
-                            <div
-                              className={clsx(
-                                "tw:text-xs tw:mt-1 tw:inline-block tw:px-2 tw:py-0.5 tw:rounded tw:border tw:font-medium",
-                                {
-                                  "tw:text-green-600 tw:border-green-200 bg-green-50":
-                                    row?.paymentType === "credit",
-                                  "tw:text-red-600 tw:border-red-200 bg-red-50":
-                                    row?.paymentType !== "credit",
-                                }
-                              )}
+                            <span
+                              className={`wa-tag tw:mt-1 ${
+                                row?.paymentType === "credit"
+                                  ? "wa-tag-in"
+                                  : "wa-tag-out"
+                              }`}
                             >
                               {row?.paymentType === "credit"
                                 ? "Received"
                                 : "Paid Out"}
-                            </div>
+                            </span>
                           </div>
                         </div>
                       </div>
