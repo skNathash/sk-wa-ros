@@ -156,9 +156,11 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                 </AppLink>
               </AppTable.Cell>
               <AppTable.Cell
-                className={clsx("tw:font-medium", {
-                  "tw:text-red-500": row.payoutType === "Debit",
-                  "tw:text-green-500": row.payoutType === "Credit",
+                className={clsx("wa-amount tw:font-medium", {
+                  "tw:text-[color:var(--wa-domain-out)]":
+                    row.payoutType === "Debit",
+                  "tw:text-[color:var(--wa-domain-in)]":
+                    row.payoutType === "Credit",
                 })}
               >
                 <Amount

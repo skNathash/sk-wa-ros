@@ -119,7 +119,7 @@ export default function DesktopView({
                 <Amount
                   value={row.amount ?? 0}
                   decimalPlaces={2}
-                  className="tw:ml-1 tw:text-red-600 tw:font-medium"
+                  className="wa-amount tw:ml-1 tw:font-medium tw:text-[color:var(--wa-domain-out)]"
                 />
               </AppTable.Cell>
               <AppTable.Cell>{row.taxInfo?.gst ?? 0}%</AppTable.Cell>

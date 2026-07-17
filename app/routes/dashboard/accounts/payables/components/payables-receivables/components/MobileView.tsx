@@ -34,7 +34,9 @@ const MobileView = ({
           className={clsx(
             "tw:p-3 tw:rounded-lg tw:border tw:bg-white tw:shadow-sm",
             "tw:flex tw:justify-between tw:items-center tw:gap-3",
-            type === "payables" ? "tw:border-red-100" : "tw:border-green-100"
+            type === "payables"
+              ? "tw:border-[color:var(--wa-domain-out)]/20"
+              : "tw:border-[color:var(--wa-domain-in)]/20"
           )}
         >
           <div className="tw:flex-1 tw:min-w-0">
@@ -61,8 +63,8 @@ const MobileView = ({
             "tw:p-3 tw:rounded-lg tw:border tw:bg-white tw:shadow-sm tw:transition-all",
             "tw:flex tw:justify-between tw:items-center tw:gap-3",
             type === "payables"
-              ? "tw:border-red-100 hover:tw:border-red-200"
-              : "tw:border-green-100 hover:tw:border-green-200"
+              ? "tw:border-[color:var(--wa-domain-out)]/20 hover:tw:border-[color:var(--wa-domain-out)]/40"
+              : "tw:border-[color:var(--wa-domain-in)]/20 hover:tw:border-[color:var(--wa-domain-in)]/40"
           )}
         >
           <div className="tw:flex-1 tw:min-w-0">
@@ -95,8 +97,10 @@ const MobileView = ({
               value={item.outstandingAmount}
               decimalPlaces={2}
               className={clsx(
-                "tw:text-base tw:font-bold",
-                type === "payables" ? "tw:text-red-600" : "tw:text-green-600"
+                "wa-amount tw:text-base tw:font-bold",
+                type === "payables"
+                  ? "tw:text-[color:var(--wa-domain-out)]"
+                  : "tw:text-[color:var(--wa-domain-in)]"
               )}
             />
           </div>

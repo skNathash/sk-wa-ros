@@ -46,9 +46,11 @@ const SummaryOverview = ({ summaryData }: SummaryOverviewProps) => {
             ) : (
               <Amount
                 value={item.value}
-                className={clsx("tw:text-base tw:font-medium", {
-                  "tw:text-red-500": item.color === "danger",
-                  "tw:text-green-500": item.color === "success",
+                className={clsx("wa-amount tw:text-base tw:font-medium", {
+                  "tw:text-[color:var(--wa-domain-out)]":
+                    item.color === "danger",
+                  "tw:text-[color:var(--wa-domain-in)]":
+                    item.color === "success",
                 })}
                 decimalPlaces={2}
               />

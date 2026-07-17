@@ -198,7 +198,7 @@ const Categories = ({
               ) : (
                 <Amount
                   value={item.debits}
-                  className="tw:font-medium tw:text-red-500"
+                  className="wa-amount tw:font-medium tw:text-[color:var(--wa-domain-out)]"
                 />
               )}
             </div>
@@ -210,7 +210,7 @@ const Categories = ({
               ) : (
                 <Amount
                   value={item.credits}
-                  className="tw:font-medium tw:text-green-500"
+                  className="wa-amount tw:font-medium tw:text-[color:var(--wa-domain-in)]"
                 />
               )}
             </div>
@@ -224,7 +224,7 @@ const Categories = ({
               ) : (
                 <Amount
                   value={item.netBalance}
-                  className="tw:font-semibold tw:text-red-500"
+                  className="wa-amount tw:font-semibold tw:text-[color:var(--wa-domain-out)]"
                 />
               )}
             </div>

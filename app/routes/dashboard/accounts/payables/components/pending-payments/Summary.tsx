@@ -41,10 +41,8 @@ const Summary = () => {
 
   return (
     <div className="tw:grid tw:grid-cols-2 tw:gap-4 tw:mb-4">
-      <div className="tw:bg-red-50 tw:p-4 tw:rounded-lg">
-        <div className="tw:text-sm tw:font-medium tw:text-red-800">
-          {t("totalPending")}
-        </div>
+      <div className="tw:rounded-lg tw:bg-[color:var(--wa-domain-out-bg)] tw:p-4">
+        <div className="wa-section-label">{t("totalPending")}</div>
         {loading ? (
           <div className="tw:flex tw:items-center tw:justify-center tw:min-h-[40px]">
             <AppSpinner className="tw:w-6 tw:h-6" />
@@ -52,16 +50,14 @@ const Summary = () => {
         ) : (
           <Amount
             value={totalPending}
-            className="tw:text-2xl tw:font-bold tw:text-red-800"
+            className="wa-amount tw:text-2xl tw:font-bold tw:text-[color:var(--wa-domain-out)]"
             decimalPlaces={0}
           />
         )}
       </div>
 
-      <div className="tw:bg-orange-50 tw:p-4 tw:rounded-lg">
-        <div className="tw:text-sm tw:font-medium tw:text-orange-700">
-          {t("overdue")}
-        </div>
+      <div className="tw:rounded-lg tw:bg-[color:var(--wa-domain-pending-bg)] tw:p-4">
+        <div className="wa-section-label">{t("overdue")}</div>
         {loading ? (
           <div className="tw:flex tw:items-center tw:justify-center tw:min-h-[40px]">
             <AppSpinner className="tw:w-6 tw:h-6" />
@@ -69,7 +65,7 @@ const Summary = () => {
         ) : (
           <Amount
             value={totalDue}
-            className="tw:text-2xl tw:font-bold tw:text-orange-900"
+            className="wa-amount tw:text-2xl tw:font-bold tw:text-[color:var(--wa-domain-pending)]"
             decimalPlaces={0}
           />
         )}

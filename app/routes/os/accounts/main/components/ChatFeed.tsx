@@ -25,7 +25,7 @@ const ChatFeed = ({ filter }: { filter: "all" | "in" | "out" }) => {
           if (item.kind === "divider") {
             return (
               <div key={item.id} className="tw:my-1 tw:flex tw:justify-center">
-                <span className="tw:rounded-md tw:bg-card tw:px-3 tw:py-1 tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-muted-foreground tw:shadow-sm">
+                <span className="wa-mono tw:rounded-xl tw:bg-white/90 tw:px-2.5 tw:py-1 tw:text-[9.5px] tw:font-bold tw:tracking-wide tw:text-muted-foreground tw:shadow-sm">
                   {item.label}
                 </span>
               </div>
@@ -35,7 +35,7 @@ const ChatFeed = ({ filter }: { filter: "all" | "in" | "out" }) => {
           if (item.kind === "note") {
             return (
               <div key={item.id} className="tw:my-1 tw:flex tw:justify-center">
-                <span className="tw:rounded-md tw:bg-card/80 tw:px-3 tw:py-1 tw:text-center tw:text-[10px] tw:font-medium tw:uppercase tw:tracking-wide tw:text-muted-foreground tw:shadow-sm">
+                <span className="wa-section-label tw:rounded-md tw:border tw:border-border tw:bg-card tw:px-2.5 tw:py-1 tw:text-center">
                   {item.text}
                 </span>
               </div>

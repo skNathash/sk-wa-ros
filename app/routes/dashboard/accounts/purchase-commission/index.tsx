@@ -172,7 +172,7 @@ const PurchaseCommission = () => {
             <Amount
               value={totalAmount}
               decimalPlaces={2}
-              className="tw:text-base tw:text-red-600 tw:font-semibold"
+              className="wa-amount tw:text-base tw:font-semibold tw:text-[color:var(--wa-domain-out)]"
             />
           </div>
         )}

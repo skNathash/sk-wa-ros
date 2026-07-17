@@ -8,9 +8,9 @@ import { Camera, Mic, Plus } from "lucide-react";
 const Composer = () => (
   // The bottom tab bar sits below this and carries the safe-area inset, so the
   // composer only needs its own breathing room.
-  <div className="tw:shrink-0 tw:px-2 tw:py-2">
+  <div className="tw:shrink-0 tw:border-t tw:border-border tw:bg-card tw:px-2 tw:py-2">
     <div className="tw:mx-auto tw:flex tw:max-w-2xl tw:items-center tw:gap-2">
-      <div className="tw:flex tw:h-12 tw:flex-1 tw:items-center tw:gap-2 tw:rounded-full tw:bg-card tw:px-3 tw:shadow-sm">
+      <div className="tw:flex tw:h-12 tw:flex-1 tw:items-center tw:gap-2 tw:rounded-full tw:bg-[color:var(--wa-paper)] tw:px-3">
         <button
           type="button"
           aria-label="Add entry"

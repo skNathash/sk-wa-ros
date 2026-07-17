@@ -125,7 +125,7 @@ const DesktopView = ({
                   {item.transactionType === "Credit" ? (
                     <Amount
                       value={item.amount || 0}
-                      className="tw:text-green-600 tw:font-medium"
+                      className="wa-amount tw:font-medium tw:text-[color:var(--wa-domain-in)]"
                     />
                   ) : (
                     "-"
@@ -135,7 +135,7 @@ const DesktopView = ({
                   {item.transactionType === "Debit" ? (
                     <Amount
                       value={item.amount || 0}
-                      className="tw:text-red-600 tw:font-medium"
+                      className="wa-amount tw:font-medium tw:text-[color:var(--wa-domain-out)]"
                     />
                   ) : (
                     "-"

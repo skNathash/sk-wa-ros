@@ -15,22 +15,18 @@ const BalanceDisplay = ({ opening, closing }: BalanceDisplayProps) => {
       <div className="tw:grid tw:grid-cols-2">
         <div className="tw:flex-1 tw:bg-white tw:p-1 tw:md:p-2">
           <div className="tw:pl-2">
-            <span className="tw:text-xs tw:text-gray-500 tw:uppercase">
-              {t("openingBalance")}
-            </span>
-            <div className="tw:mt-1 tw:text-base tw:font-bold tw:text-gray-900">
+            <span className="wa-section-label">{t("openingBalance")}</span>
+            <div className="wa-amount tw:mt-1 tw:text-base tw:font-bold tw:text-foreground">
               <Amount value={opening} />
             </div>
           </div>
         </div>
 
-        <div className="tw:flex-1 tw:bg-gray-50/50 tw:border-l">
+        <div className="tw:flex-1 tw:border-l tw:bg-gray-50/50">
           <div className="tw:p-1 tw:md:p-2">
             <div className="tw:pl-2">
-              <span className="tw:text-xs tw:text-gray-500 tw:uppercase">
-                {t("closingBalance")}
-              </span>
-              <div className="tw:mt-1 tw:text-base tw:font-bold tw:text-emerald-600">
+              <span className="wa-section-label">{t("closingBalance")}</span>
+              <div className="wa-amount tw:mt-1 tw:text-base tw:font-bold tw:text-[color:var(--wa-domain-in)]">
                 <Amount value={closing} />
               </div>
             </div>

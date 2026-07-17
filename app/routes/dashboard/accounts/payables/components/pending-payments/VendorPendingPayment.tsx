@@ -95,7 +95,7 @@ const VendorPendingPayment = () => {
     <AppCard
       title={t("pendingPayment")}
       icon="circle-alert"
-      iconClassName="tw:text-red-500"
+      iconClassName="tw:text-[color:var(--wa-domain-out)]"
     >
       {/* <Summary /> */}
       <PayablesReceiveableSummary entityId={AuthService.getLoggedInUserId()} />

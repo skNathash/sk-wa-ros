@@ -80,7 +80,7 @@ export default function MobileView({ items, loading }: MobileViewProps) {
                 <div className="tw:text-xs tw:text-gray-500 tw:mb-1">
                   {t("amount")}
                 </div>
-                <div className="tw:text-base tw:font-semibold tw:text-red-600">
+                <div className="wa-amount tw:text-base tw:font-semibold tw:text-[color:var(--wa-domain-out)]">
                   <Amount
                     value={row.amount ?? 0}
                     decimalPlaces={2}

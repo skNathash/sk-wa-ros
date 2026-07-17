@@ -116,10 +116,10 @@ const Summary = () => {
               )}
             </div>
             <div
-              className={clsx("tw:text-xl tw:font-semibold", {
-                "tw:text-red-500":
+              className={clsx("wa-amount tw:text-xl tw:font-semibold", {
+                "tw:text-[color:var(--wa-domain-out)]":
                   item.key === "debit" || item.key === "net-balance",
-                "tw:text-green-500": item.key === "credit",
+                "tw:text-[color:var(--wa-domain-in)]": item.key === "credit",
               })}
             >
               {item.loading ? (

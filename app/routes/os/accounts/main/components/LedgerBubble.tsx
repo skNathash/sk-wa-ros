@@ -1,17 +1,13 @@
 import { CheckCheck } from "lucide-react";
-import { formatRupees, type LedgerEntry, type LedgerTag } from "../data";
-
-/** Tag chip palette. Income tags sit on the green bubble, spend tags on white. */
-const TAG_CLASS: Record<LedgerTag, string> = {
-  B2C: "tw:bg-white/70 tw:text-[color:var(--wa-bubble-text)]",
-  B2B: "tw:bg-white/70 tw:text-[color:var(--wa-bubble-text)]",
-  VENDOR: "tw:bg-amber-100 tw:text-amber-800",
-  EXPENSE: "tw:bg-amber-100 tw:text-amber-800",
-};
+import { formatRupees, type LedgerEntry } from "../data";
 
 /**
  * One money movement as a chat bubble — income arrives on the right as a
  * WhatsApp "sent" bubble (you received the money), spend on the left in white.
+ * Colours follow the theme-2 Accounts domain tokens (§2.4 design-system
+ * guide): `--wa-domain-in` (green) for money in, `--wa-domain-out` (rust) for
+ * money out, applied consistently to the amount, the channel/tag chip, and
+ * the counterparty name — matching the handoff's `AfBubble` component.
  */
 const LedgerBubble = ({ entry }: { entry: LedgerEntry }) => {
   const isIn = entry.direction === "in";
@@ -30,7 +26,7 @@ const LedgerBubble = ({ entry }: { entry: LedgerEntry }) => {
             className={`tw:min-w-0 tw:flex-1 tw:truncate tw:text-[13px] tw:font-semibold ${
               isIn
                 ? "tw:text-[color:var(--wa-bubble-text)]"
-                : "tw:text-rose-800"
+                : "tw:text-[color:var(--wa-domain-out)]"
             }`}
           >
             {entry.title}
@@ -40,15 +36,15 @@ const LedgerBubble = ({ entry }: { entry: LedgerEntry }) => {
         <div className="tw:mt-0.5 tw:flex tw:items-center tw:gap-2">
           <p
             className={`wa-amount tw:text-base tw:font-bold tw:leading-tight ${
-              isIn ? "tw:text-emerald-800" : "tw:text-rose-700"
+              isIn
+                ? "tw:text-[color:var(--wa-domain-in)]"
+                : "tw:text-[color:var(--wa-domain-out)]"
             }`}
           >
             {isIn ? "+" : "−"}
             {formatRupees(entry.amount)}
           </p>
-          <span
-            className={`tw:rounded tw:px-1.5 tw:py-px tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-wide ${TAG_CLASS[entry.tag]}`}
-          >
+          <span className={`wa-tag ${isIn ? "wa-tag-in" : "wa-tag-out"}`}>
             {entry.tag}
           </span>
         </div>
@@ -58,7 +54,7 @@ const LedgerBubble = ({ entry }: { entry: LedgerEntry }) => {
         </p>
 
         {/* Timestamp + delivery ticks, right-aligned WhatsApp style. */}
-        <div className="tw:mt-1 tw:flex tw:items-center tw:justify-end tw:gap-1 tw:text-[10px] tw:text-muted-foreground">
+        <div className="wa-mono tw:mt-1 tw:flex tw:items-center tw:justify-end tw:gap-1 tw:text-[10px] tw:text-muted-foreground">
           <span>{entry.time}</span>
           {entry.delivered && (
             <CheckCheck size={13} className="tw:text-sky-500" />
