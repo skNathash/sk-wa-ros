@@ -768,7 +768,7 @@ const B2cCheckoutPage = () => {
                   <button
                     type="button"
                     onClick={handleBackToCart}
-                    className="tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-medium tw:text-gray-700 tw:cursor-pointer tw:px-2.5 tw:py-1 tw:rounded-md tw:hover:bg-gray-100 tw:transition-colors"
+                    className="tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-medium tw:text-muted-foreground tw:cursor-pointer tw:px-2.5 tw:py-1 tw:rounded-full tw:hover:bg-muted tw:hover:text-foreground tw:transition-colors"
                   >
                     <ArrowLeft size={16} />
                     {t("backToCart", "Back to cart")}
@@ -779,9 +779,9 @@ const B2cCheckoutPage = () => {
                   {/* Main content */}
                   <div className="tw:flex-1 tw:min-w-0">
                     {/* Stepper + step content as one connected surface */}
-                    <div className="tw:bg-white tw:rounded-xl tw:border tw:border-gray-200 tw:shadow-sm tw:overflow-hidden tw:mb-3">
+                    <div className="tw:bg-card tw:rounded-xl tw:border tw:border-border tw:shadow-sm tw:overflow-hidden tw:mb-3">
                       {/* Desktop stepper */}
-                      <div className="tw:hidden tw:md:block tw:px-5 tw:pt-4 tw:pb-2 tw:border-b tw:border-gray-100 tw:bg-gray-50/50">
+                      <div className="tw:hidden tw:md:block tw:px-5 tw:pt-4 tw:pb-2 tw:border-b tw:border-border tw:bg-muted/50">
                         <AppSteps
                           steps={steps}
                           activeKey={currentStep}
@@ -791,21 +791,21 @@ const B2cCheckoutPage = () => {
                       </div>
 
                       {/* Mobile step indicator */}
-                      <div className="tw:md:hidden tw:px-4 tw:pt-4 tw:pb-3 tw:border-b tw:border-gray-100 tw:bg-gray-50/50">
+                      <div className="tw:md:hidden tw:px-4 tw:pt-4 tw:pb-3 tw:border-b tw:border-border tw:bg-muted/50">
                         <div className="tw:flex tw:items-baseline tw:justify-between tw:mb-2">
-                          <span className="tw:text-[11px] tw:font-semibold tw:tracking-wide tw:uppercase tw:text-primary">
+                          <span className="wa-section-label tw:text-primary">
                             {t("step", "Step")} {safeStepIndex + 1} /{" "}
                             {steps.length}
                           </span>
                           {nextStepTitle && (
-                            <span className="tw:text-[11px] tw:text-gray-500 tw:flex tw:items-center tw:gap-0.5">
+                            <span className="tw:text-[11px] tw:text-muted-foreground tw:flex tw:items-center tw:gap-0.5">
                               {t("next", "Next")}
                               <ChevronRight size={12} />
                               {nextStepTitle}
                             </span>
                           )}
                         </div>
-                        <div className="tw:h-1.5 tw:bg-gray-200 tw:rounded-full tw:overflow-hidden">
+                        <div className="tw:h-1.5 tw:bg-muted tw:rounded-full tw:overflow-hidden">
                           <div
                             className="tw:h-full tw:bg-primary tw:rounded-full tw:transition-all tw:duration-300"
                             style={{ width: `${progressPct}%` }}
@@ -814,17 +814,17 @@ const B2cCheckoutPage = () => {
                       </div>
 
                       {/* Step header */}
-                      <div className="tw:px-4 tw:md:px-5 tw:pt-4 tw:pb-3 tw:border-b tw:border-gray-100">
+                      <div className="tw:px-4 tw:md:px-5 tw:pt-4 tw:pb-3 tw:border-b tw:border-border">
                         <div className="tw:flex tw:items-center tw:gap-3">
                           <span className="tw:flex tw:items-center tw:justify-center tw:w-7 tw:h-7 tw:rounded-full tw:bg-primary tw:text-white tw:text-xs tw:font-semibold tw:shrink-0">
                             {safeStepIndex + 1}
                           </span>
                           <div className="tw:min-w-0">
-                            <h2 className="tw:text-base tw:font-semibold tw:text-gray-900 tw:leading-tight">
+                            <h2 className="tw:text-base tw:font-semibold tw:text-foreground tw:leading-tight">
                               {steps[safeStepIndex]?.title}
                             </h2>
                             {stepHelper[currentStep] && (
-                              <p className="tw:text-xs tw:text-gray-500 tw:mt-0.5">
+                              <p className="tw:text-xs tw:text-muted-foreground tw:mt-0.5">
                                 {stepHelper[currentStep]}
                               </p>
                             )}
@@ -836,27 +836,27 @@ const B2cCheckoutPage = () => {
                       <div className="tw:p-4 tw:md:p-5">
                         {/* Quick checkout: show the buyer retailer resolved from the cart */}
                         {quickCheckout && retailer && (
-                          <div className="tw:border tw:rounded tw:p-3 tw:bg-gray-50 tw:mb-4">
+                          <div className="tw:border tw:border-border tw:rounded-xl tw:p-3 tw:bg-muted tw:mb-4">
                             <div className="tw:flex tw:justify-between tw:items-start">
                               <div>
-                                <div className="tw:font-semibold tw:text-sm tw:flex tw:items-center tw:gap-1">
+                                <div className="tw:font-semibold tw:text-sm tw:flex tw:items-center tw:gap-1 tw:text-foreground">
                                   <Building2
                                     size={18}
-                                    className="tw:text-gray-800"
+                                    className="tw:text-muted-foreground"
                                   />
                                   {retailer.name || "-"}
                                 </div>
-                                <div className="tw:text-xs tw:text-gray-600 tw:mt-1">
+                                <div className="wa-mono tw:text-xs tw:text-muted-foreground tw:mt-1">
                                   ID: {retailer.franchiseId || "-"}
                                 </div>
                               </div>
-                              <div className="tw:text-right tw:text-xs tw:text-gray-600 tw:flex tw:items-center tw:gap-1">
+                              <div className="wa-mono tw:text-right tw:text-xs tw:text-muted-foreground tw:flex tw:items-center tw:gap-1">
                                 <Phone size={12} />
                                 <div>{retailer.mobile || "-"}</div>
                               </div>
                             </div>
                             {retailer.formatAddress && (
-                              <div className="tw:text-xs tw:text-gray-600">
+                              <div className="tw:text-xs tw:text-muted-foreground">
                                 {retailer.formatAddress}
                               </div>
                             )}

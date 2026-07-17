@@ -281,21 +281,21 @@ const CustomerAddress = ({ callback }: Props) => {
           {typeof lat === "number" && typeof lng === "number" && (
             <div className="tw:col-span-12 tw:mt-2">
               <div className="tw:flex tw:items-center tw:justify-between tw:mb-2">
-                <span className="tw:text-[10px] tw:font-medium tw:uppercase tw:tracking-wider tw:text-gray-400">
+                <span className="wa-section-label">
                   Location Preview
                 </span>
-                <span className="tw:text-[10px] tw:text-gray-400">
+                <span className="wa-mono tw:text-[10px] tw:text-muted-foreground">
                   {lat.toFixed(4)}, {lng.toFixed(4)}
                 </span>
               </div>
-              <div className="tw:h-32 tw:bg-gray-50 tw:rounded-lg tw:border tw:border-dashed tw:border-gray-200 tw:overflow-hidden tw:relative">
+              <div className="tw:h-32 tw:bg-muted tw:rounded-lg tw:border tw:border-dashed tw:border-border tw:overflow-hidden tw:relative">
                 <StaticGMap
                   lat={lat}
                   lng={lng}
                   className="tw:w-full tw:h-full tw:grayscale hover:tw:grayscale-0 tw:transition-all"
                 />
                 <div className="tw:absolute tw:inset-0 tw:pointer-events-none tw:flex tw:items-center tw:justify-center">
-                  <div className="tw:w-8 tw:h-8 tw:bg-white/80 tw:rounded-full tw:flex tw:items-center tw:justify-center tw:shadow-sm">
+                  <div className="tw:w-8 tw:h-8 tw:bg-card/80 tw:rounded-full tw:flex tw:items-center tw:justify-center tw:shadow-sm">
                     <MapPin className="tw:w-4 tw:h-4 tw:text-primary" />
                   </div>
                 </div>
@@ -313,9 +313,14 @@ const CustomerAddress = ({ callback }: Props) => {
             <ChevronLeft />
             Back
           </AppButton>
-          <AppButton color="primary" onClick={onSave} disabled={isSubmitting}>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSubmitting}
+            className="wa-cta tw:flex tw:items-center tw:justify-center tw:gap-1.5 tw:px-5 tw:h-10 tw:rounded-xl tw:text-sm tw:font-bold tw:cursor-pointer tw:transition-all tw:disabled:cursor-not-allowed"
+          >
             {isSubmitting ? "Saving..." : "Save & Continue"}
-          </AppButton>
+          </button>
         </div>
       </AppCard>
 

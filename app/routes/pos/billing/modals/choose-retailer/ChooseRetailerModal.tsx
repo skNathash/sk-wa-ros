@@ -204,11 +204,11 @@ const ChooseRetailerModal: React.FC<ChooseRetailerModalProps> = ({
           {tabs.length < 1 ? (
             <>
               {activeTab === "other-retailers" ? (
-                <p className="tw:text-xs tw:text-slate-600">
+                <p className="tw:text-xs tw:text-muted-foreground">
                   Data is showing around 100 km for nearby retailers
                 </p>
               ) : (
-                <p className="tw:text-xs tw:text-slate-600">
+                <p className="tw:text-xs tw:text-muted-foreground">
                   Select a retailer to proceed with B2B checkout
                 </p>
               )}
@@ -227,12 +227,12 @@ const ChooseRetailerModal: React.FC<ChooseRetailerModalProps> = ({
               className="tw:mb-2"
             />
             {activeTab === "my-network" && (
-              <p className="tw:text-xs tw:text-gray-500 tw:mt-1">
+              <p className="tw:text-xs tw:text-muted-foreground tw:mt-1">
                 Retailers from your connected network
               </p>
             )}
             {activeTab === "other-retailers" && (
-              <p className="tw:text-xs tw:text-gray-500 tw:mt-1">
+              <p className="tw:text-xs tw:text-muted-foreground tw:mt-1">
                 Showing retailers within 100 km — nearest first
               </p>
             )}
@@ -244,7 +244,7 @@ const ChooseRetailerModal: React.FC<ChooseRetailerModalProps> = ({
           placeholder="Search by Name, Mobile or ID ..."
           register={register}
           onChange={handleSearch}
-          leftIcon={<Search className="tw:text-gray-500" size={16} />}
+          leftIcon={<Search className="tw:text-muted-foreground" size={16} />}
           className="tw:mb-2 tw:mt-1"
         />
 
@@ -269,35 +269,35 @@ const ChooseRetailerModal: React.FC<ChooseRetailerModalProps> = ({
               role="button"
               tabIndex={0}
               onClick={() => handleSelect(item)}
-              className="tw:border tw:rounded tw:p-4 tw:flex tw:justify-between tw:items-center tw:cursor-pointer tw:hover:bg-gray-50"
+              className="tw:border tw:border-border tw:rounded-xl tw:p-4 tw:flex tw:justify-between tw:items-center tw:cursor-pointer tw:transition-colors tw:hover:border-primary/40 tw:hover:bg-muted/40"
             >
               <div>
                 <div className="tw:flex tw:items-center tw:gap-2 tw:mb-1">
-                  <div className="tw:font-semibold tw:text-sm">{item.name}</div>
+                  <div className="tw:font-semibold tw:text-sm tw:text-foreground">{item.name}</div>
                 </div>
 
                 <div className="tw:flex tw:gap-2 tw:mb-2">
                   <UserBadgeType type={item.displayType?.name} />
 
-                  <div className="tw:text-sm tw:md:text-xs tw:text-gray-500 tw:flex tw:items-center tw:space-x-1 tw:gap-1 tw:mb-1">
+                  <div className="wa-mono tw:text-sm tw:md:text-xs tw:text-muted-foreground tw:flex tw:items-center tw:space-x-1 tw:gap-1 tw:mb-1">
                     ID: {item.franchiseId}
                   </div>
                   {activeTab !== "other-retailers" && (
-                    <div className="tw:text-sm tw:md:text-xs tw:text-gray-500 tw:flex tw:items-center tw:space-x-1 tw:gap-1 tw:mb-1">
+                    <div className="wa-mono tw:text-sm tw:md:text-xs tw:text-muted-foreground tw:flex tw:items-center tw:space-x-1 tw:gap-1 tw:mb-1">
                       <Phone size={12} />
                       {item.mobile}
                     </div>
                   )}
                 </div>
 
-                <div className="tw:text-sm tw:text-gray-600 tw:md:text-xs tw:flex tw:items-center tw:space-x-1 tw:gap-1 tw:mb-1">
+                <div className="tw:text-sm tw:text-muted-foreground tw:md:text-xs tw:flex tw:items-center tw:space-x-1 tw:gap-1 tw:mb-1">
                   <MapPin size={12} />
                   {item.formatAddress}
                 </div>
 
                 {item.distanceToFranchiseKm > 0 && (
                   <div>
-                    <AppBadge variant="light" className="tw:text-slate-700">
+                    <AppBadge variant="light" className="tw:text-muted-foreground">
                       <Navigation className="tw:w-3 tw:h-3" />
                       {item.distanceToFranchiseKm || 0} {t("km")}
                     </AppBadge>
@@ -305,7 +305,7 @@ const ChooseRetailerModal: React.FC<ChooseRetailerModalProps> = ({
                 )}
               </div>
 
-              <ChevronRight className="tw:text-gray-500" />
+              <ChevronRight className="tw:text-muted-foreground" />
             </div>
           ))}
 

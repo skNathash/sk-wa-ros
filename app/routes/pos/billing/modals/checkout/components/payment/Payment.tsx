@@ -567,26 +567,27 @@ const Payment = ({
     return Wallet;
   };
 
-  // Method theming — tinted icon chip per method for instant recognition
+  // Method theming — tinted icon chip per method for instant recognition.
+  // Cash uses the WhatsApp sent-bubble green (matches the design ref's
+  // waAccent tiles); UPI/other keep a distinct accent so methods stay
+  // visually distinguishable, but selection border is unified to `primary`
+  // via `.wa-chip`-style active state below.
   const themeFor = (value: string) => {
     if (value === "cash")
       return {
-        iconBg: "tw:bg-emerald-50",
-        iconColor: "tw:text-emerald-600",
-        ring: "tw:ring-emerald-500/30",
-        border: "tw:border-emerald-500",
+        iconBg: "wa-incart",
+        iconColor: "",
+        border: "tw:border-primary",
       };
     if (value === "upi")
       return {
         iconBg: "tw:bg-violet-50",
         iconColor: "tw:text-violet-600",
-        ring: "tw:ring-violet-500/30",
         border: "tw:border-violet-500",
       };
     return {
       iconBg: "tw:bg-amber-50",
       iconColor: "tw:text-amber-600",
-      ring: "tw:ring-amber-500/30",
       border: "tw:border-amber-500",
     };
   };
@@ -606,52 +607,64 @@ const Payment = ({
     !assisted && option !== "walkin" && Number(customer?.points ?? 0) > 0;
 
   return (
-    <div className="tw:font-sans tw:text-gray-900 tw:space-y-4">
+    <div className="tw:space-y-4">
       {/* To pay summary */}
-      <div className="tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white tw:px-5 tw:py-3 tw:shadow-sm">
+      <div className="tw:rounded-xl tw:border tw:border-border tw:bg-card tw:px-5 tw:py-3 tw:shadow-sm">
         {customer?.name && (
-          <div className="tw:flex tw:items-center tw:gap-1.5 tw:mb-1.5 tw:text-gray-600 tw:min-w-0">
+          <div className="tw:flex tw:items-center tw:gap-1.5 tw:mb-1.5 tw:text-muted-foreground tw:min-w-0">
             <User className="tw:w-3.5 tw:h-3.5 tw:shrink-0" />
             {customer?._id ? (
               <AppLink
                 asLink
                 href={`/dashboard/network/view/b2c/${customer._id}`}
-                className="tw:text-xs tw:font-medium tw:text-gray-900 tw:truncate hover:tw:underline"
+                className="tw:text-xs tw:font-medium tw:text-foreground tw:truncate hover:tw:underline"
               >
                 {customer.name}
               </AppLink>
             ) : (
-              <span className="tw:text-xs tw:font-medium tw:text-gray-900 tw:truncate">
+              <span className="tw:text-xs tw:font-medium tw:text-foreground tw:truncate">
                 {customer.name}
               </span>
             )}
           </div>
         )}
         {(redemption > 0 || discount > 0) && (
-          <div className="tw:space-y-1 tw:pb-3 tw:mb-3 tw:border-b tw:border-dashed tw:border-gray-200">
+          <div className="tw:space-y-1 tw:pb-3 tw:mb-3 tw:border-b tw:border-dashed tw:border-border">
             <div className="tw:flex tw:items-center tw:justify-between tw:text-xs">
-              <span className="tw:text-gray-500">Bill total</span>
-              <span className="tw:tabular-nums tw:text-gray-700">
+              <span className="tw:text-muted-foreground">Bill total</span>
+              <span className="wa-mono tw:text-foreground">
                 <Amount value={Number(totalAmount)} />
               </span>
             </div>
             {discount > 0 && (
               <div className="tw:flex tw:items-center tw:justify-between tw:text-xs">
-                <span className="tw:text-emerald-700 tw:flex tw:items-center tw:gap-1 tw:font-semibold">
+                <span
+                  className="tw:flex tw:items-center tw:gap-1 tw:font-semibold"
+                  style={{ color: "var(--wa-bubble-text)" }}
+                >
                   Cart Discount
                 </span>
-                <span className="tw:tabular-nums tw:text-emerald-700 tw:font-bold">
+                <span
+                  className="wa-mono tw:font-bold"
+                  style={{ color: "var(--wa-bubble-text)" }}
+                >
                   −<Amount value={discount} />
                 </span>
               </div>
             )}
             {redemption > 0 && (
               <div className="tw:flex tw:items-center tw:justify-between tw:text-xs">
-                <span className="tw:text-emerald-700 tw:flex tw:items-center tw:gap-1">
+                <span
+                  className="tw:flex tw:items-center tw:gap-1"
+                  style={{ color: "var(--wa-bubble-text)" }}
+                >
                   <Award className="tw:w-3 tw:h-3" />
                   KingCoins redeemed
                 </span>
-                <span className="tw:tabular-nums tw:text-emerald-700 tw:font-medium">
+                <span
+                  className="wa-mono tw:font-medium"
+                  style={{ color: "var(--wa-bubble-text)" }}
+                >
                   −<Amount value={redemption} />
                 </span>
               </div>
@@ -659,15 +672,15 @@ const Payment = ({
           </div>
         )}
         <div className="tw:flex tw:items-center tw:justify-between tw:gap-3">
-          <div className="tw:text-[11px] tw:uppercase tw:tracking-wider tw:text-gray-500 tw:font-semibold">
+          <div className="wa-section-label">
             {redemption > 0 || discount > 0 ? "Final payable" : "To pay"}
           </div>
-          <div className="tw:text-2xl tw:font-bold tw:tabular-nums tw:tracking-tight tw:text-gray-900">
+          <div className="wa-amount tw:text-2xl tw:font-bold tw:tracking-tight tw:text-foreground">
             <Amount value={payableAmount} />
           </div>
         </div>
         {hasDecimal && (
-          <div className="tw:mt-3 tw:pt-3 tw:border-t tw:border-dashed tw:border-gray-200 tw:flex tw:items-center tw:justify-between">
+          <div className="tw:mt-3 tw:pt-3 tw:border-t tw:border-dashed tw:border-border tw:flex tw:items-center tw:justify-between">
             <AppCheckbox
               label={t("checkoutModal.summary.roundOff", "Round off")}
               value={!!roundOffOrderAmount}
@@ -675,7 +688,7 @@ const Payment = ({
                 setValue("roundOffOrderAmount", checked, { shouldDirty: true })
               }
             />
-            <span className="tw:text-xs tw:tabular-nums tw:text-gray-500">
+            <span className="wa-mono tw:text-xs tw:text-muted-foreground">
               {roundOffOrderAmount ? (
                 <>
                   {Math.round(rawPayableAmount) - rawPayableAmount >= 0
@@ -698,7 +711,7 @@ const Payment = ({
 
       {/* KingCoins redemption */}
       {hasCoins && (
-        <div className="tw:rounded-lg tw:border tw:border-amber-300 tw:bg-amber-50/40 tw:px-3 tw:py-2.5 tw:space-y-2">
+        <div className="tw:rounded-xl tw:border tw:border-amber-200 tw:bg-amber-50/40 tw:px-3 tw:py-2.5 tw:space-y-2">
           <div className="tw:flex tw:items-center tw:gap-2">
             <span className="tw:flex tw:h-7 tw:w-7 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:bg-amber-500 tw:text-white">
               <Award className="tw:w-4 tw:h-4" />
@@ -709,14 +722,17 @@ const Payment = ({
               </span>
               <span className="tw:text-[11px] tw:text-amber-700">
                 Balance{" "}
-                <span className="tw:font-semibold tw:tabular-nums">
+                <span className="wa-mono tw:font-semibold">
                   {customer?.points}
                 </span>{" "}
                 · 1 coin = ₹1
               </span>
             </div>
             {redemption > 0 && (
-              <span className="tw:ml-auto tw:rounded-full tw:bg-emerald-100 tw:px-2 tw:py-0.5 tw:text-[11px] tw:font-semibold tw:text-emerald-700 tw:tabular-nums">
+              <span
+                className="wa-mono tw:ml-auto tw:rounded-full tw:px-2 tw:py-0.5 tw:text-[11px] tw:font-semibold"
+                style={{ backgroundColor: "var(--wa-bubble)", color: "var(--wa-bubble-text)" }}
+              >
                 −<Amount value={redemption} /> applied
               </span>
             )}
@@ -729,7 +745,7 @@ const Payment = ({
                 register={register}
                 onChange={handleLoyaltyPointsChange}
                 disabled={!canRedeem}
-                inputClassName="tw:h-9 tw:text-sm tw:bg-white tw:disabled:opacity-60"
+                inputClassName="wa-mono tw:h-9 tw:text-sm tw:bg-card tw:disabled:opacity-60"
                 placeholder={`Coins to redeem (max ${maxRedeemablePoints})`}
               />
             </div>
@@ -737,7 +753,7 @@ const Payment = ({
               type="button"
               onClick={onMaxPoints}
               disabled={!canRedeem}
-              className="tw:text-xs tw:font-semibold tw:px-3 tw:py-2 tw:rounded-md tw:bg-amber-600 tw:text-white hover:tw:bg-amber-700 tw:transition tw:disabled:opacity-50 tw:disabled:cursor-not-allowed"
+              className="tw:text-xs tw:font-semibold tw:px-3 tw:py-2 tw:rounded-lg tw:bg-amber-600 tw:text-white hover:tw:bg-amber-700 tw:transition tw:disabled:opacity-50 tw:disabled:cursor-not-allowed tw:cursor-pointer"
             >
               Max
             </button>
@@ -754,10 +770,8 @@ const Payment = ({
       {!assisted && (
         <div className="tw:space-y-3">
           <div className="tw:flex tw:items-center tw:justify-between">
-            <div className="tw:text-[11px] tw:uppercase tw:tracking-wider tw:font-semibold tw:text-gray-500">
-              Payment method
-            </div>
-            <div className="tw:text-[11px] tw:text-gray-400">
+            <div className="wa-section-label">Payment method</div>
+            <div className="tw:text-[11px] tw:text-muted-foreground">
               {isPaylater
                 ? "Paylater on — uncheck below to switch"
                 : "Tap to select · split allowed"}
@@ -773,12 +787,12 @@ const Payment = ({
               return (
                 <label
                   key={opt.value}
-                  className={`tw:group tw:relative tw:flex tw:items-center tw:gap-2.5 tw:rounded-lg tw:border tw:px-3 tw:py-2.5 tw:transition tw:duration-150 ${
+                  className={`tw:group tw:relative tw:flex tw:items-center tw:gap-2.5 tw:rounded-xl tw:border tw:px-3 tw:py-2.5 tw:transition tw:duration-150 ${
                     disabled
-                      ? "tw:opacity-50 tw:cursor-not-allowed tw:border-gray-200 tw:bg-white"
+                      ? "tw:opacity-50 tw:cursor-not-allowed tw:border-border tw:bg-card"
                       : active
-                        ? `${theme.border} tw:bg-white tw:cursor-pointer tw:shadow-xs`
-                        : "tw:border-gray-200 tw:bg-white hover:tw:border-gray-300 hover:tw:bg-gray-50/50 tw:cursor-pointer"
+                        ? `${theme.border} tw:bg-card tw:cursor-pointer tw:shadow-xs`
+                        : "tw:border-border tw:bg-card hover:tw:border-primary/30 hover:tw:bg-muted/30 tw:cursor-pointer"
                   }`}
                 >
                   <input
@@ -791,34 +805,39 @@ const Payment = ({
                     className="tw:sr-only"
                   />
                   <span
-                    className={`tw:flex tw:h-8 tw:w-8 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-md tw:transition ${
-                      active ? theme.iconBg : "tw:bg-gray-100"
+                    className={`tw:flex tw:h-8 tw:w-8 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:transition ${
+                      active ? theme.iconBg : "tw:bg-muted"
                     }`}
                   >
                     <Icon
                       className={`tw:w-4 tw:h-4 tw:transition ${
-                        active ? theme.iconColor : "tw:text-gray-500"
+                        active ? theme.iconColor : "tw:text-muted-foreground"
                       }`}
+                      style={
+                        active && opt.value === "cash"
+                          ? { color: "var(--wa-bubble-text)" }
+                          : undefined
+                      }
                     />
                   </span>
                   <div className="tw:flex tw:flex-col tw:shrink-0 tw:min-w-14">
                     <span
                       className={`tw:text-sm tw:leading-tight ${
                         active
-                          ? "tw:font-semibold tw:text-gray-900"
-                          : "tw:font-medium tw:text-gray-700"
+                          ? "tw:font-semibold tw:text-foreground"
+                          : "tw:font-medium tw:text-foreground/80"
                       }`}
                     >
                       {opt.label}
                     </span>
-                    <span className="tw:text-[10px] tw:text-gray-400 tw:uppercase tw:tracking-wide">
+                    <span className="wa-section-label tw:text-[10px]">
                       {opt.value === "cash" ? "Bills & coins" : "Scan to pay"}
                     </span>
                   </div>
                   <div className="tw:relative tw:flex-1 tw:min-w-0">
                     <span
                       className={`tw:absolute tw:left-3 tw:top-1/2 tw:-translate-y-1/2 tw:text-sm tw:pointer-events-none tw:transition ${
-                        active ? "tw:text-gray-700" : "tw:text-gray-400"
+                        active ? "tw:text-foreground" : "tw:text-muted-foreground"
                       }`}
                     >
                       ₹
@@ -832,8 +851,8 @@ const Payment = ({
                         handlePaymentAmountChange(index, Number(e.target.value))
                       }
                       placeholder="0"
-                      className={`tw:h-10 tw:pl-7 tw:pr-3 tw:text-base tw:font-semibold tw:bg-white tw:tabular-nums tw:text-right tw:border-gray-200 ${
-                        active ? "tw:text-gray-900" : "tw:text-gray-500"
+                      className={`wa-mono tw:h-10 tw:pl-7 tw:pr-3 tw:text-base tw:font-semibold tw:bg-card tw:text-right tw:border-border ${
+                        active ? "tw:text-foreground" : "tw:text-muted-foreground"
                       }`}
                     />
                   </div>
@@ -858,7 +877,7 @@ const Payment = ({
                       value={field.value}
                       options={upiPayments}
                       onChange={field.onChange}
-                      inputClassName="tw:w-full tw:h-9 tw:text-sm tw:bg-white"
+                      inputClassName="tw:w-full tw:h-9 tw:text-sm tw:bg-card"
                       placeholder="UPI app"
                     />
                   )}
@@ -868,7 +887,7 @@ const Payment = ({
                   name="upiReferenceNumber"
                   register={register}
                   placeholder="Reference no."
-                  inputClassName="tw:h-9 tw:text-sm tw:bg-white"
+                  inputClassName="wa-mono tw:h-9 tw:text-sm tw:bg-card"
                 />
               </div>
             </div>
@@ -877,12 +896,12 @@ const Payment = ({
           {/* Paylater — single compact row */}
           {showPaylater && (
             <label
-              className={`tw:flex tw:items-center tw:gap-2.5 tw:rounded-lg tw:border tw:px-3 tw:py-2.5 tw:transition ${
+              className={`tw:flex tw:items-center tw:gap-2.5 tw:rounded-xl tw:border tw:px-3 tw:py-2.5 tw:transition ${
                 !paylaterWallet.eligible
-                  ? "tw:border-dashed tw:border-gray-200 tw:bg-gray-50 tw:cursor-not-allowed"
+                  ? "tw:border-dashed tw:border-border tw:bg-muted tw:cursor-not-allowed"
                   : isPaylater
                     ? "tw:border-indigo-500 tw:bg-indigo-50/30 tw:cursor-pointer tw:shadow-xs"
-                    : "tw:border-gray-200 tw:bg-white hover:tw:border-indigo-300 tw:cursor-pointer"
+                    : "tw:border-border tw:bg-card hover:tw:border-indigo-300 tw:cursor-pointer"
               }`}
             >
               <input
@@ -893,12 +912,12 @@ const Payment = ({
                 className="tw:w-4 tw:h-4 tw:accent-indigo-600 tw:shrink-0 tw:cursor-pointer disabled:tw:cursor-not-allowed"
               />
               <span
-                className={`tw:flex tw:h-8 tw:w-8 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-md tw:transition ${
+                className={`tw:flex tw:h-8 tw:w-8 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:transition ${
                   !paylaterWallet.eligible
-                    ? "tw:bg-gray-100 tw:text-gray-400"
+                    ? "tw:bg-muted tw:text-muted-foreground"
                     : isPaylater
                       ? "tw:bg-indigo-50 tw:text-indigo-600"
-                      : "tw:bg-gray-100 tw:text-gray-500"
+                      : "tw:bg-muted tw:text-muted-foreground"
                 }`}
               >
                 <CreditCard className="tw:w-4 tw:h-4" />
@@ -907,15 +926,15 @@ const Payment = ({
                 <span
                   className={`tw:text-sm tw:font-medium tw:leading-tight ${
                     !paylaterWallet.eligible
-                      ? "tw:text-gray-500"
+                      ? "tw:text-muted-foreground"
                       : isPaylater
                         ? "tw:text-indigo-900 tw:font-semibold"
-                        : "tw:text-gray-900"
+                        : "tw:text-foreground"
                   }`}
                 >
                   Paylater
                 </span>
-                <span className="tw:text-[10px] tw:text-gray-400 tw:uppercase tw:tracking-wide tw:truncate">
+                <span className="wa-section-label tw:text-[10px] tw:truncate">
                   {paylaterWallet.eligible
                     ? "Credit account"
                     : paylaterWallet.message}
@@ -923,12 +942,12 @@ const Payment = ({
               </div>
               {paylaterWallet.eligible && (
                 <div className="tw:flex-1 tw:text-right">
-                  <div className="tw:text-[10px] tw:uppercase tw:tracking-wide tw:text-gray-400">
+                  <div className="wa-section-label tw:text-[10px]">
                     Available
                   </div>
                   <div
-                    className={`tw:text-sm tw:font-semibold tw:tabular-nums ${
-                      isPaylater ? "tw:text-indigo-700" : "tw:text-gray-900"
+                    className={`wa-mono tw:text-sm tw:font-semibold ${
+                      isPaylater ? "tw:text-indigo-700" : "tw:text-foreground"
                     }`}
                   >
                     <Amount value={paylaterWallet.balance ?? 0} />
@@ -942,21 +961,26 @@ const Payment = ({
 
       {/* Change-to-return */}
       {!assisted && cashToReturn && cashToReturn > 0 ? (
-        <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-emerald-200 tw:bg-gradient-to-r tw:from-emerald-50 tw:to-emerald-50/30 tw:px-4 tw:py-3">
+        <div
+          className="wa-incart tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-transparent tw:px-4 tw:py-3"
+        >
           <div className="tw:flex tw:items-center tw:gap-2.5">
-            <span className="tw:flex tw:h-8 tw:w-8 tw:items-center tw:justify-center tw:rounded-full tw:bg-emerald-500 tw:text-white tw:text-base tw:font-bold">
+            <span
+              className="tw:flex tw:h-8 tw:w-8 tw:items-center tw:justify-center tw:rounded-full tw:text-base tw:font-bold"
+              style={{ backgroundColor: "var(--wa-accent)", color: "var(--wa-accent-foreground)" }}
+            >
               ↺
             </span>
             <div className="tw:flex tw:flex-col">
-              <span className="tw:text-[11px] tw:uppercase tw:tracking-wider tw:font-medium tw:text-emerald-700">
+              <span className="wa-section-label" style={{ color: "var(--wa-bubble-text)" }}>
                 Return change
               </span>
-              <span className="tw:text-[11px] tw:text-emerald-600">
+              <span className="tw:text-[11px]" style={{ color: "var(--wa-bubble-text)" }}>
                 Hand back to customer
               </span>
             </div>
           </div>
-          <span className="tw:text-xl tw:font-bold tw:text-emerald-700 tw:tabular-nums">
+          <span className="wa-amount tw:text-xl tw:font-bold">
             <Amount value={cashToReturn} />
           </span>
         </div>
@@ -972,7 +996,7 @@ const Payment = ({
             <AppButton
               size="default"
               fill="outline"
-              color="dark"
+              color="light"
               className="tw:px-4"
               onClick={handleBack}
             >
@@ -981,23 +1005,19 @@ const Payment = ({
                 {t("checkoutModal.payment.actions.back")}
               </span>
             </AppButton>
-            <AppButton
-              size="default"
-              fill="solid"
-              color="dark"
-              className="tw:flex-1"
+            <button
+              type="button"
               onClick={handleContinue}
+              className="wa-cta tw:flex-1 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:h-10 tw:rounded-xl tw:text-sm tw:font-bold tw:cursor-pointer tw:transition-all"
             >
-              <span className="tw:flex tw:items-center tw:justify-center tw:gap-2 tw:text-sm tw:font-semibold">
-                {t("checkoutModal.payment.actions.continue")}
-                {payableAmount > 0 && (
-                  <span className="tw:tabular-nums tw:border-l tw:border-white/30 tw:pl-2 tw:ml-1">
-                    <Amount value={payableAmount} />
-                  </span>
-                )}
-                <span className="tw:text-base tw:leading-none">→</span>
-              </span>
-            </AppButton>
+              {t("checkoutModal.payment.actions.continue")}
+              {payableAmount > 0 && (
+                <span className="wa-mono tw:border-l tw:border-white/30 tw:pl-2 tw:ml-1">
+                  <Amount value={payableAmount} />
+                </span>
+              )}
+              <span className="tw:text-base tw:leading-none">→</span>
+            </button>
           </div>
         )}
       </div>

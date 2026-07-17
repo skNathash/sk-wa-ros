@@ -162,7 +162,7 @@ const ProductGrid = ({
 
                 <div className="tw:mt-1.5 tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:text-xs">
                   {product.barcodes?.[0] && (
-                    <span className="tw:inline-flex tw:items-center tw:rounded tw:bg-muted tw:px-1.5 tw:py-0.5 tw:font-mono tw:text-[11px] tw:tracking-tight tw:text-muted-foreground">
+                    <span className="wa-mono tw:inline-flex tw:items-center tw:rounded tw:bg-muted tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:tracking-tight tw:text-muted-foreground">
                       {product.barcodes[0]}
                     </span>
                   )}

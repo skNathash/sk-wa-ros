@@ -84,11 +84,11 @@ const CartItem: React.FC<CartItemProps> = ({
   const isRealPack = !!data.sellingType && data.sellingType !== "UNIT";
 
   return (
-    <div className="tw:relative tw:flex tw:gap-3 tw:py-2.5 tw:pr-1 tw:border-b tw:border-slate-100 last:tw:border-b-0 tw:group hover:tw:bg-slate-50/40 tw:transition-colors">
+    <div className="tw:relative tw:flex tw:gap-3 tw:py-2.5 tw:pr-1 tw:border-b tw:border-border/60 last:tw:border-b-0 tw:group hover:tw:bg-muted/30 tw:transition-colors">
       <div className="tw:w-11 tw:h-11 tw:relative tw:shrink-0">
         {/* overflow-hidden lives on an inner wrapper so the discount badge
             (offset outside the tile) isn't clipped by the rounded corners */}
-        <div className="tw:w-full tw:h-full tw:bg-slate-50 tw:rounded-lg tw:overflow-hidden tw:border tw:border-slate-200/60 tw:shadow-sm">
+        <div className="tw:w-full tw:h-full tw:bg-muted tw:rounded-full tw:overflow-hidden tw:border tw:border-border tw:shadow-sm">
           <ImgRender
             assetId={data.images?.[0]}
             className="tw:w-full tw:h-full tw:object-cover"
@@ -104,7 +104,7 @@ const CartItem: React.FC<CartItemProps> = ({
 
       <div className="tw:flex-1 tw:min-w-0">
         <div className="tw:flex tw:items-start tw:justify-between tw:gap-2 tw:mb-0.5">
-          <div className="tw:font-medium tw:text-[13px] tw:line-clamp-2 tw:text-slate-800 tw:leading-snug">
+          <div className="tw:font-semibold tw:text-[13px] tw:line-clamp-2 tw:text-foreground tw:leading-snug">
             {data.deal?.name}
           </div>
           <button
@@ -264,15 +264,15 @@ const CartItem: React.FC<CartItemProps> = ({
         </div>
 
         {qty > 0 && (
-          <div className="tw:mt-2 tw:flex tw:items-center tw:justify-between tw:text-[11px] tw:text-slate-500 tw:bg-slate-50/60 tw:rounded-lg tw:px-2.5 tw:py-1 tw:border tw:border-slate-100">
+          <div className="tw:mt-2 tw:flex tw:items-center tw:justify-between tw:text-[11px] tw:text-muted-foreground tw:bg-muted/50 tw:rounded-lg tw:px-2.5 tw:py-1 tw:border tw:border-border/60">
             <div className="tw:flex tw:items-center tw:gap-1 tw:tabular-nums tw:font-medium">
               <DisplayPrice
                 price={unitPrice}
                 uom={data.selectedStockUom}
-                className="tw:text-slate-500"
+                className="tw:text-muted-foreground"
               />
-              <span className="tw:text-slate-400 tw:font-light">×</span>
-              <span className="tw:text-slate-700 tw:font-semibold">
+              <span className="tw:text-muted-foreground/60 tw:font-light">×</span>
+              <span className="tw:text-foreground tw:font-semibold">
                 <DisplayQty
                   qty={qty}
                   isLooseQty={false}
@@ -287,11 +287,11 @@ const CartItem: React.FC<CartItemProps> = ({
               </span>
             </div>
             <div className="tw:flex tw:items-center tw:gap-1">
-              <span className="tw:text-slate-400 tw:text-[10px] tw:mr-0.5">=</span>
+              <span className="tw:text-muted-foreground/60 tw:text-[10px] tw:mr-0.5">=</span>
               <Amount
                 value={total}
                 decimalPlaces={amountDecimals}
-                className="tw:text-xs tw:font-bold tw:text-slate-800 tw:tabular-nums"
+                className="wa-amount tw:text-xs tw:font-bold tw:text-foreground"
               />
             </div>
           </div>
