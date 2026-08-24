@@ -1,9 +1,11 @@
-import { ArrowLeft, ChevronLeft, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Barcode, ChevronLeft, ShoppingCart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Amount from "~/components/core/amount/Amount";
 import AppBadge from "~/components/core/badge/AppBadge";
+import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import CartItem from "./CartItem";
+import CartItemBubble from "./CartItemBubble";
 import EditPriceModal from "../../modals/edit-price/EditPriceModal";
 import Rbac from "~/components/core/rbac/Rbac";
 
@@ -34,7 +36,7 @@ import useAppToast from "~/hooks/useAppToast";
 import PosService from "~/services/PosService";
 import FranchiseService from "~/services/FranchiseService";
 import useScreenView from "~/hooks/useScreenView";
-import AuthService from "~/services/AuthService";
+import useTheme from "~/hooks/useTheme";
 
 const Cart = ({
   data,
@@ -50,6 +52,10 @@ const Cart = ({
 }: CartProps) => {
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const { isMobile } = useScreenView();
+  // Theme-2 mobile renders the cart as a chat thread (see `.app-cart-inline`
+  // in pos-billing.css), so the line item swaps to its bubble reading. The
+  // theme-2 desktop pane is a dark receipt panel and keeps the row layout.
+  const bubbleItems = useTheme() === "theme-2" && isMobile;
   const appToast = useAppToast();
   const { t } = useTranslation(["posbilling", "common"]);
 
@@ -65,6 +71,7 @@ const Cart = ({
       dealPrice: number;
       mrp: number;
       leastMrp: number;
+      uom?: string;
       hasOverride?: boolean;
     } | null;
   }>({ show: false, data: null });
@@ -127,13 +134,6 @@ const Cart = ({
   };
 
   const handleProceedCheckout = async () => {
-    if (AuthService.isMasterLogin()) {
-      appToast.show({
-        msg: t("youAreNotAuthorizedToDoThisAction", { ns: "common" }),
-        color: "error",
-      });
-      return;
-    }
     if (cartItems.length === 0) {
       appToast.show({
         msg: t("cart.messages.addProductsToCart"),
@@ -225,6 +225,7 @@ const Cart = ({
           dealPrice: actionData?.dealPrice ?? actionData?.deal?.price ?? 0,
           mrp: actionData?.mrp,
           leastMrp: actionData?.leastMrp ?? actionData?.mrp,
+          uom: actionData?.selectedStockUom,
           hasOverride: actionData?.overridePrice != null,
         },
       });
@@ -299,20 +300,22 @@ const Cart = ({
 
   return (
     <AppCard
-      className="tw:flex tw:flex-col tw:h-full tw:bg-white tw:border tw:border-border tw:shadow-md tw:rounded-2xl"
+      className="app-cart-pane tw:flex tw:flex-col tw:h-full tw:bg-white tw:border tw:border-slate-100 tw:shadow-md tw:rounded-2xl"
       noPadding
     >
-      <div className="tw:px-4 tw:py-3.5 tw:border-b tw:border-border tw:flex tw:justify-between tw:items-center tw:bg-muted/40">
-        <div className="tw:text-sm tw:font-bold tw:text-foreground tw:flex tw:items-center tw:gap-2">
+      <div className="app-cart-pane-head tw:px-4 tw:py-3.5 tw:border-b tw:border-slate-100 tw:flex tw:justify-between tw:items-center tw:bg-slate-50/50">
+        <div className="tw:text-sm tw:font-bold tw:text-slate-800 tw:flex tw:items-center tw:gap-2">
           <div className="tw:block tw:md:hidden">
             <ArrowLeft
               size={16}
-              className="tw:text-muted-foreground hover:tw:text-foreground tw:cursor-pointer"
+              className="tw:text-slate-600 hover:tw:text-slate-900 tw:cursor-pointer"
               onClick={() => callback({ action: "back" })}
             />
           </div>
-          <span className="tw:tracking-tight">{t("cart.title")}</span>
-          <span className="wa-mono tw:text-xs tw:font-bold tw:text-primary tw:bg-primary/10 tw:px-2 tw:py-0.5 tw:rounded-full">
+          <span className="app-cart-title tw:tracking-tight">
+            {t("cart.title")}
+          </span>
+          <span className="app-cart-count tw:text-xs tw:font-semibold tw:text-slate-400 tw:bg-slate-100 tw:px-2 tw:py-0.5 tw:rounded-full">
             {cartItems.length} {t("items")}
           </span>
         </div>
@@ -322,17 +325,19 @@ const Cart = ({
           </AppBadge>
         )}
       </div>
-      <AppScrollArea className="wa-cart-scroll tw:flex-1 tw:overflow-y-auto tw:h-[calc(100vh-370px)]">
+      <AppScrollArea className="wa-cart-scroll app-cart-scroll tw:flex-1 tw:overflow-y-auto tw:h-[calc(100vh-370px)]">
         {/* Padding lives inside the scroll viewport so absolutely-positioned
             overhangs (e.g. the discount badge) aren't clipped at its edge */}
-        <div className="tw:px-4 tw:py-2 tw:min-h-full">
+        <div className="app-cart-list tw:px-4 tw:py-2 tw:min-h-full">
           {cartItems.length === 0 && (
-            <div className="tw:flex tw:flex-col tw:justify-center tw:items-center tw:h-full tw:bg-muted/40 tw:rounded-xl tw:border tw:border-dashed tw:border-border tw:p-8">
-              <ShoppingCart size={44} className="tw:text-muted-foreground/40 tw:mb-3" />
-              <div className="tw:text-base tw:font-bold tw:text-muted-foreground tw:mb-1">
+            <div className="app-cart-empty tw:flex tw:flex-col tw:justify-center tw:items-center tw:text-center tw:h-full tw:px-8 tw:py-12">
+              <div className="app-cart-empty-icon tw:flex tw:items-center tw:justify-center tw:size-20 tw:rounded-2xl tw:border tw:border-slate-200 tw:text-slate-300 tw:mb-6">
+                <Barcode size={34} className="tw:stroke-[1.5]" />
+              </div>
+              <div className="app-cart-empty-title tw:text-lg tw:font-bold tw:text-slate-700 tw:mb-2">
                 {t("cart.emptyCart.title")}
               </div>
-              <div className="tw:text-sm tw:text-muted-foreground/70">
+              <div className="app-cart-empty-subtitle tw:text-sm tw:text-slate-400 tw:max-w-60 tw:leading-relaxed">
                 {t("cart.emptyCart.subtitle")}
               </div>
             </div>
@@ -344,30 +349,43 @@ const Cart = ({
                 if (item.deal?.id) itemRefs.current[item.deal.id] = el;
               }}
             >
-              <CartItem
-                data={item}
-                cartId={cartId}
-                index={index}
-                callback={handleCartItemCallback}
-                assisted={assisted}
-                removingIndex={removingIndex}
-                type={type}
-                quickCheckout={quickCheckout}
-              />
+              {bubbleItems ? (
+                <CartItemBubble
+                  data={item}
+                  cartId={cartId}
+                  index={index}
+                  callback={handleCartItemCallback}
+                  assisted={assisted}
+                  removingIndex={removingIndex}
+                  type={type}
+                  quickCheckout={quickCheckout}
+                />
+              ) : (
+                <CartItem
+                  data={item}
+                  cartId={cartId}
+                  index={index}
+                  callback={handleCartItemCallback}
+                  assisted={assisted}
+                  removingIndex={removingIndex}
+                  type={type}
+                  quickCheckout={quickCheckout}
+                />
+              )}
             </div>
           ))}
         </div>
       </AppScrollArea>
-      <div className="wa-sticky-foot tw:mt-auto tw:px-4 tw:py-4">
+      <div className="app-cart-foot tw:mt-auto tw:px-4 tw:py-4 tw:border-t tw:border-slate-100 tw:bg-slate-50/80">
         <div className="tw:space-y-2.5 tw:mb-4">
           {type !== "b2b" && (
             <Rbac roles={["SALE-ORDER.CART-DISCOUNT"]}>
-              <div className="tw:flex tw:justify-between tw:items-center tw:gap-4 tw:pb-2.5 tw:border-b tw:border-dashed tw:border-border">
-                <span className="tw:text-xs tw:text-muted-foreground tw:font-medium">
+              <div className="tw:flex tw:justify-between tw:items-center tw:gap-4 tw:pb-2.5 tw:border-b tw:border-dashed tw:border-slate-200/80">
+                <span className="app-cart-foot-label tw:text-xs tw:text-slate-500 tw:font-medium">
                   {t("cart.summary.cartDiscount", "Cart Discount")}
                 </span>
                 <div className="tw:relative tw:flex tw:items-center">
-                  <span className="tw:absolute tw:left-2.5 tw:text-muted-foreground tw:text-[10px] tw:font-bold">
+                  <span className="tw:absolute tw:left-2.5 tw:text-slate-400 tw:text-[10px] tw:font-bold">
                     ₹
                   </span>
                   <input
@@ -377,39 +395,40 @@ const Cart = ({
                     value={discountInput || ""}
                     onChange={(e) => handleDiscountChange(e.target.value)}
                     placeholder="0"
-                    className="wa-mono tw:w-20 tw:pl-5 tw:pr-2 tw:py-1 tw:text-right tw:border tw:border-border tw:bg-white tw:rounded-lg tw:text-xs tw:font-bold tw:text-foreground focus:tw:outline-none focus:tw:border-primary focus:tw:ring-2 focus:tw:ring-primary/10 tw:transition-all no-spinner"
+                    className="tw:w-20 tw:pl-5 tw:pr-2 tw:py-1 tw:text-right tw:border tw:border-slate-200 tw:bg-white tw:rounded-lg tw:text-xs tw:font-bold tw:text-slate-800 focus:tw:outline-none focus:tw:border-primary focus:tw:ring-2 focus:tw:ring-primary/10 tw:transition-all no-spinner"
                   />
                 </div>
               </div>
             </Rbac>
           )}
 
-          <div className="tw:flex tw:justify-between tw:items-center tw:pt-1">
-            <span className="tw:text-xs tw:font-bold tw:text-foreground">
+          <div className="app-cart-total tw:flex tw:justify-between tw:items-center tw:pt-1">
+            <span className="app-cart-foot-label tw:text-xs tw:font-bold tw:text-slate-800">
               {t("cart.summary.total")}
             </span>
             <div className="tw:flex tw:items-center tw:gap-1.5">
               {discountInput > 0 && (
-                <span className="tw:text-xs tw:text-muted-foreground tw:line-through tw:font-medium">
+                <span className="tw:text-xs tw:text-slate-400 tw:line-through tw:font-medium">
                   <Amount value={summary?.finalPrice} decimalPlaces={2} />
                 </span>
               )}
               <Amount
                 value={Math.max(0, (summary?.finalPrice || 0) - discountInput)}
-                className="wa-amount tw:text-lg tw:font-bold tw:text-foreground"
+                className="app-cart-total-value tw:text-base tw:font-bold tw:text-slate-900 tw:tracking-tight"
                 decimalPlaces={2}
               />
             </div>
           </div>
         </div>
-        <button
-          type="button"
+        <AppButton
+          expand="block"
+          type="submit"
           onClick={handleProceedCheckout}
-          className="wa-cta tw:flex tw:gap-2 tw:items-center tw:justify-center tw:w-full tw:h-11 tw:text-sm tw:font-bold tw:rounded-xl tw:cursor-pointer tw:transition-all"
+          className="app-cart-checkout tw:flex tw:gap-2 tw:items-center tw:justify-center tw:w-full tw:h-10 tw:text-xs tw:font-bold tw:uppercase tw:tracking-wider tw:rounded-xl tw:shadow-md tw:shadow-primary/10 hover:tw:shadow-lg hover:tw:shadow-primary/20 tw:transition-all"
         >
-          <ShoppingCart size={15} className="tw:stroke-[2.5]" />
+          <ShoppingCart size={13} className="tw:stroke-[2.5]" />
           <span>{t("cart.actions.proceedToCheckout")}</span>
-        </button>
+        </AppButton>
       </div>
       <EditPriceModal
         show={editPriceModal.show}

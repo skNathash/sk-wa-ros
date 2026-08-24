@@ -32,8 +32,10 @@ export const GOOGLE_MAP_KEY = "AIzaSyAW2ISSW-C0OWAEb0Bk3-pM8jgHyu2CkLQ";
 export const IMG_PATH = "";
 export const PAGE_TITLE_PREFIX = "StoreKing - ";
 export const PRD_IMG_RESOLUTION = "200x200";
-// export const SUPPORT_WHATSAPP_NUMBER = "919606980465";
-export const SUPPORT_WHATSAPP_NUMBER = "919108463373";
+export const SUPPORT_WHATSAPP_NUMBER = "919606980465";
+
+// Number retailers can give a missed call to, to start onboarding
+export const MISSED_CALL_NUMBER = "917877994994";
 
 // Base URL for StoreKing Club (used to share/view retailer club page)
 export const CLUB_URL = "https://club.storeking.in";
@@ -119,3 +121,9 @@ export const PRINT_BARCODE_MAX_BULK_ITEMS = 30;
 
 /** Maximum number of prints (copies) allowed per product in a bulk barcode print. */
 export const PRINT_BARCODE_MAX_COPIES = 100;
+
+/** Storage key for the locally-kept barcode print / mint log (see BarcodePrintHistoryService). */
+export const PRINT_BARCODE_HISTORY_STORAGE_KEY = "print-barcode-history";
+
+/** How many barcode print/mint entries are kept locally before the oldest are dropped. */
+export const PRINT_BARCODE_HISTORY_LIMIT = 60;

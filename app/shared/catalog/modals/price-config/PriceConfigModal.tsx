@@ -15,9 +15,15 @@ import AuthService from "~/services/AuthService";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import UomPriceService from "~/services/UomPriceService";
 import {
+  clampDiscount,
+  getFinalPrice,
+  MAX_DISCOUNT_PERCENT,
+} from "~/shared/catalog/helpers/price-calc";
+import {
   getDetails,
   getPruchasePrice,
   updateDiscount,
+  updateGroupPrice,
   validationSchema,
 } from "./helper";
 import RecentPriceChanges from "./RecentPriceChanges";
@@ -65,21 +71,39 @@ const defaultFormData: FormData = {
   // additional scheme removed
 };
 
+/**
+ * Buyer group the price is being set for. When passed, the modal edits that
+ * group's B2B price instead of the deal-level one — the update goes to the
+ * same RSP config API with `groupId` attached.
+ */
+export type PriceConfigGroup = {
+  id: string;
+  name: string;
+  /** Price the group currently carries; falls back to the deal's B2B price. */
+  price?: number;
+  /** "Fixed" / "Normal" — seeds the price mode. */
+  discountType?: string;
+  discount?: number;
+};
+
 type Props = {
   show: boolean;
   callback: (a: { action: string; data?: any }) => void;
   dealId?: string;
   type?: "network" | "customer";
+  group?: PriceConfigGroup;
 };
 
 const getCurrentPrice = (
   deal: any,
   type: "network" | "customer" = "customer",
+  group?: PriceConfigGroup,
 ) => {
+  if (group) return group.price || deal?.b2bPrice || 0;
   return type === "network" ? deal?.b2bPrice || 0 : deal?.b2cPrice || 0;
 };
 
-const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
+const PriceConfigModal = ({ show, callback, dealId, type, group }: Props) => {
   const { t } = useTranslation(["common"]);
   const appToast = useAppToast();
   const formMethods = useForm<FormData>({
@@ -124,7 +148,7 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
   const displayUom = UomPriceService.getDisplayUom(uom);
 
   const currentPrice = UomPriceService.toDisplayPrice(
-    getCurrentPrice(deal, type),
+    getCurrentPrice(deal, type, group),
     uom,
   );
   const displayMrp = UomPriceService.toDisplayPrice(deal?.mrp, uom);
@@ -141,7 +165,7 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
   const livePriceForCompare =
     price != null && !isNaN(Number(price))
       ? Number(UomPriceService.toApiPrice(Number(price), uom))
-      : getCurrentPrice(deal, type);
+      : getCurrentPrice(deal, type, group);
 
   const handleClose = () => {
     callback({ action: "close" });
@@ -160,16 +184,20 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
         setValue(
           "price",
           UomPriceService.toDisplayPrice(
-            getCurrentPrice(deal, type),
+            getCurrentPrice(deal, type, group),
             deal?.selectedStockUom,
           ),
         );
 
         // determine price mode from deal's discount type (b2bDiscountType or b2cDiscountType)
         const resolvePriceModeFromDeal = (d: any) => {
-          // Prefer b2bDiscountType for network type, otherwise b2cDiscountType
-          const discountType =
-            type === "network" ? d?.b2bDiscountType : d?.b2cDiscountType;
+          // A group carries its own discount type; otherwise prefer
+          // b2bDiscountType for network type and b2cDiscountType for customer.
+          const discountType = group
+            ? group.discountType
+            : type === "network"
+              ? d?.b2bDiscountType
+              : d?.b2cDiscountType;
 
           // Normalize and check for 'Fixed'
           if (
@@ -198,7 +226,11 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
 
         setValue(
           "discount",
-          type === "network" ? deal?.b2bDiscount : deal?.b2cDiscount,
+          group
+            ? group.discount || 0
+            : type === "network"
+              ? deal?.b2bDiscount
+              : deal?.b2cDiscount,
         );
 
         // additional scheme removed
@@ -209,38 +241,30 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
         fetchData();
       }
     }
-  }, [show, dealId]);
+  }, [show, dealId, group?.id]);
 
   const handleDiscountChange = (dealInfo: any) => {
-    const v = Number(getValues("discount"));
-    let finalVal: number | null = v;
+    const { value: finalVal, capped } = clampDiscount(getValues("discount"));
 
-    if (v < 0) {
-      finalVal = null;
-    }
-
-    if (v > 99) {
-      finalVal = 99;
+    if (capped) {
       appToast.show({
-        msg: "Maximum discount is 99%",
+        msg: `Maximum discount is ${MAX_DISCOUNT_PERCENT}%`,
         color: "warning",
       });
     }
 
     setValue("discount", finalVal);
 
-    let price = null;
-    // If user enters 0, finalVal will be 0 which is falsy —
-    // but we still want to calculate the price for 0% discount.
-    if (finalVal !== null && typeof finalVal === "number" && !isNaN(finalVal)) {
-      const baseMrp = UomPriceService.toDisplayPrice(
-        dealInfo?.mrp,
-        dealInfo?.selectedStockUom,
-      );
-      price = baseMrp - (baseMrp * finalVal) / 100;
-    }
-
-    setValue("price", price);
+    // Same rule the bulk price setter previews with.
+    setValue(
+      "price",
+      getFinalPrice({
+        mrp: dealInfo?.mrp,
+        uom: dealInfo?.selectedStockUom,
+        mode: "on_mrp",
+        value: finalVal,
+      }),
+    );
     // handlePriceChange(dealInfo);
   };
 
@@ -287,6 +311,7 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
         franchiseId: AuthService.getLoggedInUserId(),
         discount: 0,
         id: dealId,
+        sellerDealObjId: deal?.sellerDealObjId,
         applicableFor: type === "network" ? "Network" : "Customer",
         configOnType: "Deal",
       };
@@ -307,7 +332,15 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
 
       // additional scheme removed from payload
 
-      const response = await updateDiscount({ ...payload });
+      // A group price is written on the seller-deal document; everything else
+      // goes through the RSP config API.
+      const response = group?.id
+        ? await updateGroupPrice(deal?.sellerDealObjId || "", group.id, {
+            price: apiPrice || 0,
+            discount: priceMode === "fixed" ? 0 : data.discount || 0,
+            discountType: priceMode === "fixed" ? "Fixed" : "Normal",
+          })
+        : await updateDiscount({ ...payload });
 
       if (response.status === "success") {
         appToast.show({
@@ -323,6 +356,7 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
             fixedPrice: priceMode === "fixed" ? apiPrice || 0 : 0,
             dealId,
             type,
+            groupId: group?.id,
             // additional scheme removed from callback data
           },
         });
@@ -347,8 +381,17 @@ const PriceConfigModal = ({ show, callback, dealId, type }: Props) => {
       <AppModal show={show} callback={callback} className="tw:max-h-[80vh]">
         <AppModal.Title onClose={handleClose} noShadow>
           <div className="tw:font-semibold">
-            {type === "network" ? "Update B2B Pricing" : "Update B2C Pricing"}
+            {group
+              ? `Update B2B Pricing · ${group.name}`
+              : type === "network"
+                ? "Update B2B Pricing"
+                : "Update B2C Pricing"}
           </div>
+          {group ? (
+            <div className="tw:text-xs tw:text-gray-500">
+              This price applies only to retailers in this group.
+            </div>
+          ) : null}
         </AppModal.Title>
         <AppModal.Content className="tw:max-h-[80vh]">
           {loading ? (

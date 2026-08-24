@@ -7,6 +7,7 @@ import {
   getFacets,
   INLINE_BRANDS_COUNT,
   INLINE_CATEGORIES_COUNT,
+  type FacetSource,
   type Facets,
 } from "./helper";
 import FacetFilterModal, {
@@ -23,6 +24,18 @@ type Props = {
   /** Search term used to fetch facets. */
   search?: string;
   /**
+   * Which catalog endpoint to source facets from. Defaults to "popular"
+   * (subscribe search). The inventory products list passes "seller-deal".
+   */
+  source?: FacetSource;
+  /** Distance (in km or "all") to scope network facet results. */
+  distance?: number | string;
+  /**
+   * Seller to scope "seller-deal" facet results to (buy-from-other-retailer
+   * catalog). Omitted for the own-inventory products list.
+   */
+  sellerId?: string;
+  /**
    * Currently-applied selection (driven by the parent's URL params). Keeps the
    * internal selection in sync when filters are changed/removed elsewhere
    * (e.g. an AppliedFilters chip), so re-applying via an inline chip doesn't
@@ -33,7 +46,14 @@ type Props = {
   callback?: (a: { action: string; data?: FacetSelection }) => void;
 };
 
-const FacetFilter = ({ search = "", selected, callback }: Props) => {
+const FacetFilter = ({
+  search = "",
+  source = "popular",
+  distance,
+  sellerId,
+  selected,
+  callback,
+}: Props) => {
   const [facets, setFacets] = useState<Facets>(EMPTY_FACETS);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -66,7 +86,7 @@ const FacetFilter = ({ search = "", selected, callback }: Props) => {
     // shows instead of the old chips while the new facets are being fetched.
     setFacets(EMPTY_FACETS);
     setLoading(true);
-    getFacets(search, { signal: controller.signal })
+    getFacets(search, source, { distance, sellerId, signal: controller.signal })
       .then((data) => {
         if (controller.signal.aborted) return;
         setFacets(data);
@@ -79,7 +99,7 @@ const FacetFilter = ({ search = "", selected, callback }: Props) => {
       });
 
     return () => controller.abort();
-  }, [search]);
+  }, [search, source, distance, sellerId]);
 
   const inlineBrands = facets.brands.slice(0, INLINE_BRANDS_COUNT);
   const inlineCategories = facets.categories.slice(0, INLINE_CATEGORIES_COUNT);

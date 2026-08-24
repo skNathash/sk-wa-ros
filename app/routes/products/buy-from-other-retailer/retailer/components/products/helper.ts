@@ -22,6 +22,7 @@ export const getData = async (params: Record<string, any>) => {
   const response = await SellerCatalogService.getProducts(params);
   return SellerCatalogService.formatProductResponse(response.data.data, {
     view: "buyer",
+    sellerId: params.sellerId,
   })?.map((e) => {
     return {
       ...e,
@@ -39,6 +40,40 @@ export const getCount = async (params: Record<string, any>) => {
     outputType: "count",
   });
   return response.data.count;
+};
+
+// Catalog-level stats shown above the product list. Sourced from the same
+// list API with `outputType=summary`.
+export type CatalogSummaryData = {
+  totalDeals: number;
+  discountedDeals: number;
+  avgDiscount: number;
+  maxDiscount: number;
+};
+
+export const defaultCatalogSummary: CatalogSummaryData = {
+  totalDeals: 0,
+  discountedDeals: 0,
+  avgDiscount: 0,
+  maxDiscount: 0,
+};
+
+export const getSummary = async (
+  params: Record<string, any>,
+): Promise<CatalogSummaryData> => {
+  const response = await SellerCatalogService.getProducts({
+    ...params,
+    outputType: "summary",
+  });
+
+  const summary = response.data.data;
+
+  return {
+    totalDeals: Number(summary.totalDeals) || 0,
+    discountedDeals: Number(summary.discountedDeals) || 0,
+    avgDiscount: Number(summary.avgDiscount) || 0,
+    maxDiscount: Number(summary.maxDiscount) || 0,
+  };
 };
 
 export const prepareParams = (

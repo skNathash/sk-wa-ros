@@ -5,10 +5,10 @@ import AppTable from "~/components/core/table/AppTable";
 import TableHeader from "~/components/core/table/TableHeader";
 import TableSkeletonLoader from "~/components/core/table/TableSkeletonLoader";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
-import { isLooseStockUom, type DeadStockProduct } from "../../../helper";
+import type { DeadStockRow } from "../helper";
 
 type Props = {
-  data: DeadStockProduct[];
+  data: DeadStockRow[];
   loading: boolean;
   loadMore: () => void;
   loadingMore: boolean;
@@ -54,87 +54,76 @@ const DesktopView = ({
         {loading ? (
           <TableSkeletonLoader cols={headers.length} rows={10} />
         ) : (
-          data.map((p, idx) => {
-            const rank = idx + 1;
-
-            return (
-              <AppTable.Row
-                key={idx}
-                className={idx % 2 === 0 ? "tw:bg-white" : "tw:bg-slate-50/60"}
-              >
-                <AppTable.Cell>
-                  <div className="tw:text-center">
-                    {rank}
+          data.map((p, idx) => (
+            <AppTable.Row
+              key={p._key}
+              className={idx % 2 === 0 ? "tw:bg-white" : "tw:bg-slate-50/60"}
+            >
+              <AppTable.Cell>
+                <div className="tw:text-center">{idx + 1}</div>
+              </AppTable.Cell>
+              <AppTable.Cell>
+                <AppLink
+                  asLink
+                  href={`/dashboard/inventory/products/view/${p.dealId}`}
+                >
+                  <div className="tw:line-clamp-2">{p.dealName}</div>
+                </AppLink>
+                {p.dealRefId && (
+                  <div className="tw:text-xs tw:text-gray-400 tw:mt-0.5">
+                    {p.dealRefId}
                   </div>
-                </AppTable.Cell>
-                <AppTable.Cell>
-                  <AppLink
-                    asLink
-                    href={`/dashboard/inventory/products/view/${p.dealId}`}
-                  >
-                    <div className="tw:line-clamp-2">
-                      {p.dealName}
-                    </div>
-                  </AppLink>
-                  {p.dealRefId && (
-                    <div className="tw:text-xs tw:text-gray-400 tw:mt-0.5">
-                      {p.dealRefId}
-                    </div>
-                  )}
-                </AppTable.Cell>
-                <AppTable.Cell className="tw:text-center">
-                  <span className="tw:font-semibold tw:text-emerald-700">
-                    <DisplayQty
-                      qty={p.stockQty ?? 0}
-                      isLooseQty={isLooseStockUom(p.selectedStockUom)}
-                    />
+                )}
+              </AppTable.Cell>
+              <AppTable.Cell className="tw:text-center">
+                <span className="tw:font-semibold tw:text-emerald-700">
+                  <DisplayQty qty={p._stockQty} isLooseQty={p._isLooseQty} />
+                </span>
+              </AppTable.Cell>
+              <AppTable.Cell>
+                <AppLink
+                  onClick={() =>
+                    callback({
+                      action: "menu",
+                      data: { id: p.menuRefId, name: p.menuName },
+                    })
+                  }
+                >
+                  <span className="tw:text-xs tw:line-clamp-1">
+                    {p.menuName}
                   </span>
-                </AppTable.Cell>
-                <AppTable.Cell>
-                  <AppLink
-                    onClick={() =>
-                      callback({
-                        action: "menu",
-                        data: { id: p.menuRefId, name: p.menuName },
-                      })
-                    }
-                  >
-                    <span className="tw:text-xs tw:line-clamp-1">
-                      {p.menuName}
-                    </span>
-                  </AppLink>
-                </AppTable.Cell>
-                <AppTable.Cell>
-                  <AppLink
-                    onClick={() =>
-                      callback({
-                        action: "category",
-                        data: { id: p.categoryRefId, name: p.categoryName },
-                      })
-                    }
-                  >
-                    <span className="tw:text-xs tw:line-clamp-1">
-                      {p.categoryName}
-                    </span>
-                  </AppLink>
-                </AppTable.Cell>
-                <AppTable.Cell>
-                  <AppLink
-                    onClick={() =>
-                      callback({
-                        action: "brand",
-                        data: { id: p.brandRefId, name: p.brandName },
-                      })
-                    }
-                  >
-                    <span className="tw:text-xs tw:line-clamp-1">
-                      {p.brandName}
-                    </span>
-                  </AppLink>
-                </AppTable.Cell>
-              </AppTable.Row>
-            );
-          })
+                </AppLink>
+              </AppTable.Cell>
+              <AppTable.Cell>
+                <AppLink
+                  onClick={() =>
+                    callback({
+                      action: "category",
+                      data: { id: p.categoryRefId, name: p.categoryName },
+                    })
+                  }
+                >
+                  <span className="tw:text-xs tw:line-clamp-1">
+                    {p.categoryName}
+                  </span>
+                </AppLink>
+              </AppTable.Cell>
+              <AppTable.Cell>
+                <AppLink
+                  onClick={() =>
+                    callback({
+                      action: "brand",
+                      data: { id: p.brandRefId, name: p.brandName },
+                    })
+                  }
+                >
+                  <span className="tw:text-xs tw:line-clamp-1">
+                    {p.brandName}
+                  </span>
+                </AppLink>
+              </AppTable.Cell>
+            </AppTable.Row>
+          ))
         )}
 
         {showLoadMore && !loading && data.length > 0 && (

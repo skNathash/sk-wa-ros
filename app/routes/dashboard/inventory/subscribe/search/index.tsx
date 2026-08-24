@@ -10,10 +10,19 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 // BusyLoader removed in favor of per-item AppButton loading state
-import { ArrowUpDown, Info, Mic, ScanBarcode, Sparkles } from "lucide-react";
+import {
+  ArrowUpDown,
+  Info,
+  MapPin,
+  Mic,
+  ScanBarcode,
+  Sparkles,
+} from "lucide-react";
 import AppBadge from "~/components/core/badge/AppBadge";
 import AppButton from "~/components/core/button/AppButton";
+import AppCard from "~/components/core/card/AppCard";
 import { AppCheckbox } from "~/components/core/form";
+import VoiceSearch from "~/components/core/voice-search/VoiceSearch";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import NoData from "~/components/core/no-data/NoData";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
@@ -24,6 +33,7 @@ import { SUBSCRIBE_MAX_PRODUCTS_COUNT, UN_BRAND_ID } from "~/constants";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
 import IntroModal from "~/modals/feature/intro/IntroModal";
 import CommonService from "~/services/CommonService";
@@ -42,11 +52,14 @@ import type {
 import VariantModal from "../modals/variant-modal/VariantModal";
 import AppliedFilters from "./components/AppliedFilters";
 import Brands from "./components/brands/Brands";
+import Categories from "./components/categories/Categories";
 import DesktopView from "./components/DesktopView";
 import Filter from "./components/Filter";
+import MobileItemTheme2 from "./components/MobileItemTheme2";
 import MobileView from "./components/MobileView";
 import SearchedViaAI from "./components/SearchedViaAI";
 import SubscribeTopProductInfo from "./components/SubscribeTopProductInfo";
+import TopPickCard from "./components/top-picks/TopPickCard";
 import {
   defaultFilterValues,
   EXTRA_SORT_TYPES,
@@ -87,6 +100,7 @@ const SearchDiscovery: React.FC = () => {
   const { t } = useTranslation(["inventorySubscribe", "common"]);
   const appToast = useAppToast();
   const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
 
   const [viewType, setViewType] = useState<ViewToggleType>("list");
 
@@ -111,11 +125,17 @@ const SearchDiscovery: React.FC = () => {
   const isVoiceSearch = searchParams.get("via") === "voice";
   const voiceSearchTerm = searchParams.get("search") || "";
 
-  const viewMode =
-    searchParams.get("viewMode") === "brand" ? "brand" : "product";
+  const viewModeParam = searchParams.get("viewMode");
+  const viewMode: "product" | "brand" | "category" =
+    viewModeParam === "brand" || viewModeParam === "category"
+      ? viewModeParam
+      : "product";
   const isBrandView = viewMode === "brand";
+  const isCategoryView = viewMode === "category";
+  /** Brand and category views both replace the product list with a group grid. */
+  const isGroupView = isBrandView || isCategoryView;
 
-  const handleViewModeChange = (next: "product" | "brand") => {
+  const handleViewModeChange = (next: "product" | "brand" | "category") => {
     if (next === viewMode) return;
 
     const allParams = Object.fromEntries(searchParams.entries());
@@ -126,10 +146,10 @@ const SearchDiscovery: React.FC = () => {
     if (allParams.version) preserved.version = allParams.version;
     if (allParams.hideTab) preserved.hideTab = allParams.hideTab;
 
-    if (next === "brand") {
-      setSearchParams({ ...preserved, viewMode: "brand" });
-    } else {
+    if (next === "product") {
       setSearchParams(preserved);
+    } else {
+      setSearchParams({ ...preserved, viewMode: next });
     }
   };
 
@@ -138,6 +158,16 @@ const SearchDiscovery: React.FC = () => {
     setSearchParams({
       brandId: brand.id,
       brandName: brand.name,
+      ...(hideTab ? { hideTab } : {}),
+      ...(version ? { version } : {}),
+    });
+  };
+
+  const handleCategoryView = (category: { id: string; name: string }) => {
+    const hideTab = searchParams.get("hideTab");
+    setSearchParams({
+      categoryId: category.id,
+      categoryName: category.name,
       ...(hideTab ? { hideTab } : {}),
       ...(version ? { version } : {}),
     });
@@ -191,6 +221,11 @@ const SearchDiscovery: React.FC = () => {
     show: false,
     data: null,
   });
+
+  // How the user wants to feed the search: type it, upload a photo, scan a
+  // barcode or speak. Only "text" keeps the plain input; the others expose a
+  // capture action that ends up writing the same `search` param.
+  const [searchMode, setSearchMode] = useState<SearchMode>("text");
 
   const [showAiModal, setShowAiModal] = useState(false);
   const [searchedViaAI, setSearchedViaAI] = useState(false);
@@ -324,11 +359,14 @@ const SearchDiscovery: React.FC = () => {
     );
 
     try {
-      const [count, result] = await Promise.all([
+      const [countResult, result] = await Promise.all([
         getCount(params, signal),
         getData(params, signal),
       ]);
       if (signal.aborted) return;
+      // The "top" tab reads the network price comparison, which carries its own
+      // total alongside the rows instead of answering the count call.
+      const count = result.total ?? countResult;
       paginationRef.current = {
         ...paginationRef.current,
         totalRecords: count,
@@ -496,7 +534,7 @@ const SearchDiscovery: React.FC = () => {
       setSearchedViaAI(false);
     }
 
-    if (isBrandView) {
+    if (isGroupView) {
       setItems([]);
       setIsLoading(false);
       setHasMore(false);
@@ -673,6 +711,45 @@ const SearchDiscovery: React.FC = () => {
     },
     [prepareSearchParamsFromFormData, setSearchParams, searchParams],
   );
+
+  const openBarcodeScan = () =>
+    appNav.to(
+      version === "old"
+        ? "/dashboard/inventory/barcode-scan-v1"
+        : "/dashboard/inventory/barcode-scan",
+    );
+
+  // Voice results come back as keywords; the first one drives the search and
+  // the rest stay as `keys` chips. `via=voice` shows the banner at the top.
+  const handleVoiceResult = ({
+    action,
+    data,
+  }: {
+    action: string;
+    data?: any;
+  }) => {
+    if (action !== "close" && action !== "scan") return;
+
+    const keywords: string[] = Array.isArray(data?.keywords)
+      ? data.keywords.filter(Boolean)
+      : typeof data?.search === "string" && data.search
+        ? [data.search]
+        : [];
+
+    if (keywords.length === 0) return;
+
+    methods.setValue("keys", keywords);
+    methods.setValue("search", keywords[0]);
+    setSearchedViaAI(false);
+
+    setSearchParams({
+      ...Object.fromEntries(searchParams.entries()),
+      search: keywords[0],
+      keys: keywords.join(","),
+      tab: searchParams.get("tab") || "search",
+      via: "voice",
+    });
+  };
 
   const handleDismissAiSearch = () => {
     setSearchedViaAI(false);
@@ -1077,6 +1154,18 @@ const SearchDiscovery: React.FC = () => {
     if (params.action === "remove" && params.data) {
       handleRemove(params.data.index);
     }
+    // SubscribeBtn already called the API and toasted; only the row state is left.
+    if (params.action === "subscribed" && params.data) {
+      const { index, itemId } = params.data;
+      setItems(
+        produce((draft) => {
+          if (draft[index]) {
+            draft[index].isInCart = true;
+            draft[index].itemId = itemId;
+          }
+        }),
+      );
+    }
     if (params.action === "category-tap" && params.data?.category) {
       setSearchParams({
         ...Object.fromEntries(searchParams.entries()),
@@ -1344,6 +1433,50 @@ const SearchDiscovery: React.FC = () => {
     setIntroModal({ show: false, data: null });
   };
 
+  // "Showing x of y records" + "Subscribe to all". On theme-2 it rides inside
+  // the sticky search block (see below) so it doesn't scroll under the pinned
+  // white bar; elsewhere it stays in flow above the list.
+  const paginationSummaryRow = (
+    <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-x-3 tw:gap-y-1 tw:min-w-0">
+      <PaginationSummary
+        paginationConfig={paginationRef.current}
+        loadingTotalRecords={isLoading}
+        fwSize="sm"
+        loadedCount={items.length}
+      />
+      {items.length > 0 && (
+        <AppCheckbox
+          size="xs"
+          className="tw:cursor-pointer"
+          label={
+            <span className="tw:text-xs tw:text-gray-500 tw:whitespace-nowrap">
+              Subscribe to all
+            </span>
+          }
+          value={subscribeAllChecked}
+          onChange={(checked) =>
+            handleSubscribeAllDisplayed({
+              target: { checked },
+            } as React.ChangeEvent<HTMLInputElement>)
+          }
+        />
+      )}
+    </div>
+  );
+
+  const summaryInSticky = isTheme2 && !isUnbrand;
+
+  // Unbranded results stay on the plain product card in every theme (theme-2's
+  // full-width row reads as a chat list and there's no view toggle to leave it),
+  // laid out 2-up on a phone and 6-up on a desktop.
+  const cardGridClass = isUnbrand
+    ? "tw:grid tw:grid-cols-2 tw:md:grid-cols-6 tw:gap-2"
+    : "tw:grid tw:grid-cols-2 tw:md:grid-cols-7 tw:gap-x-2";
+
+  // Top picks fall back to the TopPickCard grid everywhere except theme-2 on a
+  // phone, where the full-bleed row wins — the skeleton follows the same split.
+  const isTopPickGrid = activeTab === "top" && !(isTheme2 && isMobile);
+
   return (
     <div>
       {/* Voice Search Indicator */}
@@ -1361,96 +1494,213 @@ const SearchDiscovery: React.FC = () => {
         </div>
       )}
 
-      <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-x-4 tw:gap-y-1 tw:mb-2">
-        {!isUnbrand && (
-          <div
-            role="radiogroup"
-            aria-label="View mode"
-            className="tw:flex tw:items-center tw:gap-3 tw:shrink-0 tw:text-xs"
-          >
-            <span className="tw:text-gray-500">View by:</span>
-            {(["product", "brand"] as const).map((m) => (
-              <label
-                key={m}
-                className="tw:inline-flex tw:items-center tw:gap-1 tw:cursor-pointer"
-              >
-                <input
-                  type="radio"
-                  name="view-mode"
-                  value={m}
-                  checked={viewMode === m}
-                  onChange={() => handleViewModeChange(m)}
-                  className="tw:h-3 tw:w-3 tw:cursor-pointer"
-                />
-                <span className="tw:text-gray-700">
-                  {m === "product" ? "Products" : "Brands"}
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-        <SubscribeTopProductInfo primeCatalogShow={primeCatalog ?? true} />
-      </div>
+      {/* Header row for the classic themes only — every child inside is gated
+          on `!isTheme2`, so on theme-2 the row would render as an empty white
+          strip above the search bar and push it off the header. Skipping it
+          lets the filter strip below be the page's first block, which is what
+          `catalog-search-flush` assumes. */}
+      {!isTheme2 && (
+        <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-x-4 tw:gap-y-1 tw:justify-between tw:mb-2">
+          {!isUnbrand && (
+            <div
+              role="radiogroup"
+              aria-label="View mode"
+              className="tw:flex tw:items-center tw:gap-3 tw:shrink-0 tw:text-xs"
+            >
+              <span className="tw:text-gray-500">View by:</span>
+              {(
+                [
+                  { value: "product", label: "Products" },
+                  { value: "brand", label: "Brands" },
+                  { value: "category", label: "Categories" },
+                ] as const
+              ).map((m) => (
+                <label
+                  key={m.value}
+                  className="tw:inline-flex tw:items-center tw:gap-1 tw:cursor-pointer"
+                >
+                  <input
+                    type="radio"
+                    name="view-mode"
+                    value={m.value}
+                    checked={viewMode === m.value}
+                    onChange={() => handleViewModeChange(m.value)}
+                    className="tw:h-3 tw:w-3 tw:cursor-pointer"
+                  />
+                  <span className="tw:text-gray-700">{m.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          <SubscribeTopProductInfo primeCatalogShow={primeCatalog ?? true} />
+        </div>
+      )}
+
+      {!isUnbrand && (
+        <>
+          {/* Non-text modes still write into the same search field — each one
+              just offers its own way to capture the term. */}
+          {searchMode !== "text" && (
+            <div className="tw:mb-3 tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:shadow-sm">
+              <span className="tw:text-xs tw:text-slate-500">
+                {searchMode === "image" &&
+                  "Upload a product photo and we'll pull out the name, MRP and barcode."}
+                {searchMode === "barcode" &&
+                  "Open the scanner to look up a product by its EAN / UPC."}
+                {searchMode === "voice" &&
+                  "Speak the product name in Kannada, Hindi or English."}
+              </span>
+
+              {searchMode === "image" && (
+                <AppButton
+                  size="small"
+                  color="primary"
+                  onClick={() => setShowAiModal(true)}
+                >
+                  Upload photo
+                </AppButton>
+              )}
+
+              {searchMode === "barcode" && (
+                <AppButton
+                  size="small"
+                  color="primary"
+                  onClick={openBarcodeScan}
+                >
+                  Open scanner
+                </AppButton>
+              )}
+
+              {searchMode === "voice" && (
+                <VoiceSearch callback={handleVoiceResult}>
+                  <span className="tw:inline-flex tw:items-center tw:gap-2 tw:rounded-md tw:bg-primary tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:text-white">
+                    <Mic size={14} />
+                    Start speaking
+                  </span>
+                </VoiceSearch>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
       <FormProvider {...methods}>
+        {/* theme-2 gives the filter block the same full-bleed white band as the
+            other catalog surfaces, pinned under the sticky nav chips. Other
+            themes keep it inline — their section tab bar already owns that
+            sticky slot. */}
         {!isUnbrand && (
-          <Filter
-            callback={handleFilterChange}
-            subscribeAllChecked={subscribeAllChecked}
-            handleSubscribeAllDisplayed={handleSubscribeAllDisplayed}
-            isLoading={isLoading}
-            showSubscribeAllCheckbox={false}
-            showFilterButton={!isBrandView}
-            searchPlaceholder={isBrandView ? "Search by brand name" : undefined}
-            showAiSearch={!isBrandView}
-          />
+          <div
+            className={
+              isTheme2
+                ? "catalog-search-sticky catalog-search-flush tw:mb-2"
+                : ""
+            }
+          >
+            <Filter
+              callback={handleFilterChange}
+              subscribeAllChecked={subscribeAllChecked}
+              handleSubscribeAllDisplayed={handleSubscribeAllDisplayed}
+              isLoading={isLoading}
+              showSubscribeAllCheckbox={false}
+              showFilterButton={!isGroupView}
+              searchPlaceholder={
+                isBrandView
+                  ? "Search by brand name"
+                  : isCategoryView
+                    ? "Search by category name"
+                    : undefined
+              }
+              showAiSearch={!isGroupView}
+            />
+
+            {/* theme-2 pins the search block, so an applied-filter row left in
+                normal flow below it scrolls straight under the stuck white bar
+                and can never be seen or cleared. Ride along inside the sticky
+                block instead; other themes keep it in flow further down. */}
+            {isTheme2 && !isGroupView && !searchedViaAI && (
+              <AppliedFilters
+                callback={handleFilterChange}
+                className="tw:mt-2"
+              />
+            )}
+
+            {/* Same reason: the record count / "Subscribe to all" row would
+                otherwise sit in the strip's shadow once the bar is pinned. */}
+            {summaryInSticky && !isGroupView && (
+              <div className="tw:mt-2">{paginationSummaryRow}</div>
+            )}
+          </div>
         )}
       </FormProvider>
 
       {/* Popular Near Me radius selector — shown in both product and brand
           views so the km filter persists when the Brands radio is selected. */}
       {activeTab === "top" && (
-        <div className="tw:flex tw:flex-col tw:gap-2 tw:mt-2 tw:mb-4 tw:p-3 tw:rounded-lg tw:bg-blue-50">
-          <div className="tw:flex tw:items-center tw:gap-2 tw:flex-wrap">
-            <span className="tw:text-xs tw:font-medium">Popular Near Me</span>
-            <div className="tw:flex tw:flex-wrap tw:gap-2">
-              {RADIUS_KMS.map((radius) => (
-                <div
-                  key={radius.value}
-                  className="tw:cursor-pointer"
-                  onClick={() => handleRadiusKmsChange(radius)}
-                >
-                  <AppBadge
-                    variant={
-                      selectedRadiusKms === radius.value ? "success" : "outline"
-                    }
-                    className={
-                      selectedRadiusKms === radius.value
-                        ? "tw:bg-blue-600 tw:text-white tw:border-blue-600"
-                        : "tw:bg-white tw:text-gray-500 tw:border-gray-300"
-                    }
+        // Mobile stacks title → chips → hint. From md the block reads as one
+        // toolbar row: the heading and its explainer own the left, the radius
+        // selector sits right where the eye lands after the title, so the wide
+        // screen doesn't show a title stranded above a near-empty band.
+        <AppCard
+          noPadding
+          className="tw:mt-2 tw:mb-4 tw:gap-0 tw:rounded-xl tw:border-slate-200 tw:bg-white"
+        >
+          <div className="tw:p-3 tw:md:flex tw:md:items-center tw:md:justify-between tw:md:gap-6 tw:md:p-4">
+            <div className="tw:min-w-0">
+              <div className="tw:flex tw:items-center tw:gap-1.5">
+                <MapPin size={14} className="tw:shrink-0 tw:text-slate-400" />
+                <span className="tw:text-sm tw:font-semibold tw:text-slate-900">
+                  Popular Near Me
+                </span>
+              </div>
+              {/* Explains what the "top selling" ranking means and that it's
+                  scoped to the km radius selected alongside. */}
+              <div className="tw:mt-1 tw:flex tw:items-start tw:gap-1.5 tw:text-[11px] tw:text-slate-500">
+                <Info size={12} className="tw:mt-0.5 tw:shrink-0" />
+                <span>
+                  {t("search.topProducts.subtitle", {
+                    km: selectedRadiusKms ?? RADIUS_KMS[0]?.value,
+                  })}
+                </span>
+              </div>
+            </div>
+
+            {/* Radius selector — a segmented control rather than loose badges,
+                so it reads as one control with a chosen value on the wider
+                screen. */}
+            <div
+              role="radiogroup"
+              aria-label="Search radius"
+              className="tw:mt-3 tw:flex tw:flex-wrap tw:gap-1 tw:rounded-lg tw:bg-slate-100 tw:p-1 tw:md:mt-0 tw:md:shrink-0 tw:md:flex-nowrap"
+            >
+              {RADIUS_KMS.map((radius) => {
+                const isSelected = selectedRadiusKms === radius.value;
+                return (
+                  <button
+                    key={radius.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => handleRadiusKmsChange(radius)}
+                    className={`tw:cursor-pointer tw:rounded-md tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:whitespace-nowrap tw:transition-colors tw:focus-visible:outline-none tw:focus-visible:ring-2 tw:focus-visible:ring-[color-mix(in_srgb,var(--primary)_45%,transparent)] ${
+                      isSelected
+                        ? "tw:bg-white tw:text-slate-900 tw:shadow-sm"
+                        : "tw:text-slate-500 tw:hover:text-slate-800"
+                    }`}
                   >
                     {radius.label}
-                  </AppBadge>
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
-          {/* Explains what the "top selling" ranking means and that it's
-              scoped to the km radius selected above. */}
-          <div className="tw:flex tw:items-start tw:gap-1.5 tw:text-[11px] tw:text-slate-500">
-            <Info size={12} className="tw:mt-0.5 tw:shrink-0" />
-            <span>
-              {t("search.topProducts.subtitle", {
-                km: selectedRadiusKms ?? RADIUS_KMS[0]?.value,
-              })}
-            </span>
-          </div>
-        </div>
+        </AppCard>
       )}
 
       {isBrandView ? (
         <Brands onView={handleBrandView} />
+      ) : isCategoryView ? (
+        <Categories onView={handleCategoryView} />
       ) : (
         <>
           {!isUnbrand && (
@@ -1464,7 +1714,7 @@ const SearchDiscovery: React.FC = () => {
             />
           )}
           <FormProvider {...methods}>
-            {!isUnbrand && !searchedViaAI && (
+            {!isUnbrand && !isTheme2 && !searchedViaAI && (
               <AppliedFilters callback={handleFilterChange} />
             )}
           </FormProvider>
@@ -1483,86 +1733,139 @@ const SearchDiscovery: React.FC = () => {
               />
             )}
 
-          <div className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:mb-2">
-            <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-x-3 tw:gap-y-1 tw:min-w-0">
-              <PaginationSummary
-                paginationConfig={paginationRef.current}
-                loadingTotalRecords={isLoading}
-                fwSize="sm"
-                loadedCount={items.length}
-              />
-              {items.length > 0 && (
-                <AppCheckbox
-                  size="xs"
-                  className="tw:cursor-pointer"
-                  label={
-                    <span className="tw:text-xs tw:text-gray-500 tw:whitespace-nowrap">
-                      Subscribe to all
-                    </span>
-                  }
-                  value={subscribeAllChecked}
-                  onChange={(checked) =>
-                    handleSubscribeAllDisplayed({
-                      target: { checked },
-                    } as React.ChangeEvent<HTMLInputElement>)
-                  }
-                />
+          {/* Skipped entirely when the summary moved into the sticky block —
+              the sort/view controls beside it are theme-2-hidden anyway, so the
+              row would only pay its bottom margin as an empty band. */}
+          {!summaryInSticky && (
+            <div className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:mb-2">
+              {paginationSummaryRow}
+              {activeTab !== "top" && !isUnbrand && !isTheme2 && (
+                <div className="tw:flex tw:gap-2 tw:items-center tw:shrink-0">
+                  <ViewToggle
+                    viewType={viewType}
+                    callback={setViewType}
+                    showOnlyIcon={isMobile}
+                  />
+
+                  <AppPopover
+                    triggerContent={
+                      <Button variant="outline" size="sm">
+                        <ArrowUpDown
+                          size={18}
+                          className="tw:text-gray-500 tw:cursor-pointer"
+                        />
+                      </Button>
+                    }
+                    open={showSortPopover}
+                    onOpenChange={(e) => {
+                      setShowSortPopover(e);
+                    }}
+                  >
+                    <div className="tw:flex tw:flex-col tw:gap-2">
+                      {[
+                        ...InventorySubscribeService.getSortOptions(),
+                        ...EXTRA_SORT_TYPES,
+                      ].map((opt) => (
+                        <span
+                          key={opt.value}
+                          className="tw:cursor-pointer tw:text-sm"
+                          onClick={() => handleSort(opt.value)}
+                        >
+                          <AppBadge
+                            variant={
+                              sortType === opt.value ? "primary" : "secondary"
+                            }
+                            className={
+                              sortType === opt.value ? "" : "tw:opacity-70"
+                            }
+                          >
+                            {opt.label}
+                          </AppBadge>
+                        </span>
+                      ))}
+                    </div>
+                  </AppPopover>
+                </div>
               )}
             </div>
-            {activeTab !== "top" && !isUnbrand && (
-              <div className="tw:flex tw:gap-2 tw:items-center tw:shrink-0">
-                <ViewToggle
-                  viewType={viewType}
-                  callback={setViewType}
-                  showOnlyIcon={isMobile}
-                />
-
-                <AppPopover
-                  triggerContent={
-                    <Button variant="outline" size="sm">
-                      <ArrowUpDown
-                        size={18}
-                        className="tw:text-gray-500 tw:cursor-pointer"
-                      />
-                    </Button>
-                  }
-                  open={showSortPopover}
-                  onOpenChange={(e) => {
-                    setShowSortPopover(e);
-                  }}
-                >
-                  <div className="tw:flex tw:flex-col tw:gap-2">
-                    {[
-                      ...InventorySubscribeService.getSortOptions(),
-                      ...EXTRA_SORT_TYPES,
-                    ].map((opt) => (
-                      <span
-                        key={opt.value}
-                        className="tw:cursor-pointer tw:text-sm"
-                        onClick={() => handleSort(opt.value)}
-                      >
-                        <AppBadge
-                          variant={
-                            sortType === opt.value ? "primary" : "secondary"
-                          }
-                          className={
-                            sortType === opt.value ? "" : "tw:opacity-70"
-                          }
-                        >
-                          {opt.label}
-                        </AppBadge>
-                      </span>
-                    ))}
-                  </div>
-                </AppPopover>
-              </div>
-            )}
-          </div>
-          {viewType === "card" || activeTab === "top" || isMobile ? (
+          )}
+          {/* Unbranded results have no view toggle to switch back with, and
+              their rows carry too little to fill a table — so they stay on
+              cards at every width. */}
+          {viewType === "card" ||
+          activeTab === "top" ||
+          isMobile ||
+          isUnbrand ? (
             <>
-              {isLoading && (
-                <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-6 tw:gap-1">
+              {/* Top picks render as TopPickCards in a 3-up grid everywhere
+                  except theme-2 mobile, so the placeholder has to mirror that
+                  card instead of the row/list skeletons below. */}
+              {isLoading && isTopPickGrid && (
+                <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2 tw:lg:grid-cols-3">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <AppCard
+                      key={i}
+                      noPadding
+                      noContentPadding
+                      className="app-bleed-x tw:mb-0 tw:h-full tw:gap-0 tw:rounded-2xl tw:border-slate-200 tw:bg-white"
+                      bodyClassName="tw:flex tw:h-full tw:flex-1 tw:flex-col tw:gap-3 tw:p-4"
+                    >
+                      <div className="tw:animate-pulse tw:flex tw:flex-col tw:gap-3">
+                        {/* Identity */}
+                        <div className="tw:flex tw:items-start tw:gap-3">
+                          <div className="tw:mt-1 tw:h-4 tw:w-4 tw:shrink-0 tw:rounded tw:bg-gray-200"></div>
+                          <div className="tw:h-12 tw:w-12 tw:shrink-0 tw:rounded-xl tw:bg-gray-200"></div>
+                          <div className="tw:min-w-0 tw:flex-1">
+                            <div className="tw:h-4 tw:w-full tw:rounded tw:bg-gray-200"></div>
+                            <div className="tw:mt-1.5 tw:h-3 tw:w-1/2 tw:rounded tw:bg-gray-200"></div>
+                          </div>
+                        </div>
+                        {/* Stats */}
+                        <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+                          {[1, 2].map((j) => (
+                            <div key={j}>
+                              <div className="tw:h-2.5 tw:w-2/3 tw:rounded tw:bg-gray-200"></div>
+                              <div className="tw:mt-1.5 tw:h-4 tw:w-1/2 tw:rounded tw:bg-gray-200"></div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Actions */}
+                        <div className="tw:grid tw:grid-cols-2 tw:gap-2">
+                          <div className="tw:h-8 tw:rounded-md tw:bg-gray-200"></div>
+                          <div className="tw:h-8 tw:rounded-md tw:bg-gray-200"></div>
+                        </div>
+                      </div>
+                    </AppCard>
+                  ))}
+                </div>
+              )}
+
+              {isLoading && !isTopPickGrid && isTheme2 && !isUnbrand && (
+                <div className="tw:space-y-2">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={i}
+                      className="tw:flex tw:items-center tw:gap-3 tw:bg-white tw:p-3 tw:rounded-lg tw:border tw:border-gray-200"
+                    >
+                      <div className="tw:animate-pulse tw:flex tw:items-center tw:gap-3 tw:w-full">
+                        <div className="tw:h-14 tw:w-14 tw:bg-gray-200 tw:rounded-xl tw:shrink-0"></div>
+                        <div className="tw:flex-1">
+                          <div className="tw:h-4 tw:bg-gray-200 tw:rounded tw:mb-2 tw:w-3/4"></div>
+                          <div className="tw:h-3 tw:bg-gray-200 tw:rounded tw:w-1/3"></div>
+                        </div>
+                        <div className="tw:flex tw:flex-col tw:items-end tw:gap-2">
+                          <div className="tw:h-4 tw:w-12 tw:bg-gray-200 tw:rounded"></div>
+                          <div className="tw:h-8 tw:w-8 tw:bg-gray-200 tw:rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isLoading && !isTopPickGrid && (!isTheme2 || isUnbrand) && (
+                <div className={cardGridClass}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
                     <div
                       key={i}
                       className="tw:bg-white tw:p-4 tw:rounded-lg tw:border tw:border-gray-200"
@@ -1635,18 +1938,65 @@ const SearchDiscovery: React.FC = () => {
                   <NoData />
                 ))}
 
-              <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-7 tw:gap-x-2">
-                {items.map((item, index) => (
-                  <MobileView
-                    key={index}
-                    data={item}
-                    index={index}
-                    callback={handleItemCallback}
-                    showCheckbox={true}
-                    rank={activeTab === "top" ? index + 1 : undefined}
-                  />
-                ))}
-              </div>
+              {activeTab === "top" ? (
+                // The full-bleed row card only earns its width on a phone; on a
+                // desktop it stretches one SKU across the whole page. There the
+                // "Popular near me" card grid is the right shape, on theme-2 too.
+                isTheme2 && isMobile ? (
+                  <div className="tw:space-y-0">
+                    {items.map((item, index) => (
+                      <div key={item._id || index} className="app-bleed-x">
+                        <MobileItemTheme2
+                          data={item}
+                          index={index}
+                          callback={handleItemCallback}
+                          showCheckbox={true}
+                          rank={index + 1}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2 tw:lg:grid-cols-3">
+                    {items.map((item, index) => (
+                      <TopPickCard
+                        key={item._id || index}
+                        data={item}
+                        index={index}
+                        callback={handleItemCallback}
+                        showCheckbox={true}
+                      />
+                    ))}
+                  </div>
+                )
+              ) : isTheme2 && !isUnbrand ? (
+                <div className="tw:space-y-0">
+                  {items.map((item, index) => (
+                    <div key={index} className="app-bleed-x">
+                      <MobileItemTheme2
+                        data={item}
+                        index={index}
+                        callback={handleItemCallback}
+                        showCheckbox={true}
+                        rank={activeTab === "top" ? index + 1 : undefined}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={cardGridClass}>
+                  {items.map((item, index) => (
+                    <MobileView
+                      key={index}
+                      data={item}
+                      index={index}
+                      callback={handleItemCallback}
+                      showCheckbox={true}
+                      rank={activeTab === "top" ? index + 1 : undefined}
+                    />
+                  ))}
+                </div>
+              )}
               {!isLoading && hasMore && (
                 <LoadMoreButton
                   loadMore={loadMore}
@@ -1703,18 +2053,14 @@ const SearchDiscovery: React.FC = () => {
         title="Create New Product"
       />
 
-      {/* Barcode Scan FAB */}
+      {/* Barcode Scan FAB. Hidden in theme-2, where scanning is reached from
+          the search-mode tiles (side pane / Discover) instead, and the floating
+          button would otherwise collide with the cart bar and the tab bar. */}
       <button
         type="button"
         aria-label="Scan barcode"
-        onClick={() =>
-          appNav.to(
-            version === "old"
-              ? "/dashboard/inventory/barcode-scan-v1"
-              : "/dashboard/inventory/barcode-scan",
-          )
-        }
-        className={`tw:fixed tw:right-4 tw:z-40 tw:flex tw:items-center tw:gap-2 tw:bg-slate-900 tw:text-white tw:rounded-full tw:shadow-md tw:px-4 tw:py-3 tw:transition-shadow hover:tw:shadow-xl focus-visible:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-slate-900 focus-visible:tw:ring-offset-2 ${
+        onClick={openBarcodeScan}
+        className={`theme-2-hide tw:fixed tw:right-4 tw:z-40 tw:flex tw:items-center tw:gap-2 tw:bg-slate-900 tw:text-white tw:rounded-full tw:shadow-md tw:px-4 tw:py-3 tw:transition-shadow hover:tw:shadow-xl focus-visible:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-slate-900 focus-visible:tw:ring-offset-2 ${
           isMobile ? "tw:bottom-16" : "tw:bottom-20"
         } ${selectedProducts.size > 0 ? "tw:mb-12" : ""}`}
       >

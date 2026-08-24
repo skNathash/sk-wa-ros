@@ -29,6 +29,10 @@ import NoData from "~/components/core/no-data/NoData";
 import useAppNav from "~/hooks/useAppNav";
 import CommonService from "~/services/CommonService";
 import { endOfDay, startOfDay } from "date-fns";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import SchemeCartSidePane from "./components/SchemeCartSidePane";
 
 const ProductSelectCart = () => {
   const [searchParams] = useSearchParams();
@@ -425,59 +429,90 @@ const ProductSelectCart = () => {
     <>
       <AppHeader title="Cart - B2B Scheme" />
       <div className="tw:p-4 app-page page-bg">
-        <div className="app-container">
-          {!loading && totalProducts === 0 ? (
-            <NoData />
-          ) : (
-            <>
-              <div className="tw:mb-4 tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center">
-                <AppBreadcrumbs data={breadcrumbs} className="tw:mb-0!" />
-                <div className="tw:flex tw:items-center tw:gap-2">
-                  <ViewToggle viewType={view} callback={setView} />
-                  <AppButton
-                    color="primary"
-                    fill="outline"
-                    onClick={() => setShowGlobalApplyModal(true)}
-                    disabled={totalProducts === 0}
-                  >
-                    Apply Global
-                  </AppButton>
-                </div>
-              </div>
-              <div className="tw:mb-4 tw:text-sm tw:text-gray-700">
-                Total Products:{" "}
-                <span className="tw:font-bold">{totalProducts}</span>
-              </div>
-              <div className="tw:mb-4">
-                <InfoBlock size="sm" variant="info" bordered>
-                  <span className="tw:text-xs tw:font-medium">
-                    Note: This is applicable only for B2B customers. The scheme
-                    discount is calculated on the B2B price.
-                  </span>
-                </InfoBlock>
-              </div>
-              <FormProvider {...formMethods}>
-                <div ref={dataContainerRef}>
-                  {isMobile || view === "card" ? (
-                    <MobileView
-                      callback={itemCallback}
-                      loading={loading}
-                      animateApply={globalConfigAnimate}
-                    />
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs sectionKey="catalog" activeTab="pricing" noShadow sticky />
+
+        <div className="section-layout">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="pricing"
+                title="Manage Catalog"
+              />
+            </div>
+          </aside>
+
+          <div className="section-content app-container">
+            {/* The form wraps both columns — the side pane reads the same live
+                values the table edits. */}
+            <FormProvider {...formMethods}>
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  {!loading && totalProducts === 0 ? (
+                    <NoData />
                   ) : (
-                    <AppCard noPadding={true}>
-                      <DesktopView
-                        callback={itemCallback}
-                        loading={loading}
-                        animateApply={globalConfigAnimate}
-                        products={products}
-                      />
-                    </AppCard>
+                    <>
+                      <div className="tw:mb-4 tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center">
+                        <AppBreadcrumbs
+                          data={breadcrumbs}
+                          className="tw:mb-0! theme-2-mobile-hide"
+                        />
+                        <div className="tw:flex tw:items-center tw:justify-end tw:gap-2 tw:ml-auto">
+                          <ViewToggle viewType={view} callback={setView} />
+                          <AppButton
+                            color="primary"
+                            onClick={() => setShowGlobalApplyModal(true)}
+                            disabled={totalProducts === 0}
+                          >
+                            Apply Global
+                          </AppButton>
+                        </div>
+                      </div>
+                      <div className="tw:mb-4 tw:text-sm tw:text-gray-700">
+                        Total Products:{" "}
+                        <span className="tw:font-bold">{totalProducts}</span>
+                      </div>
+                      <div className="tw:mb-4">
+                        <InfoBlock size="sm" variant="info" bordered>
+                          <span className="tw:text-xs tw:font-medium">
+                            Note: This is applicable only for B2B customers. The
+                            scheme discount is calculated on the B2B price.
+                          </span>
+                        </InfoBlock>
+                      </div>
+                      <div ref={dataContainerRef}>
+                        {isMobile || view === "card" ? (
+                          <MobileView
+                            callback={itemCallback}
+                            loading={loading}
+                            animateApply={globalConfigAnimate}
+                          />
+                        ) : (
+                          <AppCard noPadding={true}>
+                            <DesktopView
+                              callback={itemCallback}
+                              loading={loading}
+                              animateApply={globalConfigAnimate}
+                              products={products}
+                            />
+                          </AppCard>
+                        )}
+                      </div>
+                    </>
                   )}
-                </div>
-              </FormProvider>
-            </>
-          )}
+                </AppPaneMain>
+
+                {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed pane
+                  beside the icon rail. */}
+                <AppPaneSide className="app-pane-only">
+                  <SchemeCartSidePane />
+                </AppPaneSide>
+              </div>
+            </FormProvider>
+          </div>
         </div>
       </div>
 

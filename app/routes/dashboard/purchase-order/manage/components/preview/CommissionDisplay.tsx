@@ -46,7 +46,7 @@ const CommissionDisplay = ({ deals, callback }: CommissionDisplayProps) => {
         deals.forEach((deal) => {
           // Add main product
           dealsPayload.push({
-            dealId: deal._id,
+            dealId: deal.dealId,
             quantity: deal.quantity,
             mrp: deal.mrp,
             purchasePrice: deal.purchasePrice,
@@ -56,7 +56,7 @@ const CommissionDisplay = ({ deals, callback }: CommissionDisplayProps) => {
           const variations = deal.formData?.variations || [];
           variations.forEach((variation: any) => {
             dealsPayload.push({
-              dealId: deal._id,
+              dealId: deal.dealId,
               quantity: variation.formData?.qty || 0,
               mrp: variation.formData?.mrp || deal.mrp || 0,
               purchasePrice:

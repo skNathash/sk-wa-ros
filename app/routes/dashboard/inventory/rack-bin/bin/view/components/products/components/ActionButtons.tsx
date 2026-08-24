@@ -19,18 +19,9 @@ const ActionButtons = ({
 }) => {
   const { t } = useTranslation(["common"]);
   return (
-    <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4 tw:mt-4">
-      <AppButton
-        color="light"
-        fill="outline"
-        className="tw:w-full"
-        size="small"
-        onClick={() => callback({ action: "view-deal" })}
-      >
-        <Eye />
-        {t("viewDetails")}
-      </AppButton>
-
+    /* Details is the primary of the set and sits last so the destructive-ish
+       stock edits read left-to-right before it. */
+    <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-2">
       <Rbac roles={rbacRoles.adjust} forceDisplay={AuthService.isMasterLogin()}>
         <AppButton
           color="light"
@@ -74,6 +65,16 @@ const ActionButtons = ({
           {t("createVariation")}
         </AppButton>
       </Rbac>
+
+      <AppButton
+        color="primary"
+        className="tw:w-full"
+        size="small"
+        onClick={() => callback({ action: "view-deal" })}
+      >
+        <Eye />
+        {t("viewDetails")}
+      </AppButton>
     </div>
   );
 };

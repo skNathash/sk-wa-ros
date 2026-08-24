@@ -1,186 +1,214 @@
-import { ChevronRight, Phone, Route, Calendar } from "lucide-react";
-import ImgRender from "~/components/core/img/ImgRender";
+import { ChevronRight, MessageCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import AppCard from "~/components/core/card/AppCard";
-import AppLink from "~/components/core/link/AppLink";
 import AppBadge from "~/components/core/badge/AppBadge";
-import NoData from "~/components/core/no-data/NoData";
 import DateFormat from "~/components/core/date/DateFormat";
-import UserBadgeForItem from "~/shared/store/badge/UserBadgeForItem";
-import RoutePopover from "~/shared/logistics/components/RoutePopover";
+import CommonService from "~/services/CommonService";
+import type { VariantColor } from "~/types/CommonTypes";
+import {
+  DirectoryEmpty,
+  InitialsAvatar,
+  PaylaterBar,
+  paylaterLabel,
+} from "~/shared/network/components/directory-bits/DirectoryBits";
 
-interface CustomerData {
-  _id?: string;
-  id?: string;
-  name?: string; // business name
-  customerInfo?: { name?: string; contact?: string; [key: string]: any };
-  ownerDetails?: { name?: string };
-  email?: string;
-  tier?: string;
-  totalSpent?: number;
-  orders?: number;
-  loyaltyPoints?: number;
+interface FranchiseData {
+  _id: string;
+  franchiseId?: string;
+  name: string;
   mobile?: string;
-  createdAt?: string | Date;
+  email?: string;
+  status?: string;
+  createdAt?: string;
   city?: string;
   town?: string;
   district?: string;
   state?: string;
   pincode?: string;
-  kycStatus?: { overallStatus?: string };
-  lastLogin?: string | Date;
-  [key: string]: any;
+  formattedAddress: string;
+  initials: string;
+  lastOrderDate?: string;
+  // Directory metrics — sent by the franchise dashboard API when available.
+  bills?: number;
+  ltv?: number;
+  paylaterUsed?: number;
+  paylaterLimit?: number;
+  /** Buyer flag from the API — drives the Active / "last · Nd" status line. */
+  isActiveBuyer?: boolean;
+  daysSinceOrder?: number;
+  /** Registration date picked by the list helper — `createdAt`. */
+  registeredOn?: string | null;
 }
 
 interface MobileViewProps {
-  data: CustomerData[];
-  onView?: (item: CustomerData) => void;
-  onAction?: (arg: { action: string; data?: any }) => void;
+  loading?: boolean;
+  data: FranchiseData[];
+  onView?: (item: FranchiseData) => void;
+  callback?: (arg: { action: string; data?: any }) => void;
 }
 
-const MobileView: React.FC<MobileViewProps> = ({ data, onView, onAction }) => {
+/* Active is green, Inactive is red. Same shape as the B2C rows: Inactive
+   carries its own red classes because the themed `default`/`secondary`
+   surfaces both read green in theme-2. */
+const statusBadge = (
+  isActiveBuyer: boolean,
+): { label: string; color: VariantColor; className?: string } =>
+  isActiveBuyer
+    ? { label: "Active", color: "success" }
+    : {
+        label: "Inactive",
+        color: "light",
+        className: "tw:bg-red-50! tw:text-red-600! tw:border-transparent!",
+      };
+
+const MobileView: React.FC<MobileViewProps> = ({
+  loading,
+  data,
+  onView,
+  callback,
+}) => {
   const { t } = useTranslation(["common"]);
 
+  // Sorting and filtering both clear the rows before the refetch lands, so the
+  // list needs its own placeholder — the desktop table has the skeleton rows.
+  if (loading) {
+    return (
+      <div className="app-bleed-x tw:divide-y tw:divide-border tw:bg-white tw:md:grid tw:md:grid-cols-2 tw:md:gap-3 tw:md:divide-y-0 tw:md:bg-transparent">
+        {[...Array(6)].map((_, idx) => (
+          <div
+            key={idx}
+            className="tw:animate-pulse tw:bg-white tw:p-3.5 tw:md:rounded-xl tw:md:border tw:md:border-border"
+          >
+            <div className="tw:flex tw:items-start tw:gap-3">
+              <div className="tw:h-12 tw:w-12 tw:shrink-0 tw:rounded-full tw:bg-gray-200" />
+              <div className="tw:min-w-0 tw:flex-1 tw:space-y-2">
+                <div className="tw:h-4 tw:w-2/5 tw:rounded tw:bg-gray-200" />
+                <div className="tw:h-3 tw:w-3/5 tw:rounded tw:bg-gray-200" />
+                <div className="tw:h-3 tw:w-4/5 tw:rounded tw:bg-gray-200" />
+                <div className="tw:h-5 tw:w-24 tw:rounded-full tw:bg-gray-200" />
+              </div>
+              <div className="tw:h-10 tw:w-10 tw:shrink-0 tw:rounded-full tw:bg-gray-200" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (data.length === 0) {
-    return <NoData />;
+    return (
+      <DirectoryEmpty
+        variant="bleed"
+        title="No retailers found"
+        description="Try another search, filter, or segment — or clear filters to see the full book."
+      />
+    );
   }
 
   return (
-    <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+    /* `app-bleed-x` pulls the list out of the page gutter on theme-2 mobile so
+       the rows run edge to edge as one flush block — no gaps, no corners. The
+       card grid comes back from md up. */
+    <div className="app-bleed-x tw:divide-y tw:divide-border tw:rounded-none tw:bg-white tw:md:grid tw:md:grid-cols-2 tw:md:gap-3 tw:md:divide-y-0 tw:md:bg-transparent">
       {data.map((item, idx) => {
-        const businessName = item.name || "-";
-        const initials = (item.initials as string) || "";
-        const location = item.location || t("nA").replace("/", "");
-
+        const badge = statusBadge(item.isActiveBuyer === true);
         return (
-          <AppLink
-            key={item._id || item.id || idx}
-            asLink
-            href={`/dashboard/network/view/b2b/${item._id || item.id}`}
-            noUnderline
+          <div
+            key={item._id || idx}
+            className="tw:bg-white tw:md:rounded-xl tw:md:border tw:md:border-border tw:md:shadow-sm"
           >
-            <AppCard className="tw:mb-0">
-              <div className="tw:flex tw:flex-col tw:gap-3">
-                <div className="tw:flex tw:items-start tw:gap-4">
-                  {/* Avatar */}
-                  <div className="tw:w-12 tw:h-12 tw:rounded-full tw:bg-linear-to-br tw:from-blue-400 tw:to-purple-400 tw:flex tw:items-center tw:justify-center tw:text-white tw:text-lg tw:font-bold tw:shrink-0">
-                    {initials}
+            <div
+              className="tw:cursor-pointer tw:p-3.5"
+              onClick={() => onView && onView(item)}
+            >
+              <div className="tw:flex tw:items-start tw:gap-3">
+                <InitialsAvatar
+                  name={item.name}
+                  initials={item.initials}
+                  size={48}
+                />
+
+                <div className="tw:min-w-0 tw:flex-1">
+                  <div className="tw:flex tw:items-center tw:gap-2">
+                    <span className="tw:truncate tw:text-base tw:font-semibold">
+                      {item.name}
+                    </span>
                   </div>
-                  <div className="tw:flex-1 tw:min-w-0">
-                    <div className="tw:text-[15px] tw:font-semibold tw:text-gray-800 tw:truncate">
-                      {businessName}
+
+                  <div className="tw:mt-0.5 tw:text-xs tw:text-gray-600">
+                    {item.mobile || t("nA")}
+                    {item.franchiseId ? ` · ${item.franchiseId}` : ""}
+                  </div>
+
+                  {/* Where the retailer is registered. */}
+                  {item.formattedAddress && item.formattedAddress !== "N/A" ? (
+                    <div className="tw:mt-0.5 tw:truncate tw:text-xs tw:text-gray-500">
+                      {item.formattedAddress}
                     </div>
-                    <div className="tw:flex tw:items-center tw:gap-2 tw:mt-1">
-                      <div className="tw:text-gray-500 tw:text-sm tw:truncate tw:flex tw:items-center tw:gap-1">
-                        <Phone className="tw:w-4 tw:h-4 tw:shrink-0" />
-                        {item.mobile}
-                      </div>
-                      <UserBadgeForItem
-                        networkType={item.networkType}
-                        subType={item.subType}
+                  ) : null}
+
+                  {/* Metric line — bills, LTV. */}
+                  <div className="tw:mt-1 tw:flex tw:flex-wrap tw:items-center tw:gap-x-2 tw:gap-y-0.5 tw:text-xs tw:text-gray-500">
+                    <span>{item.bills ?? 0} bills</span>
+                    <span>
+                      LTV {CommonService.formatCompact(item.ltv, { style: "short", prefix: "₹" })}
+                    </span>
+                  </div>
+
+                  {/* Paylater meter — aligned to the text column, not the card. */}
+                  {item.paylaterLimit ? (
+                    <div className="tw:mt-2.5">
+                      <PaylaterBar
+                        used={item.paylaterUsed}
+                        limit={item.paylaterLimit}
                       />
+                      <div className="tw:mt-1 tw:text-xs tw:text-gray-600">
+                        Paylater{" "}
+                        {paylaterLabel(item.paylaterUsed, item.paylaterLimit)}
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  ) : null}
 
-                <div className="tw:mb-1">
-                  <div className="tw:text-xs tw:text-gray-500 tw:font-medium tw:mb-1">
-                    Route:
-                  </div>
-                  {item.routes && item.routes.length > 0 ? (
-                    <div className="tw:flex tw:flex-wrap tw:gap-1">
-                      {item.routes.map((route: any, idx: number) => (
-                        <div
-                          key={idx}
-                          title={route.description || route.name || "-"}
-                          className="tw:flex tw:items-center tw:gap-1"
-                        >
-                          <AppBadge
-                            variant="secondary"
-                            className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:px-2 tw:py-1"
-                          >
-                            <Route size={12} />
-                            <span className="tw:font-medium tw:truncate tw:max-w-20">
-                              {route.description || route.name || "-"}
-                            </span>
-                          </AppBadge>
-                          <div className="tw:ml-1">
-                            <RoutePopover route={route} isActive={false} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="tw:text-xs tw:text-gray-300 tw:italic">
-                      No route configured
-                    </div>
-                  )}
-                </div>
-
-                <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
-                  <div className="tw:flex tw:flex-col tw:flex-1 tw:min-w-0">
-                    {item.createdAt && (
-                      <div className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:text-gray-500">
-                        <Calendar size={12} />
-                        <span className="tw:text-xs tw:text-gray-500 tw:font-medium">
-                          Date:
-                        </span>
+                  <div className="tw:mt-2 tw:flex tw:flex-wrap tw:items-center tw:gap-2">
+                    <AppBadge variant={badge.color} className={badge.className}>
+                      {badge.label}
+                    </AppBadge>
+                    <span className="tw:text-xs tw:text-gray-400">
+                      {item.daysSinceOrder === undefined
+                        ? "No orders yet"
+                        : `Last · ${item.daysSinceOrder}d`}
+                    </span>
+                    {item.registeredOn ? (
+                      <span className="tw:text-xs tw:text-gray-400">
+                        {t("registeredOn")} ·{" "}
                         <DateFormat
-                          value={item.createdAt || null}
+                          value={item.registeredOn}
                           formatStr="dd MMM yyyy"
                         />
-                      </div>
-                    )}
-                    <div className="tw:text-gray-400 tw:text-xs tw:font-medium tw:mt-1 tw:truncate">
-                      {location}
-                    </div>
-                  </div>
-                  <div className="tw:flex tw:items-center tw:gap-2">
-                    <button
-                      type="button"
-                      aria-label="Promote"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onAction &&
-                          onAction({ action: "openWhatsapp", data: item });
-                      }}
-                      className="tw:flex tw:items-center tw:gap-1 tw:px-2 tw:py-1 tw:border tw:border-green-500 tw:rounded-md tw:cursor-pointer hover:tw:bg-green-50 tw:transition-colors"
-                    >
-                      <ImgRender
-                        src="whatsapp-logo.png"
-                        alt="WhatsApp"
-                        className="tw:h-4 tw:w-4 tw:shrink-0"
-                      />
-                      <span className="tw:text-xs tw:font-medium tw:text-green-600 tw:whitespace-nowrap">Promote via WhatsApp</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="tw:grid tw:grid-cols-2 tw:gap-2 tw:mt-2">
-                <div>
-                  {/* primary business */}
-                  <div className="tw:text-xs tw:text-gray-500">
-                    Primary Business
-                  </div>
-                  <div className="tw:text-xs tw:font-medium tw:mb-1">
-                    {item.primaryBusiness || "--"}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
-                {/* secondary business */}
-                <div>
-                  <div className="tw:text-xs tw:text-gray-500">
-                    Secondary Business
-                  </div>
-                  <div className="tw:text-xs tw:font-medium tw:mb-1">
-                    {item.secondaryBusiness || "--"}
-                  </div>
+                {/* Right rail — WhatsApp promote over the drill-in chevron. */}
+                <div className="tw:flex tw:shrink-0 tw:flex-col tw:items-end tw:gap-2">
+                  <button
+                    type="button"
+                    aria-label="Promote via WhatsApp"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      callback?.({ action: "openWhatsapp", data: item });
+                    }}
+                    className="tw:flex tw:h-10 tw:w-10 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-white tw:cursor-pointer tw:transition-opacity tw:hover:opacity-90"
+                  >
+                    <MessageCircle className="tw:h-5 tw:w-5 tw:shrink-0" />
+                  </button>
+                  <ChevronRight className="tw:h-4 tw:w-4 tw:text-gray-400" />
                 </div>
               </div>
-            </AppCard>
-          </AppLink>
+            </div>
+          </div>
         );
       })}
     </div>

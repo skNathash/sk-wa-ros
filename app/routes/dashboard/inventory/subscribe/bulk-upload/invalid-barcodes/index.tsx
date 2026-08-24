@@ -24,6 +24,10 @@ import useAppToast from "~/hooks/useAppToast";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
 import SimpleAddProductModal from "~/shared/catalog/modals/simple-add-product/SimpleAddProductModal";
+import SubscribeSidePane from "~/shared/inventory/components/subscribe-side-pane/SubscribeSidePane";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import SuccessModal from "../../modals/SuccessModal";
 
 export async function clientLoader() {
@@ -113,7 +117,7 @@ const InvalidBarcodes = () => {
       const params = prepareParams(
         filterRef.current,
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
       const result = await getData(params);
       setData(result || []);
@@ -122,7 +126,7 @@ const InvalidBarcodes = () => {
       paginationRef.current.totalRecords = totalRecords;
 
       setHasMoreData(
-        (result || []).length >= paginationRef.current.rowsPerPage
+        (result || []).length >= paginationRef.current.rowsPerPage,
       );
     } catch (e) {
       setData([]);
@@ -145,12 +149,12 @@ const InvalidBarcodes = () => {
       const params = prepareParams(
         filterRef.current,
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
       const result = await getData(params);
       setData((prev) => [...prev, ...(result || [])]);
       setHasMoreData(
-        (result || []).length >= paginationRef.current.rowsPerPage
+        (result || []).length >= paginationRef.current.rowsPerPage,
       );
     } catch (e) {
       // swallow - keep previous data
@@ -246,65 +250,95 @@ const InvalidBarcodes = () => {
     <>
       <AppHeader title={t("notFoundBarcodes")} />
       <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4">
-            <AppBreadcrumbs data={breadcrumbs} />
-          </div>
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs sectionKey="catalog" activeTab="library" noShadow sticky />
 
-          <BulkUploadMainTab
-            activeTab="invalid-barcodes"
-            className="tw:mb-4"
-            refreshKey={tabRefreshKey}
-          />
-
-          <p className="tw:text-xs tw:text-gray-600 tw:mb-4 tw:-mt-1">
-            View and manage barcodes that failed validation during bulk upload.
-            Create products manually for not found barcodes.
-          </p>
-
-          <Filter callback={handleFilterChange} />
-
-          <div className="tw:flex tw:justify-between tw:mb-2">
-            <div>
-              <PaginationSummary
-                paginationConfig={paginationRef.current}
-                loadingTotalRecords={loading}
-                loadedCount={data.length}
-                fwSize="sm"
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title="Manage Catalog"
               />
             </div>
-            <ViewToggle viewType={view} callback={setView} />
-          </div>
+          </aside>
 
-          {isMobile || view === "card" ? (
-            <MobileView
-              loading={loading}
-              data={data}
-              loadMore={loadMore}
-              loadingMore={loadingMore}
-              totalCount={paginationRef.current.totalRecords}
-              loadedCount={data.length}
-              hasMoreData={hasMoreData}
-              callback={handleCallback}
-              status={filterRef.current.status || "PENDING"}
-            />
-          ) : (
-            <>
-              <AppCard noContentPadding noPadding>
-                <DesktopView
-                  data={data}
-                  loading={loading}
-                  callback={handleCallback}
-                  loadMore={loadMore}
-                  loadingMore={loadingMore}
-                  hasMoreData={hasMoreData}
-                  totalCount={paginationRef.current.totalRecords}
-                  loadedCount={data.length}
-                  status={filterRef.current.status || "PENDING"}
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4">
+                  <AppBreadcrumbs data={breadcrumbs} />
+                </div>
+
+                <BulkUploadMainTab
+                  activeTab="invalid-barcodes"
+                  className="tw:mb-4"
+                  refreshKey={tabRefreshKey}
                 />
-              </AppCard>
-            </>
-          )}
+
+                <p className="tw:text-xs tw:text-gray-600 tw:mb-4 tw:-mt-1">
+                  View and manage barcodes that failed validation during bulk
+                  upload. Create products manually for not found barcodes.
+                </p>
+
+                <Filter callback={handleFilterChange} />
+
+                <div className="tw:flex tw:justify-between tw:mb-2">
+                  <div>
+                    <PaginationSummary
+                      paginationConfig={paginationRef.current}
+                      loadingTotalRecords={loading}
+                      loadedCount={data.length}
+                      fwSize="sm"
+                    />
+                  </div>
+                  <ViewToggle viewType={view} callback={setView} />
+                </div>
+
+                {isMobile || view === "card" ? (
+                  <MobileView
+                    loading={loading}
+                    data={data}
+                    loadMore={loadMore}
+                    loadingMore={loadingMore}
+                    totalCount={paginationRef.current.totalRecords}
+                    loadedCount={data.length}
+                    hasMoreData={hasMoreData}
+                    callback={handleCallback}
+                    status={filterRef.current.status || "PENDING"}
+                  />
+                ) : (
+                  <>
+                    <AppCard noContentPadding noPadding>
+                      <DesktopView
+                        data={data}
+                        loading={loading}
+                        callback={handleCallback}
+                        loadMore={loadMore}
+                        loadingMore={loadingMore}
+                        hasMoreData={hasMoreData}
+                        totalCount={paginationRef.current.totalRecords}
+                        loadedCount={data.length}
+                        status={filterRef.current.status || "PENDING"}
+                      />
+                    </AppCard>
+                  </>
+                )}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeSidePane scopeLabel="Not Found Barcodes" />
+              </AppPaneSide>
+            </div>
+          </div>
         </div>
       </div>
 

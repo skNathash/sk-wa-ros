@@ -1,11 +1,113 @@
+import {
+  differenceInMinutes,
+  format,
+  isValid,
+  parseISO,
+  startOfDay,
+  subDays,
+} from "date-fns";
 import AuthService from "~/services/AuthService";
 import SellerService from "~/services/SellerService";
 import type { PaginationState } from "~/types/CommonTypes";
 
-const getData = async (params: Record<string, any>) => {
+/** One order as the board card renders it — every field is display ready. */
+export interface FulfillmentOrder {
+  orderId: string;
+  /** Card heading, e.g. "#4823". */
+  refLabel: string;
+  orderType: string;
+  isB2B: boolean;
+  customerName: string;
+  /** Network page for the customer, empty for walk-ins. */
+  customerHref: string;
+  /** "18 items · picker Ravi" — the picker half is dropped when unknown. */
+  metaLabel: string;
+  amount: number;
+  /** "32m ago" style age of the order. */
+  ageLabel: string;
+  /** Exact order timestamp shown under the age — "12 Aug, 04:30 PM". */
+  dateLabel: string;
+  /** "Self Shipment: Ravi" — only carried on delivered orders. */
+  shipmentLabel: string;
+}
+
+/** Compact age of an order — "32m ago", "5h ago", "3d ago". */
+const formatOrderAge = (value?: string) => {
+  if (!value) return "";
+  const date = parseISO(value);
+  if (!isValid(date)) return "";
+
+  const minutes = Math.max(differenceInMinutes(new Date(), date), 0);
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  return `${Math.floor(hours / 24)}d ago`;
+};
+
+/** Exact order timestamp — "12 Aug, 04:30 PM". */
+const formatOrderDate = (value?: string) => {
+  if (!value) return "";
+  const date = parseISO(value);
+  return isValid(date) ? format(date, "dd MMM, hh:mm a") : "";
+};
+
+/**
+ * Flattens one API order into the fields the board card shows, so the card
+ * itself stays free of lookups and formatting.
+ */
+const normalizeOrder = (item: any, statusKey?: string): FulfillmentOrder => {
+  const isGuest = !!item.customerInfo?.isGuestCustomer;
+  const customerId = item.customerInfo?.customerId;
+  const isB2B = item.orderType === "B2B";
+  const refNo = String(item.orderRefNo || item.orderId || "");
+
+  const picker = item.activePicking?.pickedBy;
+  const shipping = item.invoices?.[0]?.shippingDetails;
+
+  return {
+    orderId: item.orderId,
+    refLabel: refNo.startsWith("#") ? refNo : `#${refNo}`,
+    orderType: item.orderType,
+    isB2B,
+    customerName: isGuest
+      ? "Walk-in Customer"
+      : item.customerInfo?.name || refNo,
+    customerHref:
+      isGuest || !customerId
+        ? ""
+        : isB2B
+          ? `/dashboard/network/view/b2b/${customerId}`
+          : `/dashboard/network/view/b2c/${customerId}/purchase-history`,
+    metaLabel: [
+      `${item.itemsCount || 0} items`,
+      picker ? `picker ${picker}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    amount: item.orderAmount || 0,
+    ageLabel: formatOrderAge(item.orderedDate),
+    dateLabel: formatOrderDate(item.orderedDate),
+    shipmentLabel:
+      statusKey === "delivered" && shipping?.shipmentType
+        ? `${
+            shipping.shipmentType === "selfship"
+              ? "Self shipment"
+              : "Delivered by"
+          }: ${shipping.name || "--"}`
+        : "",
+  };
+};
+
+const getData = async (
+  params: Record<string, any>,
+  statusKey?: string,
+): Promise<FulfillmentOrder[]> => {
   const fid = AuthService.getLoggedInUserId() || "";
   const response = await SellerService.getSellerOrders(fid, params);
-  return response?.data?.data || [];
+  const rows = response?.data?.data || [];
+  return rows.map((item: any) => normalizeOrder(item, statusKey));
 };
 
 const getCount = async (params: Record<string, any>) => {
@@ -54,6 +156,14 @@ const prepareFilters = (
   if (statusKey === "approval-pending") {
     p.sort = {
       orderedDate: -1,
+    };
+  }
+
+  // The delivered lane only ever shows the last 30 days — older delivered
+  // orders live in the order directory, not on the board.
+  if (statusKey === "delivered") {
+    p.filter.orderedDate = {
+      $gte: startOfDay(subDays(new Date(), 30)),
     };
   }
 

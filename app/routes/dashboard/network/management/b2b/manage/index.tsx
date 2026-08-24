@@ -13,9 +13,13 @@ import FranchiseService from "~/services/FranchiseService";
 import CommonService from "~/services/CommonService";
 import { orderBy } from "lodash";
 import PageAccessService from "~/services/PageAccessService";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import DirectorySidePane from "~/shared/network/components/directory-side-pane/DirectorySidePane";
+import NewlyAdded from "~/shared/network/components/directory-side-pane/newly-added/NewlyAdded";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
+import OnboardSteps from "./components/OnboardSteps";
 import StoreAddress from "./components/StoreAddress";
 import StoreDetails from "./components/StoreDetails";
 import StoreTimings from "./components/StoreTimings";
@@ -341,54 +345,62 @@ const ManageB2b = () => {
               </div>
             </aside>
 
-            <div className="section-content tw:space-y-4">
+            <div className="section-content">
               <div className="theme-2-mobile-only tw:h-4" />
-              <AppBreadcrumbs data={breadcrumbData} className="tw:mb-2" />
-              <div className="tw:text-xs tw:text-gray-500">
-                Create and manage B2B retailers to expand your business network.
-              </div>
-              <FormProvider {...formMethods}>
-            <form
-              onSubmit={formMethods.handleSubmit(onSubmit)}
-              className="tw:space-y-6"
-            >
-              <div className="tw:text-center">
-                <AppSteps
-                  steps={steps}
-                  activeKey={steps[activeStep].key}
-                  isCompleted={activeStep === steps.length - 1}
-                  borderMinWidth={isMobile ? 20 : 150}
-                />
-              </div>
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Main column — spans the full grid; in theme-2 desktop the
+                    CSS lifts the side pane out of the grid into the fixed pane
+                    beside the section icon rail. */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <AppBreadcrumbs data={breadcrumbData} className="tw:mb-2" />
+                  <div className="tw:text-xs tw:text-gray-500">
+                    Create and manage B2B retailers to expand your business
+                    network.
+                  </div>
+                  <FormProvider {...formMethods}>
+                    <form
+                      onSubmit={formMethods.handleSubmit(onSubmit)}
+                      className="tw:space-y-6"
+                    >
+                      <div className="tw:text-center">
+                        <AppSteps
+                          steps={steps}
+                          activeKey={steps[activeStep].key}
+                          isCompleted={activeStep === steps.length - 1}
+                          borderMinWidth={isMobile ? 20 : 150}
+                        />
+                      </div>
 
-              {activeStep === 0 && (
-                <StoreDetails
-                  setActiveStep={setActiveStep}
-                  primaryBusinessOptions={primaryBusinessOptions}
-                />
-              )}
+                      {activeStep === 0 && (
+                        <StoreDetails
+                          setActiveStep={setActiveStep}
+                          primaryBusinessOptions={primaryBusinessOptions}
+                        />
+                      )}
 
-              {activeStep === 1 && (
-                <StoreTimings setActiveStep={setActiveStep} />
-              )}
+                      {activeStep === 1 && (
+                        <StoreTimings setActiveStep={setActiveStep} />
+                      )}
 
-              {/* {activeStep === 2 && (
+                      {/* {activeStep === 2 && (
                 <StoreBasicInfo setActiveStep={setActiveStep} />
               )} */}
 
-              {activeStep === 2 && (
-                <StoreAddress setActiveStep={handleStoreAddressActiveStep} />
-              )}
+                      {activeStep === 2 && (
+                        <StoreAddress
+                          setActiveStep={handleStoreAddressActiveStep}
+                        />
+                      )}
 
-              {activeStep === 3 && (
-                <Success
-                  retailerData={retailerData}
-                  displayTypeLabel={retailerData?.displayType?.name}
-                  onDone={handleSuccessDone}
-                />
-              )}
+                      {activeStep === 3 && (
+                        <Success
+                          retailerData={retailerData}
+                          displayTypeLabel={retailerData?.displayType?.name}
+                          onDone={handleSuccessDone}
+                        />
+                      )}
 
-              {/* <div className="tw:mt-6 tw:flex tw:justify-end tw:gap-2">
+                      {/* <div className="tw:mt-6 tw:flex tw:justify-end tw:gap-2">
                 <AppButton
                   type="submit"
                   isLoading={submitting}
@@ -398,8 +410,39 @@ const ManageB2b = () => {
                   {t("create")}
                 </AppButton>
               </div> */}
-            </form>
-              </FormProvider>
+                    </form>
+                  </FormProvider>
+                </AppPaneMain>
+
+                {/* Side column — only rendered inside the theme-2 split layout,
+                    where the CSS lifts it into the fixed pane. Scoped to the
+                    create flow: the pane header, this page's step checklist and
+                    the retailers who joined most recently. */}
+                <AppPaneSide className="app-pane-only">
+                  <DirectorySidePane
+                    title="New Retailer"
+                    network="b2b"
+                    scopeLabel={`Step ${Math.min(activeStep + 1, steps.length - 1)} of ${steps.length - 1}`}
+                    showChips={false}
+                    showNewlyAdded={false}
+                    showQuickAdd={false}
+                    showRecentActivity={false}
+                  />
+                  <OnboardSteps
+                    steps={steps.slice(0, steps.length - 1)}
+                    activeStep={activeStep}
+                    onStepSelect={setActiveStep}
+                  />
+                  {/* Who joined the retailer network most recently — re-pulled
+                      after each create so the new store shows up on top. */}
+                  <NewlyAdded
+                    key={`newly-added-${activeStep === 3 ? "created" : "draft"}`}
+                    network="b2b"
+                    title="Newly Added"
+                    className="tw:mb-4"
+                  />
+                </AppPaneSide>
+              </div>
             </div>
           </div>
         </div>

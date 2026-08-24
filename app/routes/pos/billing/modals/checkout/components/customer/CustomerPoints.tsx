@@ -19,7 +19,7 @@ const CustomerPoints = ({ points, className }: Props) => {
     >
       <Award size={14} />
       <div>
-        <span className="wa-mono">
+        <span>
           {t("checkoutModal.customer.customerCard.pointsCount", {
             count: points,
             defaultValue: `${points} points`,

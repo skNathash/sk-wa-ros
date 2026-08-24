@@ -9,6 +9,11 @@ import {
 import { useEffect, useState } from "react";
 import StorageService from "./services/StorageService";
 import { APP_VERSION } from "./constants";
+import {
+  DEFAULT_THEME,
+  THEME_OPTIONS,
+  THEME_STORAGE_KEY,
+} from "./hooks/useTheme";
 import { Megaphone, RefreshCw } from "lucide-react";
 
 import type { Route } from "./+types/root";
@@ -104,22 +109,11 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap",
   },
+  // Inter — theme-2's face, and the display/mono/figure stand-in everywhere the
+  // app used to reach for a second family (see theme-2.css, Login.css).
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
-  },
-  // Fraunces — theme-2 amount figures only (see `.wa-amount` in theme-2.css).
-  // `opsz` is Fraunces' optical-size axis; the range keeps the display cut at
-  // larger sizes without shipping a second file.
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..800&display=swap",
-  },
-  // IBM Plex Mono — theme-2 "receipt" labels: SKU/barcode strings, timestamps,
-  // quick-add chip prices, tab counters. See `.wa-mono` in theme-2.css.
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&display=swap",
   },
 ];
 
@@ -169,13 +163,23 @@ function GoogleMapsScript() {
   return null;
 }
 
+// Applies the persisted theme to <html> before first paint, so a user on
+// theme-1 never sees a theme-2 flash. Runs blocking in <head>; the theme is
+// then owned by the `data-theme` attribute (see app/hooks/useTheme.ts).
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(
+  StorageService.KEY_PREFIX + THEME_STORAGE_KEY,
+)});if(t){t=t.replace(/^"|"$/g,"");if(${JSON.stringify(
+  THEME_OPTIONS.map((o) => o.value),
+)}.indexOf(t)>-1){document.documentElement.setAttribute("data-theme",t);}}}catch(e){}})();`;
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="theme-2">
+    <html lang="en" data-theme={DEFAULT_THEME}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta content="#000000" name="theme-color" />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <Meta />
         <Links />
 

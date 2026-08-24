@@ -50,7 +50,9 @@ const EmployeeItem = ({
                 {item.name}
               </div>
               <div className="tw:mt-1">
-                <AppBadge variant={item._positionBadgeColor}>{item.digitalRole}</AppBadge>
+                <AppBadge variant={item._positionBadgeColor}>
+                  {item.digitalRole}
+                </AppBadge>
               </div>
             </div>
           </div>
@@ -63,8 +65,8 @@ const EmployeeItem = ({
                 color={hasRoutes ? "secondary" : "primary"}
                 className={
                   hasRoutes
-                    ? "tw:bg-blue-600 hover:tw:bg-blue-700 tw:text-white"
-                    : "tw:bg-green-600 hover:tw:bg-green-700 tw:text-white"
+                    ? "tw:bg-primary hover:tw:bg-primary/80 tw:text-white"
+                    : "tw:bg-success hover:tw:bg-success/80 tw:text-white"
                 }
               >
                 {hasRoutes ? "Change" : "Assign"}
@@ -90,14 +92,14 @@ const EmployeeItem = ({
             {item.linkedRoutes.map((route: any) => (
               <div
                 key={route.routeId}
-                className="tw:flex tw:items-center tw:gap-2 tw:bg-blue-50 tw:rounded tw:px-2.5 tw:py-2 tw:border tw:border-blue-200"
+                className="tw:flex tw:items-center tw:gap-2 tw:bg-primary-50 tw:rounded tw:px-2.5 tw:py-2 tw:border tw:border-primary-200"
               >
                 <CheckCircle
                   size={14}
-                  className="tw:text-blue-600 tw:shrink-0"
+                  className="tw:text-primary tw:shrink-0"
                 />
                 <div className="tw:flex-1 tw:min-w-0">
-                  <span className="tw:text-xs tw:font-semibold tw:text-blue-700">
+                  <span className="tw:text-xs tw:font-semibold tw:text-primary-700">
                     {route.routeName}
                   </span>
                 </div>

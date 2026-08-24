@@ -35,6 +35,7 @@ const Timeline = ({
   canProcess,
   isGuestCustomer,
   orderType,
+  quickCheckout,
 }: {
   timelineData: TimelineData[];
   invoices: any[];
@@ -46,6 +47,7 @@ const Timeline = ({
   canProcess?: boolean;
   isGuestCustomer?: boolean;
   orderType?: string;
+  quickCheckout?: boolean;
 }) => {
   const { t } = useTranslation(["common"]);
   const appNav = useAppNav();
@@ -130,8 +132,9 @@ const Timeline = ({
       });
     }
 
-    // For POS orders or guest customers, hide processing/packed/picking steps
-    if (orderSubType === "POS") {
+    // For POS orders, guest customers and quick B2B checkout orders, hide
+    // processing/packed/picking steps - those orders never enter those queues.
+    if (orderSubType === "POS" || quickCheckout) {
       const ignoreStatuses = ["Processing", "Packed", "Picking", "Picked"];
       statuses = statuses.filter((s) => !ignoreStatuses.includes(s.key));
     }
@@ -149,7 +152,7 @@ const Timeline = ({
 
     // Hide "Awaiting Shipment" if there's shipped data
     const hasShippedData = timelineData.some(
-      (item) => item.status === "Shipped"
+      (item) => item.status === "Shipped",
     );
     if (hasShippedData) {
       statuses = statuses.filter((s) => s.key !== "Pending Shipment");
@@ -166,7 +169,7 @@ const Timeline = ({
 
     const updatedData = statuses.map((status) => {
       const timelineItem = timelineData.find(
-        (item) => item.status === status.key
+        (item) => item.status === status.key,
       );
 
       return {
@@ -180,7 +183,14 @@ const Timeline = ({
       };
     });
     setData(updatedData);
-  }, [timelineData, orderStatus, t, orderSubType, isGuestCustomer]);
+  }, [
+    timelineData,
+    orderStatus,
+    t,
+    orderSubType,
+    isGuestCustomer,
+    quickCheckout,
+  ]);
 
   return (
     <>

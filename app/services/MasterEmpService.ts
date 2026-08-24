@@ -18,7 +18,7 @@ class MasterEmpService {
 
     const shopImg =
       franchise?.shopPhotosDetails?.find(
-        (e: Record<string, any>) => e.status === "Approved"
+        (e: Record<string, any>) => e.status === "Approved",
       )?.fileUrl || "";
 
     const city = franchise?.city || "";
@@ -43,7 +43,7 @@ class MasterEmpService {
       formattedAddress,
       displayType: FranchiseService.getDisplaySubType(
         franchise.subType,
-        franchise.networkType
+        franchise.networkType,
       ).name,
     };
   }
@@ -58,13 +58,13 @@ class MasterEmpService {
         headers: {
           Authorization: `JWT ${StorageService.get("_et")}`,
         },
-      }
+      },
     );
     try {
       const payload: any = response?.data?.data;
       if (payload && Array.isArray(payload)) {
         response.data.data = payload.map((item: any) =>
-          this.formatFranchise(item)
+          this.formatFranchise(item),
         );
       }
     } catch {}
@@ -81,7 +81,39 @@ class MasterEmpService {
         headers: {
           Authorization: `JWT ${StorageService.get("_et")}`,
         },
-      }
+      },
+    );
+  }
+
+  /**
+   * Fetch the paginated master-employee list. Mirrors `getFranchises`: runs
+   * under the master employee token (`_et`) and returns the array at
+   * `data.data`.
+   */
+  static async getEmployees(
+    params?: Record<string, any>,
+    config?: Record<string, any>,
+  ) {
+    const p = Object.assign({}, params || {}, { outputType: "list" });
+    return AjaxService.request(`${API}/employee/list`, "GET", p, {
+      ...(config || {}),
+      // headers: {
+      //   Authorization: `JWT ${StorageService.get("_et")}`,
+      // },
+    });
+  }
+
+  static async getEmployeesCount(params?: Record<string, any>) {
+    const p = Object.assign({}, params || {}, { outputType: "count" });
+    return AjaxService.request(
+      `${API}employee/master/employee/list`,
+      "GET",
+      p,
+      {
+        headers: {
+          Authorization: `JWT ${StorageService.get("_et")}`,
+        },
+      },
     );
   }
 
@@ -98,7 +130,7 @@ class MasterEmpService {
         headers: {
           Authorization: `JWT ${StorageService.get("_et")}`,
         },
-      }
+      },
     );
   }
 }

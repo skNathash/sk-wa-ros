@@ -100,7 +100,7 @@ const ScanInput = forwardRef<ScanInputHandle, ScanInputProps>(({
             else if (r.action === "error")
               showToast({ msg: r.data, color: "error" });
           }}
-          className="tw:flex tw:items-center tw:justify-center tw:gap-2 tw:w-full tw:bg-blue-600 active:tw:bg-blue-700 tw:text-white tw:font-semibold tw:text-sm tw:rounded-lg tw:py-2.5 tw:shadow-sm tw:transition tw:cursor-pointer"
+          className="scan-camera-btn tw:flex tw:items-center tw:justify-center tw:gap-2 tw:w-full tw:font-semibold tw:text-sm tw:rounded-lg tw:py-2.5 tw:shadow-sm tw:transition tw:cursor-pointer"
         >
           <ScanLine className="tw:w-4 tw:h-4" />
           Tap to scan
@@ -121,7 +121,7 @@ const ScanInput = forwardRef<ScanInputHandle, ScanInputProps>(({
           {hasCordova ? (
             <Keyboard className="tw:absolute tw:left-3 tw:top-1/2 tw:-translate-y-1/2 tw:w-4 tw:h-4 tw:text-gray-400 tw:pointer-events-none" />
           ) : (
-            <ScanLine className="tw:absolute tw:left-3 tw:top-1/2 tw:-translate-y-1/2 tw:w-4 tw:h-4 tw:text-blue-600 tw:pointer-events-none" />
+            <ScanLine className="scan-search-icon tw:absolute tw:left-3 tw:top-1/2 tw:-translate-y-1/2 tw:w-4 tw:h-4 tw:pointer-events-none" />
           )}
           <input
             ref={inputRef}
@@ -134,7 +134,7 @@ const ScanInput = forwardRef<ScanInputHandle, ScanInputProps>(({
             readOnly={isLoading}
             placeholder="Name, model or barcode…"
             inputMode="text"
-            className="tw:w-full tw:h-10 tw:border-2 tw:border-blue-500 tw:rounded-lg tw:pl-9 tw:pr-3 tw:text-sm tw:font-mono tw:bg-white tw:transition tw:shadow-sm tw:shadow-blue-500/10 focus:tw:outline-none focus:tw:border-blue-600 focus:tw:ring-4 focus:tw:ring-blue-100 read-only:tw:bg-gray-50 read-only:tw:cursor-not-allowed read-only:tw:opacity-70"
+            className="scan-search-input tw:w-full tw:h-10 tw:border-2 tw:rounded-lg tw:pl-9 tw:pr-3 tw:text-sm tw:font-mono tw:bg-white tw:transition read-only:tw:bg-gray-50 read-only:tw:cursor-not-allowed read-only:tw:opacity-70"
           />
         </div>
         <AppButton
@@ -147,7 +147,7 @@ const ScanInput = forwardRef<ScanInputHandle, ScanInputProps>(({
       </div>
       {!isMobile && (
         <div className="tw:text-[10px] tw:text-gray-500">
-          USB scanner auto-submits · Typing? Press{" "}
+          Scan a barcode, or type and press{" "}
           <kbd className="tw:px-1 tw:bg-gray-100 tw:border tw:border-gray-200 tw:rounded tw:font-mono">
             Enter
           </kbd>

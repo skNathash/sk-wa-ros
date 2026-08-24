@@ -1,4 +1,5 @@
 import axios from "axios";
+import { tintIndexFor } from "~/components/core/tint/tints";
 import AuthService from "~/services/AuthService";
 import CommonService from "~/services/CommonService";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
@@ -110,16 +111,179 @@ const attachBusinessLinkedMenus = async (params: Record<string, any>) => {
   return p;
 };
 
+/** Radius used by the "top" tab when it carries no explicit `radiusKms`. */
+export const TOP_PICKS_DEFAULT_RADIUS_KM = 5;
+
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+
+/**
+ * The deal's ObjectId, which is what subscribe/cart calls key on.
+ *
+ * The price-comparison rows name it inconsistently across deal sources —
+ * sometimes `dealId`, sometimes `dealRefId`, with the other holding the
+ * human-readable reference — so pick whichever value actually looks like an
+ * ObjectId rather than trusting either key.
+ */
+export const resolveDealObjectId = (deal: any): string => {
+  const candidates = [deal?.dealId, deal?.dealRefId, deal?._id];
+  return (
+    candidates.find(
+      (value) => typeof value === "string" && OBJECT_ID.test(value),
+    ) ||
+    candidates.find(Boolean) ||
+    ""
+  );
+};
+
+/**
+ * A "Popular near me" card row.
+ *
+ * Keeps the same key names the subscribe search list already uses
+ * (`_id`, `isInCart`, `itemId`, …) so the page's subscribe / remove / bulk
+ * select handlers work on these rows unchanged; `sellersCount` and `radiusKm`
+ * are the only additions the card needs.
+ */
+export interface TopPickDeal {
+  _id: string;
+  dealId: string;
+  dealRefId: string;
+  name: string;
+  images: string[];
+  brand: { id: string; name: string };
+  category: { id: string; name: string };
+  companyName: string;
+  mrp: number;
+  price: number;
+  barcodes: string[];
+  hsn: string;
+  gst: number;
+  isSubscribed: boolean;
+  isInCart: boolean;
+  itemId: string;
+  cartQuantity: number;
+  /** Sellers within {@link radiusKm} who already stock this SKU. */
+  sellersCount: number;
+  radiusKm: number;
+  /** Up to three letters shown when the deal carries no image. */
+  initials: string;
+  /** Tint slot for the plate behind the image, stable per deal name. */
+  tintIndex: number;
+}
+
+const formatTopPickResponse = (data: any[], radiusKm: number): TopPickDeal[] =>
+  (data || []).map((deal: any) => {
+    const dealObjectId = resolveDealObjectId(deal);
+    const localCartItem =
+      InventorySubscribeService.getLocalCartItem(dealObjectId);
+    const name = deal.dealName || deal.name || "";
+
+    return {
+      _id: dealObjectId,
+      dealId: deal.dealId || "",
+      dealRefId: deal.dealRefId || deal.dealId || "",
+      name,
+      images: deal.images || [],
+      brand: {
+        id: deal.applicableBrand?.brandId || "",
+        name: deal.applicableBrand?.brandName || "",
+      },
+      category: {
+        id: deal.applicableCategory?.categoryId || "",
+        name: deal.applicableCategory?.categoryName || "",
+      },
+      companyName: deal.companyName || "",
+      mrp: deal.mrp || 0,
+      price: deal.bestPrice || deal.b2bPrice || deal.mrp || 0,
+      barcodes: deal.barcodes || (deal.barcode ? [deal.barcode] : []),
+      hsn: deal.hsn || "",
+      gst: deal.tax || 0,
+      isSubscribed: !!deal.isSubscribed,
+      isInCart: !!localCartItem?.dealId,
+      itemId: localCartItem?.itemId || "",
+      cartQuantity: localCartItem?.quantity || 0,
+      sellersCount: Number(deal.sellersCount) || 0,
+      radiusKm,
+      initials: name.trim().slice(0, 3).toUpperCase(),
+      tintIndex: tintIndexFor(name || dealObjectId),
+    };
+  });
+
+/**
+ * Params for the price-comparison call behind the "top" tab.
+ *
+ * Reuses the mongo `filter` {@link prepareParams} already built (brand /
+ * category / menu / barcode) but drops the deal-listing-only keys, since this
+ * runs against `catalog/seller-deals/price-comparison` rather than the deals
+ * endpoint. `isSubscribed: false` keeps the tab to SKUs this seller can still
+ * adopt, and `distance` bounds the seller radius the counts are drawn from.
+ */
+const prepareTopPicksParams = (
+  filterParams: Record<string, any>,
+  pagination: PaginationState,
+  baseParams: Record<string, any>,
+) => {
+  const params: Record<string, any> = {
+    view: "network",
+    outputType: "list",
+    distance: filterParams.radiusKms || TOP_PICKS_DEFAULT_RADIUS_KM,
+    isSubscribed: false,
+    page: pagination.activePage,
+    limit: pagination.rowsPerPage,
+  };
+
+  if (baseParams.search) params.search = baseParams.search;
+
+  if (baseParams.filter) {
+    // `topRunningDeal` is a deals-endpoint flag; the price comparison already
+    // scopes to what peers in the radius are running, so passing it through
+    // would just filter on a field this endpoint doesn't know.
+    const { topRunningDeal, name, ...filter } = baseParams.filter;
+    // The alpha filter targets the product name, which this endpoint exposes as
+    // `dealName` — passing `name` through would filter on a field it doesn't know.
+    if (name !== undefined) filter.dealName = name;
+    if (Object.keys(filter).length) params.filter = filter;
+  }
+
+  return params;
+};
+
+/** Whether {@link prepareParams} built params for the price-comparison call. */
+const isTopPicksParams = (params: Record<string, any>) =>
+  params?.view === "network";
+
 const isAbortError = (error: any) =>
   axios.isCancel(error) ||
   error?.name === "CanceledError" ||
   error?.name === "AbortError" ||
   error?.code === "ERR_CANCELED";
 
+/**
+ * Rows for the list.
+ *
+ * The "top" tab runs on the network price comparison instead of the deal list,
+ * so its cards can report how many shops around here stock the SKU. That
+ * endpoint carries the row count on the same response (`pagination.total`), so
+ * it comes back as `total` here and {@link getCount} stays out of the way — a
+ * second call would cost a request and report a different generation than the
+ * rows on screen.
+ */
 export const getData = async (
   params: Record<string, any>,
   signal?: AbortSignal,
-) => {
+): Promise<{ data: any[]; total?: number }> => {
+  if (isTopPicksParams(params)) {
+    const response = await SellerCatalogService.getPriceComparison(
+      params,
+      signal ? { signal } : undefined,
+    );
+    const body: any = response?.data || {};
+
+    return {
+      data: formatTopPickResponse(body.data || [], params.distance),
+      total: Number(body.pagination?.total) || 0,
+    };
+  }
+
   try {
     const p = await attachBusinessLinkedMenus(params);
     const response = await InventorySubscribeService.getDeals(p, { signal });
@@ -147,6 +311,9 @@ export const getCount = async (
   params: Record<string, any>,
   signal?: AbortSignal,
 ) => {
+  // The price comparison sends its total alongside the rows — see getData.
+  if (isTopPicksParams(params)) return 0;
+
   const p = await attachBusinessLinkedMenus(params);
 
   delete p.page;
@@ -178,19 +345,12 @@ export const prepareParams = (
   sort?: SortProps,
 ) => {
   const filter = { ...filterParams };
+  // Same deal filter the browse grids count with, so their tile counts and this
+  // list agree — see `InventorySubscribeService.getSubscribableDealParams`.
   let p: Record<string, any> = {
+    ...InventorySubscribeService.getSubscribableDealParams(),
     page: pagination.activePage,
     limit: pagination.rowsPerPage,
-    filter: {
-      status: "Active",
-      "applicableBrand.brandName": {
-        $ne: "",
-      },
-      isLocalDeal: false,
-      // isSubscribed: false,
-    },
-    dealSubscribeType: "NOTSUBSCRIBED",
-    groupGroupedDeals: true,
   };
 
   if (filter.activeTab === "top") {
@@ -331,6 +491,12 @@ export const prepareParams = (
   // }
 
   p.primeCatalog = filter.primeCatalog;
+
+  // The "top" tab is served by the price comparison, so hand back that call's
+  // params instead of the deal-listing ones.
+  if (filter.activeTab === "top") {
+    return prepareTopPicksParams(filter, pagination, p);
+  }
 
   return p;
 };

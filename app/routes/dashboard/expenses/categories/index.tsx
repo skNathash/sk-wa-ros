@@ -1,11 +1,17 @@
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
+import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import useAppToast from "~/hooks/useAppToast";
 import useScreenView from "~/hooks/useScreenView";
 import ExpenseService from "~/services/ExpenseService";
+import RecentExpenses from "~/shared/expense/components/recent-expenses/RecentExpenses";
+import { AppPaneMain } from "~/shared/layout/app-pane/AppPane";
+import ExpenseSidePane from "~/shared/expense/components/expense-side-pane/ExpenseSidePane";
 import ManageExpenseCategoryModal from "~/shared/expense/modals/manage-category/ManageExpenseCategoryModal";
 import ManageExpenseSubCategoryModal from "~/shared/expense/modals/manage-subcategory/ManageExpenseSubCategoryModal";
 import ExpenseViewSubCategoriesModal from "~/shared/expense/modals/view-subcategories/ExpenseViewSubCategoriesModal";
@@ -16,6 +22,7 @@ import MobileView from "./components/MobileView";
 import { getCount, getData, prepareParams } from "./helper";
 
 const Categories = () => {
+  const { t } = useTranslation(["menu"]);
   const { isMobile } = useScreenView();
 
   const [view, setView] = useState<ViewToggleType>("list");
@@ -273,49 +280,73 @@ const Categories = () => {
 
   return (
     <>
-      <div className="tw:py-4">
-        <Filter callback={handleFilterCallback} />
+      {/* No `theme-2-mobile-gap-top`: the layout's sticky tab tray sits
+          directly above with its own bottom margin, so the grid's mobile top
+          gap would only double the space above the first card. */}
+      <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+        <AppPaneMain className="tw:lg:col-span-12">
+          <div className="tw:py-4">
+            <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:mb-3">
+              <div className="tw:text-base tw:font-semibold tw:text-gray-900">
+                Expense Categories
+              </div>
+              <AppButton size="small" onClick={handleAddCategoryClick}>
+                <Plus size={16} />
+                Add Category
+              </AppButton>
+            </div>
 
-        <div className="tw:flex tw:items-center tw:mt-2">
-          <div className="tw:flex-1">
-            <PaginationSummary
-              loadingTotalRecords={loading}
-              paginationConfig={paginationRef.current}
-              loadedCount={data.length}
-              fwSize="sm"
-            />
+            <Filter callback={handleFilterCallback} />
+
+            <div className="tw:flex tw:items-center tw:mt-2">
+              <div className="tw:flex-1">
+                <PaginationSummary
+                  loadingTotalRecords={loading}
+                  paginationConfig={paginationRef.current}
+                  loadedCount={data.length}
+                  fwSize="sm"
+                />
+              </div>
+              <ViewToggle viewType={view} callback={setView} />
+            </div>
           </div>
-          <ViewToggle viewType={view} callback={setView} />
-        </div>
-      </div>
 
-      {isMobile || view === "card" ? (
-        <MobileView
-          data={data}
-          loading={loading}
-          loadingMore={loadingMore}
-          loadMore={loadMore}
-          totalCount={paginationRef.current.totalRecords}
-          loadedCount={data.length}
-          showLoadMore={hasMoreData}
-          callback={handleViewCallback}
-          togglingId={togglingId}
-        />
-      ) : (
-        <AppCard noPadding>
-          <DesktopView
-            data={data}
-            loading={loading}
-            loadingMore={loadingMore}
-            loadMore={loadMore}
-            totalCount={paginationRef.current.totalRecords}
-            loadedCount={data.length}
-            showLoadMore={hasMoreData}
-            callback={handleViewCallback}
-            togglingId={togglingId}
-          />
-        </AppCard>
-      )}
+          {isMobile || view === "card" ? (
+            <MobileView
+              data={data}
+              loading={loading}
+              loadingMore={loadingMore}
+              loadMore={loadMore}
+              totalCount={paginationRef.current.totalRecords}
+              loadedCount={data.length}
+              showLoadMore={hasMoreData}
+              callback={handleViewCallback}
+              togglingId={togglingId}
+            />
+          ) : (
+            <AppCard noPadding>
+              <DesktopView
+                data={data}
+                loading={loading}
+                loadingMore={loadingMore}
+                loadMore={loadMore}
+                totalCount={paginationRef.current.totalRecords}
+                loadedCount={data.length}
+                showLoadMore={hasMoreData}
+                callback={handleViewCallback}
+                togglingId={togglingId}
+              />
+            </AppCard>
+          )}
+        </AppPaneMain>
+
+        {/* Side column — only rendered while the theme-2 split layout is
+            active (lg+), where the CSS re-homes it as the fixed list pane
+            beside the icon rail. */}
+        <ExpenseSidePane>
+          <RecentExpenses limit={5} showViewAll />
+        </ExpenseSidePane>
+      </div>
 
       <AppAlertDialog
         title={appAlertDialog.title}

@@ -8,7 +8,7 @@ const WhatsappPreviewContainer = ({ msg, headerImage }: Props) => {
     <div className="tw:flex tw:justify-center tw:p-4">
       <div className="tw:w-full tw:max-w-sm tw:rounded-lg tw:overflow-hidden tw:bg-[#e5ddd5] tw:shadow-md">
         {/* Header Bar */}
-        <div className="tw:flex tw:items-center tw:gap-2 tw:bg-[#075e54] tw:px-3 tw:py-2">
+        <div className="tw:flex tw:items-center tw:gap-2 tw:bg-[#008069] tw:px-3 tw:py-2">
           <div className="tw:w-8 tw:h-8 tw:rounded-full tw:bg-[#25d366] tw:flex tw:items-center tw:justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"

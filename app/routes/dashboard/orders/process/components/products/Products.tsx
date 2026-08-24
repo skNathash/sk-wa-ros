@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, Package } from "lucide-react";
-import useScreenView from "~/hooks/useScreenView";
 import Amount from "~/components/core/amount/Amount";
 import AppCard from "~/components/core/card/AppCard";
-import DesktopView from "./DesktopView";
 import MobileView from "./MobileView";
 import type { SortValue } from "~/types/CommonTypes";
 import { clsx } from "clsx";
@@ -17,20 +15,19 @@ interface ProductsProps {
   sortValue?: SortValue;
   callback?: (action: { action: string; data: any }) => void;
   orderAmount?: number;
+  /** Compact rows: image, name, bin, qty, stock and price only. */
+  minimal?: boolean;
 }
 
 const Products: React.FC<ProductsProps> = ({
   data = [],
   loading = false,
-  onSort,
-  sortKey,
-  sortValue,
   callback,
   orderAmount,
+  minimal = false,
 }) => {
   const { t } = useTranslation();
 
-  const { isMobile } = useScreenView();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpanded = () => {
@@ -53,7 +50,7 @@ const Products: React.FC<ProductsProps> = ({
             "tw:flex tw:items-end tw:justify-between tw:cursor-pointer tw:select-none",
             {
               "tw:border-b tw:md:border-b-0 tw:pb-4 tw:md:pb-0": isExpanded,
-            }
+            },
           )}
           onClick={toggleExpanded}
         >
@@ -82,25 +79,16 @@ const Products: React.FC<ProductsProps> = ({
         </div>
       </div>
 
-      {/* Collapsible Content */}
+      {/* Collapsible content — the card list at every breakpoint; the table
+          variant doesn't fit the narrow desktop side rail this card lives in. */}
       {isExpanded && (
         <div className="tw:mt-4">
-          {isMobile ? (
-            <MobileView
-              data={filteredData}
-              loading={loading}
-              callback={callback}
-            />
-          ) : (
-            <DesktopView
-              data={filteredData}
-              loading={loading}
-              onSort={onSort}
-              sortKey={sortKey}
-              sortValue={sortValue}
-              callback={callback}
-            />
-          )}
+          <MobileView
+            data={filteredData}
+            loading={loading}
+            callback={callback}
+            minimal={minimal}
+          />
         </div>
       )}
     </AppCard>

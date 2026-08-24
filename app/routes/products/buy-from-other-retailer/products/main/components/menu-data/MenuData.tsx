@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import Categories from "./Categories";
@@ -67,20 +66,16 @@ const MenuData: React.FC<MenuDataProps> = ({
   return (
     <div id={`menu-section-${menuId}`}>
       <div className="tw:flex tw:items-center tw:justify-between tw:mb-2">
-        <div className="tw:flex tw:items-center tw:gap-2">
-          <span className="tw:h-4 tw:w-1 tw:rounded-full tw:bg-primary" />
-          <h2 className="tw:text-base tw:font-bold tw:text-slate-900">
-            {menuName}
-          </h2>
-        </div>
+        <h2 className="app-label tw:text-[0.8125rem]! tw:font-semibold tw:uppercase tw:tracking-[0.12em] tw:text-primary/70">
+          {menuName}
+        </h2>
         {!loading && parentCategories.length >= 3 && (
           <button
             type="button"
-            className="tw:inline-flex tw:items-center tw:gap-0.5 tw:text-xs tw:font-semibold tw:text-primary tw:cursor-pointer tw:hover:opacity-80"
+            className="tw:inline-flex tw:items-center tw:gap-0.5 tw:cursor-pointer tw:text-[13px] tw:font-semibold tw:text-primary"
             onClick={handleSeeAllClick}
           >
-            See all
-            <ChevronRight className="tw:h-3.5 tw:w-3.5" />
+            See all <span aria-hidden>→</span>
           </button>
         )}
       </div>

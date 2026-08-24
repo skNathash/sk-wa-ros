@@ -1,13 +1,20 @@
 import { Barcode, Boxes, Layers, Package, Printer, Tag, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
+import useTheme from "~/hooks/useTheme";
 import CommonService from "~/services/CommonService";
+import SectionTabService from "~/services/SectionTabService";
 import StorageService from "~/services/StorageService";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import BarcodeSidePane from "~/shared/catalog/components/barcode-side-pane/BarcodeSidePane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import BrandSearchInput from "~/shared/catalog/components/search-input/brand/BrandSearchInput";
 import CategorySearchInput from "~/shared/catalog/components/search-input/category/CategorySearchInput";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
@@ -16,7 +23,6 @@ import {
   PRINT_BARCODE_MAX_BULK_ITEMS,
 } from "~/constants";
 import { type BulkBarcodeItem } from "../generator/helper";
-import BarcodeTabs from "../components/BarcodeTabs";
 import Products, {
   type ProductsCallbackPayload,
 } from "./components/products/Products";
@@ -42,6 +48,9 @@ type SelectedSource = { type: SourceType; id: string; name: string };
 const BulkPrintBarcodePage = () => {
   const toast = useAppToast();
   const appNav = useAppNav();
+  const { t } = useTranslation(["common", "menu"]);
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
 
   const [sourceType, setSourceType] = useState<SourceType>("brand");
   const [source, setSource] = useState<SelectedSource | null>(null);
@@ -177,119 +186,174 @@ const BulkPrintBarcodePage = () => {
 
   return (
     <>
-      <AppHeader title="Bulk Barcode Print" />
+      <AppHeader
+        title="Bulk Barcode Print"
+        sectionKey="catalog"
+        activeTab="barcode-generator"
+        mobileLead="menu"
+      />
       <div
-        className={`page-bg app-page tw:p-4 ${
+        className={`page-bg app-page page-padding barcode-gen-page ${
           selectedCount > 0 ? "has-footer" : ""
         }`}
       >
-        <div className="app-container">
-          <AppBreadcrumbs data={breadcrumbs} />
+        {/* Sub-nav for the two barcode surfaces — the shared tab data lives
+            in SectionTabService so both pages strip from one source. Mobile
+            only (see theme-2.css); on desktop the side pane carries it. */}
+        <SectionTabs
+          tabs={SectionTabService.getBarcodeTabs()}
+          activeTab="bulk"
+          noShadow
+          sticky
+        />
 
-          <BarcodeTabs active="bulk" className="tw:mb-4" />
-
-          {/* Hero */}
-          <div className="tw:relative tw:mb-4 tw:overflow-hidden tw:rounded-2xl tw:border tw:border-primary/20 tw:bg-linear-to-br tw:from-primary/10 tw:via-white tw:to-primary/5 tw:px-5 tw:py-5 tw:shadow-sm">
-            <div className="tw:absolute tw:-right-12 tw:-top-12 tw:h-40 tw:w-40 tw:rounded-full tw:bg-primary/10 tw:blur-3xl tw:pointer-events-none" />
-            <div className="tw:relative tw:flex tw:items-center tw:gap-4">
-              <div className="tw:relative tw:inline-flex tw:h-12 tw:w-12 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-primary tw:text-white tw:shadow-md tw:shadow-primary/30">
-                <Boxes size={20} />
-                <span className="tw:absolute tw:-right-1 tw:-bottom-1 tw:inline-flex tw:h-5 tw:w-5 tw:items-center tw:justify-center tw:rounded-full tw:bg-white tw:text-primary tw:shadow-sm tw:border tw:border-primary/20">
-                  <Barcode size={11} />
-                </span>
-              </div>
-              <div className="tw:min-w-0">
-                <h1 className="tw:text-base tw:font-semibold tw:text-slate-900 tw:md:text-lg tw:leading-tight">
-                  Bulk Barcode Print
-                </h1>
-                <p className="tw:mt-1 tw:text-xs tw:leading-5 tw:text-slate-600 tw:md:text-sm">
-                  Pick a brand or category, select up to{" "}
-                  {PRINT_BARCODE_MAX_BULK_ITEMS} products, and print them in one
-                  sheet.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Source picker */}
-          <AppCard
-            className="tw:mb-4 tw:border-slate-200 tw:bg-white"
-            bodyClassName="tw:px-4 tw:py-0"
-          >
-            <div className="tw:flex tw:flex-col tw:gap-3 tw:md:flex-row tw:md:items-center">
-              {/* By Brand / By Category toggle */}
-              <div className="tw:inline-flex tw:shrink-0 tw:rounded-lg tw:border tw:border-slate-200 tw:bg-slate-50 tw:p-0.5">
-                {(
-                  [
-                    { key: "brand", label: "By Brand", icon: Tag },
-                    { key: "category", label: "By Category", icon: Layers },
-                  ] as const
-                ).map((opt) => {
-                  const Icon = opt.icon;
-                  const active = sourceType === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() => handleSourceTypeChange(opt.key)}
-                      className={`tw:inline-flex tw:items-center tw:gap-1.5 tw:rounded-md tw:px-3 tw:py-1.5 tw:text-sm tw:font-semibold tw:transition ${
-                        active
-                          ? "tw:bg-white tw:text-primary tw:shadow-sm"
-                          : "tw:text-slate-500 tw:hover:text-slate-700"
-                      }`}
-                    >
-                      <Icon size={14} />
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="tw:flex-1 tw:min-w-0">
-                {sourceType === "brand" ? (
-                  <BrandSearchInput
-                    key="brand"
-                    feature="pos"
-                    placeholder="Search brand…"
-                    values={sourceValues}
-                    callback={handleSourceSelect}
-                  />
-                ) : (
-                  <CategorySearchInput
-                    key="category"
-                    feature="pos"
-                    placeholder="Search category…"
-                    values={sourceValues}
-                    callback={handleSourceSelect}
-                  />
-                )}
-              </div>
-            </div>
-          </AppCard>
-
-          {!source ? (
-            <div className="tw:rounded-xl tw:border tw:border-dashed tw:border-gray-300 tw:bg-white tw:py-12 tw:px-6 tw:text-center">
-              <div className="tw:inline-flex tw:items-center tw:justify-center tw:w-12 tw:h-12 tw:rounded-full tw:bg-primary/10 tw:mb-3">
-                <Package size={22} className="tw:text-primary" />
-              </div>
-              <div className="tw:text-sm tw:font-semibold tw:text-gray-900">
-                Pick a {sourceType} to begin
-              </div>
-              <div className="tw:text-xs tw:text-gray-500 tw:mt-1">
-                Its products will appear here — select the ones to print.
-              </div>
-            </div>
-          ) : (
-            <div>
-              <Products
-                key={`${source.type}:${source.id}`}
-                brandId={source.type === "brand" ? source.id : undefined}
-                categoryId={source.type === "category" ? source.id : undefined}
-                selectedData={selectedData}
-                callback={handleProductsCallback}
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="barcode-generator"
+                title={t("manageCatalog", { ns: "menu" })}
               />
             </div>
-          )}
+          </aside>
+
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid; the side pane only exists in
+                  theme-2 desktop, where the CSS lifts it out into the fixed
+                  list pane (see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                {/* The theme-2 pane header carries this context instead. */}
+                {!isTheme2 && <AppBreadcrumbs data={breadcrumbs} />}
+
+                {/* Hero */}
+                <div className="barcode-gen-hero tw:relative tw:mb-4 tw:overflow-hidden tw:rounded-2xl tw:border tw:border-primary/20 tw:bg-linear-to-br tw:from-primary/10 tw:via-white tw:to-primary/5 tw:px-5 tw:py-5 tw:shadow-sm">
+                  <div className="barcode-gen-hero-glow tw:absolute tw:-right-12 tw:-top-12 tw:h-40 tw:w-40 tw:rounded-full tw:bg-primary/10 tw:blur-3xl tw:pointer-events-none" />
+                  <div className="tw:relative tw:flex tw:items-center tw:gap-4">
+                    <div className="tw:relative tw:inline-flex tw:h-12 tw:w-12 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-primary tw:text-white tw:shadow-md tw:shadow-primary/30">
+                      <Boxes size={20} />
+                      <span className="tw:absolute tw:-right-1 tw:-bottom-1 tw:inline-flex tw:h-5 tw:w-5 tw:items-center tw:justify-center tw:rounded-full tw:bg-white tw:text-primary tw:shadow-sm tw:border tw:border-primary/20">
+                        <Barcode size={11} />
+                      </span>
+                    </div>
+                    <div className="tw:min-w-0">
+                      <h1 className="tw:text-base tw:font-semibold tw:text-slate-900 tw:md:text-lg tw:leading-tight">
+                        Bulk Barcode Print
+                      </h1>
+                      <p className="tw:mt-1 tw:text-xs tw:leading-5 tw:text-slate-600 tw:md:text-sm">
+                        Pick a brand or category, select up to{" "}
+                        {PRINT_BARCODE_MAX_BULK_ITEMS} products, and print them
+                        in one sheet.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Source picker */}
+                <AppCard
+                  className="tw:mb-4 tw:border-slate-200 tw:bg-white"
+                  bodyClassName="tw:px-4 tw:py-0"
+                >
+                  <div className="tw:flex tw:flex-col tw:gap-3 tw:md:flex-row tw:md:items-center">
+                    {/* By Brand / By Category toggle */}
+                    <div className="tw:inline-flex tw:shrink-0 tw:rounded-lg tw:border tw:border-slate-200 tw:bg-slate-50 tw:p-0.5">
+                      {(
+                        [
+                          { key: "brand", label: "By Brand", icon: Tag },
+                          {
+                            key: "category",
+                            label: "By Category",
+                            icon: Layers,
+                          },
+                        ] as const
+                      ).map((opt) => {
+                        const Icon = opt.icon;
+                        const active = sourceType === opt.key;
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => handleSourceTypeChange(opt.key)}
+                            className={`tw:inline-flex tw:items-center tw:gap-1.5 tw:rounded-md tw:px-3 tw:py-1.5 tw:text-sm tw:font-semibold tw:transition ${
+                              active
+                                ? "tw:bg-white tw:text-primary tw:shadow-sm"
+                                : "tw:text-slate-500 tw:hover:text-slate-700"
+                            }`}
+                          >
+                            <Icon size={14} />
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="tw:flex-1 tw:min-w-0">
+                      {sourceType === "brand" ? (
+                        <BrandSearchInput
+                          key="brand"
+                          feature="pos"
+                          placeholder="Search brand…"
+                          values={sourceValues}
+                          callback={handleSourceSelect}
+                        />
+                      ) : (
+                        <CategorySearchInput
+                          key="category"
+                          feature="pos"
+                          placeholder="Search category…"
+                          values={sourceValues}
+                          callback={handleSourceSelect}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </AppCard>
+
+                {!source ? (
+                  <div className="tw:rounded-xl tw:border tw:border-dashed tw:border-gray-300 tw:bg-white tw:py-12 tw:px-6 tw:text-center">
+                    <div className="tw:inline-flex tw:items-center tw:justify-center tw:w-12 tw:h-12 tw:rounded-full tw:bg-primary/10 tw:mb-3">
+                      <Package size={22} className="tw:text-primary" />
+                    </div>
+                    <div className="tw:text-sm tw:font-semibold tw:text-gray-900">
+                      Pick a {sourceType} to begin
+                    </div>
+                    <div className="tw:text-xs tw:text-gray-500 tw:mt-1">
+                      Its products will appear here — select the ones to print.
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <Products
+                      key={`${source.type}:${source.id}`}
+                      brandId={source.type === "brand" ? source.id : undefined}
+                      categoryId={
+                        source.type === "category" ? source.id : undefined
+                      }
+                      selectedData={selectedData}
+                      callback={handleProductsCallback}
+                    />
+                  </div>
+                )}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <BarcodeSidePane
+                  queued={{
+                    count: selectedCount,
+                    title: `${selectedCount} queued for this sheet`,
+                    hint: capReached
+                      ? "Sheet is full — print or clear some"
+                      : "Preview & print when ready",
+                  }}
+                />
+              </AppPaneSide>
+            </div>
+          </div>
         </div>
       </div>
 

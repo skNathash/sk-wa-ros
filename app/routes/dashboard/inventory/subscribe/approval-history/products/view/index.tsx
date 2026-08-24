@@ -1,5 +1,5 @@
 import { Plus, SquarePen } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
@@ -14,15 +14,20 @@ import useAppToast from "~/hooks/useAppToast";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
 import InventoryAddStockModal from "~/shared/catalog/modals/add-stock/InventoryAddStockModal";
+import SubscribeSidePane from "~/shared/inventory/components/subscribe-side-pane/SubscribeSidePane";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import AddStockSuccessModal from "../../modals/AddStockSuccessModal";
 import SubscriptionSuccessModal from "../../modals/SubscriptionSuccessModal";
-import DiffItem from "./components/DiffItem";
-import LinkedDealDiff from "./components/LinkedDealDiff";
+import CompareTable from "./components/CompareTable";
+import CreatedItemBanner from "./components/CreatedItemBanner";
+import LinkedDealBanner from "./components/LinkedDealBanner";
 import ProductDetails from "./components/ProductDetails";
 import SubmissionReject from "./components/SubmissionReject";
 import Summary from "./components/Summary";
-import type { Item } from "./helper";
+import { buildCompareFields, type Item } from "./helper";
 import PageAccessService from "~/services/PageAccessService";
 
 export async function clientLoader() {
@@ -61,7 +66,7 @@ const defaultItem: Item = {
 const SubscribeApprovalHistoryProductsView = () => {
   const { id } = useParams();
   const appNav = useAppNav();
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["common", "menu"]);
   const { show: showToast } = useAppToast();
 
   const [data, setData] = useState<any>(null);
@@ -99,12 +104,12 @@ const SubscribeApprovalHistoryProductsView = () => {
       });
       const d =
         InventorySubscribeService.formatSellerImportProducts(
-          response.data?.data || []
+          response.data?.data || [],
         )?.[0] || {};
 
       if (d._id) {
         const status = InventorySubscribeService.getStatuses().find((s) =>
-          s.statuses.includes(d.status)
+          s.statuses.includes(d.status),
         );
         d._statusColor = status ? status.color : "light";
         d._statusLabel = status ? status.label : d.status;
@@ -253,7 +258,7 @@ const SubscribeApprovalHistoryProductsView = () => {
         setIsSubscribing(false);
       }
     },
-    [isSubscribing, showToast, t]
+    [isSubscribing, showToast, t],
   );
 
   const handleSubscriptionSuccessModalCallback = useCallback(
@@ -286,7 +291,7 @@ const SubscribeApprovalHistoryProductsView = () => {
         setSubscribedProductData(null);
       }
     },
-    []
+    [],
   );
 
   const handleImgPreviewModalCallback = useCallback(
@@ -298,7 +303,7 @@ const SubscribeApprovalHistoryProductsView = () => {
         });
       }
     },
-    []
+    [],
   );
 
   const handleImageClick = useCallback((images: any[]) => {
@@ -313,222 +318,152 @@ const SubscribeApprovalHistoryProductsView = () => {
     }
   }, []);
 
+  const handleViewDeal = useCallback(() => {
+    if (data?.dealId) {
+      appNav.to(`/dashboard/inventory/products/view/${data.dealId}`);
+    }
+  }, [data?.dealId, appNav]);
+
+  /** Still awaiting review — nothing to compare, only the submission exists. */
+  const isPending =
+    data?.status !== "Rejected" &&
+    !data?.isLinkedExisting &&
+    !data?.isLinkedNew;
+
+  const compareFields = useMemo(
+    () => buildCompareFields(originalData, updatedData),
+    [originalData, updatedData]
+  );
+
   return (
     <>
       <AppHeader title="Approval Detail" />
       <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <div
-            className="tw:flex tw:gap-4 tw:mb-4 
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs sectionKey="catalog" activeTab="library" noShadow sticky />
+
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title={t("menu:manageCatalog")}
+              />
+            </div>
+          </aside>
+
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                <div
+                  className="tw:flex tw:gap-4 tw:mb-4
               tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center
             "
-          >
-            <AppBreadcrumbs data={breadcrumbs} />
-            {data?._id && data?.status === "Synced" && !data?.isSubscribed && (
-              <AppButton
-                onClick={() => handleSubscribeDeal(data)}
-                color="success"
-                className="tw:flex-shrink-0"
-                disabled={isSubscribing}
-              >
-                <Plus size={16} />
-                Subscribe
-              </AppButton>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="tw:p-4 tw:text-center tw:flex tw:justify-center tw:items-center tw:h-full">
-              <AppSpinner />
-            </div>
-          ) : null}
-
-          {!loading && !data?._id ? <NoData /> : null}
-
-          {data?._id ? (
-            <>
-              <div className="tw:flex tw:flex-col tw:md:flex-row tw:gap-4">
-                <div className="tw:md:w-1/3 tw:md:sticky tw:md:top-20 tw:md:self-start">
-                  <Summary data={data} />
+                >
+                  <AppBreadcrumbs data={breadcrumbs} />
+                  {data?._id &&
+                    data?.status === "Synced" &&
+                    !data?.isSubscribed && (
+                      <AppButton
+                        onClick={() => handleSubscribeDeal(data)}
+                        color="success"
+                        className="tw:flex-shrink-0"
+                        disabled={isSubscribing}
+                      >
+                        <Plus size={16} />
+                        Subscribe
+                      </AppButton>
+                    )}
                 </div>
-                <div className="tw:md:w-2/3">
-                  <AppCard
-                    title="Item Info"
-                    icon={<SquarePen />}
-                    iconClassName="tw:text-blue-500"
-                  >
-                    {/* Show SubmissionReject component for rejected submissions */}
-                    {data?.status === "Rejected" ? (
-                      <SubmissionReject
-                        requested={originalData}
-                        remarks={data?.remarks || ""}
-                      />
-                    ) : data?.status === "Created" ||
-                      data?.status === "NotFound" ? (
-                      <ProductDetails
-                        onImageClick={handleImageClick}
-                        data={{
-                          productName: originalData.productName,
-                          brandName: originalData.brandName,
-                          categoryName: originalData.categoryName,
-                          mrp: originalData.mrp,
-                          price: originalData.price,
-                          weight: originalData.weight,
-                          unitType: originalData.unitType,
-                          barcode: originalData.barcode,
-                          hsn: originalData.hsn,
-                          gst: originalData.gst,
-                          description: originalData.description,
-                          images: originalData.images,
-                          isConsumerOffer: originalData.isConsumerOffer,
-                          consumerOfferData:
-                            data?.orgData?.consumerOfferData || undefined,
-                          consumerOfferPrice:
-                            data?.orgData?.consumerOfferPrice || undefined,
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <div className="tw:border tw:border-gray-200 tw:rounded-md tw:p-4 tw:flex tw:gap-2 tw:mb-4">
-                          <SquarePen size={16} />
-                          <div className="tw:text-xs">
-                            The following changes were made during the approval
-                            process:
-                          </div>
-                        </div>
 
-                        {data?.isLinkedExisting ? (
-                          <LinkedDealDiff
-                            requested={originalData}
-                            dealName={data?.dealName || ""}
-                            dealRefId={data?.dealRefId || ""}
-                          />
-                        ) : null}
+                {loading ? (
+                  <div className="tw:p-4 tw:text-center tw:flex tw:justify-center tw:items-center tw:h-full">
+                    <AppSpinner />
+                  </div>
+                ) : null}
 
-                        {data?.isLinkedNew ? (
-                          <>
-                            <DiffItem
-                              label="Item Name"
-                              originalData={originalData.productName || "--"}
-                              updatedData={updatedData.productName || "--"}
-                              type="text"
-                            />
+                {!loading && !data?._id ? <NoData /> : null}
 
-                            <DiffItem
-                              label="OFFER"
-                              originalData={
-                                originalData.isConsumerOffer ? "Yes" : "No"
-                              }
-                              updatedData={
-                                updatedData.isConsumerOffer ? "Yes" : "No"
-                              }
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="Brand"
-                              originalData={originalData.brandName || "--"}
-                              updatedData={updatedData.brandName || "--"}
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="Category"
-                              originalData={originalData.categoryName || "--"}
-                              updatedData={updatedData.categoryName || "--"}
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="MRP"
-                              originalData={originalData.mrp || "--"}
-                              updatedData={updatedData.mrp || "--"}
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="Price"
-                              originalData={originalData.price || "--"}
-                              updatedData={updatedData.price || "--"}
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="Weight"
-                              originalData={
-                                originalData.weight !== undefined &&
-                                originalData.weight !== null
-                                  ? `${originalData.weight} ${originalData.unitType || ""}`
-                                  : "--"
-                              }
-                              updatedData={
-                                updatedData.weight !== undefined &&
-                                updatedData.weight !== null
-                                  ? `${updatedData.weight} ${updatedData.unitType || ""}`
-                                  : "--"
-                              }
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="Unit Type"
-                              originalData={originalData.unitType || "--"}
-                              updatedData={updatedData.unitType || "--"}
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="Barcode"
-                              originalData={originalData.barcode || "--"}
-                              updatedData={updatedData.barcode || "--"}
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="HSN"
-                              originalData={originalData.hsn || "--"}
-                              updatedData={updatedData.hsn || "--"}
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="GST %"
-                              originalData={
-                                typeof originalData.gst === "number"
-                                  ? `${originalData.gst}%`
-                                  : originalData.gst || "--"
-                              }
-                              updatedData={
-                                typeof updatedData.gst === "number"
-                                  ? `${updatedData.gst}%`
-                                  : updatedData.gst || "--"
-                              }
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="Description"
-                              originalData={originalData.description || "--"}
-                              updatedData={updatedData.description || "--"}
-                              type="text"
-                            />
-
-                            <DiffItem
-                              label="Image"
-                              originalData={originalData.images || "--"}
-                              updatedData={updatedData.images || "--"}
-                              type="image"
+                {data?._id ? (
+                  <>
+                    <div className="tw:flex tw:flex-col tw:md:flex-row tw:gap-4">
+                      <div className="tw:md:w-1/3 tw:md:sticky tw:md:top-20 tw:md:self-start">
+                        <Summary data={data} />
+                      </div>
+                      <div className="tw:md:w-2/3">
+                        <AppCard
+                          title={isPending ? "Your Submission" : "Review Outcome"}
+                          icon={<SquarePen />}
+                          iconClassName="tw:text-blue-500"
+                        >
+                          {data?.status === "Rejected" ? (
+                            <SubmissionReject
+                              requested={originalData}
+                              remarks={data?.remarks || ""}
                               onImageClick={handleImageClick}
                             />
-                          </>
-                        ) : null}
-                      </>
-                    )}
-                  </AppCard>
-                </div>
-              </div>
-            </>
-          ) : null}
+                          ) : isPending ? (
+                            <ProductDetails
+                              data={originalData}
+                              onImageClick={handleImageClick}
+                              title="Details you submitted — awaiting StoreKing review"
+                            />
+                          ) : (
+                            <>
+                              {data?.isLinkedExisting ? (
+                                <LinkedDealBanner
+                                  submittedName={originalData.productName}
+                                  submittedBrand={originalData.brandName}
+                                  dealName={data?.dealName || ""}
+                                  dealRefId={data?.dealRefId || ""}
+                                  dealImage={updatedData.images?.[0]}
+                                  onViewDeal={
+                                    data?.dealId ? handleViewDeal : undefined
+                                  }
+                                />
+                              ) : (
+                                <CreatedItemBanner
+                                  dealName={
+                                    data?.dealName || updatedData.productName
+                                  }
+                                  dealRefId={data?.dealRefId || ""}
+                                  onViewDeal={
+                                    data?.dealId ? handleViewDeal : undefined
+                                  }
+                                />
+                              )}
+
+                              <CompareTable
+                                fields={compareFields}
+                                onImageClick={handleImageClick}
+                                finalLabel={
+                                  data?.isLinkedExisting
+                                    ? "Linked catalog item"
+                                    : "Updated by StoreKing"
+                                }
+                              />
+                            </>
+                          )}
+                        </AppCard>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeSidePane scopeLabel="Approval" />
+              </AppPaneSide>
+            </div>
+          </div>
         </div>
       </div>
 

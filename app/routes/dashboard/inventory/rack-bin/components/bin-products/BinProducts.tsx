@@ -1,64 +1,37 @@
 import AppCard from "~/components/core/card/AppCard";
 import { getData, prepareParams } from "./helper";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { PaginationState } from "~/types/CommonTypes";
 import AppScrollArea from "~/components/core/scroll-area/AppScrollArea";
 import AppButton from "~/components/core/button/AppButton";
-import { AppInput, AppSelect } from "~/components/core/form";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { AppInput } from "~/components/core/form";
+import { useForm } from "react-hook-form";
 import { debounce } from "lodash";
 import Alpha from "~/components/core/alpha/Alpha";
-import NoData from "~/components/core/no-data/NoData";
-import { BIN_STATUSES } from "../../helper";
 import { useTranslation } from "react-i18next";
+import useTheme from "~/hooks/useTheme";
 
 type Props = {
   callback: (a: { action: string; data: any }) => void;
   location: string;
 };
 
-const capacityOptions = BIN_STATUSES.map((status) => ({
-  label: status.label,
-  value: status.value,
-  langKey: status.langKey,
-}));
-capacityOptions.unshift({
-  label: "Show only allocated bins",
-  value: "Allocated",
-  langKey: "showOnlyAllocatedBin",
-});
-capacityOptions.unshift({ label: "All", value: "All", langKey: "all" });
-
 const BinProducts = ({ callback, location }: Props) => {
   const { t } = useTranslation();
+  const isTheme2 = useTheme() === "theme-2";
 
-  const { register, getValues, setValue, control } = useForm({
+  const { register, getValues, setValue } = useForm({
     defaultValues: {
       search: "",
       alpha: "",
-      // default capacity should be 'Allocated' to show only allocated bins
-      capacity: "Allocated",
       location: location,
     },
   });
 
-  // use useWatch to observe specific form fields (search, capacity, alpha)
-  const [search, alpha] = useWatch({
-    control,
-    name: ["search", "alpha"],
-  });
-
-  const searchValue = search || "";
-  const alphaValue = alpha || "";
-
-  // Show results only when there's an explicit search or alpha filter.
-  // Do not show the products list block just because capacity is selected.
-  const showResults = Boolean(
-    (searchValue && String(searchValue).trim() !== "") ||
-    (alphaValue && String(alphaValue).trim() !== ""),
-  );
-
   const [data, setData] = useState<any[]>([]);
+  // The result list only exists once the user has actually looked for something
+  // (typed a term or picked a letter) — an idle card shows just the controls.
+  const [searched, setSearched] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -70,18 +43,6 @@ const BinProducts = ({ callback, location }: Props) => {
     endSlNo: 10,
     totalRecords: 0,
   });
-
-  // useEffect(() => {
-  //   setValue("location", location);
-  //   applyFilter();
-  //   // Inform parent about the initial capacity selection so it can apply filters
-  //   try {
-  //     const initialCapacity = getValues("capacity");
-  //     callback({ action: "capacity-change", data: initialCapacity });
-  //   } catch (e) {
-  //     // ignore
-  //   }
-  // }, [location]);
 
   const applyFilter = async () => {
     setLoading(true);
@@ -113,9 +74,13 @@ const BinProducts = ({ callback, location }: Props) => {
 
   const handleSearch = useCallback(
     debounce(() => {
-      const searchVal = getValues("search");
       setValue("alpha", "");
-      setValue("capacity", searchVal ? "All" : "Allocated");
+      const hasTerm = !!getValues("search")?.trim();
+      setSearched(hasTerm);
+      if (!hasTerm) {
+        setData([]);
+        return;
+      }
       applyFilter();
     }, 500),
     [],
@@ -123,56 +88,50 @@ const BinProducts = ({ callback, location }: Props) => {
 
   const handleAlpha = (value: string) => {
     setValue("alpha", value);
+    setSearched(!!value);
+    if (!value) {
+      setData([]);
+      return;
+    }
     applyFilter();
   };
 
   return (
-    <AppCard title={t("findProducts")} icon="search">
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4">
+    /* Compact card: the card drops its own padding (`noPadding`) and the header
+       and body supply a tighter gutter of their own, so the search block reads
+       as a slim control rather than a full-size section card. */
+    <AppCard
+      title={t("findProducts")}
+      icon="search"
+      noPadding
+      className="tw:mb-3"
+      headerClassName="tw:px-3 tw:pt-3 tw:text-sm"
+    >
+      <div className="tw:px-3 tw:pb-3">
         <AppInput
           name="search"
           register={register}
           onChange={handleSearch}
           placeholder={t("searchByProductName")}
         />
-        <Controller
-          control={control}
-          name="capacity"
-          render={({ field }) => (
-            <AppSelect
-              options={capacityOptions}
-              onChange={(value) => {
-                // update local form value
-                field.onChange(value);
-                // clear search input when bin filter (capacity) changes
-                setValue("search", "");
-                // inform parent component about capacity change
-                callback({ action: "capacity-change", data: value });
-                // apply filter to refresh results based on new capacity
-                applyFilter();
-              }}
-              value={field.value}
-              inputClassName="tw:w-full"
-            />
-          )}
-        />
-        {/* 'Show only allocated' is now an option in the capacity select */}
-      </div>
-
-      {showResults && (
-        <div className="tw:mt-4">
+        {/* Alpha strip — dropped in theme-2, where the search field alone
+            carries the lookup. */}
+        {!isTheme2 && (
           <Alpha
             callback={handleAlpha}
-            selected={alphaValue ?? getValues("alpha")}
-            className="tw:mb-4"
+            selected={getValues("alpha")}
+            className="tw:mt-3"
           />
+        )}
 
-          <AppScrollArea className="tw:h-60">
-            {!loading && data.length === 0 && <NoData />}
-            {data?.map((item, index) => (
+        {/* Results appear only after a search — no empty-state placeholder while
+            the card is idle. */}
+        {searched && data.length > 0 && (
+          <AppScrollArea className="tw:mt-3 tw:h-52">
+            {data.map((item, index) => (
               <div
                 key={index}
-                className="tw:border tw:border-gray-200 tw:p-2 tw:rounded-md tw:mb-2 tw:cursor-pointer"
+                className="tw:border tw:border-gray-200 tw:px-2 tw:py-1.5 tw:rounded-md tw:mb-1.5 tw:cursor-pointer tw:hover:border-gray-300"
                 onClick={() => {
                   callback({
                     action: "select-product",
@@ -180,31 +139,32 @@ const BinProducts = ({ callback, location }: Props) => {
                   });
                 }}
               >
-                <div className="tw:text-xs tw:font-medium tw:line-clamp-2 tw:mb-1">
+                <div className="tw:text-xs tw:font-medium tw:line-clamp-1">
                   {item.dealName}
                 </div>
-                <div className="tw:text-xs tw:text-gray-500">
-                  {t("location")}: {item.location} - {item.rackName} -{" "}
-                  {item.binName || item.binCode}, {item.quantity} units
+                <div className="tw:text-[11px] tw:text-gray-500 tw:line-clamp-1">
+                  {item.rackName} - {item.binName || item.binCode} ·{" "}
+                  {item.quantity} units
                 </div>
               </div>
             ))}
           </AppScrollArea>
-          {!loading && hasMore && (
-            <div className="tw:text-center tw:text-gray-500 tw:py-4">
-              <AppButton
-                onClick={loadMore}
-                isLoading={loadingMore}
-                size="small"
-                color="light"
-                fill="outline"
-              >
-                {loadingMore ? t("loading") : t("loadMore")}
-              </AppButton>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+
+        {searched && !loading && data.length > 0 && hasMore && (
+          <div className="tw:text-center tw:text-gray-500 tw:pt-2">
+            <AppButton
+              onClick={loadMore}
+              isLoading={loadingMore}
+              size="small"
+              color="light"
+              fill="outline"
+            >
+              {loadingMore ? t("loading") : t("loadMore")}
+            </AppButton>
+          </div>
+        )}
+      </div>
     </AppCard>
   );
 };

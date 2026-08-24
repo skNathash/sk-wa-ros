@@ -3,6 +3,11 @@ import React, { useEffect, useRef, useState } from "react";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppButton from "~/components/core/button/AppButton";
 import AppHeader from "~/components/core/header/AppHeader";
+import { AppPaneMain } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import SettingsSidePane from "~/shared/settings/components/settings-side-pane/SettingsSidePane";
+import { settingsSectionTabs } from "~/shared/settings/components/settings-side-pane/helper";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import useScreenView from "~/hooks/useScreenView";
@@ -13,6 +18,7 @@ import Template2 from "./components/templates/Template2";
 import Template3 from "./components/templates/Template3";
 import Template4 from "./components/templates/Template4";
 import Template5 from "./components/templates/Template5";
+import Template6 from "./components/templates/Template6";
 import { getCount, getData, prepareParams } from "./helper";
 import MobileNotice from "./MobileNotice";
 
@@ -84,6 +90,9 @@ const PriceLabelsIndex: React.FC = () => {
     } else if (selectedTemplate === "template5") {
       setWidth(60);
       setHeight(42);
+    } else if (selectedTemplate === "template6") {
+      setWidth(60);
+      setHeight(30);
     }
   }, [selectedTemplate]);
 
@@ -168,7 +177,7 @@ const PriceLabelsIndex: React.FC = () => {
     setSelected((prev) =>
       prev.size === priceLabels.length
         ? new Set()
-        : new Set(priceLabels.map((_, idx) => idx))
+        : new Set(priceLabels.map((_, idx) => idx)),
     );
   };
 
@@ -287,240 +296,299 @@ const PriceLabelsIndex: React.FC = () => {
         }
       `}</style>
 
-      <AppHeader title="Price Labels" />
-      <div className="app-page tw:p-4">
+      <AppHeader
+        title="Price Labels"
+        sectionKey="profile"
+        activeTab="settings"
+        mobileLead="menu"
+      />
+      <div className="app-page page-bg tw:p-4">
         <div className="app-container">
-          <div>
-            <AppBreadcrumbs data={breadcrumbs} />
-            <div className="tw:top-15 tw:bg-white tw:z-50 tw:py-4">
-              <div className="tw:flex tw:flex-col tw:gap-4">
-                <div className="tw:bg-white tw:p-4 tw:rounded-xl tw:border tw:border-gray-200 tw:shadow-sm">
-                  <div className="tw:flex tw:items-center tw:gap-2 tw:mb-3 tw:pb-3 tw:border-b tw:border-gray-100">
-                    <div className="tw:p-1.5 tw:bg-blue-50 tw:text-blue-600 tw:rounded-lg">
-                      <Printer size={16} />
-                    </div>
-                    <span className="tw:font-semibold tw:text-gray-800">
-                      Print Settings
-                    </span>
-                  </div>
-                  <div className="tw:flex tw:items-center tw:gap-1.5 tw:mb-3 tw:text-xs tw:text-amber-700 tw:bg-amber-50 tw:border tw:border-amber-200 tw:rounded-lg tw:px-3 tw:py-2">
-                    <span>
-                      Note: If a product has no discount, a default price-only
-                      label is used instead of the selected template.
-                    </span>
-                  </div>
-                  <div className="tw:flex tw:flex-wrap tw:items-end tw:gap-4">
-                    <div className="tw:flex tw:flex-col tw:gap-1.5">
-                      <label className="tw:text-xs tw:font-medium tw:text-gray-500 tw:uppercase tw:tracking-wide">
-                        Width (mm)
-                      </label>
-                      <input
-                        type="number"
-                        value={width}
-                        onChange={(e) => setWidth(Number(e.target.value))}
-                        className="tw:w-24 tw:px-3 tw:py-2 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-gray-50 tw:text-sm tw:font-medium tw:text-gray-900 focus:tw:ring-2 focus:tw:ring-blue-500/20 focus:tw:border-blue-500 tw:transition-all outline-none"
-                      />
-                    </div>
-                    <div className="tw:flex tw:flex-col tw:gap-1.5">
-                      <label className="tw:text-xs tw:font-medium tw:text-gray-500 tw:uppercase tw:tracking-wide">
-                        Height (mm)
-                      </label>
-                      <input
-                        type="number"
-                        value={height}
-                        onChange={(e) => setHeight(Number(e.target.value))}
-                        className="tw:w-24 tw:px-3 tw:py-2 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-gray-50 tw:text-sm tw:font-medium tw:text-gray-900 focus:tw:ring-2 focus:tw:ring-blue-500/20 focus:tw:border-blue-500 tw:transition-all outline-none"
-                      />
-                    </div>
-                    <div className="tw:flex tw:flex-col tw:gap-1.5">
-                      <label className="tw:text-xs tw:font-medium tw:text-gray-500 tw:uppercase tw:tracking-wide">
-                        Gap (mm)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={gap}
-                        onChange={(e) =>
-                          setGap(Math.max(0, Number(e.target.value)))
-                        }
-                        className="tw:w-24 tw:px-3 tw:py-2 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-gray-50 tw:text-sm tw:font-medium tw:text-gray-900 focus:tw:ring-2 focus:tw:ring-blue-500/20 focus:tw:border-blue-500 tw:transition-all outline-none"
-                      />
-                    </div>
-                    <div className="tw:flex tw:flex-col tw:gap-1.5">
-                      <label className="tw:text-xs tw:font-medium tw:text-gray-500 tw:uppercase tw:tracking-wide">
-                        Template
-                      </label>
-                      <select
-                        value={selectedTemplate}
-                        onChange={(e) => setSelectedTemplate(e.target.value)}
-                        className="tw:w-32 tw:px-3 tw:py-2 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-gray-50 tw:text-sm tw:font-medium tw:text-gray-900 focus:tw:ring-2 focus:tw:ring-blue-500/20 focus:tw:border-blue-500 tw:transition-all outline-none"
-                      >
-                        <option value="template1">Template 1</option>
-                        <option value="template2">Template 2</option>
-                        <option value="template3">Template 3</option>
-                        <option value="template4">Template 4</option>
-                        <option value="template5">Template 5</option>
-                      </select>
-                    </div>
-                    <div className="tw:ml-auto">
-                      <AppButton
-                        onClick={handlePrint}
-                        disabled={selected.size === 0}
-                        className="tw:px-6"
-                      >
-                        <span className="tw:flex tw:items-center tw:gap-2">
-                          <Printer size={16} />
-                          {selected.size > 0
-                            ? `Print Selected (${selected.size})`
-                            : "Print Selected"}
-                        </span>
-                      </AppButton>
-                    </div>
-                  </div>
-                </div>
+          {/* Settings menu on mobile — theme-2 only (see theme-2.css); the
+              desktop equivalent is the side pane below. */}
+          <SectionTabs
+            tabs={settingsSectionTabs}
+            activeTab={"price-label-print"}
+            noShadow
+            sticky
+          />
 
-                <Filter onFilter={handleFilter} />
+          <div className="section-layout">
+            {/* Desktop-only left rail. Settings is a tab of the Profile
+                section, so the rail keeps listing the profile entries with
+                "Settings" highlighted; moving between the individual config
+                pages is the side pane's job. */}
+            <aside className="section-menu-aside">
+              <div className="tw:sticky tw:top-20">
+                <SectionMenu
+                  sectionKey="profile"
+                  activeTab="settings"
+                  title={"Settings"}
+                />
+              </div>
+            </aside>
+
+            <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Full span: in theme-2 desktop the pane is lifted out of the
+                    grid, so the main column owns all 12 columns. */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div>
+                    <AppBreadcrumbs data={breadcrumbs} />
+                    <div className="tw:top-15 tw:z-50 tw:py-4">
+                      <div className="tw:flex tw:flex-col tw:gap-4">
+                        <div className="tw:bg-white tw:p-4 tw:rounded-xl tw:border tw:border-gray-200 tw:shadow-sm">
+                          <div className="tw:flex tw:items-center tw:gap-2 tw:mb-3 tw:pb-3 tw:border-b tw:border-gray-100">
+                            <div className="tw:p-1.5 tw:bg-blue-50 tw:text-blue-600 tw:rounded-lg">
+                              <Printer size={16} />
+                            </div>
+                            <span className="tw:font-semibold tw:text-gray-800">
+                              Print Settings
+                            </span>
+                          </div>
+                          <div className="tw:flex tw:items-center tw:gap-1.5 tw:mb-3 tw:text-xs tw:text-amber-700 tw:bg-amber-50 tw:border tw:border-amber-200 tw:rounded-lg tw:px-3 tw:py-2">
+                            <span>
+                              Note: If a product has no discount, a default
+                              price-only label is used instead of the selected
+                              template.
+                            </span>
+                          </div>
+                          <div className="tw:flex tw:flex-wrap tw:items-end tw:gap-4">
+                            <div className="tw:flex tw:flex-col tw:gap-1.5">
+                              <label className="tw:text-xs tw:font-medium tw:text-gray-500 tw:uppercase tw:tracking-wide">
+                                Width (mm)
+                              </label>
+                              <input
+                                type="number"
+                                value={width}
+                                onChange={(e) =>
+                                  setWidth(Number(e.target.value))
+                                }
+                                className="tw:w-24 tw:px-3 tw:py-2 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-gray-50 tw:text-sm tw:font-medium tw:text-gray-900 focus:tw:ring-2 focus:tw:ring-blue-500/20 focus:tw:border-blue-500 tw:transition-all outline-none"
+                              />
+                            </div>
+                            <div className="tw:flex tw:flex-col tw:gap-1.5">
+                              <label className="tw:text-xs tw:font-medium tw:text-gray-500 tw:uppercase tw:tracking-wide">
+                                Height (mm)
+                              </label>
+                              <input
+                                type="number"
+                                value={height}
+                                onChange={(e) =>
+                                  setHeight(Number(e.target.value))
+                                }
+                                className="tw:w-24 tw:px-3 tw:py-2 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-gray-50 tw:text-sm tw:font-medium tw:text-gray-900 focus:tw:ring-2 focus:tw:ring-blue-500/20 focus:tw:border-blue-500 tw:transition-all outline-none"
+                              />
+                            </div>
+                            <div className="tw:flex tw:flex-col tw:gap-1.5">
+                              <label className="tw:text-xs tw:font-medium tw:text-gray-500 tw:uppercase tw:tracking-wide">
+                                Gap (mm)
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={gap}
+                                onChange={(e) =>
+                                  setGap(Math.max(0, Number(e.target.value)))
+                                }
+                                className="tw:w-24 tw:px-3 tw:py-2 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-gray-50 tw:text-sm tw:font-medium tw:text-gray-900 focus:tw:ring-2 focus:tw:ring-blue-500/20 focus:tw:border-blue-500 tw:transition-all outline-none"
+                              />
+                            </div>
+                            <div className="tw:flex tw:flex-col tw:gap-1.5">
+                              <label className="tw:text-xs tw:font-medium tw:text-gray-500 tw:uppercase tw:tracking-wide">
+                                Template
+                              </label>
+                              <select
+                                value={selectedTemplate}
+                                onChange={(e) =>
+                                  setSelectedTemplate(e.target.value)
+                                }
+                                className="tw:w-32 tw:px-3 tw:py-2 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-gray-50 tw:text-sm tw:font-medium tw:text-gray-900 focus:tw:ring-2 focus:tw:ring-blue-500/20 focus:tw:border-blue-500 tw:transition-all outline-none"
+                              >
+                                <option value="template1">Template 1</option>
+                                <option value="template2">Template 2</option>
+                                <option value="template3">Template 3</option>
+                                <option value="template4">Template 4</option>
+                                <option value="template5">Template 5</option>
+                                <option value="template6">Template 6</option>
+                              </select>
+                            </div>
+                            <div className="tw:ml-auto">
+                              <AppButton
+                                onClick={handlePrint}
+                                disabled={selected.size === 0}
+                                className="tw:px-6"
+                              >
+                                <span className="tw:flex tw:items-center tw:gap-2">
+                                  <Printer size={16} />
+                                  {selected.size > 0
+                                    ? `Print Selected (${selected.size})`
+                                    : "Print Selected"}
+                                </span>
+                              </AppButton>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Filter onFilter={handleFilter} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {isLoading ? (
+                    <div className="tw:flex tw:justify-center tw:items-center tw:h-64 no-print">
+                      <AppSpinner className="tw:w-10 tw:h-10" />
+                    </div>
+                  ) : priceLabels.length === 0 ? (
+                    <div className="tw:flex tw:justify-center tw:items-center tw:h-64 no-print">
+                      <div className="tw:text-gray-500">
+                        No price labels found
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="tw:flex tw:items-center tw:gap-3 tw:mb-4 no-print">
+                        <label className="tw:flex tw:items-center tw:gap-2 tw:text-sm tw:font-medium tw:text-gray-700 tw:cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={
+                              priceLabels.length > 0 &&
+                              selected.size === priceLabels.length
+                            }
+                            onChange={toggleSelectAll}
+                            className="tw:w-4 tw:h-4 tw:cursor-pointer"
+                          />
+                          Select all
+                        </label>
+                        <span className="tw:text-sm tw:text-gray-500">
+                          {selected.size} of {priceLabels.length} selected
+                        </span>
+                      </div>
+                      <div className="print-price-label-main">
+                        <div
+                          className={`price-label-container`}
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: `${gap}mm`,
+                          }}
+                        >
+                          {priceLabels.map((label, idx) => (
+                            <div
+                              key={idx}
+                              data-idx={idx}
+                              className="price-label-wrap"
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
+                              }}
+                            >
+                              <label
+                                className="no-print"
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  fontSize: "12px",
+                                  color: "#374151",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selected.has(idx)}
+                                  onChange={() => toggleSelected(idx)}
+                                  style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    cursor: "pointer",
+                                  }}
+                                />
+                                Select
+                              </label>
+                              <div
+                                onClick={() => toggleSelected(idx)}
+                                className="price-label"
+                                style={{
+                                  width: `${width}mm`,
+                                  height: `${height}mm`,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {selectedTemplate === "template1" && (
+                                  <Template1
+                                    name={label.name}
+                                    price={label.price}
+                                    mrp={label.mrp}
+                                    saving={label.saving}
+                                  />
+                                )}
+                                {selectedTemplate === "template2" && (
+                                  <Template2
+                                    name={label.name}
+                                    price={label.price}
+                                    mrp={label.mrp}
+                                    saving={label.saving}
+                                  />
+                                )}
+                                {selectedTemplate === "template3" && (
+                                  <Template3
+                                    name={label.name}
+                                    price={label.price}
+                                    mrp={label.mrp}
+                                    saving={label.saving}
+                                  />
+                                )}
+                                {selectedTemplate === "template4" && (
+                                  <Template4
+                                    name={label.name}
+                                    price={label.price}
+                                    mrp={label.mrp}
+                                    saving={label.saving}
+                                  />
+                                )}
+                                {selectedTemplate === "template5" && (
+                                  <Template5
+                                    name={label.name}
+                                    price={label.price}
+                                    mrp={label.mrp}
+                                    saving={label.saving}
+                                  />
+                                )}
+                                {selectedTemplate === "template6" && (
+                                  <Template6
+                                    name={label.name}
+                                    price={label.price}
+                                    mrp={label.mrp}
+                                    saving={label.saving}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {priceLabels.length > 0 &&
+                    priceLabels.length < records.total && (
+                      <div className="tw:flex tw:justify-center tw:mt-4 no-print">
+                        <LoadMoreButton
+                          loadMore={loadMore}
+                          loading={isLoadingMore}
+                          totalCount={records.total}
+                          loadedCount={priceLabels.length}
+                        />
+                      </div>
+                    )}
+                </AppPaneMain>
+
+                <SettingsSidePane activeKey="price-label-print" />
               </div>
             </div>
           </div>
-
-          {isLoading ? (
-            <div className="tw:flex tw:justify-center tw:items-center tw:h-64 no-print">
-              <AppSpinner className="tw:w-10 tw:h-10" />
-            </div>
-          ) : priceLabels.length === 0 ? (
-            <div className="tw:flex tw:justify-center tw:items-center tw:h-64 no-print">
-              <div className="tw:text-gray-500">No price labels found</div>
-            </div>
-          ) : (
-            <>
-              <div className="tw:flex tw:items-center tw:gap-3 tw:mb-4 no-print">
-                <label className="tw:flex tw:items-center tw:gap-2 tw:text-sm tw:font-medium tw:text-gray-700 tw:cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={
-                      priceLabels.length > 0 &&
-                      selected.size === priceLabels.length
-                    }
-                    onChange={toggleSelectAll}
-                    className="tw:w-4 tw:h-4 tw:cursor-pointer"
-                  />
-                  Select all
-                </label>
-                <span className="tw:text-sm tw:text-gray-500">
-                  {selected.size} of {priceLabels.length} selected
-                </span>
-              </div>
-              <div className="print-price-label-main">
-                <div
-                  className={`price-label-container`}
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: `${gap}mm`,
-                  }}
-                >
-                  {priceLabels.map((label, idx) => (
-                    <div
-                      key={idx}
-                      data-idx={idx}
-                      className="price-label-wrap"
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px",
-                      }}
-                    >
-                      <label
-                        className="no-print"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          fontSize: "12px",
-                          color: "#374151",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected.has(idx)}
-                          onChange={() => toggleSelected(idx)}
-                          style={{
-                            width: "16px",
-                            height: "16px",
-                            cursor: "pointer",
-                          }}
-                        />
-                        Select
-                      </label>
-                      <div
-                        onClick={() => toggleSelected(idx)}
-                        className="price-label"
-                        style={{
-                          width: `${width}mm`,
-                          height: `${height}mm`,
-                          cursor: "pointer",
-                        }}
-                      >
-                      {selectedTemplate === "template1" && (
-                        <Template1
-                          name={label.name}
-                          price={label.price}
-                          mrp={label.mrp}
-                          saving={label.saving}
-                        />
-                      )}
-                      {selectedTemplate === "template2" && (
-                        <Template2
-                          name={label.name}
-                          price={label.price}
-                          mrp={label.mrp}
-                          saving={label.saving}
-                        />
-                      )}
-                      {selectedTemplate === "template3" && (
-                        <Template3
-                          name={label.name}
-                          price={label.price}
-                          mrp={label.mrp}
-                          saving={label.saving}
-                        />
-                      )}
-                      {selectedTemplate === "template4" && (
-                        <Template4
-                          name={label.name}
-                          price={label.price}
-                          mrp={label.mrp}
-                          saving={label.saving}
-                        />
-                      )}
-                      {selectedTemplate === "template5" && (
-                        <Template5
-                          name={label.name}
-                          price={label.price}
-                          mrp={label.mrp}
-                          saving={label.saving}
-                        />
-                      )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {priceLabels.length > 0 && priceLabels.length < records.total && (
-            <div className="tw:flex tw:justify-center tw:mt-4 no-print">
-              <LoadMoreButton
-                loadMore={loadMore}
-                loading={isLoadingMore}
-                totalCount={records.total}
-                loadedCount={priceLabels.length}
-              />
-            </div>
-          )}
         </div>
       </div>
     </>

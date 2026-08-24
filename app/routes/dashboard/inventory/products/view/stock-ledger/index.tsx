@@ -1,23 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
-import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 
-import useScreenView from "~/hooks/useScreenView";
 import InventoryProductAuditTab from "../components/inventory-audit-tab/InventoryAuditTab";
 import Filter from "./components/Filter";
 import MobileView from "./components/MobileView";
-import Table from "./components/Table";
 import { getCount, getData, prepareParams } from "./helper";
-import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
-import type { ViewToggleType } from "~/types/CommonTypes";
 import CommonService from "~/services/CommonService";
 import ViewStockLedgerModal from "~/shared/catalog/modals/view-stock-ledger/ViewStockLedgerModal";
 
 const StockLedger = () => {
   const { id } = useParams();
-  const { isMobile } = useScreenView();
   const { t } = useTranslation(["common"]);
 
   const [data, setData] = useState<any[]>([]);
@@ -26,7 +20,6 @@ const StockLedger = () => {
   const [hasMoreData, setHasMoreData] = useState(true);
   const [loadingTotalRecords, setLoadingTotalRecords] = useState(false);
 
-  const [view, setView] = useState<ViewToggleType>("list");
   const [showLedgerModal, setShowLedgerModal] = useState(false);
   const [selectedLedgerId, setSelectedLedgerId] = useState("");
   // State and refs for filter, pagination, and data
@@ -58,7 +51,7 @@ const StockLedger = () => {
       const response = await getData(params);
       setData(response.data || []);
       setHasMoreData(
-        (response.data || []).length >= paginationRef.current.rowsPerPage
+        (response.data || []).length >= paginationRef.current.rowsPerPage,
       );
     } catch (error) {
       setData([]);
@@ -93,7 +86,7 @@ const StockLedger = () => {
         const response = await getData(params);
         setData((prev) => [...prev, ...(response.data || [])]);
         setHasMoreData(
-          (response.data || []).length >= paginationRef.current.rowsPerPage
+          (response.data || []).length >= paginationRef.current.rowsPerPage,
         );
       } catch (error) {
         // handle error
@@ -101,7 +94,7 @@ const StockLedger = () => {
         setLoadingMore(false);
       }
     },
-    [loadingMore, hasMoreData]
+    [loadingMore, hasMoreData],
   );
 
   const filterCallback = (a: { action: string; formData: any }) => {
@@ -139,34 +132,19 @@ const StockLedger = () => {
               fwSize="sm"
             />
           </div>
-          <ViewToggle viewType={view} callback={setView} />
         </div>
       </div>
-      {isMobile || view === "card" ? (
-        <MobileView
-          data={data}
-          loading={loading}
-          showLoadMore={hasMoreData && !loading}
-          loadingMore={loadingMore}
-          loadMore={loadMore}
-          totalCount={paginationRef.current.totalRecords}
-          loadedCount={data.length}
-          onView={onViewLedger}
-        />
-      ) : (
-        <AppCard noPadding>
-          <Table
-            data={data}
-            loading={loading}
-            showLoadMore={hasMoreData && !loading}
-            loadingMore={loadingMore}
-            loadMore={loadMore}
-            totalCount={paginationRef.current.totalRecords}
-            loadedCount={data.length}
-            onView={onViewLedger}
-          />
-        </AppCard>
-      )}
+
+      <MobileView
+        data={data}
+        loading={loading}
+        showLoadMore={hasMoreData && !loading}
+        loadingMore={loadingMore}
+        loadMore={loadMore}
+        totalCount={paginationRef.current.totalRecords}
+        loadedCount={data.length}
+        onView={onViewLedger}
+      />
 
       <ViewStockLedgerModal
         show={showLedgerModal}

@@ -1,64 +1,73 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
-import useAppNav from "~/hooks/useAppNav";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import type {
   BreadcrumbItem,
   PaginationState,
   ViewToggleType,
 } from "~/types/CommonTypes";
 import Filter from "./components/Filter";
-// Summary component removed
-import { ArrowRight, ScanLine } from "lucide-react";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import PoListTabs from "../components/tabs/PoListTabs";
 import DesktopView from "./components/DesktopView";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 
-import { getCount, getData, prepareFilterParams } from "./helper";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import PoScanBanners from "~/shared/purchase-order/components/PoScanBanners";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
+
+import {
+  getCount,
+  getData,
+  prepareFilterParams,
+  prepareFilterQueryParams,
+} from "./helper";
 
 import CommonService from "~/services/CommonService";
 import PageAccessService from "~/services/PageAccessService";
-import ReceiveBoxModal from "~/shared/orders/receive-box/modals/receive-box/ReceiveBoxModal";
 import ViewBoxItemsModal from "~/shared/orders/receive-box/modals/view-box-items/ViewBoxItems";
 import PageHeader from "~/shared/page-header/PageHeader";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import PoSectionTabs from "~/shared/purchase-order/components/PoSectionTabs";
 import CreatePoFab from "~/shared/purchase-order/components/CreatePoFab";
 import PoActionButtons from "~/shared/purchase-order/components/PoActionButtons";
 import MobileView from "./components/MobileView";
+import MobileViewTheme2 from "./components/MobileViewTheme2";
 import { useSearchParams } from "react-router";
+import { ScanLine } from "lucide-react";
+import useAppNav from "~/hooks/useAppNav";
 import { FormProvider, useForm } from "react-hook-form";
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage(["PURCHASE-ORDER.PO-VIEW-ORDERS"]);
 }
 
+/**
+ * Feed filter. The status bucket is not part of it — this page is waiting-only
+ * (see `prepareFilterParams`), so search is the only user-facing filter left.
+ */
 interface FilterState {
   search?: string;
-  dateRange?: Date[] | null;
-  status?: string;
   feature?: string;
   purchasedFrom?: string;
 }
 
 const defaultFilter: FilterState = {
   search: "",
-  dateRange: null,
-  status: "",
   feature: "purchase",
   purchasedFrom: "All",
 };
 
 const NotReceivedPo = () => {
   const { t } = useTranslation(["common", "menu"]);
-  const appNav = useAppNav();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
+  const appNav = useAppNav();
 
   const formMethods = useForm<FilterState>({
     defaultValues: {
@@ -67,7 +76,7 @@ const NotReceivedPo = () => {
   });
 
   const [busyLoader, setBusyLoader] = useState<{ show: boolean; msg?: string }>(
-    { show: false, msg: "" }
+    { show: false, msg: "" },
   );
 
   const [view, setView] = useState<ViewToggleType>("list");
@@ -93,14 +102,6 @@ const NotReceivedPo = () => {
     value: "desc",
   });
 
-  const [receivePackageModal, setReceivePackageModal] = useState<{
-    show: boolean;
-    data: { orderId?: string; boxNo?: string; boxIndex?: number } | null;
-  }>({
-    show: false,
-    data: null,
-  });
-
   const [viewBoxItemsModal, setViewBoxItemsModal] = useState<{
     show: boolean;
     boxId?: string | null;
@@ -123,7 +124,7 @@ const NotReceivedPo = () => {
       const params = prepareFilterParams(
         filterRef.current,
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
       const ordersData = await getData(params);
 
@@ -133,7 +134,7 @@ const NotReceivedPo = () => {
       const currentStart = paginationRef.current.startSlNo;
       const currentEnd = Math.min(
         currentStart + ordersData.length - 1,
-        paginationRef.current.totalRecords
+        paginationRef.current.totalRecords,
       );
       paginationRef.current.endSlNo = currentEnd;
     } catch (error) {
@@ -158,7 +159,7 @@ const NotReceivedPo = () => {
       const params = prepareFilterParams(
         filterRef.current,
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
       const ordersData = await getData(params);
 
@@ -167,7 +168,7 @@ const NotReceivedPo = () => {
 
       const newEnd = Math.min(
         paginationRef.current.endSlNo + ordersData.length,
-        paginationRef.current.totalRecords
+        paginationRef.current.totalRecords,
       );
       paginationRef.current.endSlNo = newEnd;
     } catch (error) {
@@ -190,12 +191,13 @@ const NotReceivedPo = () => {
     setLoadingTotalRecords(true);
     setOrders([]);
 
+    const params = prepareFilterParams(
+      filterRef.current,
+      paginationRef.current,
+      sortRef.current,
+    );
+
     try {
-      const params = prepareFilterParams(
-        filterRef.current,
-        paginationRef.current,
-        sortRef.current
-      );
       const totalRecords = await getCount(params);
       paginationRef.current.totalRecords = totalRecords;
     } finally {
@@ -206,34 +208,37 @@ const NotReceivedPo = () => {
     await loadList();
   }, [loadList]);
 
+  // Filter changes are not applied directly — they are written to the URL and
+  // the searchParams effect below reloads the feed. Keeps the filter state
+  // shareable/back-navigable and gives a single load path.
   const handleFilterChange = useCallback(
     (filterData: Partial<FilterState>) => {
-      filterRef.current = { ...filterRef.current, ...filterData };
-      applyFilter();
+      setSearchParams(
+        prepareFilterQueryParams({ ...filterRef.current, ...filterData }),
+      );
     },
-    [applyFilter]
+    [setSearchParams],
   );
 
-  // Callback to handle actions coming from Desktop/Mobile view
+  const handleReceived = useCallback(
+    (index: number) => {
+      // Immediately update local state to remove the received box by index
+      if (index >= 0) {
+        setOrders((prevOrders) => prevOrders.filter((_, i) => i !== index));
+      }
+      // Then reload from server to ensure consistency
+      applyFilter();
+    },
+    [applyFilter],
+  );
+
+  // Callback to handle actions coming from Desktop/Mobile view. Receiving
+  // itself is owned by the shared ReceiveBoxFlow those views wrap their button
+  // in; they only report back once a package is actually received.
   const handleRowAction = useCallback(
     async (a: { action: string; data: any; index?: number }) => {
-      if (a.action === "receive") {
-        // If package belongs to SK, open SK receive modal. Otherwise
-        // redirect to the purchase-order process page for non-SK flow.
-        if (!a.data?.isNonSkVendor) {
-          setReceivePackageModal({
-            show: true,
-            data: {
-              orderId: a.data?.orderIdToProcess || "",
-              boxNo: a.data?.refNo || "",
-              boxIndex: a.index,
-            },
-          });
-        } else {
-          appNav.to(
-            `/dashboard/purchase-order/process/${a.data?.orderData?.id}`
-          );
-        }
+      if (a.action === "received") {
+        handleReceived(a.index ?? -1);
       } else if (a.action === "view-items") {
         // Explicitly open box items modal when user taps the view (Eye) button
         setViewBoxItemsModal({
@@ -242,188 +247,193 @@ const NotReceivedPo = () => {
         });
       }
     },
-    [appNav]
+    [handleReceived],
   );
 
-  const handleReceivePackageModalCallback = useCallback(
-    (a: { action: string; data?: any }) => {
-      const boxIndex = receivePackageModal.data?.boxIndex;
-      setReceivePackageModal({ show: false, data: null });
-
-      if (a?.action === "success" || a?.action === "received") {
-        // Immediately update local state to remove the received box by index
-        if (boxIndex !== undefined && boxIndex >= 0) {
-          setOrders((prevOrders) =>
-            prevOrders.filter((_, index) => index !== boxIndex)
-          );
-        }
-        // Then reload from server to ensure consistency
-        applyFilter();
-      }
-    },
-    [applyFilter, receivePackageModal.data?.boxIndex]
-  );
-
+  // Single load path: the URL owns the filter state. Any change (search, date
+  // range, status chip) rewrites the query params, which lands back here.
   useEffect(() => {
-    const qp: any = {};
-    const dateFrom = searchParams.get("dateFrom");
-    const dateTo = searchParams.get("dateTo");
+    const filter: FilterState = {
+      ...defaultFilter,
+      search: searchParams.get("search") || defaultFilter.search,
+      purchasedFrom:
+        searchParams.get("purchasedFrom") || defaultFilter.purchasedFrom,
+    };
 
-    if (dateFrom && dateTo) {
-      qp.dateRange = [new Date(dateFrom), new Date(dateTo)];
-    }
+    filterRef.current = filter;
 
-    const search = searchParams.get("search");
-    if (search) {
-      qp.search = search;
-    }
-
-    filterRef.current = { ...defaultFilter, ...qp, status: "yetToReceive" };
-
-    formMethods.setValue("dateRange", qp.dateRange || []);
-    formMethods.setValue("search", qp.search || "");
+    formMethods.setValue("search", filter.search || "");
+    formMethods.setValue("purchasedFrom", filter.purchasedFrom);
 
     applyFilter();
-  }, [searchParams, formMethods]);
+  }, [searchParams, formMethods, applyFilter]);
 
   return (
     <>
       <AppHeader
-        title={t("purchaseOrders")}
+        sectionKey="supply"
+        activeTab="receive-stock"
+        mobileLead="menu"
+        title={isTheme2 ? "Inward" : t("purchaseOrders")}
+        subtitle={
+          isTheme2 && !loadingTotalRecords
+            ? `${paginationRef.current.totalRecords} waiting · scan to receive`
+            : undefined
+        }
         showAudioNote={true}
         audioNoteTitle={t("purchaseOrders")}
         audioFeature="po"
+        renderActions={
+          <button
+            type="button"
+            onClick={() => appNav.to("/dashboard/purchase-order/box-receive")}
+            title="Scan box"
+            aria-label="Scan box"
+            className="tw:inline-flex tw:size-11 tw:-mr-1 tw:items-center tw:justify-center tw:rounded-full tw:cursor-pointer tw:bg-white/15! tw:hover:bg-white/25!"
+          >
+            <ScanLine className="tw:size-7" />
+          </button>
+        }
       />
-      <div className="page-padding page-bg app-page has-footer theme-2-no-footer">
-        <div className="app-container">
-          {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css).
-              `sticky` pins them under the header and breaks out of the page
-              padding so the underline runs edge to edge. */}
-          <SectionTabs
-            sectionKey="supply"
-            activeTab="purchase-orders"
-            noShadow
-            sticky
-          />
+      <div className="page-bg app-page tw:p-4">
+        {/* PO tab bar — theme-2 mobile only (see theme-2.css). */}
+        <PoSectionTabs activeTab="boxes" outerClassName="tw:mb-3" />
 
-          <div className="section-layout">
-            {/* Desktop-only left rail — section side menu. */}
-            <aside className="section-menu-aside">
-              <div className="tw:sticky tw:top-20">
-                <SectionMenu
-                  sectionKey="supply"
-                  activeTab="purchase-orders"
-                  title={t("manageSupply", { ns: "menu" })}
-                />
-              </div>
-            </aside>
-
-            <div className="section-content">
-          <div className="theme-2-mobile-hide tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2 tw:mb-4">
-            <PageHeader
-              breadcrumbs={defaultBreadcrumbs}
-              title={t("yetToReceive")}
-              description="purchaseOrder.yetToReceive"
-            />
-            <PoActionButtons />
-          </div>
-
-          <PoListTabs activeTab="receive-orders" className="tw:mb-4" />
-
-          {/* Summary removed */}
-
-          <div>
-            <FormProvider {...formMethods}>
-              <Filter
-                onFilterChange={handleFilterChange}
-                feature={filterRef.current.feature || "purchase"}
-                className="tw:mb-4"
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="supply"
+                activeTab="receive-stock"
+                title={t("manageSupply", { ns: "menu" })}
               />
-            </FormProvider>
-            <div className="tw:flex tw:justify-between tw:items-end tw:mb-3">
-              <div>
-                <PaginationSummary
-                  paginationConfig={paginationRef.current}
-                  loadingTotalRecords={loadingTotalRecords}
-                  fwSize="sm"
-                  loadedCount={orders.length}
-                />
-              </div>
-              <ViewToggle viewType={view} callback={setView} />
             </div>
-          </div>
+          </aside>
 
-          {orders.length === 0 && !loading ? (
-            <AppCard>
-              <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:py-12 tw:text-gray-500">
-                <div>{t("noPurchaseOrdersFound")}</div>
-                <div className="tw:text-xs tw:mt-1">
-                  {t("tryAdjustingFilters")}
+          <div className="section-content">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+              {/* Main feed column — spans the full grid in theme-2 desktop
+                    because the side pane is lifted into the fixed rail panel. */}
+              <AppPaneMain className="tw:lg:col-span-12 tw:space-y-0">
+                {/* Hidden in theme-2 at every breakpoint — the app header
+                    already shows "Inward", so this would be a second copy of
+                    the same title on the page. */}
+                <div className="theme-2-hide tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2 tw:mb-4">
+                  <PageHeader
+                    breadcrumbs={defaultBreadcrumbs}
+                    title={t("yetToReceive")}
+                    description="purchaseOrder.yetToReceive"
+                  />
+                  {!isTheme2 && <PoActionButtons />}
                 </div>
-              </div>
-            </AppCard>
-          ) : isMobile || view == "card" ? (
-            <>
-              <MobileView
-                data={orders}
-                callback={handleRowAction}
-                loading={loading}
-                showLoadMore={hasMoreData}
-                loadMore={loadMore}
-                loadingMore={loadingMore}
-                totalCount={paginationRef.current.totalRecords}
-              />
-            </>
-          ) : (
-            <AppCard noPadding>
-              <DesktopView
-                data={orders}
-                callback={handleRowAction}
-                tab={"receive-orders"}
-                sortKey={sortRef.current.key}
-                sortValue={sortRef.current.value || "desc"}
-                sortCb={() => {}}
-                loading={loading}
-                showLoadMore={hasMoreData}
-                loadingMore={loadingMore}
-                loadMore={loadMore}
-                totalCount={paginationRef.current.totalRecords}
-              />
-            </AppCard>
-          )}
+
+                {!isTheme2 && (
+                  <PoListTabs activeTab="receive-orders" className="tw:mb-4" />
+                )}
+
+                {/* Scan banners — box scan + AI invoice scan, side by side.
+                  Desktop only: on mobile they push the feed below the fold, and
+                  in the theme-2 desktop split pane the same banners move into
+                  the fixed side pane. */}
+                {!isMobile && (
+                  <PoScanBanners className="app-pane-hide tw:mb-4" />
+                )}
+
+                <div>
+                  <FormProvider {...formMethods}>
+                    <Filter
+                      onFilterChange={handleFilterChange}
+                      feature={filterRef.current.feature || "purchase"}
+                      className="tw:mb-4"
+                    />
+                  </FormProvider>
+                  <div className="tw:flex tw:justify-between tw:items-end tw:mb-3">
+                    <div>
+                      <PaginationSummary
+                        paginationConfig={paginationRef.current}
+                        loadingTotalRecords={loadingTotalRecords}
+                        fwSize="sm"
+                        loadedCount={orders.length}
+                      />
+                    </div>
+                    <ViewToggle viewType={view} callback={setView} />
+                  </div>
+                </div>
+
+                {orders.length === 0 && !loading ? (
+                  <AppCard>
+                    <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:py-12 tw:text-gray-500">
+                      <div>{t("noPurchaseOrdersFound")}</div>
+                      <div className="tw:text-xs tw:mt-1">
+                        {t("tryAdjustingFilters")}
+                      </div>
+                    </div>
+                  </AppCard>
+                ) : isMobile || view == "card" ? (
+                  <>
+                    {isTheme2 ? (
+                      <MobileViewTheme2
+                        data={orders}
+                        callback={handleRowAction}
+                        loading={loading}
+                        showLoadMore={hasMoreData}
+                        loadMore={loadMore}
+                        loadingMore={loadingMore}
+                        totalCount={paginationRef.current.totalRecords}
+                      />
+                    ) : (
+                      <MobileView
+                        data={orders}
+                        callback={handleRowAction}
+                        loading={loading}
+                        showLoadMore={hasMoreData}
+                        loadMore={loadMore}
+                        loadingMore={loadingMore}
+                        totalCount={paginationRef.current.totalRecords}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <AppCard noPadding>
+                    <DesktopView
+                      data={orders}
+                      callback={handleRowAction}
+                      tab={"receive-orders"}
+                      sortKey={sortRef.current.key}
+                      sortValue={sortRef.current.value || "desc"}
+                      sortCb={() => {}}
+                      loading={loading}
+                      showLoadMore={hasMoreData}
+                      loadingMore={loadingMore}
+                      loadMore={loadMore}
+                      totalCount={paginationRef.current.totalRecords}
+                    />
+                  </AppCard>
+                )}
+              </AppPaneMain>
+
+              {/* Side pane — only active in theme-2 desktop, where it is
+                    re-homed as the fixed quick-action panel beside the rail. */}
+              <AppPaneSide className="app-pane-only">
+                <PurchaseOrderSidePane />
+              </AppPaneSide>
             </div>
           </div>
         </div>
       </div>
-      <footer className="app-footer theme-2-mobile-hide">
-        <div className="tw:md:text-end">
-          <AppButton
-            color="primary"
-            onClick={() => appNav.to("/dashboard/purchase-order/box-receive")}
-            className="tw:font-semibold tw:w-full tw:md:w-auto"
-          >
-            <ScanLine size={16} />
-            {t("scanBox")}
-            <ArrowRight className="tw:ml-1" size={16} />
-          </AppButton>
-        </div>
-      </footer>
-
       <CreatePoFab />
-
-      <ReceiveBoxModal
-        show={receivePackageModal.show}
-        callback={handleReceivePackageModalCallback}
-        orderId={receivePackageModal.data?.orderId || ""}
-        boxNo={receivePackageModal.data?.boxNo || ""}
-      />
 
       <ViewBoxItemsModal
         show={viewBoxItemsModal.show}
         callback={(a: { action: string; data?: any }) => {
           setViewBoxItemsModal({ show: false, boxId: null });
+          // Inwarded from inside the details modal — drop it from the waiting
+          // feed the same way a row-level receive does.
+          if (a.action === "received") handleReceived(-1);
         }}
         boxId={viewBoxItemsModal.boxId}
+        allowReceive
       />
 
       <BusyLoader show={busyLoader.show} message={busyLoader.msg} />
@@ -437,7 +447,7 @@ export function meta() {
   return [
     {
       title: CommonService.prepareAppDocumentTitle(
-        "Purchase Orders - Yet to Receive"
+        "Purchase Orders - Yet to Receive",
       ),
     },
   ];

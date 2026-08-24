@@ -1,25 +1,37 @@
-import { Download } from "lucide-react";
+import { Download, FilterIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
-import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AppButton from "~/components/core/button/AppButton";
+import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AppCard from "~/components/core/card/AppCard";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
+import AppTab from "~/components/core/tab/AppTab";
+import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import AccountService from "~/services/AccountService";
 import CommonService from "~/services/CommonService";
 import RecordPaymentViewModal from "~/shared/accounts/modals/record-payment/view/RecordPaymentViewModal";
-import type { PaginationState } from "~/types/CommonTypes";
+import type { PaginationState, TabItem } from "~/types/CommonTypes";
 import AppliedFilters from "./components/AppliedFilters";
 import BalanceDisplay from "./components/BalanceDisplay";
+import ChatView from "./components/ChatView";
 import DesktopView from "./components/DesktopView";
 import Filter from "./components/Filter";
 import MobileView from "./components/MobileView";
+import MoneyFlow from "./components/money-flow/MoneyFlow";
+import NetCash from "./components/net-cash/NetCash";
+import PnlOverview from "./components/PnlOverview";
 import SummaryOverview from "./components/SummaryOverview";
+import ThreePipes from "./components/three-pipes/ThreePipes";
+import TopParties from "./components/top-parties/TopParties";
+import UpcomingDues from "./components/upcoming-dues/UpcomingDues";
+import FilterModal from "./modals/FilterModal";
 import {
   defaultFilter,
   getCount,
@@ -27,6 +39,8 @@ import {
   getSummaryData,
   baseSummaryData,
   prepareParams,
+  prepareFilterQueryParams,
+  type FilterFormData,
 } from "./helper";
 
 const defaultPagination: PaginationState = {
@@ -37,15 +51,35 @@ const defaultPagination: PaginationState = {
   totalRecords: 0,
 };
 
+type ViewMode = "summary" | "details";
+
+const viewTabs: TabItem[] = [
+  { key: "summary", name: "Summary", langKey: "summary", icon: "layout-grid" },
+  { key: "details", name: "Details", langKey: "details", icon: "list" },
+];
+
 const OverallStatement = () => {
   const appToast = useAppToast();
+  const appNav = useAppNav();
   const { t } = useTranslation();
   const { isMobile } = useScreenView();
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
   const formMethods = useForm({
     defaultValues: defaultFilter,
   });
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [viewMode, setViewMode] = useState<ViewMode>("summary");
+
+  const [filterModal, setFilterModal] = useState<{
+    show: boolean;
+    data: Record<string, any>;
+  }>({
+    show: false,
+    data: {},
+  });
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,6 +97,13 @@ const OverallStatement = () => {
     show: false,
     message: "",
   });
+
+  /* Theme-2 collapses this page's toolbar row into the accounts header row:
+     the only actions left are Deposit Money (owned by the layout) and Download,
+     which we portal up into the layout's action slot. */
+  const [headerActionSlot, setHeaderActionSlot] = useState<HTMLElement | null>(
+    null,
+  );
 
   const [recordPaymentViewModal, setRecordPaymentViewModal] = useState<{
     show: boolean;
@@ -180,6 +221,11 @@ const OverallStatement = () => {
     applyFilter();
   }, [searchParams, formMethods, applyFilter]);
 
+  useEffect(() => {
+    if (!isTheme2) return;
+    setHeaderActionSlot(document.getElementById("accounts-header-actions"));
+  }, [isTheme2]);
+
   const handleDownload = useCallback(async () => {
     setBusyloader({ show: true, message: "Downloading data..." });
     const filterData = formMethods.getValues();
@@ -204,6 +250,40 @@ const OverallStatement = () => {
     setBusyloader({ show: false, message: "" });
   }, [formMethods, appToast]);
 
+  const handleFilterChange = useCallback(() => {
+    const formData = formMethods.getValues();
+    const params: Record<string, any> = prepareFilterQueryParams(
+      formData as FilterFormData,
+    );
+
+    // Preserve existing URL parameters that should not be removed
+    const tab = searchParams.get("tab");
+    if (tab) {
+      params.tab = tab;
+    }
+    params.dateFrom = searchParams.get("dateFrom");
+    params.dateTo = searchParams.get("dateTo");
+
+    setSearchParams(params);
+  }, [formMethods, searchParams, setSearchParams]);
+
+  const openFilterModal = useCallback(() => {
+    setFilterModal({ show: true, data: formMethods.getValues() });
+  }, [formMethods]);
+
+  const handleFilterModalCallback = useCallback(
+    (result: { action: string; data?: any }) => {
+      if (result.action === "apply" || result.action === "reset") {
+        formMethods.setValue("dateRange", result.data.dateRange);
+        formMethods.setValue("type", result.data.type);
+        formMethods.setValue("sourceType", result.data.sourceType);
+        handleFilterChange();
+      }
+      setFilterModal({ show: false, data: defaultFilter });
+    },
+    [formMethods, handleFilterChange],
+  );
+
   const handleItemCallback = (payload: { action: string; data?: any }) => {
     if (
       payload.action === "viewPayment" &&
@@ -217,76 +297,154 @@ const OverallStatement = () => {
     setRecordPaymentViewModal({ show: false, data: null });
   };
 
+  const downloadButton = (
+    <AppButton
+      fill="outline"
+      color="light"
+      size="small"
+      className="statement-toolbar-btn"
+      onClick={handleDownload}
+    >
+      <Download size={16} />
+      <span className="tw:hidden tw:md:inline">{t("download")}</span>
+    </AppButton>
+  );
+
   return (
     <>
-      <div className="tw:text-xs tw:text-gray-500 tw:mb-2">
-        {t("overallStatementDetails.consolidatedFinancialStatementSubtitle")}
-      </div>
-      <BalanceDisplay opening={openingBalance} closing={closingBalance} />
+      {isTheme2 ? (
+        // Only Download survives here — it rides beside Deposit Money in the
+        // accounts header row. Subtitle, view tabs and filter are dropped.
+        headerActionSlot && createPortal(downloadButton, headerActionSlot)
+      ) : (
+        <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-x-4 tw:gap-y-2 tw:mb-3">
+          <p className="overall-statement-subtitle hide-in-theme-2 tw:text-xs tw:text-gray-500 tw:leading-relaxed">
+            {t("overallStatementDetails.consolidatedFinancialStatementSubtitle")}
+          </p>
 
-      <SummaryOverview summaryData={summaryData} />
+          <div className="tw:flex tw:flex-1 tw:items-center tw:justify-between tw:gap-2">
+            <AppTab
+              tabs={viewTabs}
+              activeTab={viewMode}
+              onTabChange={(tab) => setViewMode(tab.key as ViewMode)}
+              compact
+            />
 
-      {/* <Categories fromDate={fromDate} toDate={toDate} /> */}
-
-      <FormProvider {...formMethods}>
-        <Filter />
-        <AppliedFilters />
-      </FormProvider>
-
-      <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:mb-4">
-        <div>
-          <PaginationSummary
-            paginationConfig={paginationRef.current}
-            loadingTotalRecords={loading}
-            loadedCount={data.length}
-            fwSize="sm"
-          />
-        </div>
-        <div>
-          <AppButton
-            size="small"
-            color="light"
-            fill="outline"
-            onClick={handleDownload}
-          >
-            <Download />
-            <span className="tw:hidden tw:md:inline">{t("download")}</span>
-          </AppButton>
-        </div>
-      </div>
-
-      {isMobile ? (
-        <>
-          <MobileView
-            data={data}
-            loading={loading}
-            callback={handleItemCallback}
-          />
-          {hasMoreData && !loading && (
-            <div className="tw:text-center tw:mt-4">
-              <LoadMoreButton
-                loadMore={loadMore}
-                loading={loadingMore}
-                totalCount={paginationRef.current.totalRecords}
-                loadedCount={data.length}
-              />
+            {/* Filter/download actions sit on the tab row in both views. */}
+            <div className="tw:flex tw:items-center tw:gap-2">
+              <AppButton
+                fill="outline"
+                color="light"
+                size="small"
+                className="statement-toolbar-btn"
+                onClick={openFilterModal}
+              >
+                <FilterIcon size={16} />
+              </AppButton>
+              {downloadButton}
             </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode === "summary" ? (
+        <>
+          <FormProvider {...formMethods}>
+            <div className="tw:mb-3 statement-toolbar">
+              <AppliedFilters />
+            </div>
+          </FormProvider>
+
+          {isTheme2 ? (
+            /* Theme-2 gets the cash-flow overview: one headline number, the
+               in/out/waiting split, the three lanes money moves through, the
+               top counter-parties and what falls due next. */
+            <>
+              <NetCash />
+              <MoneyFlow />
+              <ThreePipes />
+              <TopParties />
+              <UpcomingDues />
+            </>
+          ) : (
+            <>
+              <BalanceDisplay
+                opening={openingBalance}
+                closing={closingBalance}
+              />
+              <PnlOverview />
+              <SummaryOverview summaryData={summaryData} />
+            </>
           )}
         </>
       ) : (
-        <AppCard noPadding>
-          <DesktopView
-            data={data}
-            loading={loading}
-            loadMore={loadMore}
-            loadingMore={loadingMore}
-            totalCount={paginationRef.current.totalRecords}
-            loadedCount={data.length}
-            hasMoreData={hasMoreData}
-            callback={handleItemCallback}
-          />
-        </AppCard>
+        <>
+          <FormProvider {...formMethods}>
+            <div className="tw:mb-3 tw:space-y-2 statement-toolbar">
+              <Filter onFilterChange={handleFilterChange} />
+              <AppliedFilters />
+            </div>
+          </FormProvider>
+
+          <div className="tw:hidden tw:md:flex tw:items-center tw:justify-between tw:gap-2 tw:mb-3">
+            <div>
+              <PaginationSummary
+                paginationConfig={paginationRef.current}
+                loadingTotalRecords={loading}
+                loadedCount={data.length}
+                fwSize="sm"
+              />
+            </div>
+          </div>
+
+          {isMobile ? (
+            <>
+              {isTheme2 ? (
+                <ChatView
+                  data={data}
+                  loading={loading}
+                  callback={handleItemCallback}
+                />
+              ) : (
+                <MobileView
+                  data={data}
+                  loading={loading}
+                  callback={handleItemCallback}
+                />
+              )}
+              {hasMoreData && !loading && (
+                <div className="tw:text-center tw:mt-4">
+                  <LoadMoreButton
+                    loadMore={loadMore}
+                    loading={loadingMore}
+                    totalCount={paginationRef.current.totalRecords}
+                    loadedCount={data.length}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <AppCard noPadding>
+              <DesktopView
+                data={data}
+                loading={loading}
+                loadMore={loadMore}
+                loadingMore={loadingMore}
+                totalCount={paginationRef.current.totalRecords}
+                loadedCount={data.length}
+                hasMoreData={hasMoreData}
+                callback={handleItemCallback}
+              />
+            </AppCard>
+          )}
+        </>
       )}
+
+      <FilterModal
+        show={filterModal.show}
+        callback={handleFilterModalCallback}
+        data={filterModal.data}
+      />
 
       <BusyLoader show={busyloader.show} message={busyloader.message} />
 

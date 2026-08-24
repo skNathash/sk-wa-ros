@@ -18,9 +18,60 @@
 @import "tw-animate-css";
 
 @import "./styles/signup.css";
+@import "./styles/expense.css";
+@import "./styles/subscribe-add-methods.css";
 @import "./styles/theme-1.css";
 @import "./styles/theme-2.css";
+/* POS billing route styling — split out of theme-2.css, and imported after it
+   so it keeps winning ties at equal specificity. */
+@import "./styles/pos-billing.css";
+/* POS checkout route styling — same rationale as pos-billing.css above. */
+@import "./styles/pos-checkout.css";
+
+/* Barcode scan accent seam — imported after the themes so its `[data-theme]`
+   overrides sit last at equal specificity. */
+@import "./styles/barcode-scan.css";
+
+/* Home dashboard styling — scoped under `.app-home`, imported after the themes
+   for the same reason as the POS files above. */
+@import "./styles/dashboard-home.css";
+
+/* Bright Store journey map — scoped under `.app-journey`, same rationale as
+   dashboard-home.css above. */
+@import "./styles/dashboard-journey.css";
+
+/* Module directory — scoped under `.app-modules`, same rationale as
+   dashboard-home.css above. */
+@import "./styles/dashboard-modules.css";
+
+@import "./styles/order-process.css";
+@import "./styles/order-view.css";
+@import "./styles/order-detail.css";
 @import "./styles/page-bg.css";
+
+/* Runner app home hero — scoped under `.runner-hero`, same rationale as
+   dashboard-home.css above. */
+@import "./styles/runner-home.css";
+@import "./styles/runner-shell.css";
+
+/* Runner app job list — scoped under `.runner-jobs-*` / `.runner-active-*`. */
+@import "./styles/runner-jobs.css";
+
+/* Runner app earnings — scoped under `.runner-earn-*` / `.runner-chart-*`. */
+@import "./styles/runner-earnings.css";
+
+/* Runner app chats — scoped under `.runner-chat-*`. */
+@import "./styles/runner-chats.css";
+
+/* Runner app profile — scoped under `.runner-profile-*` / `.runner-review-*`. */
+@import "./styles/runner-profile.css";
+
+/* Auth shell. Kept in the root bundle rather than imported from the route
+   modules: those are lazy chunks, so their CSS only landed after the markup
+   had already painted (visible as a flash of unstyled login when navigating
+   back from signup). Both files are scoped under .login-page / .sk-*. */
+@import "./routes/auth/login/Login.css";
+@import "./routes/auth/forgot-password/ForgotPassword.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -48,6 +99,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-dark: color-mix(in srgb, var(--primary) 82%, black);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -114,6 +166,15 @@
   }
   body {
     @apply tw:bg-background tw:text-foreground;
+  }
+  /* Buttons read as clickable by default; disabled ones opt back out. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
   }
 }
 
@@ -265,13 +326,16 @@ ion-searchbar.custom-searchbar {
 }
 
 .app-page {
-  /* `.app-page` sits in normal flow between two sticky bars that also occupy
-     flow space: the app header (h-15 = 3.75rem) above and the bottom tab
-     (h-16 = 4rem) below. A bare 100vh made the column `100vh + 3.75rem + 4rem`,
-     forcing a scrollbar even when content fit. Subtract both bars so a short
-     page fills exactly one viewport with no overflow. The extra 2px covers the
-     1px border-b on the header and 1px border-t on the bottom tab. */
+  /* Sits in normal flow between two sticky bars that also occupy flow space:
+     the app header (3.75rem) and the bottom tab (4rem). Subtract both (plus
+     their 1px borders) so a short page fills exactly one viewport.
+     `dvh`, not `vh`: on mobile `100vh` is the *large* viewport (toolbar
+     hidden), so sizing against it leaves the page taller than what's actually
+     on screen — a permanent strip of blank below the content. `body` already
+     uses `dvh`; match it. The `vh` line stays as a fallback for browsers
+     without `dvh`. */
   min-height: calc(100vh - 3.75rem - 4rem - 2px);
+  min-height: calc(100dvh - 3.75rem - 4rem - 2px);
   max-width: 100%;
   width: 100%;
 }
@@ -286,30 +350,36 @@ ion-searchbar.custom-searchbar {
   padding-bottom: 100px;
 }
 
-/* Standard page gutter. Default themes inset the page content by 1rem (the old
-   inline `tw:p-4`); theme-2 goes edge to edge so the section menu and content
-   run to the screen edges (the section tabs/menu manage their own spacing). */
+/* Breaks a block out of the standard `tw:p-4` page padding so it runs edge to
+   edge of the screen (e.g. sticky search bars). Re-add inner spacing with
+   `tw:px-4` as needed. */
+.app-full-bleed {
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+/* Pricing command bar — the white band at the top of the pricing screens that
+   holds the channel cards and the underline tab row as one block. Cancels the
+   page's 1rem gutter on both sides so the band runs edge to edge of the content
+   area; inner rows re-add their own `tw:px-4`. The block sits in a `space-y`
+   stack, which supplies the gap below it. */
+/* The band pins under the app header on every width, so the channel switcher
+   (and the filter row folded into it on mobile) stays reachable while the price
+   list scrolls. `top` clears the sticky 3.75rem app header; the z-index keeps
+   the band above the list but under the header itself. */
+.pricing-command-bar {
+  position: sticky;
+  top: 3.75rem;
+  z-index: 30;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  background-color: #fff;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+/* Standard page gutter (replaces the old inline `tw:p-4`). */
 .page-padding {
   padding: 1rem;
-}
-
-/* theme-2 mobile: keep a horizontal gutter so page content isn't jammed against
-   the screen edges, plus a top gutter so it clears the sticky app header. The
-   mobile sticky section tabs break out of both gutters (see
-   `.section-menu-container`) so the tab bar/underline still run edge to edge. */
-[data-theme="theme-2"] .page-padding {
-  padding: 1rem 1rem 0;
-}
-
-/* Desktop theme-2: the fixed left rail supplies the left gutter, but the content
-   column otherwise runs to the right viewport edge. Add a right gutter so content
-   isn't flush against the screen edge. Left stays 0 so the rail's in-flow spacer
-   aligns with the fixed panel at the viewport edge; mobile stays edge to edge. */
-@media (min-width: 1024px) {
-  [data-theme="theme-2"] .page-padding {
-    padding-left: 0;
-    padding-right: 1rem;
-  }
 }
 
 .app-footer {
@@ -323,40 +393,226 @@ ion-searchbar.custom-searchbar {
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.bin-empty {
-  @apply tw:bg-slate-50 tw:text-slate-900 tw:border-slate-200;
+/* Pin a footer to the viewport regardless of how deeply it is nested in the
+   scrolling page content (sticky only holds when the footer's containing block
+   extends past it — not the case for a footer rendered inside a route outlet).
+   Two-class selector so it wins over the base `.app-footer` position. */
+.app-footer.app-footer-fixed {
+  position: fixed;
 }
-.bin-low {
-  @apply tw:bg-green-50 tw:text-green-900 tw:border-green-200;
+
+/* Active state for pill-style filter chips: a solid `--primary` fill with a
+   light label, so the selected chip reads as a strong "filter on". */
+.app-chip-active {
+  @apply tw:bg-primary tw:border-primary tw:text-white tw:shadow-sm;
 }
-.bin-medium {
-  @apply tw:bg-yellow-50 tw:text-yellow-900 tw:border-yellow-200;
+
+/* Section tab bar (chips variant) — a dark track in the primary colour holding
+   the horizontally scrolling tab items. Scoped to `.section-menu-container` so
+   it doesn't hit every `AppTab` chips instance. */
+.section-menu-container .app-section-tabs {
+  background-color: color-mix(in srgb, var(--primary, #075e54) 88%, black);
 }
-.bin-high {
-  @apply tw:bg-orange-50 tw:text-orange-900 tw:border-orange-200;
+
+/* AI destinations (e.g. "SK Invoice AI") get a violet fill instead of the brand
+   green, matching the AI banner in PoScanBanners so the accent means the same
+   thing everywhere. Both states are filled — an AI tab never reads as neutral. */
+.section-menu-container [role="tab"].app-tab-ai {
+  background-image: linear-gradient(135deg, #c026d3 0%, #7c3aed 100%);
+  color: #fff;
+  box-shadow: none;
 }
-.bin-full {
-  @apply tw:bg-red-50 tw:text-red-900 tw:border-red-200;
+
+/* Accounts summary card — one full-width panel per view, colored by money
+   direction: payables (money out) rust, receivables (money in) blue. */
+.summary-card-out {
+  background-image: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--accent-out, #c85a1d) 82%, black) 0%,
+    var(--accent-out, #c85a1d) 56%,
+    color-mix(in srgb, var(--accent-out, #c85a1d) 92%, white) 100%
+  );
+}
+.summary-card-in {
+  background-image: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--accent-b2c, #2e5aa8) 82%, black) 0%,
+    var(--accent-b2c, #2e5aa8) 56%,
+    color-mix(in srgb, var(--accent-b2c, #2e5aa8) 92%, white) 100%
+  );
+}
+
+/* Active party-type filter chip. Deliberately NOT tinted with the
+   money-direction accent (that belongs to the direction switch and summary
+   card) so the two filter rows read as distinct axes. */
+.party-chip-active {
+  background-color: color-mix(in srgb, var(--primary, #075e54) 12%, #fff);
+  color: color-mix(in srgb, var(--primary, #075e54) 76%, black);
+  border-color: color-mix(in srgb, var(--primary, #075e54) 26%, transparent);
+}
+
+/* Direction segmented control — the Payables / Receivables switch. One rounded
+   track holds two segments; the active segment lifts onto a raised white pill
+   and takes the money-direction accent as its ink, tying it to the summary card
+   and list rows that share that accent. */
+.dir-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  /* Slightly darker than the page bg so the track edge reads as a control. */
+  background-color: color-mix(in srgb, var(--primary, #075e54) 5%, #e3e1db);
+  border: 1px solid rgb(0 0 0 / 0.07);
+}
+.dir-seg-btn {
+  border-radius: 9999px;
+  padding: 0.4rem 1.15rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #6b7280;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.dir-seg-btn:hover:not(.dir-seg-btn-active) {
+  color: #374151;
+}
+.dir-seg-btn-active {
+  background-color: #fff;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.1),
+    0 1px 1px rgb(0 0 0 / 0.06);
+}
+.dir-seg-btn-active.dir-out {
+  color: color-mix(in srgb, var(--accent-out, #c85a1d) 88%, black);
+}
+.dir-seg-btn-active.dir-in {
+  color: color-mix(in srgb, var(--accent-b2c, #2e5aa8) 92%, black);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dir-seg-btn {
+    transition: none;
+  }
+}
+
+/* Mode segmented control — a compact two/three-way switch for "which shape of
+   input am I giving you" choices (e.g. bulk pricing's Deal Id vs Barcode).
+   Reads as one rounded track; the active segment lifts onto a white pill with
+   the brand ink. Desktop keeps it inline next to its caption, mobile stretches
+   it to full width so both segments are thumb-sized. */
+.app-mode-seg-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+.app-mode-seg-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6b7280;
+  white-space: nowrap;
+}
+.app-mode-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--primary, #075e54) 5%, #e9e7e2);
+  border: 1px solid rgb(0 0 0 / 0.07);
+}
+.app-mode-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #6b7280;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.app-mode-seg-btn:hover:not(.app-mode-seg-btn-active) {
+  color: #374151;
+}
+.app-mode-seg-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary, #075e54) 60%, transparent);
+  outline-offset: 1px;
+}
+.app-mode-seg-btn-active {
+  background-color: #fff;
+  color: color-mix(in srgb, var(--primary, #075e54) 92%, black);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.1),
+    0 1px 1px rgb(0 0 0 / 0.06);
+}
+/* Phones: caption on its own line, track spans the width, segments split it
+   evenly — no cramped 60px pills hugging the right edge. */
+@media (max-width: 639px) {
+  .app-mode-seg-row {
+    gap: 0.375rem;
+  }
+  .app-mode-seg-label,
+  .app-mode-seg {
+    flex: 1 1 100%;
+  }
+  .app-mode-seg-btn {
+    flex: 1 1 0;
+    padding: 0.5rem 0.75rem;
+  }
+  /* Four-way variant (bulk upload's correction switch): an even split leaves
+     each segment too narrow for its label, so the track scrolls at the
+     segments' natural width instead. */
+  .app-mode-seg-scroll .app-mode-seg {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .app-mode-seg-scroll .app-mode-seg::-webkit-scrollbar {
+    display: none;
+  }
+  .app-mode-seg-scroll .app-mode-seg-btn {
+    flex: 0 0 auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-mode-seg-btn {
+    transition: none;
+  }
+}
+
+/* Direction-coded ink for outstanding amounts — one accent per money direction
+   across the page. Mixed toward black to clear WCAG AA on white. */
+.amount-out {
+  color: color-mix(in srgb, var(--accent-out, #c85a1d) 86%, black);
+}
+.amount-in {
+  color: color-mix(in srgb, var(--accent-b2c, #2e5aa8) 90%, black);
 }
 
 /* Sticky container for the mobile section-menu (horizontal tab scroller pinned
-   under the app header in theme-2). The theme-2 page now carries a 1rem
-   horizontal gutter, so the bar uses negative left/right margins to break out
-   and let its bottom border reach the screen edges (see below). The negative
-   `margin-top` cancels the page's top gutter so the bar sits flush under the
-   header and sticks immediately on scroll with no initial travel. */
+   under the app header). Negative margins break it out of the page gutters —
+   re-added as inner padding — so the background/border run edge to edge while
+   the tab labels stay aligned with the padded page content. */
 .section-menu-container {
   position: sticky;
   top: 3.75rem; /* tw:top-15 — clears the sticky app header */
-  /* Break out of the theme-2 page gutters: cancel the top gutter so the bar sits
-     flush under the header, and cancel the left/right gutter (re-adding it as
-     inner padding) so the background/border run edge to edge while the tab labels
-     stay aligned with the padded page content. */
   margin-top: -1rem;
   margin-left: -1rem;
   margin-right: -1rem;
   z-index: 40;
-  padding-top: 0.5rem;
+  padding-top: 0.25rem;
   padding-bottom: 0.5rem;
   padding-left: 1rem;
   padding-right: 1rem;
@@ -364,9 +620,152 @@ ion-searchbar.custom-searchbar {
   border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
 }
 
-/* Desktop-only left rail that holds the vertical section menu. Hidden below the
-   lg breakpoint (mobile uses the horizontal `.section-menu-container`); a fixed
-   14rem column that never shrinks at lg and up. */
+/* Inventory search bar: a full-bleed white strip that pins under the app header
+   on scroll. Cancels the page's 1rem horizontal gutter (re-adding it as inner
+   padding) so the white background runs edge to edge, mirroring the sticky
+   section tab bar above it. */
+.catalog-search-sticky {
+  position: sticky;
+  top: 3.75rem; /* clears the sticky app header */
+  z-index: 30;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding: 0.625rem 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+}
+
+/* Page top bar: a page's sub-nav (tabs/pills) and its search/filter controls
+   sitting together on one full-bleed white strip pinned under the app header —
+   the same top block the catalog pages get from `.catalog-search-sticky`.
+   `app-top-bar` is the generic class (delivery, …); `order-top-bar` is the
+   order section's Board / Directory / Analytics strip. It is always the first
+   block in its content column, so it also cancels the page's top gutter (no
+   page-bg band between the header and the strip) as well as the horizontal one. */
+.app-top-bar,
+.order-top-bar {
+  position: sticky;
+  top: 3.75rem; /* clears the sticky app header */
+  z-index: 30;
+  margin-top: -1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  margin-bottom: 1rem;
+  padding: 0.625rem 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+}
+
+/* The strip's lead slot — the page's sub-nav. Below md (where it owns a row of
+   its own; from md up it shares the row with the search box) it cancels the
+   strip's 1rem side padding so the track scrolls edge to edge instead of
+   stopping a gutter short on both sides. The first/last tab keep their inset
+   from inside the track (`slideOffset` on AppTab), the same contract as
+   `.subscribe-nav-chips`. */
+@media (max-width: 767px) {
+  .app-top-bar-lead {
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+
+  /* Opt-in: below md the sub-nav and the strip's controls stack, and with both
+     on the same white sheet they read as one undifferentiated block. Seat the
+     sub-nav on its own band with a rule under it. Edge to edge — the lead track
+     already sits outside the strip's side padding. From md up the two share a
+     row and the rule would cut through it.
+
+     `:has(+ *)` keeps the rule off a strip that carries nothing but the sub-nav
+     (e.g. the cart's Create Pending tab, which has no tools row): there the
+     divider would land on the strip's own bottom border and read as a double
+     line. */
+  .app-top-bar-divided .app-top-bar-lead:has(+ *) {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+  }
+}
+
+/* Sub-nav tab bars that pin under the app header on scroll while keeping their
+   full-bleed look. `app-tabs-sticky` is the generic page-level variant (record
+   payment, …). Applies to every AppTab variant — the root of each carries
+   `data-slot="app-tab"`. */
+[data-slot="app-tab"].subscribe-tabs-sticky,
+[data-slot="app-tab"].app-tabs-sticky {
+  position: sticky;
+  top: 3.75rem; /* clears the sticky app header */
+  z-index: 30;
+}
+
+/* The segmented `tabs` variant's own fill is translucent (`bg-gray-200/50`), so
+   list content would show through once pinned — force it opaque. The prefix
+   raises specificity over that utility. Variants that already paint an opaque
+   background (underline: `bg-white`) keep their own. */
+[data-slot="app-tab"][data-variant="tabs"].subscribe-tabs-sticky,
+[data-slot="app-tab"][data-variant="tabs"].app-tabs-sticky {
+  background-color: var(--color-gray-200, #e5e7eb);
+}
+
+/* Sub-nav chip strip — mobile only. `subscribe-nav-chips` is the subscribe
+   flow's strip (SubscribeNavChips); `app-nav-chips` is the same treatment for
+   any other page that wants it (barcode scan, …). The pages render no section
+   tab bar above it, so it pins directly under the app header on a white band
+   that runs edge to edge out of the page gutter. Hidden from md up, where the
+   section menu / a desktop tab row carry the same links. */
+[data-slot="app-tab"].subscribe-nav-chips,
+[data-slot="app-tab"].app-nav-chips {
+  position: sticky;
+  top: 3.75rem; /* clears the sticky app header */
+  z-index: 30;
+  /* The pills variant carries `tw:w-full` (width: 100%). With an explicit width
+     the negative gutters below don't widen the box — they just shift it left,
+     leaving a 1rem strip of page-bg on the right. `auto` lets the box grow to
+     100% + 2rem so the white band really runs edge to edge. */
+  width: auto;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding: 0.5rem 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+}
+
+/* Below md the chip track drops its side padding and scrolls edge to edge; the
+   leading/trailing inset comes from the swiper's `slidesOffsetBefore/After`
+   (`slideOffset` on AppTab, also gated to mobile), so the first chip still
+   lines up with the page gutter while the strip scrolls out under it instead
+   of stopping 1rem short. */
+@media (max-width: 767px) {
+  [data-slot="app-tab"].subscribe-nav-chips,
+  [data-slot="app-tab"].app-nav-chips {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  [data-slot="app-tab"].subscribe-nav-chips {
+    display: none;
+  }
+}
+
+/* Opt-in: collapse the space under a tab bar so the block below sits flush
+   against it. Clears the bar's own bottom margin plus the following block's
+   top margin/padding, which is where the visible gap usually comes from (a
+   utility class on the content wrapper, or the wrapper's own gutter). */
+[data-slot="app-tab"].app-tabs-flush-bottom {
+  margin-bottom: 0;
+}
+
+[data-slot="app-tab"].app-tabs-flush-bottom + * {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* Full-bleed summary strip: cancels the page's horizontal gutter so the strip
+   runs edge to edge of the content column. */
+.summary-bleed {
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
 /* Two-column layout for section pages: a fixed-width left rail (section menu)
    and a fluid right content column. Stacks below lg; becomes a row at lg+. The
    rail itself only appears in theme-2 (see `.section-menu-aside`), so in other
@@ -393,14 +792,8 @@ ion-searchbar.custom-searchbar {
    collapsing as the content column grows. */
 .section-menu-aside {
   display: none;
-  width: 14rem; /* tw:w-56 */
+  width: 4.5rem;
   flex-shrink: 0;
-}
-
-@media (min-width: 1024px) {
-  [data-theme="theme-2"] .section-menu-aside {
-    display: block;
-  }
 }
 
 /* Right content column. `min-width: 0` lets it shrink instead of overflowing
@@ -411,31 +804,10 @@ ion-searchbar.custom-searchbar {
   flex: 1 1 0%;
 }
 
-/* Three-column browse grids (brand/menu list → sub-list → products). In
-   theme-2 the section side rail (`.section-menu-aside`) occupies the left
-   14rem at lg+, so tighten the list columns and cap the products column so it
-   stays readable instead of stretching into the reduced content width. Gated
-   at lg to match when the rail appears; below lg the Tailwind grid template
-   (1fr products) stays in effect. */
-@media (min-width: 1024px) {
-  [data-theme="theme-2"] .browse-grid--brand {
-    grid-template-columns: 18rem 20rem minmax(0, 1fr);
-  }
-
-  [data-theme="theme-2"] .browse-grid--category {
-    grid-template-columns: 14rem 20rem minmax(0, 1fr);
-  }
-}
-
 /* Bottom tab bar — the primary navigation in theme-2 (which has no side menu).
-   Hidden in every other theme; the rule is gated here so the visibility logic
-   stays in one place rather than a JS `theme` check in the layout. */
+   Hidden in every other theme (see theme-2.css for where it turns on). */
 .bottom-tab {
   display: none;
-}
-
-[data-theme="theme-2"] .bottom-tab {
-  display: block;
 }
 
 .thin-scrollbar {
@@ -626,6 +998,148 @@ ion-searchbar.custom-searchbar {
   }
 }
 
+/* Money-direction accent helpers for account cards (P&L, summary tiles).
+   `.app-amt-in` / `.app-amt-out` set the direction color + tint via local
+   custom props; the applier classes below consume them. */
+.app-amt-in {
+  --app-amt: var(--accent-in, #1f8a4f);
+  --app-amt-bg: var(--accent-in-bg, #d4f5dd);
+}
+
+.app-amt-out {
+  --app-amt: var(--accent-out, #c85a1d);
+  --app-amt-bg: var(--accent-out-bg, #fbe4d3);
+}
+
+.app-amt-border {
+  border-left: 3px solid var(--app-amt);
+}
+
+.app-amt-chip {
+  background-color: var(--app-amt-bg);
+  color: var(--app-amt);
+}
+
+.app-amt-text {
+  color: var(--app-amt);
+}
+
+.app-amt-fill {
+  background-color: var(--app-amt);
+}
+
+/* Bottom-sheet opt-in for a tighter top edge: the grab handle keeps a small
+   margin and the title strip drops its extra padding, so the sheet opens on its
+   first line instead of ~40px of blank space. The handle is the drawer's first
+   child (and stays hidden on non-bottom drawers, where the margin is a no-op). */
+[data-slot="drawer-content"].app-drawer-tight > div:first-child {
+  margin-top: 0.5rem;
+}
+.app-drawer-tight > [data-slot="drawer-header"] {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* ── Thread helpers ────────────────────────────────────────────────────────
+   A detail screen laid out as a message thread: rows sit as separate bubbles
+   on the page tint, captions between them read as centred day dividers, and
+   the numbers inside a row sit on a tinted inner strip. Theme-neutral — the
+   fills come from the theme's chat tokens where they exist and fall back to
+   slate on themes that don't ship them. */
+
+/* One row of the thread. */
+.app-msg-bubble {
+  background-color: var(--card, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 1.5px rgb(11 20 26 / 0.07);
+}
+
+/* Centred caption between groups of bubbles — the thread's day divider. */
+.app-thread-divider {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 9999px;
+  background-color: var(--card, #fff);
+  box-shadow: 0 1px 1.5px rgb(11 20 26 / 0.07);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground, #64748b);
+}
+
+/* Tinted strip inside a bubble carrying its numbers. */
+.app-msg-meta {
+  background-color: var(--wa-bubble, #f1f5f9);
+  color: var(--wa-bubble-text, #334155);
+  border-radius: 0.625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The bubble's own inline action — a quiet tinted pill rather than a bordered
+   button, so a list of rows doesn't read as a list of buttons. */
+.app-msg-action {
+  border: 0 !important;
+  border-radius: 9999px !important;
+  background-color: color-mix(
+    in srgb,
+    var(--primary, #075e54) 8%,
+    #fff
+  ) !important;
+  color: var(--primary, #075e54) !important;
+}
+.app-msg-action:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--primary, #075e54) 15%,
+    #fff
+  ) !important;
+  color: var(--primary, #075e54) !important;
+}
+
+/* P&L net-position hero. Deep-green `--primary` surface with light text. */
+.app-pnl-hero {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary, #075e54) 92%, black) 0%,
+    var(--primary, #075e54) 60%,
+    color-mix(in srgb, var(--primary, #075e54) 82%, black) 100%
+  );
+  color: #fff;
+}
+
+/* Loss variant of the hero: deep-red surface so a negative net position
+   reads instantly, without relying on the sign alone. */
+.app-pnl-hero-loss {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, #b3261e 92%, black) 0%,
+    #b3261e 60%,
+    color-mix(in srgb, #b3261e 82%, black) 100%
+  );
+}
+
+/* Segment of the hero's proportional in/out/net bar. Callers set the width
+   inline via the `--seg` custom property and pick the tone class below. */
+.app-pnl-seg {
+  height: 100%;
+}
+
+.app-pnl-seg-rev {
+  background-color: var(--accent-in, #1f8a4f);
+}
+
+.app-pnl-seg-out {
+  background-color: var(--accent-out, #c85a1d);
+}
+
+.app-pnl-seg-net {
+  background-color: #ffffff;
+}
+
 /* Restore list/heading formatting for rich text (e.g. Quill editor HTML),
    which Tailwind's preflight reset otherwise strips of bullets/numbers. */
 .rich-text ul {
@@ -748,4 +1262,11 @@ ion-searchbar.custom-searchbar {
 
 .compact-calendar .rdp-month {
   gap: 3px !important;
+}
+
+/* Modals that render their own full-bleed header band: on mobile the drawer
+   still draws its drag handle above the band, leaving a white strip. Drop it
+   so the band starts flush at the sheet's top edge. */
+.app-modal-flush[data-vaul-drawer-direction] > div:first-child {
+  display: none;
 }

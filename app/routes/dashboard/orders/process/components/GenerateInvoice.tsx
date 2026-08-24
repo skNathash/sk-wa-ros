@@ -1,9 +1,7 @@
 import { useState } from "react";
-import AppCard from "~/components/core/card/AppCard";
-import AppButton from "~/components/core/button/AppButton";
 import useAppToast from "~/hooks/useAppToast";
 import SellerService from "~/services/SellerService";
-import { FileText } from "lucide-react";
+import { ChevronRight, FileText } from "lucide-react";
 
 interface GenerateInvoiceProps {
   boxes: any[];
@@ -62,25 +60,49 @@ const GenerateInvoice: React.FC<GenerateInvoiceProps> = ({
     }
   };
 
+  const closedBoxes = boxes.filter((box) => box.status === "Closed").length;
+
   return (
-    <AppCard
-      title="Invoice & Shipment"
-      icon="file-text"
-      subtitle="The order has been packed. Please generate an invoice to proceed."
-    >
-      <div className="tw:p-4 tw:text-center">
-        <AppButton
-          onClick={handleGenerateInvoice}
-          isLoading={isLoading}
-          disabled={isLoading}
-          color="success"
-          fill="solid"
-        >
-          <FileText />
-          Generate Invoice
-        </AppButton>
+    <div className="op-stage-invoice tw:mb-4">
+      <div className="op-card op-card-pad">
+        <div className="tw:flex tw:items-center tw:gap-3 tw:mb-3">
+          <div
+            className="tw:p-2.5 tw:rounded-xl tw:shrink-0"
+            style={{
+              backgroundColor: "var(--op-tint)",
+              color: "var(--op-accent)",
+            }}
+          >
+            <FileText size={20} />
+          </div>
+          <div className="tw:flex-1 tw:min-w-0">
+            <div className="op-eyebrow tw:mb-0.5">Packing Complete</div>
+            <div className="tw:text-sm tw:font-semibold tw:text-gray-800">
+              Next: generate the invoice
+            </div>
+            <div className="tw:text-xs tw:text-gray-500">
+              {closedBoxes > 0
+                ? `All items are packed in ${closedBoxes} ${closedBoxes === 1 ? "box" : "boxes"}. `
+                : ""}
+              This bills the order and unlocks delivery assignment.
+            </div>
+          </div>
+        </div>
+
+        <div className="op-cta">
+          <button
+            type="button"
+            className="op-cta-btn"
+            onClick={handleGenerateInvoice}
+            disabled={isLoading}
+          >
+            <FileText size={18} />
+            {isLoading ? "Generating Invoice..." : "Generate Invoice"}
+            <ChevronRight size={18} />
+          </button>
+        </div>
       </div>
-    </AppCard>
+    </div>
   );
 };
 

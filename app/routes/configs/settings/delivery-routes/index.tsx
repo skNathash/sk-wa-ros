@@ -14,6 +14,7 @@ import DeliveryRoutesService from "~/services/DeliveryRoutesService";
 import type {
   BreadcrumbItem,
   PaginationState,
+  SectionTab,
   ViewToggleType,
 } from "~/types/CommonTypes";
 import DesktopView from "./components/DesktopView";
@@ -32,6 +33,10 @@ import AssignedEmployeesModal from "./modals/employees/AssignedEmployeesModal";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import useScreenView from "~/hooks/useScreenView";
 import Rbac from "~/components/core/rbac/Rbac";
+import { AppPaneMain } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import useTheme from "~/hooks/useTheme";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage([
@@ -60,6 +65,12 @@ const TABS = [
   { key: "employees", name: "Digital Raja/Rani", icon: "users" },
 ];
 
+const pageTabs: SectionTab[] = TABS.map((tab) => ({
+  key: tab.key,
+  label: tab.name,
+  icon: tab.icon,
+}));
+
 const rbacRoles = {
   createRoute: ["DELIVERY-ROUTE.DELIVERY-ROUTE-CREATE"],
 };
@@ -67,6 +78,8 @@ const rbacRoles = {
 const DeliveryRoutes = () => {
   const appToast = useAppToast();
   const { isMobile } = useScreenView();
+
+  const isTheme2 = useTheme() === "theme-2";
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("config");
@@ -535,116 +548,166 @@ const DeliveryRoutes = () => {
     }
   };
 
+  const renderCreateButton = () => {
+    return (
+      <Rbac roles={rbacRoles.createRoute}>
+        <AppButton onClick={handleCreate} color="primary" size="small">
+          <PlusIcon size={16} className="tw:mr-2" /> Create Route
+        </AppButton>
+      </Rbac>
+    );
+  };
+
   return (
     <>
-      <AppHeader title="Delivery / Beat Route" />
+      <AppHeader
+        title="Delivery / Beat Route"
+        sectionKey="bill"
+        activeTab="routes"
+        mobileLead="menu"
+      />
       <div className="app-page tw:p-4 page-bg">
-        <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:lg:flex-row tw:lg:justify-between tw:lg:items-start tw:gap-4 tw:mb-4">
-            <div className="tw:flex-1 tw:min-w-0">
-              <AppBreadcrumbs data={defaultBreadcrumbs} />
-              <div className="tw:text-gray-500 tw:text-xs">
-                Manage delivery / beat routes and areas
-              </div>
+        <SectionTabs
+          sectionKey="catalog"
+          activeTab={activeTab}
+          noShadow
+          sticky
+          tabs={pageTabs}
+          onTabChange={(tab) => setActiveTab(tab.key)}
+        />
+        <div className="section-layout section-layout--tight">
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="bill"
+                activeTab="routes"
+                title="Delivery / Beat Route"
+              />
             </div>
-            {!isMobile && (
-              <div className="tw:shrink-0">
-                <Rbac roles={rbacRoles.createRoute}>
-                  <AppButton
-                    onClick={handleCreate}
-                    color="primary"
-                    size="small"
-                  >
-                    <PlusIcon size={16} className="tw:mr-2" /> Create Route
-                  </AppButton>
-                </Rbac>
-              </div>
-            )}
+          </aside>
+
+          <div className="section-content">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+              <AppPaneMain className="tw:lg:col-span-12">
+                <div className="app-container">
+                  <div className="hide-in-theme-2 tw:md:hidden tw:flex tw:flex-col tw:lg:flex-row tw:lg:justify-between tw:lg:items-start tw:gap-4 tw:mb-4">
+                    <div className="tw:flex-1 tw:min-w-0">
+                      <AppBreadcrumbs data={defaultBreadcrumbs} />
+                      {!isTheme2 && (
+                        <div className="tw:text-gray-500 tw:text-xs">
+                          Manage delivery / beat routes and areas
+                        </div>
+                      )}
+                    </div>
+                    {!isMobile && (
+                      <div className="tw:shrink-0">{renderCreateButton()}</div>
+                    )}
+                  </div>
+
+                  {!isMobile && (
+                    <div className="tw:flex tw:justify-between tw:items-center tw:gap-4 tw:mb-4">
+                      <div className="tw:flex-1">
+                        <AppTab
+                          tabs={TABS}
+                          activeTab={activeTab}
+                          onTabChange={(tab) => setActiveTab(tab.key)}
+                          className="tw:mb-4"
+                          variant={isTheme2 ? "pills" : undefined}
+                        />
+                      </div>
+                      <div className="tw:shrink-0">{renderCreateButton()}</div>
+                    </div>
+                  )}
+
+                  {activeTab === "config" && (
+                    <>
+                      <Filter callback={handleFilterChange} />
+                      <div className="tw:flex tw:justify-between tw:items-center tw:gap-4 tw:mb-3">
+                        <div className="tw:flex-1">
+                          <PaginationSummary
+                            paginationConfig={paginationRef.current}
+                            loadingTotalRecords={loading}
+                            fwSize="sm"
+                            loadedCount={routes.length}
+                          />
+                        </div>
+                        <div className="tw:shrink-0">
+                          <ViewToggle
+                            viewType={viewType}
+                            callback={setViewType}
+                          />
+                        </div>
+                      </div>
+                      {isMobile || viewType === "card" ? (
+                        <MobileView
+                          loading={loading}
+                          routes={routes}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                          showLoadMore={hasMoreData}
+                          loadingMore={loadingMore}
+                          loadMore={loadMore}
+                          totalCount={paginationRef.current.totalRecords}
+                          loadedCount={routes.length}
+                          callback={handleItemCallback}
+                        />
+                      ) : (
+                        <AppCard noPadding>
+                          <DesktopView
+                            loading={loading}
+                            routes={routes}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            showLoadMore={hasMoreData}
+                            loadingMore={loadingMore}
+                            loadMore={loadMore}
+                            totalCount={paginationRef.current.totalRecords}
+                            loadedCount={routes.length}
+                            callback={handleItemCallback}
+                          />
+                        </AppCard>
+                      )}
+                    </>
+                  )}
+                  {activeTab === "customers" && (
+                    <>
+                      {!isTheme2 && (
+                        <div className="tw:text-gray-500 tw:text-xs tw:mb-4">
+                          List of B2B customers linked to delivery routes
+                        </div>
+                      )}
+                      <Customers />
+                    </>
+                  )}
+                  {activeTab === "employees" && (
+                    <>
+                      {!isTheme2 && (
+                        <div className="tw:text-gray-500 tw:text-xs tw:mb-4">
+                          List of Digital Raja/Rani linked to delivery routes
+                        </div>
+                      )}
+                      <Employees />
+                    </>
+                  )}
+                </div>
+              </AppPaneMain>
+            </div>
           </div>
-
-          <AppTab
-            tabs={TABS}
-            activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab.key)}
-            className="tw:mb-4"
-          />
-
-          {activeTab === "config" && (
-            <>
-              <Filter callback={handleFilterChange} />
-              <div className="tw:flex tw:justify-between tw:items-center tw:gap-4 tw:mb-3">
-                <div className="tw:flex-1">
-                  <PaginationSummary
-                    paginationConfig={paginationRef.current}
-                    loadingTotalRecords={loading}
-                    fwSize="sm"
-                    loadedCount={routes.length}
-                  />
-                </div>
-                <div className="tw:shrink-0">
-                  <ViewToggle viewType={viewType} callback={setViewType} />
-                </div>
-              </div>
-              {isMobile || viewType === "card" ? (
-                <MobileView
-                  loading={loading}
-                  routes={routes}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  showLoadMore={hasMoreData}
-                  loadingMore={loadingMore}
-                  loadMore={loadMore}
-                  totalCount={paginationRef.current.totalRecords}
-                  loadedCount={routes.length}
-                  callback={handleItemCallback}
-                />
-              ) : (
-                <AppCard noPadding>
-                  <DesktopView
-                    loading={loading}
-                    routes={routes}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    showLoadMore={hasMoreData}
-                    loadingMore={loadingMore}
-                    loadMore={loadMore}
-                    totalCount={paginationRef.current.totalRecords}
-                    loadedCount={routes.length}
-                    callback={handleItemCallback}
-                  />
-                </AppCard>
-              )}
-              {isMobile && (
-                <div className="app-footer tw:p-4">
-                  <AppButton
-                    onClick={handleCreate}
-                    color="primary"
-                    className="tw:w-full"
-                  >
-                    <PlusIcon size={16} className="tw:mr-2" /> Create Route
-                  </AppButton>
-                </div>
-              )}
-            </>
-          )}
-          {activeTab === "customers" && (
-            <>
-              <div className="tw:text-gray-500 tw:text-xs tw:mb-4">
-                List of B2B customers linked to delivery routes
-              </div>
-              <Customers />
-            </>
-          )}
-          {activeTab === "employees" && (
-            <>
-              <div className="tw:text-gray-500 tw:text-xs tw:mb-4">
-                List of Digital Raja/Rani linked to delivery routes
-              </div>
-              <Employees />
-            </>
-          )}
         </div>
       </div>
+
+      {isMobile && (
+        <div className="app-footer tw:p-4">
+          <AppButton
+            onClick={handleCreate}
+            color="primary"
+            className="tw:w-full"
+          >
+            <PlusIcon size={16} className="tw:mr-2" /> Create Route
+          </AppButton>
+        </div>
+      )}
+
       <RouteManageModal
         show={modal.show}
         editId={modal.editId ?? undefined}

@@ -16,6 +16,7 @@ import AppModal from "~/components/core/modal/AppModal";
 import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
+import useTheme from "~/hooks/useTheme";
 import FranchiseService from "~/services/FranchiseService";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
 import SellerCatalogService from "~/services/SellerCatalogService";
@@ -25,6 +26,7 @@ import BarcodesList from "./components/BarcodesList";
 import PlatformFeeInfo from "../../components/PlatformFeeInfo";
 import PlatformFeeRequiredBlock from "~/shared/accounts/platform-fee/components/PlatformFeeRequiredBlock";
 import BarcodeInput from "~/shared/inventory/components/barcode-input/BarcodeInput";
+import { emitInventoryStockUpdated } from "~/shared/inventory/events";
 
 // Delay before re-fetching deal details so the backend has time to process
 // the newly added stock.
@@ -80,9 +82,14 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
   const { t } = useTranslation(["common"]);
   const { show: showToast } = useAppToast();
   const appNav = useAppNav();
+  const isTheme2 = useTheme() === "theme-2";
 
   const loggedInUser = AuthService.getLoggedInUser();
   const baseVendorName = loggedInUser?.name || "You";
+
+  // Deal fetched when the modal opens — carries the seller-deal ids
+  // (`sellerDealObjId` / `id`) the add-stock payload needs.
+  const [deal, setDeal] = useState<any>(null);
 
   // State to hold the fetched stock UOM, falling back to prop value if provided
   const [internalStockUom, setInternalStockUom] = useState<string | undefined>(
@@ -94,24 +101,27 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
   }, [selectedStockUom]);
 
   useEffect(() => {
-    if (show && productId && !selectedStockUom) {
-      const fetchProductUom = async () => {
-        try {
-          const productDetails = await SellerCatalogService.getProducts({
-            filter: { dealId: productId },
-          });
-          const product = SellerCatalogService.formatProductResponse(
-            productDetails.data?.data || [],
-          )?.[0];
-          if (product?.selectedStockUom) {
-            setInternalStockUom(product.selectedStockUom);
-          }
-        } catch (error) {
-          console.error("Error fetching product UOM in modal:", error);
-        }
-      };
-      fetchProductUom();
+    if (!show || !productId) {
+      setDeal(null);
+      return;
     }
+    const fetchDeal = async () => {
+      try {
+        const productDetails = await SellerCatalogService.getProducts({
+          filter: { dealId: productId },
+        });
+        const product = SellerCatalogService.formatProductResponse(
+          productDetails.data?.data || [],
+        )?.[0];
+        setDeal(product || null);
+        if (product?.selectedStockUom && !selectedStockUom) {
+          setInternalStockUom(product.selectedStockUom);
+        }
+      } catch (error) {
+        console.error("Error fetching deal in modal:", error);
+      }
+    };
+    fetchDeal();
   }, [show, productId, selectedStockUom]);
 
   // For small UOMs (gm/ml) the user enters quantity in the display unit
@@ -159,12 +169,20 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
     control,
     name: ["quantity", "purchasePrice", "mrp"],
   });
+  const watchedBarcode = useWatch({ control, name: "barcode" });
 
-  useEffect(() => {
-    if (typeof watchedQuantity === "number" && watchedQuantity < 0) {
-      setValue("quantity", 0);
-    }
-  }, [watchedQuantity, setValue]);
+  // Quantity / prices can never be negative — clamp as soon as the user types
+  // instead of letting a negative value sit in the form until submit.
+  const handleNonNegativeChange = useCallback(
+    (field: "quantity" | "purchasePrice" | "mrp") =>
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value;
+        if (value !== "" && Number(value) < 0) {
+          setValue(field, 0, { shouldDirty: true, shouldValidate: true });
+        }
+      },
+    [setValue],
+  );
 
   // Debounced commission calculation function
   const calculateCommissionDebounced = useCallback(
@@ -420,6 +438,8 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
         dealId: productId,
         dealName: productName,
         dealRefId: dealRefId,
+        sellerDealObjId: deal?.sellerDealObjId,
+        id: deal?.id,
         qty: apiQuantity,
         mrp: apiMrp,
         barcode: data.barcode,
@@ -476,6 +496,13 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
       showToast({
         msg: "Stock added successfully",
         color: "success",
+      });
+
+      // Let stock-derived views (side panes, totals, activity feed) refresh.
+      emitInventoryStockUpdated({
+        dealId: productId,
+        qty: apiQuantity as number,
+        source: "inventory-add-stock-modal",
       });
 
       // Call the callback with submit action and send values in gm/ml for small UOMs
@@ -612,6 +639,7 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
                 tabs={tabs}
                 activeTab={activeTab}
                 onTabChange={handleTabChange}
+                variant={isTheme2 ? "pills" : "tabs"}
               />
             </div>
 
@@ -623,7 +651,9 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
               {/* Basic Tab Content */}
               {activeTab === "basic" && (
                 <>
-                  <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-6">
+                  {/* Quantity and MRP sit side by side at every width — they are
+                      short numeric fields and stacking them wastes the sheet. */}
+                  <div className="tw:grid tw:grid-cols-2 tw:gap-4 tw:md:gap-6">
                     {/* Quantity */}
                     <AppInput
                       name="quantity"
@@ -635,6 +665,8 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
                       type="number"
                       placeholder="Enter quantity"
                       register={register}
+                      min={0}
+                      onChange={handleNonNegativeChange("quantity")}
                       rules={{
                         min: {
                           value: 0,
@@ -657,6 +689,14 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
                         type="number"
                         placeholder="Enter MRP"
                         register={register}
+                        min={0}
+                        onChange={handleNonNegativeChange("mrp")}
+                        rules={{
+                          min: {
+                            value: 0,
+                            message: "MRP cannot be negative",
+                          },
+                        }}
                         error={errors.mrp?.message}
                         isRequired
                       />
@@ -687,6 +727,14 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
                         type="number"
                         placeholder="Enter purchase price"
                         register={register}
+                        min={0}
+                        onChange={handleNonNegativeChange("purchasePrice")}
+                        rules={{
+                          min: {
+                            value: 0,
+                            message: "Purchase price cannot be negative",
+                          },
+                        }}
                         error={errors.purchasePrice?.message}
                         isRequired
                       />
@@ -811,7 +859,16 @@ const InventoryAddStockModal: React.FC<InventoryAddStockModalProps> = ({
                     {barcodes && barcodes.length > 0 && (
                       <div className="tw:mb-2 tw:w-full">
                         {/* Lazy import local component */}
-                        <BarcodesList barcodes={barcodes} />
+                        <BarcodesList
+                          barcodes={barcodes}
+                          selected={watchedBarcode || ""}
+                          onSelect={(b) =>
+                            setValue("barcode", watchedBarcode === b ? "" : b, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            })
+                          }
+                        />
                       </div>
                     )}
                   </div>

@@ -1,4 +1,4 @@
-import { CreditCard, FileText, Package, PencilIcon } from "lucide-react";
+import { Package } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -9,24 +9,22 @@ import {
   useSearchParams,
 } from "react-router";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
-import AppBadge from "~/components/core/badge/AppBadge";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
-import AppButton from "~/components/core/button/AppButton";
-import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
-import PageDescription from "~/components/core/page-description/PageDescription";
-import PageLoader from "~/components/core/page-loader/PageLoader";
+import ContentLoader from "~/components/core/page-loader/ContentLoader";
 import Rbac from "~/components/core/rbac/Rbac";
 import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
 import PageAccessService from "~/services/PageAccessService";
 import VendorService from "~/services/VendorService";
+import VendorNavService from "~/services/VendorNavService";
 import RecordPaymentSuccessModal from "~/shared/accounts/modals/record-payment/success/RecordPaymentSuccessModal";
 import RecordPaymentModal from "~/shared/accounts/modals/RecordPaymentModal";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
-import VendorTypeBadge from "~/shared/vendor/components/vendor-type-badge/VendorTypeBadge";
+import VendorSidePane from "~/shared/vendor/components/vendor-side-pane/VendorSidePane";
 import type { BreadcrumbItem, TabItem } from "~/types/CommonTypes";
+import BasicInfo from "../overview/components/BasicInfo";
 
 const rbacRoles = {
   recordPayment: ["ACCOUNTS.RECORD-PAYMENT"],
@@ -45,15 +43,32 @@ const tabs: TabItem[] = [
     langKey: "overview",
   },
   {
+    name: "Money",
+    key: "money",
+    langKey: "money",
+  },
+  {
+    name: "Reorder",
+    key: "reorder",
+    langKey: "reorder",
+  },
+  {
+    name: "Statement",
+    key: "statement",
+    langKey: "statement",
+    rbac: rbacRoles.viewStatement,
+  },
+  {
+    name: "Catalog",
+    key: "products",
+    langKey: "catalog",
+  },
+  {
     name: "Purchase Order",
     key: "purchase-order",
     langKey: "purchaseOrder",
   },
-  {
-    name: "Products/Brands",
-    key: "products",
-    langKey: "productsBrands",
-  },
+
   // {
   //   name: "Payments & Transactions",
   //   key: "payments-transactions",
@@ -116,18 +131,28 @@ const VendorDetailLayout = () => {
 
   const referesh = searchParams.get("refresh");
 
+  const vendorName = vendor?.name || t("vendorDetail");
+  const vendorLocation = useMemo(() => {
+    const town = vendor?.address?.town || vendor?.address?.city || "";
+    const pincode = vendor?.address?.pincode || vendor?.address?.postcode || "";
+    return [town, pincode].filter(Boolean).join(" - ") || "-";
+  }, [vendor]);
+
   const vendorCtx = useMemo(() => {
     return {
       sourceAllBrands: vendor?.sourceAllBrands,
       sourceableBrands: vendor?.sourceableBrands,
+      vendorType: vendor?.vendorType,
+      vendorName: vendor?.name,
+      vendorPhone: vendor?.contact?.phone,
     };
   }, [vendor]);
 
   const handleTabChange = (tab: TabItem) => {
     if (tab.key === "overview") {
-      appNav.to(`/dashboard/vendor/view/${id}`);
+      appNav.replace(`/dashboard/vendor/view/${id}`);
     } else {
-      appNav.to(`/dashboard/vendor/view/${id}/${tab.key}`, {
+      appNav.replace(`/dashboard/vendor/view/${id}/${tab.key}`, {
         tab: tab.key,
       });
     }
@@ -156,6 +181,10 @@ const VendorDetailLayout = () => {
 
         const data = resp.data?.data || {};
 
+        // Remember the vendor so the desktop rail's "Vendors" item can jump
+        // straight back here (see VendorNavService).
+        VendorNavService.rememberLastVendor(data._id || vendorId);
+
         setVendor({
           ...data,
           contact: {
@@ -163,6 +192,10 @@ const VendorDetailLayout = () => {
             email: data.contact?.[0]?.email || "",
             phone: data.contact?.[0]?.mobile || "",
             address: data?._fullAddress || "",
+            // Locality-level line (state, district, town, pincode) shown in the
+            // hero next to the distance; the full address stays for maps/contact.
+            shortAddress: data?._shortAddress || "",
+            distance: data?._distance != null ? `${data._distance} km` : "",
             categories: data.contact?.[0]?.categories || [],
           },
           finance: {
@@ -218,18 +251,37 @@ const VendorDetailLayout = () => {
 
   return (
     <>
-      <AppHeader title={t("vendorDetail")} />
-      <div className="app-page page-bg page-padding">
+      <AppHeader
+        title={vendorName}
+        subtitle={
+          vendor?._id ? (
+            <span className="tw:flex tw:items-center tw:gap-1">
+              <span className="tw:truncate">{vendorLocation}</span>
+              {vendor?.vendorId ? (
+                <>
+                  <span>·</span>
+                  <span>#{vendor.vendorId}</span>
+                </>
+              ) : null}
+            </span>
+          ) : null
+        }
+      />
+      <div
+        className={`app-page page-bg page-padding${
+          activeTab === "statement" ||
+          activeTab === "money" ||
+          activeTab === "reorder"
+            ? " has-footer"
+            : ""
+        }`}
+      >
         <div className="app-container">
-          {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
-          <SectionTabs
-            sectionKey="supply"
-            activeTab="vendors"
-            noShadow
-            sticky
-          />
+          {/* No section tab bar here — the vendor identity band + tabs pin
+              directly under the app header as one hero (see `.detail-hero*`
+              in theme-2.css), the same way the seller detail page reads. */}
 
-          <div className="section-layout">
+          <div className="section-layout section-layout--tight">
             {/* Desktop-only left rail — section side menu. */}
             <aside className="section-menu-aside">
               <div className="tw:sticky tw:top-20">
@@ -242,114 +294,81 @@ const VendorDetailLayout = () => {
             </aside>
 
             <div className="section-content">
-              <div className="theme-2-mobile-only tw:h-4" />
-              <div className="tw:mb-2">
-                <AppBreadcrumbs data={breadcrumbs} className="tw:mb-1!" />
-                <PageDescription description="vendorDetails" />
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Main column — spans the full grid (the side pane only
+                    exists in theme-2 desktop, where the CSS lifts it out of
+                    the grid into the fixed list pane; see AppPane). */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="tw:mb-2 hide-in-theme-2">
+                    <AppBreadcrumbs data={breadcrumbs} className="tw:mb-1!" />
+                  </div>
+                  {loading ? (
+                    <ContentLoader cards={3} lines={4} />
+                  ) : !vendor ? (
+                    <div className="tw:text-center tw:py-8 tw:text-gray-500">
+                      {t("noDataFound")}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Vendor info sits above the tabs on every breakpoint,
+                          and the two pin together under the header as one
+                          full-bleed band — see `.detail-hero*` in theme-2.css.
+                          The wrapper is `display: contents` below md, so the
+                          tab bar keeps its own sticky behaviour there. */}
+                      <div className="detail-hero">
+                        <div className="tw:mb-4 app-bleed-x detail-hero-bleed">
+                          <BasicInfo data={vendor} />
+                        </div>
+
+                        <AppTab
+                          activeTab={activeTab}
+                          tabs={tabs}
+                          onTabChange={handleTabChange}
+                          variant="underline"
+                          className="tw:mb-4 tw:sticky tw:top-15 tw:z-30 edge-tabs vendor-tab-sticky detail-hero-tabs"
+                        />
+                      </div>
+
+                      <Outlet context={vendorCtx} />
+                    </>
+                  )}
+                </AppPaneMain>
+
+                {/* Side column — only rendered while the theme-2 split layout
+                    is active (lg+), where the CSS re-homes it as the fixed
+                    vendor list pane beside the section icon rail. */}
+                <AppPaneSide className="app-pane-only">
+                  <VendorSidePane activeVendorId={vendorId} />
+                </AppPaneSide>
               </div>
-              {loading ? (
-                <PageLoader message={t("loading")} />
-              ) : !vendor ? (
-                <div className="tw:text-center tw:py-8 tw:text-gray-500">
-                  {t("noDataFound")}
-                </div>
-              ) : (
-                <>
-              <AppCard bodyClassName="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2">
-                <div>
-                  <div className="tw:font-semibold tw:text-2xl tw:mb-1 tw:flex tw:items-center tw:gap-2">
-                    {vendor?.name || t("vendorName")}
-                  </div>
-                  <div className="tw:flex tw:gap-2 tw:items-center tw:mb-1">
-                    <AppBadge
-                      variant={
-                        vendor.status === "Active" ? "success" : "danger"
-                      }
-                      className="tw:mt-1"
-                    >
-                      {vendor.status}
-                    </AppBadge>
-
-                    {vendor._vendorType && (
-                      <VendorTypeBadge
-                        type={vendor._vendorType}
-                        color={vendor._vendorTypeColor}
-                        description={vendor._vendorTypeInfo}
-                      />
-                    )}
-
-                    <span className="tw:text-sm tw:text-gray-500">
-                      ID: {vendor.vendorId}
-                    </span>
-                  </div>
-                </div>
-                <div className="tw:flex tw:gap-2 tw:flex-wrap">
-                  {/* {vendor?._isCreatedByMe && vendor?.vendorType !== "OWN" && (
-                    <AppButton
-                      size="small"
-                      color="light"
-                      fill="outline"
-                      onClick={() =>
-                        appNav.to("/dashboard/vendor/manage", { id: vendorId })
-                      }
-                    >
-                      <PencilIcon />
-                      {t("editVendor")}
-                    </AppButton>
-                  )} */}
-                  {vendor?.vendorType !== "OWN" && (
-                    <Rbac roles={rbacRoles.recordPayment}>
-                      <AppButton
-                        size="small"
-                        color="light"
-                        fill="outline"
-                        onClick={() => setShowRecordPayment(true)}
-                      >
-                        <CreditCard /> {t("recordPayment")}
-                      </AppButton>
-                    </Rbac>
-                  )}
-                  <Rbac roles={rbacRoles.viewStatement}>
-                    <AppButton
-                      size="small"
-                      color="light"
-                      fill="outline"
-                      onClick={() =>
-                        appNav.to("/dashboard/vendor/statement/" + vendorId)
-                      }
-                    >
-                      {/* You can replace with a statement icon if available */}
-                      <FileText /> {t("viewStatement")}
-                    </AppButton>
-                  </Rbac>
-                  {vendor?.vendorType !== "OWN" && (
-                    <Rbac roles={rbacRoles.newPO}>
-                      <AppButton
-                        size="small"
-                        color="dark"
-                        onClick={handleNewPO}
-                      >
-                        <Package /> {t("newPO")}
-                      </AppButton>
-                    </Rbac>
-                  )}
-                </div>
-              </AppCard>
-
-              <AppTab
-                activeTab={activeTab}
-                tabs={tabs}
-                onTabChange={handleTabChange}
-                className="tw:mb-4"
-              />
-
-              <Outlet context={vendorCtx} />
-                </>
-              )}
             </div>
           </div>
         </div>
       </div>
+      {/* New PO FAB — rounded pill pinned above the bottom tab bar (mirrors
+          the shared AddVendorFab). Replaces the in-card New PO button. */}
+      {activeTab !== "statement" &&
+        activeTab !== "money" &&
+        activeTab !== "reorder" &&
+        vendor &&
+        vendor?.vendorType !== "OWN" && (
+          <div
+            className="tw:fixed tw:right-4 tw:z-50"
+            style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
+          >
+            <Rbac roles={rbacRoles.newPO}>
+              <button
+                type="button"
+                onClick={handleNewPO}
+                aria-label={t("newPO")}
+                className="tw:bg-primary tw:text-primary-foreground tw:h-11 tw:px-4 tw:rounded-full tw:shadow-lg tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-semibold tw:cursor-pointer"
+              >
+                <Package className="tw:w-5 tw:h-5" />
+                {t("newPO")}
+              </button>
+            </Rbac>
+          </div>
+        )}
       {/* Record Payment Modal */}
       <RecordPaymentModal
         show={showRecordPayment}
@@ -384,7 +403,13 @@ const VendorDetailLayout = () => {
 
 export default VendorDetailLayout;
 
-type ContextType = { sourceAllBrands: boolean; sourceableBrands: any[] };
+type ContextType = {
+  sourceAllBrands: boolean;
+  sourceableBrands: any[];
+  vendorType?: string;
+  vendorName?: string;
+  vendorPhone?: string;
+};
 
 export const useVendorCtx = () => {
   return useOutletContext<ContextType>();

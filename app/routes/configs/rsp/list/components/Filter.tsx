@@ -5,7 +5,7 @@ import { AppInput } from "~/components/core/form";
 import Alpha from "~/components/core/alpha/Alpha";
 import { useCallback, useEffect, useState } from "react";
 import AppButton from "~/components/core/button/AppButton";
-import { Filter as FilterIcon } from "lucide-react";
+import { Filter as FilterIcon, Search as SearchIcon } from "lucide-react";
 import InventoryFilterModal from "~/shared/inventory/modals/inventory-filter/InventoryFilterModal";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import AuthService from "~/services/AuthService";
@@ -167,7 +167,7 @@ const Filter = ({ callback }: FilterProps) => {
 
   return (
     <>
-      <div className="tw:flex tw:gap-2 tw:mb-2 tw:md:mb-4 tw:items-end">
+      <div className="tw:flex tw:gap-2 tw:mb-1.5 tw:items-end">
         <AppInput
           name="search"
           placeholder={t("searchByDealNameOrId")}
@@ -175,6 +175,10 @@ const Filter = ({ callback }: FilterProps) => {
           onChange={handleSearchChange}
           size="sm"
           className="tw:w-full"
+          leftIcon={<SearchIcon size={16} className="tw:text-gray-400" />}
+          // Mobile search reads as a soft grey pill (no outline); the desktop
+          // filter card keeps the bordered field it shares with every screen.
+          inputClassName="tw:bg-gray-100! tw:border-transparent! tw:rounded-full! tw:md:bg-white! tw:md:border-gray-200! tw:md:rounded-md!"
         />
         <AppButton
           fill="outline"
@@ -187,9 +191,7 @@ const Filter = ({ callback }: FilterProps) => {
         </AppButton>
       </div>
 
-      <div className="tw:mb-4">
-        <Alpha selected={alpha || ""} callback={handleAlphaChange} />
-      </div>
+      <Alpha selected={alpha || ""} callback={handleAlphaChange} />
 
       <InventoryFilterModal
         show={inventoryFilterModal.show}

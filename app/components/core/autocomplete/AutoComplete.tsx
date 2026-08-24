@@ -183,37 +183,45 @@ const AutoComplete = ({
     </Command>
   );
 
+  const hasValues = !!values && values.length > 0;
+
   const triggerButton = (
     <Button
       variant="outline"
       size={size === "sm" ? "sm" : "default"}
       role="combobox"
       aria-expanded={open}
-      className="tw:w-full tw:justify-between tw:bg-white"
+      className={`tw:w-full tw:justify-between tw:bg-white ${
+        hasValues
+          ? "tw:h-auto tw:min-h-8 tw:py-1.5 tw:items-start tw:whitespace-normal"
+          : ""
+      }`}
       disabled={disabled}
     >
-      <div className="tw:flex tw:gap-1 tw:flex-wrap tw:items-center tw:w-full">
-        {values && values.length > 0 ? (
-          values.map((item, index) => (
-            <div key={item.value.id + ":" + index}>
-              <AppBadge
-                showClose={true}
-                onClose={(e: any) => {
-                  e.stopPropagation();
-                  onSelect(item, "remove");
-                }}
-                className="tw:mr-1"
-              >
-                {item.label}
-              </AppBadge>
-            </div>
-          ))
-        ) : (
-          <span className="tw:text-gray-500 tw:font-normal">
-            {placeholder || "Search"}
-          </span>
-        )}
-        <ChevronsUpDown className="opacity-50 tw:ml-auto" />
+      <div className="tw:flex tw:gap-1 tw:items-start tw:w-full tw:min-w-0">
+        <div className="tw:flex tw:gap-1 tw:flex-wrap tw:items-center tw:flex-1 tw:min-w-0">
+          {hasValues ? (
+            values!.map((item, index) => (
+              <div key={item.value.id + ":" + index} className="tw:max-w-full">
+                <AppBadge
+                  showClose={true}
+                  onClose={(e: any) => {
+                    e.stopPropagation();
+                    onSelect(item, "remove");
+                  }}
+                  className="tw:max-w-full"
+                >
+                  <span className="tw:truncate tw:min-w-0">{item.label}</span>
+                </AppBadge>
+              </div>
+            ))
+          ) : (
+            <span className="tw:text-gray-500 tw:font-normal tw:truncate">
+              {placeholder || "Search"}
+            </span>
+          )}
+        </div>
+        <ChevronsUpDown className="opacity-50 tw:shrink-0 tw:self-center" />
       </div>
     </Button>
   );

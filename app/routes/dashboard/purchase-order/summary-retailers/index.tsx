@@ -5,7 +5,6 @@ import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useLocation, useSearchParams } from "react-router";
 import AppBadge from "~/components/core/badge/AppBadge";
-import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
@@ -13,6 +12,14 @@ import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import useAppNav from "~/hooks/useAppNav";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import PageHeader from "~/shared/page-header/PageHeader";
+import CreatePoFab from "~/shared/purchase-order/components/CreatePoFab";
+import PoActionButtons from "~/shared/purchase-order/components/PoActionButtons";
+import PoSectionTabs from "~/shared/purchase-order/components/PoSectionTabs";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
 import type {
   BreadcrumbItem,
   PaginationState,
@@ -25,30 +32,19 @@ import { getCount, getData, prepareFilterParams } from "./helper";
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
-    label: "Dashboard",
-    redirect: { path: "/dashboard" },
+    label: "Purchase Orders",
+    redirect: { path: "/dashboard/purchase-order/main" },
+    langKey: "purchaseOrders",
   },
   {
-    label: "Purchase Orders",
-    redirect: { path: "/dashboard/purchase-order/summary" },
+    label: "Network Purchase",
+    redirect: { path: "/dashboard/purchase-order/seller-summary" },
+    langKey: "networkPurchase",
   },
   {
     label: "Retailers",
+    langKey: "retailers",
   },
-];
-
-const rbacRoles = {
-  createPO: ["PURCHASE-ORDER.CREATE"],
-  viewVendors: ["VENDOR.VIEW"],
-};
-
-const defaultBreadcrumbs = [
-  { label: "Dashboard", redirect: { path: "/dashboard" } },
-  {
-    label: "Purchase Orders",
-    redirect: { path: "/dashboard/purchase-order/summary" },
-  },
-  { label: "Retailers" },
 ];
 
 const defaultFilter = {
@@ -56,8 +52,31 @@ const defaultFilter = {
   vendorType: "All",
 };
 
+const getPageTitle = (groupByType: string) => {
+  if (groupByType === "total") {
+    return "All Retailers";
+  }
+  return `Retailers - ${
+    groupByType === "received" ? "Received POs" : "Not Received POs"
+  }`;
+};
+
+const getPageDescription = (groupByType: string) => {
+  if (groupByType === "total") {
+    return "List of all retailers with purchase order summary";
+  }
+  if (groupByType === "received") {
+    return "List of retailers with received purchase orders";
+  }
+  if (groupByType === "notReceived") {
+    return "List of retailers with not received purchase orders";
+  }
+  return "";
+};
+
 const SummaryRetailers = () => {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["common", "menu"]);
+  const isTheme2 = useTheme() === "theme-2";
 
   const appNav = useAppNav();
   const location = useLocation();
@@ -66,7 +85,9 @@ const SummaryRetailers = () => {
 
   const [view, setView] = useState<ViewToggleType>("list");
 
-  const [breadcrumbs] = useState(defaultBreadcrumbs);
+  const [pageTitle, setPageTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+
   const [retailers, setRetailers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -154,6 +175,9 @@ const SummaryRetailers = () => {
 
     // update filterRef so prepareParams uses the latest form state
     filterRef.current = { ...filterRef.current, ...formMethods.getValues() };
+
+    setPageTitle(getPageTitle(s.groupByType));
+    setDescription(getPageDescription(s.groupByType));
 
     // apply filter after syncing form
     applyFilterList();
@@ -324,70 +348,117 @@ const SummaryRetailers = () => {
 
   return (
     <>
-      <AppHeader title="Purchase Orders - Network Retailers" />
-      <div className="tw:p-4 page-bg app-page">
+      <AppHeader
+        title={pageTitle || t("networkPurchase")}
+        sectionKey="supply"
+        activeTab="purchase-orders"
+        mobileLead="menu"
+        showAudioNote={true}
+        audioNoteTitle={t("purchaseOrders")}
+        audioFeature="order"
+      />
+      <div className="page-padding page-bg app-page has-footer theme-2-no-footer">
         <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4 tw:gap-3">
-            <div>
-              <AppBreadcrumbs data={breadcrumbs} className="tw:mb-0!" />
+          {/* PO tab bar — theme-2 mobile only (see theme-2.css). */}
+          <PoSectionTabs outerClassName="tw:mb-3" />
+
+          <div className="section-layout">
+            {/* Desktop-only left rail — section side menu. */}
+            <aside className="section-menu-aside">
+              <div className="tw:sticky tw:top-20">
+                <SectionMenu
+                  sectionKey="supply"
+                  activeTab="purchase-orders"
+                  title={t("manageSupply", { ns: "menu" })}
+                />
+              </div>
+            </aside>
+
+            <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12 tw:space-y-0">
+                  {!isTheme2 && (
+                    <div className="theme-2-hide tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4 tw:gap-3">
+                      <PageHeader
+                        breadcrumbs={breadcrumbs}
+                        title={pageTitle || "Network Retailers"}
+                        description="purchaseOrder"
+                      />
+
+                      <PoActionButtons
+                        createFrom="order"
+                        getVendorParams={() =>
+                          getQueryParamsFromForm(formMethods.getValues())
+                        }
+                      />
+                    </div>
+                  )}
+
+                  <FormProvider {...formMethods}>
+                    <Filter callback={onFilterChange} />
+                  </FormProvider>
+
+                  {/* Show selected vendor chip with remove icon when vendorInfo is set */}
+                  {vendorInfo && vendorInfo?._id ? (
+                    <div className="tw:mt-3 tw:flex tw:items-center tw:gap-2 tw:mb-4">
+                      <div className="tw:text-sm tw:font-medium">
+                        Selected Retailer
+                      </div>
+                      <AppBadge
+                        variant="primary"
+                        showClose={true}
+                        onClose={clearSelectedVendor}
+                      >
+                        {vendorInfo.name}
+                      </AppBadge>
+                    </div>
+                  ) : null}
+
+                  <div className="tw:flex tw:justify-between tw:items-center tw:mb-2">
+                    <PaginationSummary
+                      paginationConfig={paginationRef.current}
+                      loadingTotalRecords={loading}
+                      loadedCount={retailers.length}
+                      fwSize="sm"
+                    />
+                    <ViewToggle viewType={view} callback={setView} />
+                  </div>
+
+                  {isMobile || view === "card" ? (
+                    <MobileView
+                      data={retailers}
+                      groupByType={groupByType}
+                      showLoadMore={hasMoreData}
+                      loadMore={loadMore}
+                      loadingMore={loadingMore}
+                      totalCount={paginationRef.current.totalRecords}
+                      loadedCount={retailers.length}
+                    />
+                  ) : (
+                    <AppCard noPadding={true}>
+                      <DesktopView
+                        data={retailers}
+                        loading={loading}
+                        callback={handleItemCb}
+                        showLoadMore={hasMoreData}
+                        loadMore={loadMore}
+                        loadingMore={loadingMore}
+                        totalCount={paginationRef.current.totalRecords}
+                        groupByType={groupByType}
+                      />
+                    </AppCard>
+                  )}
+                </AppPaneMain>
+
+                <AppPaneSide className="app-pane-only">
+                  <PurchaseOrderSidePane />
+                </AppPaneSide>
+              </div>
             </div>
           </div>
-
-          <FormProvider {...formMethods}>
-            <Filter callback={onFilterChange} />
-          </FormProvider>
-
-          {/* Show selected vendor chip with remove icon when vendorInfo is set */}
-          {vendorInfo && vendorInfo?._id ? (
-            <div className="tw:mt-3 tw:flex tw:items-center tw:gap-2 tw:mb-4">
-              <div className="tw:text-sm tw:font-medium">Selected Retailer</div>
-              <AppBadge
-                variant="primary"
-                showClose={true}
-                onClose={clearSelectedVendor}
-              >
-                {vendorInfo.name}
-              </AppBadge>
-            </div>
-          ) : null}
-
-          <div className="tw:flex tw:justify-between tw:items-center tw:mb-2">
-            <PaginationSummary
-              paginationConfig={paginationRef.current}
-              loadingTotalRecords={loading}
-              loadedCount={retailers.length}
-              fwSize="sm"
-            />
-            <ViewToggle viewType={view} callback={setView} />
-          </div>
-
-          {isMobile || view === "card" ? (
-            <MobileView
-              data={retailers}
-              groupByType={groupByType}
-              showLoadMore={hasMoreData}
-              loadMore={loadMore}
-              loadingMore={loadingMore}
-              totalCount={paginationRef.current.totalRecords}
-              loadedCount={retailers.length}
-            />
-          ) : (
-            <AppCard noPadding={true}>
-              <DesktopView
-                data={retailers}
-                loading={loading}
-                callback={handleItemCb}
-                showLoadMore={hasMoreData}
-                loadMore={loadMore}
-                loadingMore={loadingMore}
-                totalCount={paginationRef.current.totalRecords}
-                groupByType={groupByType}
-              />
-            </AppCard>
-          )}
         </div>
       </div>
-      <div className="app-footer">
+      <div className="app-footer theme-2-mobile-hide">
         <div className="tw:md:text-end">
           <AppButton
             color="primary"
@@ -396,11 +467,12 @@ const SummaryRetailers = () => {
             size="large"
           >
             <ScanLine size={16} />
-            Scan Box
+            {t("scanBox")}
             <ArrowRight className="tw:ml-1" size={16} />
           </AppButton>
         </div>
       </div>
+      <CreatePoFab />
     </>
   );
 };

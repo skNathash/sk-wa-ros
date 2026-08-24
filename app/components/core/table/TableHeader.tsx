@@ -84,7 +84,11 @@ const TableHeader: React.FC<TableHeaderProps> = ({
               colSpan={group.span}
               className={`${group.className ? group.className : noBg ? "" : "tw:bg-slate-100"} ${
                 group.label
-                  ? "tw:text-center tw:font-semibold tw:text-gray-700 tw:border-b tw:border-l tw:border-r tw:border-slate-200"
+                  ? `tw:text-center tw:font-semibold tw:border-b tw:border-l tw:border-r tw:border-slate-200 ${
+                      group.className?.includes("tw:text-")
+                        ? ""
+                        : "tw:text-gray-700"
+                    }`
                   : ""
               }`}
             >
@@ -97,7 +101,7 @@ const TableHeader: React.FC<TableHeaderProps> = ({
         {headers.map((header, index) => (
         <TableHead
           key={index}
-          className={`${noBg ? "" : "tw:bg-slate-50"}
+          className={`${header.className ? header.className : noBg ? "" : "tw:bg-slate-50"}
             ${alignClass(header)}
             ${header.enableSort ? "tw:cursor-pointer" : ""}
             ${header.isSticky ? "tw:sticky tw:top-0" : ""}
@@ -113,6 +117,11 @@ const TableHeader: React.FC<TableHeaderProps> = ({
               <div className="tw:flex tw:flex-col tw:self-center tw:mt-1">
                 <ChevronUp
                   size={14}
+                  data-active={
+                    sortValue === "asc" && header.key === sortKey
+                      ? "true"
+                      : undefined
+                  }
                   className={`${
                     sortValue === "asc" && header.key === sortKey
                       ? "tw:text-blue-500"
@@ -121,6 +130,11 @@ const TableHeader: React.FC<TableHeaderProps> = ({
                 />
                 <ChevronDown
                   size={14}
+                  data-active={
+                    sortValue === "desc" && header.key === sortKey
+                      ? "true"
+                      : undefined
+                  }
                   className={`tw:relative tw:-top-1 ${
                     sortValue === "desc" && header.key === sortKey
                       ? "tw:text-blue-500"

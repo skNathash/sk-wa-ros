@@ -1,9 +1,13 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, IndianRupee, InfoIcon } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  InfoIcon,
+  Wallet,
+} from "lucide-react";
 import AppCard from "~/components/core/card/AppCard";
 import AppBadge from "~/components/core/badge/AppBadge";
 import AppPopover from "~/components/core/popover/AppPopover";
-import Divider from "~/components/core/divider/Divider";
 import Amount from "~/components/core/amount/Amount";
 import DateFormat from "~/components/core/date/DateFormat";
 import useScreenView from "~/hooks/useScreenView";
@@ -41,15 +45,35 @@ interface FinanceInfoProps {
   };
 }
 
+const InfoRow = ({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div
+    className={clsx(
+      "tw:flex tw:justify-between tw:items-center tw:gap-3 tw:py-2.5",
+      className,
+    )}
+  >
+    <span className="tw:text-sm tw:text-gray-500 tw:shrink-0">{label}</span>
+    <div className="tw:text-sm tw:font-medium tw:text-gray-900 tw:text-right tw:min-w-0">
+      {children}
+    </div>
+  </div>
+);
+
 const FinanceInfo: React.FC<FinanceInfoProps> = ({ financeInfo }) => {
   const { isMobile } = useScreenView();
 
   const [isExpanded, setIsExpanded] = useState(isMobile ? false : true);
 
   const handleExpand = () => {
-    if (!isMobile) {
-      return;
-    }
+    if (!isMobile) return;
     setIsExpanded(!isExpanded);
   };
 
@@ -66,81 +90,75 @@ const FinanceInfo: React.FC<FinanceInfoProps> = ({ financeInfo }) => {
 
   return (
     <AppCard
-      className={clsx(!isExpanded ? "tw:!pb-2" : "")}
+      className={clsx("tw:h-full tw:mb-0!", !isExpanded && "tw:pb-2!")}
+      headerClassName="tw:border-b tw:border-gray-100 tw:pb-3"
+      iconClassName="tw:mr-0!"
       title={
+        // `flex-1 min-w-0` — not `w-full`: this row is a flex sibling of the
+        // card's icon, so a full-width child overflows the header by the icon
+        // and gap and the chevron lands outside the card's padding (clipped by
+        // `overflow-clip`) instead of aligned with the values below.
         <div
           className={
             isMobile
-              ? "tw:flex tw:justify-between tw:w-full tw:sm:cursor-pointer"
+              ? "tw:flex tw:flex-1 tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:sm:cursor-pointer"
               : ""
           }
           onClick={handleExpand}
         >
-          <div className="tw:flex-1">Financial Summary</div>
+          <div className="tw:min-w-0 tw:truncate">Financial Summary</div>
           {isMobile ? (
-            <div>
-              <button>
-                {isExpanded ? (
-                  <ChevronUp size={20} />
-                ) : (
-                  <ChevronDown size={20} />
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              aria-label="Toggle financial details"
+              className="tw:shrink-0 tw:text-gray-400"
+            >
+              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
           ) : null}
         </div>
       }
-      icon={<IndianRupee size={16} />}
+      icon={<Wallet size={16} className="tw:text-gray-500" />}
     >
       <div
         className={clsx(
-          "tw:space-y-4 tw:text-sm",
-          isExpanded ? "tw:block" : "tw:hidden"
+          "tw:divide-y tw:divide-gray-100",
+          isExpanded ? "tw:block" : "tw:hidden",
         )}
       >
-        <div className="tw:flex tw:justify-between tw:items-center">
-          <div className="tw:text-gray-500">Total Products</div>
-          <div className="tw:font-medium">{financeInfo.totalProducts}</div>
-        </div>
-        <div className="tw:flex tw:justify-between tw:items-center">
-          <div className="tw:text-gray-500">Total Units</div>
-          <div className="tw:font-medium">{financeInfo.totalUnits}</div>
-        </div>
-        <div className="tw:flex tw:justify-between tw:items-center">
-          <div className="tw:text-gray-500">Order Value</div>
-          <div className="tw:font-semibold tw:text-lg tw:text-blue-600">
+        <InfoRow label="Total Products">{financeInfo.totalProducts}</InfoRow>
+
+        <InfoRow label="Total Units">{financeInfo.totalUnits}</InfoRow>
+
+        <InfoRow label="Order Value">
+          <span className="tw:text-lg tw:font-bold tw:text-emerald-600">
             <Amount value={financeInfo.orderValue} decimalPlaces={2} />
-          </div>
-        </div>
+          </span>
+        </InfoRow>
+
         {financeInfo.commissionDetails?.skCommission ? (
-          <div className="tw:flex tw:justify-between tw:items-center">
-            <div className="tw:text-gray-500">Platform Fee</div>
-            <div className="tw:font-medium">
-              <Amount
-                value={financeInfo.commissionDetails.skCommission}
-                decimalPlaces={2}
-              />
-            </div>
-          </div>
+          <InfoRow label="Platform Fee">
+            <Amount
+              value={financeInfo.commissionDetails.skCommission}
+              decimalPlaces={2}
+            />
+          </InfoRow>
         ) : null}
+
         {financeInfo.subscriptionPlanInfo?.subscribedAmount ? (
-          <div className="tw:flex tw:justify-between tw:items-center">
-            <div className="tw:text-gray-500">Subscription Fee</div>
-            <div className="tw:font-medium">
-              <Amount
-                value={financeInfo.subscriptionPlanInfo.subscribedAmount}
-                decimalPlaces={2}
-              />
-            </div>
-          </div>
+          <InfoRow label="Subscription Fee">
+            <Amount
+              value={financeInfo.subscriptionPlanInfo.subscribedAmount}
+              decimalPlaces={2}
+            />
+          </InfoRow>
         ) : null}
+
         {financeInfo.invoiceNo && (
           <>
-            <Divider className="tw:!my-2" />
-            <div className="tw:flex tw:justify-between tw:items-center">
-              <div className="tw:text-gray-500">Invoice #</div>
-              <div className="tw:flex tw:items-center tw:gap-2">
-                <div className="tw:font-medium">{financeInfo.invoiceNo}</div>
+            <InfoRow label="Invoice #">
+              <div className="tw:flex tw:items-center tw:justify-end tw:gap-2">
+                <span>{financeInfo.invoiceNo}</span>
                 {hasInvoiceInfo && (
                   <AppPopover
                     triggerContent={
@@ -204,96 +222,88 @@ const FinanceInfo: React.FC<FinanceInfoProps> = ({ financeInfo }) => {
                   </AppPopover>
                 )}
               </div>
-            </div>
-            <div className="tw:flex tw:justify-between tw:items-center">
-              <div className="tw:text-gray-500">Invoice Amount</div>
-              <div className="tw:font-medium">
-                <Amount value={financeInfo.invoiceAmount} decimalPlaces={2} />
-              </div>
-            </div>
+            </InfoRow>
 
-            {/* <Divider className="tw:!my-2" /> */}
+            <InfoRow label="Invoice Amount">
+              <Amount value={financeInfo.invoiceAmount} decimalPlaces={2} />
+            </InfoRow>
           </>
         )}
 
-        <div className="tw:flex tw:justify-between tw:items-center tw:hidden">
-          <div className="tw:text-gray-500">Payment Status</div>
-          <div className="tw:flex tw:items-center tw:gap-2">
-            <AppBadge
-              variant={
-                financeInfo.paymentStatus.toLowerCase() === "paid"
-                  ? "success"
-                  : "danger"
-              }
-              className="tw:uppercase"
-            >
-              {financeInfo.paymentStatus}
-            </AppBadge>
-            {hasPaymentInfo && (
-              <AppPopover
-                triggerContent={
-                  <InfoIcon className="tw:text-blue-500 tw:w-4 tw:h-4 tw:cursor-pointer tw:hover:text-blue-600" />
+        {financeInfo.paymentStatus ? (
+          <InfoRow label="Payment Status" className="tw:hidden">
+            <div className="tw:flex tw:items-center tw:justify-end tw:gap-2">
+              <AppBadge
+                variant={
+                  financeInfo.paymentStatus.toLowerCase() === "paid"
+                    ? "success"
+                    : "danger"
                 }
-                side="top"
-                align="center"
+                className="tw:uppercase"
               >
-                <div className="tw:p-3 tw:space-y-2 tw:min-w-[200px]">
-                  <div className="tw:font-medium tw:text-gray-900 tw:border-b tw:pb-2">
-                    Payment Details
+                {financeInfo.paymentStatus}
+              </AppBadge>
+              {hasPaymentInfo && (
+                <AppPopover
+                  triggerContent={
+                    <InfoIcon className="tw:text-blue-500 tw:w-4 tw:h-4 tw:cursor-pointer tw:hover:text-blue-600" />
+                  }
+                  side="top"
+                  align="center"
+                >
+                  <div className="tw:p-3 tw:space-y-2 tw:min-w-[200px]">
+                    <div className="tw:font-medium tw:text-gray-900 tw:border-b tw:pb-2">
+                      Payment Details
+                    </div>
+                    {paymentInfo?.referenceNo && (
+                      <div className="tw:flex tw:justify-between tw:items-center">
+                        <span className="tw:text-gray-600 tw:text-sm">
+                          Reference ID:
+                        </span>
+                        <span className="tw:font-medium tw:text-sm">
+                          {paymentInfo.referenceNo}
+                        </span>
+                      </div>
+                    )}
+                    {paymentInfo?.paymentDate && (
+                      <div className="tw:flex tw:justify-between tw:items-center">
+                        <span className="tw:text-gray-600 tw:text-sm">
+                          Payment Date:
+                        </span>
+                        <span className="tw:font-medium tw:text-sm">
+                          <DateFormat
+                            value={paymentInfo.paymentDate}
+                            formatStr="dd MMM yyyy"
+                          />
+                        </span>
+                      </div>
+                    )}
+                    {paymentInfo?.paymentMode && (
+                      <div className="tw:flex tw:justify-between tw:items-center">
+                        <span className="tw:text-gray-600 tw:text-sm">
+                          Payment Mode:
+                        </span>
+                        <span className="tw:font-medium tw:text-sm">
+                          {paymentInfo.paymentMode}
+                        </span>
+                      </div>
+                    )}
+                    {paymentInfo?.amount && (
+                      <div className="tw:flex tw:justify-between tw:items-center">
+                        <span className="tw:text-gray-600 tw:text-sm">
+                          Amount:
+                        </span>
+                        <span className="tw:font-medium tw:text-sm">
+                          <Amount value={paymentInfo.amount} decimalPlaces={2} />
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  {paymentInfo?.referenceNo && (
-                    <div className="tw:flex tw:justify-between tw:items-center">
-                      <span className="tw:text-gray-600 tw:text-sm">
-                        Reference ID:
-                      </span>
-                      <span className="tw:font-medium tw:text-sm">
-                        {paymentInfo.referenceNo}
-                      </span>
-                    </div>
-                  )}
-                  {paymentInfo?.paymentDate && (
-                    <div className="tw:flex tw:justify-between tw:items-center">
-                      <span className="tw:text-gray-600 tw:text-sm">
-                        Payment Date:
-                      </span>
-                      <span className="tw:font-medium tw:text-sm">
-                        <DateFormat
-                          value={paymentInfo.paymentDate}
-                          formatStr="dd MMM yyyy"
-                        />
-                      </span>
-                    </div>
-                  )}
-                  {paymentInfo?.paymentMode && (
-                    <div className="tw:flex tw:justify-between tw:items-center">
-                      <span className="tw:text-gray-600 tw:text-sm">
-                        Payment Mode:
-                      </span>
-                      <span className="tw:font-medium tw:text-sm">
-                        {paymentInfo.paymentMode}
-                      </span>
-                    </div>
-                  )}
-                  {paymentInfo?.amount && (
-                    <div className="tw:flex tw:justify-between tw:items-center">
-                      <span className="tw:text-gray-600 tw:text-sm">
-                        Amount:
-                      </span>
-                      <span className="tw:font-medium tw:text-sm">
-                        <Amount value={paymentInfo.amount} decimalPlaces={2} />
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </AppPopover>
-            )}
-          </div>
-        </div>
-        {/* <div className="tw:text-green-600 tw:font-medium tw:text-sm tw:mt-4">
-          {financeInfo.allItemsReceived
-            ? "✓ All items received"
-            : "Items pending"}
-        </div> */}
+                </AppPopover>
+              )}
+            </div>
+          </InfoRow>
+        ) : null}
       </div>
     </AppCard>
   );

@@ -11,10 +11,9 @@ interface DesktopViewProps {
 }
 
 const headers = [
-  { label: "Name", key: "name", width: "35%" },
-  { label: "Mobile", key: "mobileNo", width: "20%", isCentered: true },
-  { label: "COD", key: "codEnabled", width: "15%", isCentered: true },
-  { label: "Prepaid", key: "prepaidEnabled", width: "15%", isCentered: true },
+  { label: "Name", key: "name", width: "40%" },
+  { label: "Mobile", key: "mobileNo", width: "25%", isCentered: true },
+  { label: "Prepaid", key: "prepaidEnabled", width: "20%", isCentered: true },
   { label: "Action", key: "action", width: "15%", isCentered: true },
 ];
 
@@ -45,12 +44,6 @@ const DesktopView: React.FC<DesktopViewProps> = ({ data = [], callback }) => {
 
             <AppTable.Cell className="tw:text-center">
               {item.mobileNo || "-"}
-            </AppTable.Cell>
-
-            <AppTable.Cell className="tw:text-center">
-              <AppBadge variant={item.codEnabled ? "success" : "light"}>
-                {item.codEnabled ? "On" : "Off"}
-              </AppBadge>
             </AppTable.Cell>
 
             <AppTable.Cell className="tw:text-center">

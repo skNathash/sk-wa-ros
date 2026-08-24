@@ -8,6 +8,8 @@ import AppButton from "~/components/core/button/AppButton";
 import AppHeader from "~/components/core/header/AppHeader";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import { useSidebar } from "~/components/ui/sidebar";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import NoData from "~/components/core/no-data/NoData";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
@@ -19,10 +21,10 @@ import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
 import SearchWithVoice from "../components/SearchWithVoice";
 // Product detail modal removed
-import SellerListModal from "../modals/seller-list/SellerListModal";
+import SellerListModal from "~/shared/catalog/modals/seller-list/SellerListModal";
+import SupplyCatalogPane from "~/shared/catalog/components/supply-catalog-pane/SupplyCatalogPane";
 import AppliedFilters from "./components/AppliedFilters";
-import BrandFilter from "./components/filters/BrandFilter";
-import CategoryFilter from "./components/filters/CategoryFilter";
+import BrandCategoryFilters from "./components/filters/BrandCategoryFilters";
 import {
   applyFormDataToSearchParams,
   getCount,
@@ -31,6 +33,11 @@ import {
   prepareParams,
 } from "./helper";
 import { FilterModal } from "./modals/FilterModal";
+
+// One grid for every theme — the browse rail takes the width the row-card list
+// used to, so the cards stay at four across on wide desktops.
+const GRID_CLASS =
+  "tw:grid tw:grid-cols-2 tw:md:grid-cols-3 tw:xl:grid-cols-4 tw:mt-4 tw:gap-4";
 
 const ProductCardSkeleton = () => (
   <div className="tw:border tw:border-gray-200 tw:rounded-lg tw:p-4 tw:space-y-4">
@@ -46,6 +53,13 @@ const BuyFromOtherRetailerProductsListPage = () => {
   const { t } = useTranslation(["common", "menu"]);
   const [searchParams, setSearchParams] = useSearchParams();
   const appNav = useAppNav();
+  const { setOpen } = useSidebar();
+
+  // Collapse the section side menu when this page opens so the theme-2 split
+  // pane sits flush against the icon rail; the user can reopen it via the toggle.
+  useEffect(() => {
+    setOpen(false);
+  }, []);
 
   const titleFromParams = searchParams.get("title") || "Browse Products";
 
@@ -368,18 +382,79 @@ const BuyFromOtherRetailerProductsListPage = () => {
     [handleFilterCallback],
   );
 
+  // Rail subtitle — names what the list is scoped to, falling back to the
+  // network-wide framing when nothing narrows it.
+  const listSubtitle =
+    searchParams.get("brandName") ||
+    searchParams.get("categoryName") ||
+    searchParams.get("menuName") ||
+    "Across the StoreKing marketplace";
+
+  // Brand & Category browse rail — sits between the catalog pane and the
+  // product grid on desktop; on mobile the same facets live in the filter modal.
+  const brandCategoryFilters = (
+    <BrandCategoryFilters
+      menuId={menuId}
+      categoryScope={categoryScope}
+      brandScope={brandScope}
+      selectedBrandIds={selectedBrandIds}
+      selectedCatIds={selectedCatIds}
+      distance={distance}
+      onBrandChange={handleBrandFilterChange}
+      onCategoryChange={handleCategoryFilterChange}
+    />
+  );
+
+  const productsColumn = (
+    <div className="tw:flex-1 tw:min-w-0">
+      <div className="tw:flex tw:justify-between tw:items-center">
+        <PaginationSummary
+          paginationConfig={paginationRef.current}
+          loadingTotalRecords={loading}
+          loadedCount={products.length}
+          fwSize="sm"
+        />
+      </div>
+
+      {loading ? (
+        <div className={GRID_CLASS}>
+          {Array.from({ length: 12 }).map((_, idx) => (
+            <ProductCardSkeleton key={idx} />
+          ))}
+        </div>
+      ) : products.length > 0 ? (
+        <div className={GRID_CLASS}>
+          {products.map((product, index) => (
+            <ProductCard key={index} data={product} callback={handleBuyNow} />
+          ))}
+        </div>
+      ) : (
+        <NoData />
+      )}
+
+      {hasMoreData && !loading && (
+        <LoadMoreButton
+          loadMore={loadMore}
+          loading={loadingMore}
+          totalCount={paginationRef.current.totalRecords}
+          loadedCount={products.length}
+        />
+      )}
+    </div>
+  );
+
   return (
     <>
-      <AppHeader title={titleFromParams} showSearch={false} showCart={true} />
+      <AppHeader
+        title={titleFromParams}
+        subtitle={listSubtitle}
+        showSearch={false}
+        showCart={true}
+      />
 
       <div className="page-bg app-page tw:p-4">
         {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
-        <SectionTabs
-          sectionKey="supply"
-          activeTab="buy-from-network"
-          noShadow
-          sticky
-        />
+        {/* <SectionTabs sectionKey="supply" activeTab="catalog" noShadow sticky /> */}
 
         <div className="section-layout section-layout--tight">
           {/* Desktop-only left rail — section side menu. */}
@@ -387,107 +462,80 @@ const BuyFromOtherRetailerProductsListPage = () => {
             <div className="tw:sticky tw:top-20">
               <SectionMenu
                 sectionKey="supply"
-                activeTab="buy-from-network"
+                activeTab="catalog"
                 title={t("manageSupply", { ns: "menu" })}
               />
             </div>
           </aside>
 
-          <div className="section-content">
-            <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
+          <div className="section-content tw:flex tw:gap-4">
+            {/* Browse rail — Brand & Category facets (desktop only). It runs
+                the full height of the content area beside the search bar and
+                keeps a trimmed left gutter, so the white column reads as its
+                own panel without sitting flush against the pane. */}
+            <aside className="tw:hidden tw:lg:block tw:w-72 tw:shrink-0 tw:sticky tw:top-15 tw:self-start tw:h-[calc(100vh-3.75rem)] tw:-my-4 tw:-ml-3 tw:bg-white tw:border-r tw:border-slate-200 tw:px-5 tw:py-4">
+              {brandCategoryFilters}
+            </aside>
 
-            {/* <BuyFromNetworkTab activeTab="products" className="tw:mb-4" /> */}
-            <FormProvider {...methods}>
-              <div className="tw:mb-4 tw:sticky tw:top-16 tw:z-10">
-                <SearchWithVoice
-                  trailing={
-                    <AppButton
-                      color="light"
-                      size="small"
-                      fill="clear"
-                      onClick={() =>
-                        setFilterModal({
-                          show: true,
-                          data: methods.getValues(),
-                        })
-                      }
-                      className="tw:flex tw:items-center tw:gap-2 tw:whitespace-nowrap tw:h-9 tw:lg:hidden"
-                    >
-                      <Filter className="tw:w-4 tw:h-4" />
-                    </AppButton>
+            <div className="tw:min-w-0 tw:flex-1">
+              <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
+
+              {/* <BuyFromNetworkTab activeTab="products" className="tw:mb-4" /> */}
+              <FormProvider {...methods}>
+                {/* `search-sticky-header` — this page renders no section tab
+                    bar on mobile, so the band sits flush under the app header
+                    (see theme-2.css) instead of leaving a page-bg strip. */}
+                <div className="search-sticky search-sticky-header tw:mb-4 tw:sticky tw:top-15 tw:z-20 tw:pb-4 tw:bg-[var(--page-bg,white)]">
+                  <SearchWithVoice
+                    trailing={
+                      <AppButton
+                        color="light"
+                        size="small"
+                        fill="clear"
+                        onClick={() =>
+                          setFilterModal({
+                            show: true,
+                            data: methods.getValues(),
+                          })
+                        }
+                        className="tw:flex tw:items-center tw:gap-2 tw:whitespace-nowrap tw:h-9 tw:lg:hidden"
+                      >
+                        <Filter className="tw:w-4 tw:h-4" />
+                      </AppButton>
+                    }
+                  />
+                </div>
+
+                <AppliedFilters
+                  onFilterChange={({ formData }) =>
+                    handleAppliedFiltersChange({ action: "change", formData })
                   }
                 />
-              </div>
+              </FormProvider>
 
-              <AppliedFilters
-                onFilterChange={({ formData }) =>
-                  handleAppliedFiltersChange({ action: "change", formData })
-                }
-              />
-            </FormProvider>
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Main column — spans the full grid (the side pane only exists
+                    in theme-2 desktop, where the CSS lifts it out of the grid
+                    into the fixed list pane; see AppPane / theme-2.css). */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  {productsColumn}
+                </AppPaneMain>
 
-            <div className="tw:flex tw:gap-4">
-              {/* Left column — Brand & Category filters (desktop only) */}
-              <aside className="tw:hidden tw:lg:flex tw:flex-col tw:gap-4 tw:w-72 tw:shrink-0 tw:sticky tw:top-24 tw:self-start tw:h-[calc(100vh-9rem)]">
-                <div className="tw:flex-1 tw:min-h-0">
-                  <BrandFilter
-                    menuId={menuId}
-                    categoryId={categoryScope}
-                    selectedIds={selectedBrandIds}
-                    distance={distance}
-                    callback={handleBrandFilterChange}
-                  />
-                </div>
-                <div className="tw:flex-1 tw:min-h-0">
-                  <CategoryFilter
-                    menuId={menuId}
-                    brandId={brandScope}
-                    selectedIds={selectedCatIds}
-                    distance={distance}
-                    callback={handleCategoryFilterChange}
-                  />
-                </div>
-              </aside>
-
-              {/* Center column — products */}
-              <div className="tw:flex-1 tw:min-w-0">
-                <div className="tw:flex tw:justify-between tw:items-center">
-                  <PaginationSummary
-                    paginationConfig={paginationRef.current}
-                    loadingTotalRecords={loading}
-                    loadedCount={products.length}
-                    fwSize="sm"
-                  />
-                </div>
-
-                {loading ? (
-                  <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-3 tw:xl:grid-cols-5 tw:mt-4 tw:gap-4">
-                    {Array.from({ length: 12 }).map((_, idx) => (
-                      <ProductCardSkeleton key={idx} />
-                    ))}
+                {/* Side column — only rendered while the theme-2 split layout
+                    is active (lg+), where the CSS re-homes it as the fixed list
+                    pane beside the icon rail. Holds the marketplace pane. */}
+                <AppPaneSide className="app-pane-only">
+                  <div className="tw:flex tw:flex-col tw:gap-4">
+                    <SupplyCatalogPane
+                      title="Marketplace"
+                      subtitle="Network"
+                      distance={distance}
+                      showPurchaseCart
+                      showTrendingSearches
+                      showPreviousPurchases
+                    />
                   </div>
-                ) : products.length > 0 ? (
-                  <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-3 tw:xl:grid-cols-5 tw:mt-4 tw:gap-4">
-                    {products.map((product, index) => (
-                      <ProductCard
-                        key={index}
-                        data={product}
-                        callback={handleBuyNow}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <NoData />
-                )}
-
-                {hasMoreData && !loading && (
-                  <LoadMoreButton
-                    loadMore={loadMore}
-                    loading={loadingMore}
-                    totalCount={paginationRef.current.totalRecords}
-                    loadedCount={products.length}
-                  />
-                )}
+                </AppPaneSide>
               </div>
             </div>
           </div>

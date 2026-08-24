@@ -19,8 +19,8 @@ const SubscribeSuccessModal = ({
     callback({ action: "close" });
   };
 
-  const handleUpdateConfig = () => {
-    callback({ action: "update_config" });
+  const handleSubscribeMore = () => {
+    callback({ action: "subscribe_more" });
   };
 
   const handleGoToInventory = () => {
@@ -55,7 +55,7 @@ const SubscribeSuccessModal = ({
                   Create pending products
                 </div>
                 <div className="tw:text-xs tw:text-blue-800 tw:mt-0.5">
-                  You also have {pendingCount} pending {pendingCount === 1 ? "item" : "items"} found by StoreKing AI that {pendingCount === 1 ? "isn't" : "aren't"} in the catalog yet. Review and create them.
+                  You also have {pendingCount} pending {pendingCount === 1 ? "item" : "items"} found by StoreKing AI that {pendingCount === 1 ? "isn't" : "aren't"} in the SK library yet. Review and create them.
                 </div>
               </div>
             </div>
@@ -74,10 +74,10 @@ const SubscribeSuccessModal = ({
               <>
                 <AppButton
                   color="primary"
-                  onClick={handleUpdateConfig}
+                  onClick={handleSubscribeMore}
                   className="tw:w-full"
                 >
-                  Update packaging type
+                  Subscribe more option
                 </AppButton>
                 <AppButton
                   fill="outline"

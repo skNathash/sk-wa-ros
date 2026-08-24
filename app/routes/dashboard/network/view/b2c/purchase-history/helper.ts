@@ -1,4 +1,4 @@
-import { endOfDay, startOfDay, sub } from "date-fns";
+import { endOfDay, startOfDay } from "date-fns";
 import AuthService from "~/services/AuthService";
 import SellerService from "~/services/SellerService";
 import type { PaginationState, SortValue } from "~/types/CommonTypes";
@@ -31,7 +31,9 @@ export const defaultSummary = [
 ];
 
 export const defaultFilter = {
-  dateRange: [sub(new Date(), { days: 30 }), new Date()],
+  // No date window by default — the list opens on the customer's full purchase
+  // history and only narrows once a range is actually picked in the filter.
+  dateRange: [] as Date[],
   search: "",
   status: "",
 };
@@ -76,9 +78,10 @@ export const prepareParams = (
 
   // Date Range - normalize to ISO strings (start/end of day)
   if (
-    filter.dateRange &&
     Array.isArray(filter.dateRange) &&
-    filter.dateRange.length === 2
+    filter.dateRange.length === 2 &&
+    filter.dateRange[0] &&
+    filter.dateRange[1]
   ) {
     params.filter.orderedDate = {
       $gte: startOfDay(filter.dateRange[0]).toISOString(),

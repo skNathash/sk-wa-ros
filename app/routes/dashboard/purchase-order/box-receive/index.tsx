@@ -1,5 +1,5 @@
 import { debounce } from "lodash";
-import { BarcodeIcon, Package } from "lucide-react";
+import { BarcodeIcon, Package, ScanLine } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -8,16 +8,20 @@ import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
 import BarcodeScan from "~/components/core/barcode-scan/BarcodeScan";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppButton from "~/components/core/button/AppButton";
+import AppCard from "~/components/core/card/AppCard";
 import { AppInput } from "~/components/core/form";
 import AppHeader from "~/components/core/header/AppHeader";
+import NoData from "~/components/core/no-data/NoData";
 import { ALERT_DISMISS_TIME } from "~/constants";
 import useAppNav from "~/hooks/useAppNav";
 import CommonService from "~/services/CommonService";
 import MiscService from "~/services/MiscService";
 import PageAccessService from "~/services/PageAccessService";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import PoSectionTabs from "~/shared/purchase-order/components/PoSectionTabs";
 import CreatePoFab from "~/shared/purchase-order/components/CreatePoFab";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
 import BoxItem from "~/shared/orders/order-boxes/components/BoxItem";
 import BulkBoxReceiveModal from "~/shared/orders/receive-box/modals/bulk-box/BulkBoxReceiveModal";
 import ReceiveBoxModal from "~/shared/orders/receive-box/modals/receive-box/ReceiveBoxModal";
@@ -51,6 +55,11 @@ const BoxReceive = () => {
   const scannerDetector = MiscService.createScannerDetector();
 
   const [scanning, setScanning] = useState(false);
+
+  // Camera scanning only exists inside the Cordova app. Resolved after mount so
+  // the server and first client render agree.
+  const [canScan, setCanScan] = useState(false);
+  useEffect(() => setCanScan(MiscService.hasCordova()), []);
 
   const [appAlert, setAppAlert] = useState({
     show: false,
@@ -393,14 +402,8 @@ const BoxReceive = () => {
       <AppHeader title={t("receiveBox")} />
       <div className="app-page tw:p-4 page-bg">
         <div className="app-container">
-          {/* Supply section navigation — mobile horizontal scroller (theme-2)
-              and desktop left rail below. */}
-          <SectionTabs
-            sectionKey="supply"
-            activeTab="receive-stock"
-            noShadow
-            sticky
-          />
+          {/* PO tab bar — theme-2 mobile only (see theme-2.css). */}
+          <PoSectionTabs activeTab="scan-box" outerClassName="tw:mb-3" />
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -415,92 +418,144 @@ const BoxReceive = () => {
             </aside>
 
             <div className="section-content">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:mb-4 tw:gap-2">
-            <AppBreadcrumbs data={breadcrumbs} className="tw:mb-0!" />
-            {/* <div>
-              <AppButton
-                onClick={() =>
-                  appNav.to("/dashboard/purchase-order/recently-received")
-                }
-                size="small"
-                fill="outline"
-              >
-                <Clock className="tw:mr-2" />
-                {t("recentlyReceived")}
-              </AppButton>
-            </div> */}
-          </div>
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:mb-4 tw:gap-2">
+                    <AppBreadcrumbs data={breadcrumbs} className="tw:mb-0!" />
+                    {/* <div>
+                      <AppButton
+                        onClick={() =>
+                          appNav.to("/dashboard/purchase-order/recently-received")
+                        }
+                        size="small"
+                        fill="outline"
+                      >
+                        <Clock className="tw:mr-2" />
+                        {t("recentlyReceived")}
+                      </AppButton>
+                    </div> */}
+                  </div>
 
-          {/* Highlighted scan block — primary-tinted so it tracks the active
-              theme (blue in default, green in theme-2) instead of hardcoded blue. */}
-          <div className="tw:flex tw:items-end tw:gap-3 tw:p-3 tw:rounded-md tw:border tw:border-dashed tw:border-primary/30 tw:bg-primary/5 tw:mb-4">
-            <AppInput
-              name="barcode"
-              register={register}
-              leftIcon={<BarcodeIcon className="tw:text-primary" />}
-              placeholder={t("scanBoxBarcode")}
-              className="tw:flex-1 tw:bg-white tw:rounded-md"
-              onChange={handleInputChange}
-              onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
-              autoFocus={true}
-              rightIcon={
-                <>
-                  {scanning ? (
-                    <AppSpinner />
+                  {/* Scan block — cleaner card-based search UI. */}
+                  <AppCard
+                    title={
+                      <span className="tw:flex tw:items-center tw:gap-2">
+                        <ScanLine className="tw:w-5 tw:h-5" />
+                        {t("scanBox")}
+                      </span>
+                    }
+                    noPadding
+                    noContentPadding
+                    className="tw:mb-4"
+                    /* `noPadding` zeroes the card's own padding, so header and
+                       body each supply the same 1rem gutter — otherwise the
+                       header keeps its 1.5rem inset and the title hangs 8px
+                       right of the input below it, with nothing above it. */
+                    headerClassName="tw:px-4 tw:pt-4"
+                    bodyClassName="tw:px-4 tw:pb-4"
+                  >
+                    <>
+                      <AppInput
+                        name="barcode"
+                        register={register}
+                        leftIcon={<BarcodeIcon className="tw:text-primary" />}
+                        placeholder={t("scanOrTypeBoxBarcode", {
+                          defaultValue: "Scan or type box barcode",
+                        })}
+                        className="tw:w-full"
+                        size="lg"
+                        inputClassName="tw:text-base"
+                        onChange={handleInputChange}
+                        onClick={(e) =>
+                          (e.currentTarget as HTMLInputElement).select()
+                        }
+                        autoFocus={true}
+                        /* Only claim the right slot when something will show in
+                           it — `BarcodeScan` renders nothing outside the Cordova
+                           app, and an always-passed icon would leave the input
+                           with 2.5rem of dead padding in the browser. */
+                        rightIcon={
+                          scanning ? (
+                            <AppSpinner />
+                          ) : canScan ? (
+                            <BarcodeScan callback={handleBarcodeScan}>
+                              <span className="tw:flex tw:h-8 tw:w-8 tw:items-center tw:justify-center tw:rounded-md tw:bg-primary/10 tw:text-primary">
+                                <ScanLine className="tw:w-4 tw:h-4" />
+                              </span>
+                            </BarcodeScan>
+                          ) : undefined
+                        }
+                      />
+                      <p className="tw:mt-2 tw:text-xs tw:text-gray-500">
+                        {t("upToFiveBoxesCanBeScannedAndReceivedTogether", {
+                          defaultValue:
+                            "Up to 5 boxes can be scanned and received together",
+                        })}
+                      </p>
+                    </>
+                  </AppCard>
+
+                  {!boxes.length ? (
+                    /* Empty state stands on the page background — the scan card
+                       above is already the only thing to act on, so a second
+                       titled card would just repeat its own heading. */
+                    <NoData
+                      className="tw:rounded-xl tw:border tw:border-dashed tw:border-slate-200 tw:bg-white/60"
+                      icon={
+                        <div className="tw:p-5 tw:rounded-full tw:bg-primary/10">
+                          <Package className="tw:w-9 tw:h-9 tw:text-primary/70" />
+                        </div>
+                      }
+                      title={t("noBoxesScannedYet", {
+                        defaultValue: "No boxes scanned yet",
+                      })}
+                      description={t("pleaseScanBoxBarcodeToGetStarted")}
+                    />
                   ) : (
-                    <BarcodeScan callback={handleBarcodeScan} />
+                    <>
+                      {/* Count + select-all on one row — they're the same
+                          "what's in the list" line. */}
+                      <div className="tw:flex tw:items-center tw:justify-between tw:mb-3 tw:gap-3">
+                        <div className="tw:flex tw:items-center tw:gap-2">
+                          <input
+                            type="checkbox"
+                            aria-label="Select all boxes"
+                            checked={isAllSelected}
+                            onChange={(e) => handleSelectAll(e.target.checked)}
+                            className="tw:w-4 tw:h-4 tw:text-primary-600 tw:border-gray-300 tw:rounded"
+                          />
+                          <span className="tw:text-sm tw:text-gray-700">
+                            {t("selectAllBoxes")}
+                          </span>
+                        </div>
+                        <div className="tw:text-sm tw:text-gray-500 tw:whitespace-nowrap">
+                          {selectedIdsArray.length}/{boxes.length}{" "}
+                          {t("selected")}
+                        </div>
+                      </div>
+                      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+                        {boxes.map((box) => (
+                          <BoxItem
+                            key={box._id}
+                            box={box}
+                            callback={boxCallback}
+                            showCheckbox={true}
+                            showReceive={true}
+                            isSelected={!!selectedBoxIds[box._id]}
+                            onSelect={toggleSelectBox}
+                            checkboxDisabled={!!box.isReceived}
+                            showRemove={true}
+                          />
+                        ))}
+                      </div>
+                    </>
                   )}
-                </>
-              }
-            />
-            {/* Scan button removed as requested */}
-          </div>
+                </AppPaneMain>
 
-          {!boxes.length ? (
-            <div className="tw:text-center tw:py-8 tw:text-gray-500">
-              <Package className="tw:w-12 tw:h-12 tw:mx-auto tw:mb-4" />
-              {t("pleaseScanBoxBarcodeToGetStarted")}
-            </div>
-          ) : (
-            <>
-              <div className="tw:mb-4 tw:text-gray-600 tw:font-medium tw:text-sm">
-                {t("boxesScanned")}: {boxes.length}{" "}
+                <AppPaneSide className="app-pane-only">
+                  <PurchaseOrderSidePane />
+                </AppPaneSide>
               </div>
-              {/* Select all control */}
-              <div className="tw:flex tw:items-center tw:justify-between tw:mb-3">
-                <div className="tw:flex tw:items-center tw:gap-2">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all boxes"
-                    checked={isAllSelected}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="tw:w-4 tw:h-4 tw:text-primary-600 tw:border-gray-300 tw:rounded"
-                  />
-                  <span className="tw:text-sm tw:text-gray-700">
-                    {t("selectAllBoxes")}
-                  </span>
-                </div>
-                <div className="tw:text-sm tw:text-gray-600">
-                  {selectedIdsArray.length} {t("selected")}
-                </div>
-              </div>
-              <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
-                {boxes.map((box) => (
-                  <BoxItem
-                    key={box._id}
-                    box={box}
-                    callback={boxCallback}
-                    showCheckbox={true}
-                    showReceive={true}
-                    isSelected={!!selectedBoxIds[box._id]}
-                    onSelect={toggleSelectBox}
-                    checkboxDisabled={!!box.isReceived}
-                    showRemove={true}
-                  />
-                ))}
-              </div>
-            </>
-          )}
             </div>
           </div>
         </div>
@@ -510,8 +565,8 @@ const BoxReceive = () => {
 
       {boxes.length > 0 && (
         <div className="app-footer">
-          <div className="tw:flex tw:flex-col md:tw:flex-row tw:items-center tw:justify-between tw:gap-2">
-            <div className="tw:flex tw:items-center tw:justify-end tw:gap-2 tw:w-full md:tw:w-auto">
+          <div className="tw:flex tw:flex-col tw:md:flex-row tw:items-center tw:justify-between tw:gap-2">
+            <div className="tw:flex tw:items-center tw:justify-end tw:gap-2 tw:w-full tw:md:w-auto">
               <AppButton
                 color="success"
                 onClick={handleReceiveAll}

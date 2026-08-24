@@ -7,7 +7,9 @@ import Amount from "~/components/core/amount/Amount";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import { prepareParams } from "../helper";
 import OmsDashboardService from "~/services/OmsDashboardService";
+import useTheme from "~/hooks/useTheme";
 import OrdersListModal from "../modals/orders-list/OrdersListModal";
+import StatusCard from "./theme2/StatusCard";
 
 type Props = {
   search: string;
@@ -39,6 +41,7 @@ const ProcessOrdersCard = ({
   callback,
 }: Props) => {
   const [loading, setLoading] = useState(true);
+  const isTheme2 = useTheme() === "theme-2";
 
   const abortRef1 = useRef<AbortController | null>(null);
   const abortRef2 = useRef<AbortController | null>(null);
@@ -155,55 +158,95 @@ const ProcessOrdersCard = ({
 
   return (
     <>
-      <AppCard
-        title="Process Orders"
-        icon={<RotateCw />}
-        iconClassName="tw:text-primary"
-        className="tw:mb-0"
-      >
-        <div className="tw:grid tw:grid-cols-2 tw:gap-1.5 tw:mb-2">
-          <StatItem
-            label="Yet to pack"
-            value={loading ? <AppSpinner /> : summary.yetToPack}
-          />
-          <StatItem
-            label="Yet to ship"
-            value={loading ? <AppSpinner /> : summary.yetToShip}
-          />
-        </div>
+      {isTheme2 ? (
+        <StatusCard
+          title="Process Orders"
+          icon={<RotateCw />}
+          iconWrapClass="tw:bg-teal-50 tw:text-teal-700"
+          loading={loading}
+          stats={[
+            {
+              label: "Yet to pack",
+              value: summary.yetToPack,
+              barClass: "tw:bg-teal-600",
+            },
+            {
+              label: "Yet to ship",
+              value: summary.yetToShip,
+              barClass: "tw:bg-teal-300",
+            },
+          ]}
+          totalLabel="Sales Value"
+          totalValue={Number(summary.orderValue)}
+          actions={[
+            {
+              label: "Start packing",
+              onClick: onStartPacking,
+              disabled: summary.yetToPack === 0,
+            },
+            {
+              label: "Start shipping",
+              onClick: onStartShipping,
+              color: "secondary",
+              disabled: summary.yetToShip === 0,
+            },
+          ]}
+        />
+      ) : (
+        <AppCard
+          title="Process Orders"
+          icon={<RotateCw />}
+          iconClassName="tw:text-primary"
+          noPadding
+          headerClassName="tw:px-3 tw:pt-3"
+          className="tw:mb-0"
+        >
+          <div className="tw:px-3 tw:pb-3">
+            <div className="tw:grid tw:grid-cols-2 tw:gap-1.5 tw:mb-2">
+              <StatItem
+                label="Yet to pack"
+                value={loading ? <AppSpinner /> : summary.yetToPack}
+              />
+              <StatItem
+                label="Yet to ship"
+                value={loading ? <AppSpinner /> : summary.yetToShip}
+              />
+            </div>
 
-        <div className="tw:flex tw:justify-between tw:items-center tw:px-1.5 tw:py-1.5 tw:bg-secondary/30 tw:rounded-md tw:mb-2">
-          <div className="tw:text-xs tw:text-muted-foreground tw:uppercase tw:tracking-wide tw:leading-tight">
-            Sales Value
-          </div>
-          <div className="tw:text-sm tw:font-semibold tw:text-foreground">
-            {loading ? (
-              <AppSpinner />
-            ) : (
-              <Amount value={Number(summary.orderValue)} />
-            )}
-          </div>
-        </div>
+            <div className="tw:flex tw:justify-between tw:items-center tw:px-1.5 tw:py-1.5 tw:bg-secondary/30 tw:rounded-md tw:mb-2">
+              <div className="tw:text-xs tw:text-muted-foreground tw:uppercase tw:tracking-wide tw:leading-tight">
+                Sales Value
+              </div>
+              <div className="tw:text-sm tw:font-semibold tw:text-foreground">
+                {loading ? (
+                  <AppSpinner />
+                ) : (
+                  <Amount value={Number(summary.orderValue)} />
+                )}
+              </div>
+            </div>
 
-        <div className="tw:flex tw:justify-end tw:gap-2">
-          <AppButton
-            onClick={onStartPacking}
-            color="primary"
-            size="small"
-            disabled={summary.yetToPack === 0}
-          >
-            Start packing
-          </AppButton>
-          <AppButton
-            onClick={onStartShipping}
-            color="secondary"
-            size="small"
-            disabled={summary.yetToShip === 0}
-          >
-            Start shipping
-          </AppButton>
-        </div>
-      </AppCard>
+            <div className="tw:flex tw:justify-end tw:gap-2">
+              <AppButton
+                onClick={onStartPacking}
+                color="primary"
+                size="small"
+                disabled={summary.yetToPack === 0}
+              >
+                Start packing
+              </AppButton>
+              <AppButton
+                onClick={onStartShipping}
+                color="secondary"
+                size="small"
+                disabled={summary.yetToShip === 0}
+              >
+                Start shipping
+              </AppButton>
+            </div>
+          </div>
+        </AppCard>
+      )}
 
       <OrdersListModal
         show={ordersListModal.show}

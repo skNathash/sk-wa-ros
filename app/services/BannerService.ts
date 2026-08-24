@@ -12,6 +12,14 @@ class BannerService {
     );
   }
 
+  static async getNetworkBanners(params?: Record<string, any>) {
+    return AjaxService.request(
+      `${API}franchise/banner-config/network`,
+      "GET",
+      params || {},
+    );
+  }
+
   static async create(params: Record<string, any>) {
     return AjaxService.request(`${API}franchise/banner-config`, "POST", params);
   }

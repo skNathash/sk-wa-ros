@@ -28,6 +28,7 @@ type DatePickerInputProps = {
   hideClose?: boolean;
   inputClassName?: string;
   forceClose?: boolean; // New prop to force close the popover
+  showTime?: boolean; // Enable a time picker alongside the date (single mode)
 };
 
 type SelectedDate = Date | { from: Date; to: Date } | undefined;
@@ -74,6 +75,19 @@ const presets = [
     value: "last180Days",
   },
 ];
+
+// 12-hour time selector options. Minutes step by 5.
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const h = i + 1;
+  return { value: String(h), label: String(h) };
+});
+
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const m = i * 5;
+  return { value: String(m), label: String(m).padStart(2, "0") };
+});
+
+type Meridiem = "AM" | "PM";
 
 const getPreset = (
   selectedDate: Date | { from: Date; to: Date } | undefined
@@ -149,6 +163,7 @@ const DatePickerInput = ({
   hideClose = false,
   inputClassName = "",
   forceClose = false,
+  showTime = false,
 }: DatePickerInputProps) => {
   const [open, setOpen] = useState(false);
   // Local state for selection inside popover
@@ -156,6 +171,31 @@ const DatePickerInput = ({
   const [selectedPreset, setSelectedPreset] = useState<string | undefined>(
     undefined
   );
+  // Optional 12-hour time selector. We keep the pieces the user sees (hour,
+  // minute, AM/PM) and compose them into a 24-hour "HH:mm" string on apply.
+  const [hour12, setHour12] = useState<string>("");
+  const [minute, setMinute] = useState<string>("");
+  const [meridiem, setMeridiem] = useState<Meridiem>("AM");
+
+  // Build a 24-hour "HH:mm" string from the selector. Empty hour → no time
+  // (the time stays optional). 12 AM → 00, 12 PM → 12.
+  const composeTime = (): string => {
+    if (!hour12) return "";
+    let h = Number(hour12) % 12;
+    if (meridiem === "PM") h += 12;
+    const m = minute ? Number(minute) : 0;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+
+  // Stamp the chosen time onto a date; returns a fresh Date.
+  const applyTime = (date: Date, t: string): Date => {
+    const next = new Date(date);
+    if (t) {
+      const [h, m] = t.split(":").map(Number);
+      next.setHours(h || 0, m || 0, 0, 0);
+    }
+    return next;
+  };
 
   // Sync selectedDate with value when popover opens or value changes externally
   useEffect(() => {
@@ -187,6 +227,21 @@ const DatePickerInput = ({
         }
       }
       setSelectedDate(dt);
+
+      if (showTime) {
+        if (dt instanceof Date) {
+          const h24 = dt.getHours();
+          setMeridiem(h24 >= 12 ? "PM" : "AM");
+          const h12 = h24 % 12 || 12;
+          setHour12(String(h12));
+          // Snap to the nearest 5-minute step the selector offers.
+          setMinute(String((Math.round(dt.getMinutes() / 5) * 5) % 60));
+        } else {
+          setHour12("");
+          setMinute("");
+          setMeridiem("AM");
+        }
+      }
 
       setSelectedPreset(getPreset(dt));
     }
@@ -233,7 +288,10 @@ const DatePickerInput = ({
     if (normalizedDates.length === 0) return "";
 
     if (normalizedDates.length === 1) {
-      return format(normalizedDates[0], "d MMM yyyy");
+      return format(
+        normalizedDates[0],
+        showTime ? "d MMM yyyy, hh:mm a" : "d MMM yyyy",
+      );
     }
 
     // Display date range for multiple dates
@@ -250,7 +308,9 @@ const DatePickerInput = ({
   const onCalendarSelect = (date: any) => {
     setSelectedDate(date);
 
-    if (config.mode !== "range") {
+    // With a time picker we wait for the user to confirm via Apply, so the
+    // calendar click doesn't slam the popover shut before they set a time.
+    if (config.mode !== "range" && !showTime) {
       handleApply(date);
     }
   };
@@ -280,6 +340,10 @@ const DatePickerInput = ({
 
     if (config.mode === "range" && outValue instanceof Date) {
       outValue = [outValue, outValue];
+    }
+
+    if (showTime && outValue instanceof Date) {
+      outValue = applyTime(outValue, composeTime());
     }
 
     inpChange(outValue as Date | Date[]);
@@ -379,7 +443,7 @@ const DatePickerInput = ({
             {config.mode === "range" ? (
               <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:border-b tw:border-gray-200 tw:pb-2 tw:px-2">
                 <span className="tw:text-xs tw:font-medium tw:text-gray-500">
-                  Custom Date Range
+                  {placeholder || "Custom Date Range"}
                 </span>
                 <AppSelect
                   options={presets}
@@ -401,7 +465,55 @@ const DatePickerInput = ({
               {...config}
             />
 
-            {config.mode === "range" ? (
+            {showTime ? (
+              <div className="tw:mt-2 tw:border-t tw:border-gray-200 tw:px-2 tw:pb-3 tw:pt-2">
+                <span className="tw:text-xs tw:font-medium tw:text-gray-500">
+                  Time
+                </span>
+                <div className="tw:mt-1.5 tw:flex tw:items-center tw:gap-1.5">
+                  <AppSelect
+                    size="sm"
+                    placeholder="Hr"
+                    options={HOUR_OPTIONS}
+                    value={hour12}
+                    onChange={setHour12}
+                  />
+                  <span className="tw:text-sm tw:font-semibold tw:text-gray-500">
+                    :
+                  </span>
+                  <AppSelect
+                    size="sm"
+                    placeholder="Min"
+                    options={MINUTE_OPTIONS}
+                    value={minute}
+                    onChange={setMinute}
+                  />
+                  <div className="tw:ml-auto tw:flex tw:overflow-hidden tw:rounded-md tw:border tw:border-gray-200">
+                    {(["AM", "PM"] as const).map((key) => {
+                      const active = meridiem === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setMeridiem(key)}
+                          aria-pressed={active}
+                          className={clsx(
+                            "tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold tw:transition-colors",
+                            active
+                              ? "tw:bg-primary tw:text-white"
+                              : "tw:bg-white tw:text-gray-500 tw:hover:bg-gray-50"
+                          )}
+                        >
+                          {key}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {config.mode === "range" || showTime ? (
               <div className="tw:flex tw:justify-end tw:gap-3 tw:px-2 tw:border-t tw:border-gray-200 tw:pt-0.5">
                 <AppButton
                   fill="clear"
@@ -416,6 +528,7 @@ const DatePickerInput = ({
                   size="small"
                   onClick={() => handleApply()}
                   type="button"
+                  disabled={showTime && !(selectedDate instanceof Date)}
                 >
                   Apply
                 </AppButton>

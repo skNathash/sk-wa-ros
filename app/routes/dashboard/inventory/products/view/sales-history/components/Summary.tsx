@@ -59,7 +59,7 @@ const Summary: React.FC<SummaryProps> = ({
         >
           <AppStatsCard
             label={item.label}
-            icon={item.icon}
+            // icon={item.icon}
             template={2}
             bg={false}
             color={item.color}

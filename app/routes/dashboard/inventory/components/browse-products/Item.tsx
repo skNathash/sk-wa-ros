@@ -9,6 +9,12 @@ import KeyValue from "~/components/core/key-value/KeyValue";
 import AppLink from "~/components/core/link/AppLink";
 import AppPopover from "~/components/core/popover/AppPopover";
 import DealSummaryPopover from "~/components/feature/inventory/popover/deal-sales-summary/DealSummaryPopover";
+import Rbac from "~/components/core/rbac/Rbac";
+import AuthService from "~/services/AuthService";
+
+const rbacRoles = {
+  addStock: ["INVENTORY.ADD-STOCK"],
+};
 
 interface ItemProps {
   item: any;
@@ -158,17 +164,22 @@ const Item: React.FC<ItemProps> = ({ item, onAction }) => {
             </AppPopover>
           </div>
           <div className="tw:flex tw:items-center tw:gap-2">
-            <AppButton
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAddStock();
-              }}
-              fill="outline"
-              color="primary"
-              size="small"
+            <Rbac
+              roles={rbacRoles.addStock}
+              forceDisplay={AuthService.isMasterLogin()}
             >
-              <Plus className="tw:w-4 tw:h-4" />
-            </AppButton>
+              <AppButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddStock();
+                }}
+                fill="outline"
+                color="primary"
+                size="small"
+              >
+                <Plus className="tw:w-4 tw:h-4" />
+              </AppButton>
+            </Rbac>
 
             <AppButton
               onClick={(e) => {

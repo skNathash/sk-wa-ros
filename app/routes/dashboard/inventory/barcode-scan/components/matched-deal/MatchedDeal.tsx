@@ -60,7 +60,7 @@ const MatchedDeal: React.FC<Props> = ({ deal, onAdded, onScanNext, onImagePrevie
       <div className="tw:flex tw:items-center tw:gap-1.5 tw:px-3 tw:py-1 tw:bg-emerald-50 tw:border-b tw:border-emerald-100">
         <CheckCircle2 className="tw:w-3.5 tw:h-3.5 tw:text-emerald-600" />
         <span className="tw:text-[11px] tw:font-semibold tw:text-emerald-700">
-          Product found in SK Catalog
+          Product found in SK Library
         </span>
       </div>
 

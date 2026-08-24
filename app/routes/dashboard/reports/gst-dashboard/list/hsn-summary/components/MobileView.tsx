@@ -1,10 +1,10 @@
 import React from "react";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import NoData from "~/components/core/no-data/NoData";
-import AppCard from "~/components/core/card/AppCard";
 import AppLink from "~/components/core/link/AppLink";
-import type { HsnRow } from "../helper";
 import Amount from "~/components/core/amount/Amount";
+import { SectionLabel, ListLoader } from "../../components/ui";
+import type { HsnRow } from "../helper";
 
 interface Props {
   data: HsnRow[];
@@ -30,16 +30,12 @@ const MobileView: React.FC<Props> = ({
   dateTo,
 }) => {
   if (loading) {
-    return (
-      <div className="tw:p-4 tw:flex tw:items-center tw:justify-center">
-        <div className="tw:text-sm tw:text-gray-600">Loading...</div>
-      </div>
-    );
+    return <ListLoader />;
   }
 
   if (data.length === 0) {
     return (
-      <div className="tw:text-center tw:py-8">
+      <div className="tw:text-center tw:py-12">
         <NoData />
       </div>
     );
@@ -47,71 +43,58 @@ const MobileView: React.FC<Props> = ({
 
   return (
     <>
-      <div className="tw:grid tw:grid-cols-1 tw:gap-2 tw:md:grid-cols-3">
+      <SectionLabel>HSN codes</SectionLabel>
+
+      <div className="tw:bg-white tw:rounded-xl tw:border tw:border-gray-200 tw:divide-y tw:divide-gray-100">
         {data.map((item) => (
-          <AppCard key={item.hsnCode} noOverflow className="tw:mb-0">
-            <div aria-label={`HSN ${item.hsnCode}`}>
-              {/* Header: HSN Code and Product Count */}
-              <header className="tw:flex tw:justify-between tw:items-center tw:gap-2 tw:pb-2 tw:border-b tw:border-gray-200">
-                <div>
-                  <div className="tw:text-xs tw:text-gray-500 tw:uppercase tw:tracking-wide">
-                    HSN Code
-                  </div>
-                  <div className="tw:text-base tw:font-bold tw:text-gray-900 tw:leading-tight">
-                    <AppLink
-                      asLink
-                      href={`/dashboard/reports/gst-dashboard/products-level?search=${encodeURIComponent(
-                        item.hsnCode
-                      )}${dateFrom ? `&dateFrom=${encodeURIComponent(dateFrom)}` : ""}${dateTo ? `&dateTo=${encodeURIComponent(dateTo)}` : ""}`}
-                      showLinkColor={true}
-                    >
-                      {item.hsnCode}
-                    </AppLink>
-                  </div>
-                </div>
+          <div
+            key={item.hsnCode}
+            aria-label={`HSN ${item.hsnCode}`}
+            className="tw:px-3 tw:py-3"
+          >
+            <div className="tw:flex tw:items-center tw:gap-3">
+              <AppLink
+                asLink
+                href={`/dashboard/reports/gst-dashboard/products-level?search=${encodeURIComponent(
+                  item.hsnCode,
+                )}${dateFrom ? `&dateFrom=${encodeURIComponent(dateFrom)}` : ""}${dateTo ? `&dateTo=${encodeURIComponent(dateTo)}` : ""}`}
+              >
+                <span className="tw:inline-flex tw:items-center tw:justify-center tw:shrink-0 tw:rounded-lg tw:bg-violet-100 tw:text-violet-700 tw:text-xs tw:font-bold tw:tabular-nums tw:px-2.5 tw:py-1.5">
+                  {item.hsnCode}
+                </span>
+              </AppLink>
 
-                <div className="tw:bg-blue-100 tw:text-blue-700 tw:text-xs tw:font-semibold tw:px-2 tw:py-1 tw:rounded-full tw:whitespace-nowrap">
-                  {item.products} Items
-                </div>
-              </header>
-
-              {/* GST Data Grid - Compact 2 columns */}
-              <div className="tw:grid tw:grid-cols-2 tw:gap-2 tw:mt-2">
-                <div>
-                  <div className="tw:text-xs tw:text-gray-600 tw:font-medium">
-                    Collected
-                  </div>
-                  <div className="tw:font-semibold tw:text-green-600 tw:text-sm tw:leading-tight">
-                    <Amount value={item.gstCollected} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="tw:text-xs tw:text-gray-600 tw:font-medium">
-                    Inward
-                  </div>
-                  <div className="tw:font-semibold tw:text-orange-600 tw:text-sm tw:leading-tight">
-                    <Amount value={item.gstInward} />
-                  </div>
-                </div>
+              <div className="tw:flex-1 tw:min-w-0 tw:text-xs tw:text-gray-500 tw:truncate">
+                {item.products} items
               </div>
 
-              {/* Net GST - Full width highlight */}
-              <div className="tw:mt-2 tw:pt-2 tw:border-t tw:border-gray-200 tw:bg-blue-50 tw:p-2 tw:rounded">
-                <div className="tw:text-xs tw:text-gray-600 tw:font-medium">
-                  Net Payable
-                </div>
-                <div className="tw:font-bold tw:text-blue-700 tw:text-sm">
+              <div className="tw:shrink-0 tw:text-right">
+                <div className="tw:text-sm tw:font-bold tw:text-gray-900 tw:tabular-nums">
                   <Amount value={item.netGstPayable} />
+                </div>
+                <div className="tw:text-[10px] tw:text-gray-400 tw:leading-tight">
+                  net GST
                 </div>
               </div>
             </div>
-          </AppCard>
+
+            <div className="tw:flex tw:items-center tw:gap-2 tw:mt-1.5 tw:text-[11px] tw:tabular-nums">
+              <span className="tw:font-semibold tw:text-emerald-600">
+                +<Amount value={item.gstCollected} />
+              </span>
+              <span className="tw:text-gray-400">collected</span>
+              <span className="tw:text-gray-300">·</span>
+              <span className="tw:font-semibold tw:text-red-600">
+                −<Amount value={item.gstInward} />
+              </span>
+              <span className="tw:text-gray-400">inward</span>
+            </div>
+          </div>
         ))}
       </div>
 
       {showLoadMore && data.length > 0 && (
-        <div className="tw:mt-4 tw:flex tw:justify-center tw:pb-6">
+        <div className="tw:py-3 tw:flex tw:justify-center">
           <LoadMoreButton
             loadMore={loadMore}
             loading={loadingMore}

@@ -1,3 +1,4 @@
+import CommonService from "~/services/CommonService";
 import VendorService from "~/services/VendorService";
 import type { PaginationState } from "~/types/CommonTypes";
 
@@ -12,9 +13,18 @@ interface Filter {
   brand?: any[];
 }
 
+const initialColors = [
+  { color: "#fff", backgroundColor: "#FF5733" },
+  { color: "#fff", backgroundColor: "#33FF57" },
+  { color: "#fff", backgroundColor: "#3357FF" },
+  { color: "#fff", backgroundColor: "#FF33A1" },
+  { color: "#fff", backgroundColor: "#A133FF" },
+  { color: "#fff", backgroundColor: "#FF3333" },
+];
+
 export const mapSelectedData = (
   data: Record<string, any>[],
-  selected: Record<string, any>
+  selected: Record<string, any>,
 ) => {
   return data.map((item) => ({
     ...item,
@@ -99,7 +109,13 @@ export const getData = async (params: Record<string, any>) => {
 
       const data = formattedData.map((item: any) => {
         const summary = summaryData.find((s: any) => s.id === item._id);
-        return { ...item, summary: summary?.summary || {} };
+        return {
+          ...item,
+          summary: summary?.summary || {},
+          initial: CommonService.prepareInitials(item.name) || "",
+          initialColor:
+            initialColors[item.name.charCodeAt(0) % initialColors.length],
+        };
       });
 
       return data;

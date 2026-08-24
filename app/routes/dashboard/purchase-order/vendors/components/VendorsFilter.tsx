@@ -73,7 +73,7 @@ const VendorsFilter = ({ callback }: VendorsFilterProps) => {
           register={register}
           onChange={handleSearch}
           size="sm"
-          className="tw:flex-1"
+          className="tw:flex-1 tw:md:col-span-2"
         />
 
         <Controller

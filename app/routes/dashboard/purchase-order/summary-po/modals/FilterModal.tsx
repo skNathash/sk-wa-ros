@@ -5,11 +5,10 @@ import AppButton from "~/components/core/button/AppButton";
 import { AppSelect } from "~/components/core/form";
 import AppModal from "~/components/core/modal/AppModal";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
-import { purchasedFromOptions } from "../helper";
 
 interface FilterModalProps {
   show: boolean;
-  data: { status: string; purchasedFrom: string };
+  data: { status: string };
   callback: (payload: { action: string; data?: any }) => void;
 }
 
@@ -31,7 +30,6 @@ const FilterModal = ({ show, data, callback }: FilterModalProps) => {
   const { control, reset, getValues } = useForm({
     defaultValues: {
       status: "All",
-      purchasedFrom: "All",
     },
   });
 
@@ -51,7 +49,7 @@ const FilterModal = ({ show, data, callback }: FilterModalProps) => {
   };
 
   const handleReset = () => {
-    reset({ status: "All", purchasedFrom: "All" });
+    reset({ status: "All" });
     handleApply();
   };
 
@@ -61,7 +59,7 @@ const FilterModal = ({ show, data, callback }: FilterModalProps) => {
         <div className="tw:font-semibold">{t("filter")}</div>
       </AppModal.Title>
       <AppModal.Content>
-        <div className="tw:grid tw:grid-cols-2 tw:gap-4">
+        <div className="tw:grid tw:grid-cols-1 tw:gap-4">
           <Controller
             control={control}
             name="status"
@@ -71,21 +69,6 @@ const FilterModal = ({ show, data, callback }: FilterModalProps) => {
                 value={field.value}
                 onChange={field.onChange}
                 options={statusOptions}
-                size="sm"
-                inputClassName="tw:w-full"
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="purchasedFrom"
-            render={({ field }) => (
-              <AppSelect
-                placeholder={t("filterByType")}
-                value={field.value}
-                onChange={field.onChange}
-                options={purchasedFromOptions}
                 size="sm"
                 inputClassName="tw:w-full"
               />

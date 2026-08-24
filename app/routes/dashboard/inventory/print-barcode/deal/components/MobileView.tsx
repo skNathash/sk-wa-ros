@@ -55,6 +55,12 @@ const MobileView: React.FC<MobileViewProps> = ({ rows, onPrint }) => {
                   </span>
                 </div>
 
+                {row.source === "deal" && (
+                  <span className="tw:shrink-0 tw:rounded tw:px-1.5 tw:py-0.5 tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wider tw:text-slate-600 tw:ring-1 tw:ring-inset tw:ring-slate-200">
+                    Catalog
+                  </span>
+                )}
+
                 {expired && (
                   <span className="tw:shrink-0 tw:rounded tw:px-1.5 tw:py-0.5 tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wider tw:text-red-700 tw:ring-1 tw:ring-inset tw:ring-red-200">
                     Expired

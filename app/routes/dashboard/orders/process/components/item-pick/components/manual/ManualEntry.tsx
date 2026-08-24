@@ -6,7 +6,7 @@ import RackBinService from "~/services/RackBinService";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import DesktopView from "./DesktopView";
 import MobileView from "./MobileView";
-import PickAllItems from "./pick-all/PickAllItems";
+// import PickAllItems from "./pick-all/PickAllItems";
 
 const ManualEntry: React.FC<{
   products: any[];
@@ -61,7 +61,7 @@ const ManualEntry: React.FC<{
             dealId: dealId,
             isUsable: true,
           },
-        }
+        },
       );
 
       if (
@@ -98,7 +98,7 @@ const ManualEntry: React.FC<{
 
   return (
     <>
-      {orderId && (
+      {/* {orderId && (
         <PickAllItems
           products={products}
           orderId={orderId}
@@ -115,7 +115,7 @@ const ManualEntry: React.FC<{
             });
           }}
         />
-      )}
+      )} */}
       {isMobile ? (
         <MobileView
           products={products}

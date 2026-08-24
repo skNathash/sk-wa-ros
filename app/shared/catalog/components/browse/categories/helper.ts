@@ -97,6 +97,11 @@ const prepareSubscribeParams = (
     p.filter["applicableCategory.categoryId"] = filters.category._id;
   }
 
+  // menu filter (from the menu chip strip)
+  if (filters?.menuId) {
+    p.filter["applicableMenu.menuId"] = filters.menuId;
+  }
+
   // sortType
   if (filters.sortType) {
     p.sort = InventorySubscribeService.getSortParams(
@@ -140,6 +145,11 @@ const prepareInventoryParams = (
   // category filter mapping
   if (filters?.category?._id) {
     p.filter["applicableCategory.id"] = filters.category._id;
+  }
+
+  // menu filter (from the menu chip strip)
+  if (filters?.menuId) {
+    p.filter["applicableMenu.menuId"] = filters.menuId;
   }
 
   if (filters?.brandId) {

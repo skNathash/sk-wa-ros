@@ -6,13 +6,10 @@ import AppButton from "~/components/core/button/AppButton";
 import DateFormat from "~/components/core/date/DateFormat";
 import AppLink from "~/components/core/link/AppLink";
 import NoData from "~/components/core/no-data/NoData";
-import {
-  TableSkeletonLoader,
-  type TableHeaderItem,
-} from "~/components/core/table";
+import { TableSkeletonLoader } from "~/components/core/table";
 import AppTable from "~/components/core/table/AppTable";
 import TableHeader from "~/components/core/table/TableHeader";
-import type { SortValue } from "~/types/CommonTypes";
+import type { SortValue, TableHeaderItem } from "~/types/CommonTypes";
 
 interface SaleData {
   orderId: string;

@@ -1,6 +1,7 @@
 import { API, API_VERSION } from "~/constants";
 import AjaxService from "./AjaxService";
 import { formatDistanceToNow } from "date-fns";
+import type { VariantColor } from "~/types/CommonTypes";
 
 /**
  * Service for Customer related API calls
@@ -75,6 +76,27 @@ export class CustomerService {
       Returned: "dark",
     };
     return s[status] || "default";
+  }
+
+  /**
+   * Badge copy and colour for a directory row. The buyer flag decides Active /
+   * Inactive; a switched-off account outranks both.
+   *
+   * Inactive carries its own red classes: the badge's `light` variant falls
+   * through to the themed `secondary` surface, which reads green in theme-2.
+   */
+  static getCustomerStatusBadge(
+    isActiveBuyer: boolean,
+    isEnabled: boolean,
+  ): { label: string; color: VariantColor; className?: string } {
+    if (!isEnabled) return { label: "Disabled", color: "danger" };
+    return isActiveBuyer
+      ? { label: "Active", color: "success" }
+      : {
+          label: "Inactive",
+          color: "light",
+          className: "tw:bg-red-50! tw:text-red-600! tw:border-transparent!",
+        };
   }
 
   static getCustomerRequestSummaryStatuses() {
@@ -401,6 +423,19 @@ export class CustomerService {
   static getCustomerNetwork(params: Record<string, any>) {
     return AjaxService.request(
       `${this.BASE_URL}customer/network`,
+      "GET",
+      params,
+    );
+  }
+
+  /**
+   * Customer directory list for the franchise dashboard. Returns the rows
+   * along with `pagination` (page/limit/total/pages), so the list screens do
+   * not need a separate count call.
+   */
+  static getCustomerDashboardList(params: Record<string, any>) {
+    return AjaxService.request(
+      `${this.BASE_URL}customer/dashboard/customers`,
       "GET",
       params,
     );

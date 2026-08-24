@@ -3,8 +3,8 @@ import type Swiper from "swiper";
 import type { SwiperOptions } from "swiper/types";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import clsx from "clsx";
-import AppSwiper from "~/components/core/swiper";
 import ImgRender from "~/components/core/img/ImgRender";
+import AppSwiper from "~/components/core/swiper";
 import { Skeleton } from "~/components/ui/skeleton";
 import { DEFAULT_BROWSE_DISTANCE } from "~/constants";
 import useAppNav from "~/hooks/useAppNav";
@@ -77,14 +77,14 @@ const TopBrandsCategory = ({ distance = DEFAULT_BROWSE_DISTANCE }: Props) => {
     appNav.to(LIST_PATH, {
       distance,
       brandId: item._id,
-      brandName: item._displayName || item.name,
+      brandName: item._label,
     });
 
   const goToCategory = (item: GroupedItem) =>
     appNav.to(LIST_PATH, {
       distance,
       categoryId: item._id,
-      categoryName: item._displayName || item.name,
+      categoryName: item._label,
     });
 
   // Hide entirely once we know there is nothing to show.
@@ -92,46 +92,75 @@ const TopBrandsCategory = ({ distance = DEFAULT_BROWSE_DISTANCE }: Props) => {
 
   const brandSlides = chunkPairs(brands).map((pair) => (
     <div className="tw:flex tw:flex-col tw:gap-2.5">
-      {pair.map((item) => (
-        <button
-          key={item._id}
-          type="button"
-          onClick={() => goToBrand(item)}
-          title={item._displayName || item.name}
-          className="tw:flex tw:aspect-square tw:w-full tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white tw:p-2 tw:transition tw:hover:border-primary/40 tw:hover:shadow-sm"
-        >
-          <ImgRender
-            assetId={item.image}
-            alt={item.name}
-            width={120}
-            className="tw:max-h-full tw:max-w-full tw:object-contain"
-          />
-        </button>
-      ))}
+      {pair.map((item) => {
+        // Logo-less brands fall back to their name as a wordmark.
+        const wordmark = (
+          <span className="tw:line-clamp-2 tw:px-2 tw:text-sm tw:md:text-base tw:font-semibold tw:leading-tight tw:text-slate-700 tw:select-none">
+            {item._label}
+          </span>
+        );
+
+        return (
+          <button
+            key={item._id}
+            type="button"
+            onClick={() => goToBrand(item)}
+            title={item._label}
+            className="tw:group tw:block tw:w-full tw:cursor-pointer"
+          >
+            <div className="tw:flex tw:aspect-square tw:w-full tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-2xl tw:border tw:border-slate-100 tw:bg-white tw:p-3 tw:shadow-sm tw:transition tw:duration-200 tw:group-hover:shadow-md">
+              {item.image ? (
+                <ImgRender
+                  assetId={item.image}
+                  alt={item._label}
+                  width={200}
+                  className="tw:max-h-full tw:max-w-full tw:object-contain"
+                  fallback={wordmark}
+                />
+              ) : (
+                wordmark
+              )}
+            </div>
+          </button>
+        );
+      })}
     </div>
   ));
 
-  const categorySlides = categories.map((item) => (
-    <button
-      key={item._id}
-      type="button"
-      onClick={() => goToCategory(item)}
-      title={item._displayName || item.name}
-      className="tw:group tw:flex tw:w-full tw:flex-col tw:items-center tw:gap-2"
-    >
-      <div className="tw:aspect-square tw:w-full tw:overflow-hidden tw:rounded-2xl tw:bg-slate-50 tw:transition tw:duration-200 tw:group-hover:ring-2 tw:group-hover:ring-primary/40">
-        <ImgRender
-          assetId={item.image}
-          alt={item.name}
-          width={300}
-          className="tw:h-full tw:w-full tw:object-cover tw:transition-transform tw:duration-200 tw:group-hover:scale-105"
-        />
-      </div>
-      <div className="tw:line-clamp-2 tw:text-center tw:text-xs tw:font-medium tw:leading-tight tw:text-slate-700 tw:group-hover:text-primary">
-        {item._displayName || item.name}
-      </div>
-    </button>
-  ));
+  const categorySlides = categories.map((item) => {
+    const initial = (
+      <span className="tw:text-2xl tw:font-semibold tw:text-slate-400 tw:select-none">
+        {item._initial}
+      </span>
+    );
+
+    return (
+      <button
+        key={item._id}
+        type="button"
+        onClick={() => goToCategory(item)}
+        title={item._label}
+        className="tw:group tw:block tw:w-full tw:cursor-pointer tw:text-center"
+      >
+        <div className="tw:flex tw:aspect-square tw:w-full tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-2xl tw:border tw:border-slate-100 tw:bg-white tw:p-3 tw:shadow-sm tw:transition tw:duration-200 tw:group-hover:shadow-md">
+          {item.image ? (
+            <ImgRender
+              assetId={item.image}
+              alt={item._label}
+              width={120}
+              className="tw:max-h-full tw:max-w-full tw:object-contain"
+              fallback={initial}
+            />
+          ) : (
+            initial
+          )}
+        </div>
+        <div className="tw:mt-2 tw:line-clamp-2 tw:text-xs tw:font-medium tw:leading-tight tw:text-slate-700 tw:group-hover:text-primary">
+          {item._label}
+        </div>
+      </button>
+    );
+  });
 
   return (
     <div className="tw:flex tw:flex-col tw:gap-4">
@@ -201,10 +230,9 @@ const SwiperCard = ({
   return (
     <div className="tw:rounded-2xl tw:border tw:border-gray-200 tw:bg-white tw:p-4 tw:shadow-sm">
       <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between">
-        <div className="tw:flex tw:items-center tw:gap-2">
-          <span className="tw:h-4 tw:w-1 tw:rounded-full tw:bg-primary" />
-          <h3 className="tw:text-base tw:font-bold tw:text-slate-900">{title}</h3>
-        </div>
+        <h3 className="app-label tw:text-[0.8125rem]! tw:font-semibold tw:uppercase tw:tracking-[0.12em] tw:text-primary/70">
+          {title}
+        </h3>
         <div className="tw:flex tw:items-center tw:gap-2">
           <NavButton
             dir="prev"

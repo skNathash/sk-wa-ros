@@ -52,12 +52,12 @@ const Summary = ({
           100,
           ((summary?.paylaterInfo?.totalPayableAmount ?? 0) /
             summary.paylaterInfo.creditLimit) *
-            100
+            100,
         )
       : 0;
 
   return (
-    <div className="tw:mb-4 tw:rounded-2xl tw:bg-gradient-to-br tw:from-blue-800 tw:to-blue-950 tw:text-white tw:p-5 tw:shadow-xl tw:relative tw:overflow-hidden">
+    <div className="tw:mb-4 tw:rounded-2xl tw:bg-gradient-to-br tw:from-blue-800 tw:to-blue-950 tw:text-white tw:p-5 tw:relative tw:overflow-hidden">
       {/* Decorative circles */}
       <div className="tw:absolute tw:top-[-30px] tw:right-[-30px] tw:w-40 tw:h-40 tw:rounded-full tw:bg-white/5" />
       <div className="tw:absolute tw:bottom-[-40px] tw:right-[40px] tw:w-52 tw:h-52 tw:rounded-full tw:bg-white/5" />

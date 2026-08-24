@@ -47,7 +47,7 @@ const ShowUnsubscribedDealsConfig: React.FC = () => {
       description,
       onConfirm: async () => {
         setAppAlertDialog((p) => ({ ...p, show: false }));
-        await new Promise((r) => setTimeout(r, 150));
+        await new Promise((r) => setTimeout(r, 100));
         await saveConfig(turningOn);
       },
       onCancel: () => {

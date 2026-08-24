@@ -127,7 +127,14 @@ const ProductDetailModal = ({
 
         const formatted = SellerCatalogService.formatProductResponse(
           r.data?.data || [],
-          { ignoreGroupDeals: false, view: "buyer" },
+          {
+            ignoreGroupDeals: false,
+            view: "buyer",
+            sellerId:
+              finalCartType === "buy-from-other-retailer"
+                ? retailerId
+                : undefined,
+          },
         );
 
         d =

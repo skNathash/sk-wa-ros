@@ -4,8 +4,10 @@ import type { Swiper } from "swiper/types";
 import AppSwiper from "~/components/core/swiper";
 import Brand from "./components/brand/Brand";
 import Category from "./components/category/Category";
+import BrandsGrid from "./components/brands-grid/BrandsGrid";
 import BrowseProducts from "../components/browse/products/Products";
 import PageAccessService from "~/services/PageAccessService";
+import useTheme from "~/hooks/useTheme";
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage([], { allowNoSubscribe: true });
@@ -23,6 +25,7 @@ const productRestrictOn = ["brand"];
 
 const BrowseBrands: React.FC = () => {
   const { t } = useTranslation(["inventorySubscribe"]);
+  const isTheme2 = useTheme() === "theme-2";
 
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [selectedBrand, setSelectedBrand] = useState<any>(null);
@@ -118,6 +121,12 @@ const BrowseBrands: React.FC = () => {
       setSelectedCategory(null);
     }
   };
+
+  // Theme-2 gets the card-grid brand wall; the legacy swiper stays as the
+  // fallback for the classic theme.
+  if (isTheme2) {
+    return <BrandsGrid />;
+  }
 
   return (
     <>

@@ -1,7 +1,6 @@
 import { debounce } from "lodash";
 import { Search } from "lucide-react";
-import { useCallback } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import Alpha from "~/components/core/alpha/Alpha";
 import { AppInput } from "~/components/core/form/AppInput";
@@ -17,20 +16,11 @@ interface FilterProps {
   className?: string;
 }
 
-const distanceOptions = [
-  { value: "5", label: "5 km" },
-  { value: "10", label: "10 km" },
-  { value: "25", label: "25 km" },
-  { value: "50", label: "50 km" },
-  { value: "100", label: "100 km" },
-];
-
 const Filter = ({ callback, className }: FilterProps) => {
   const { t } = useTranslation(["common"]);
 
-  const { register, control, getValues, setValue } = useForm<FilterFormData>({
-    defaultValues: { search: "", alpha: "" },
-  });
+  const { register, control, getValues, setValue } =
+    useFormContext<FilterFormData>();
 
   const [alpha] = useWatch({
     control,
@@ -38,25 +28,17 @@ const Filter = ({ callback, className }: FilterProps) => {
   });
 
   // trigger stable callback
-  const triggerCallback = useCallback(() => {
+  const triggerCallback = () => {
     callback({ action: "apply", formData: getValues() });
-  }, [callback, getValues]);
-
-  // debounced search to avoid frequent calls
-  const debouncedSearch = useCallback(
-    debounce(() => {
-      triggerCallback();
-    }, 500),
-    [triggerCallback],
-  );
-
-  const handleSearchChange = (e: any) => {
-    debouncedSearch();
   };
 
-  const handleDistanceChange = (chngFn: any) => (v: string) => {
-    chngFn(v);
+  // debounced search to avoid frequent calls
+  const debouncedSearch = debounce(() => {
     triggerCallback();
+  }, 500);
+
+  const handleSearchChange = () => {
+    debouncedSearch();
   };
 
   // Handle alpha selection
@@ -83,8 +65,9 @@ const Filter = ({ callback, className }: FilterProps) => {
         </div>
       </div>
 
-      {/* Alpha navigation - quick A-Z filter */}
-      <div className="tw:mt-3">
+      {/* Alpha navigation — horizontal strip on desktop; mobile uses the
+          sticky vertical alpha rail rendered beside the list. */}
+      <div className="tw:mt-3 tw:hidden md:tw:block">
         <Alpha selected={alpha || ""} callback={handleAlphaChange} />
       </div>
     </div>

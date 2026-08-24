@@ -7,6 +7,7 @@ export const prepareParams = (
   filter: {
     search?: string;
     alpha?: string;
+    menuId?: string;
   } = {},
   pagination: PaginationState
 ): Record<string, any> => {
@@ -19,7 +20,7 @@ export const prepareParams = (
     },
   };
 
-  const { search, alpha } = filter || {};
+  const { search, alpha, menuId } = filter || {};
 
   if (search) {
     params.filter["applicableBrand.brandName"] = {
@@ -31,6 +32,11 @@ export const prepareParams = (
   if (alpha) {
     params.filter["applicableBrand.brandName"] =
       CommonService.prepareAlphaRegexFilter(alpha);
+  }
+
+  // Menu filter (from the menu chip strip).
+  if (menuId) {
+    params.filter["applicableMenu.menuId"] = menuId;
   }
 
   return params;

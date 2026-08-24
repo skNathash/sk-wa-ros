@@ -175,8 +175,7 @@ const LinkedOrderNotice = ({ order, linkedOrder }: LinkedOrderNoticeProps) => {
               </button>
             </div>
             <div className="tw:mt-1 tw:text-[11px] tw:leading-snug tw:text-gray-500">
-              Share this number with StoreKing support for any payment
-              issue.
+              Share this number with StoreKing support for any payment issue.
             </div>
           </div>
         </div>

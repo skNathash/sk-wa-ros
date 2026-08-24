@@ -134,6 +134,12 @@ const RecentOrdersModal = ({
       appNav.to(`/dashboard/orders/view/${data.orderId}`);
       handleClose();
     }
+
+    // Reordering is handled by the parent so the reorder modal can target the
+    // currently active cart.
+    if (action === "reorder") {
+      callback({ action: "reorder", data: { orderId: data.orderId } });
+    }
   };
 
   return (

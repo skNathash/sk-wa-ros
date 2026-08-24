@@ -175,7 +175,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                           Sent for approval
                         </span>
                         <span className="tw:text-[10px] tw:text-gray-500">
-                          SK catalog team is reviewing
+                          SK library team is reviewing
                         </span>
                       </div>
                     ) : (

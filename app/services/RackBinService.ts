@@ -376,6 +376,27 @@ export class RackBinService {
   }
 
   /**
+   * Get bin health — the scored checklist (fullness, placement, category match,
+   * barcodes, expiry, out-of-stock) plus recommended actions for a bin.
+   *
+   * @param fid - Franchise ID
+   * @param binId - Bin code (e.g. `L1-R8-B58`)
+   * @param params - Additional query parameters
+   * @returns Promise with bin health data
+   */
+  public static async getBinHealth(
+    fid: string,
+    binId: string,
+    params: Record<string, any> = {}
+  ) {
+    return AjaxService.request(
+      `${this.BASE_URL}inventory/bindetails/${fid}/${binId}/health`,
+      "GET",
+      params
+    );
+  }
+
+  /**
    * Get bin logs count
    *
    * @param params - Query parameters for bin logs count

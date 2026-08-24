@@ -1,24 +1,34 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import AppBadge from "~/components/core/badge/AppBadge";
-import { Package, CheckCircle, Layers, AlertTriangle } from "lucide-react";
-import AppButton from "~/components/core/button/AppButton";
+import {
+  Package,
+  CheckCircle,
+  AlertTriangle,
+  CircleX,
+  CreditCard,
+} from "lucide-react";
+import type { SwiperOptions } from "swiper/types";
+import Amount from "~/components/core/amount/Amount";
 import AppCard from "~/components/core/card/AppCard";
+import AppSwiper from "~/components/core/swiper/AppSwiper";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import RackBinService from "~/services/RackBinService";
 import useAppToast from "~/hooks/useAppToast";
+import useScreenView from "~/hooks/useScreenView";
 import AuthService from "~/services/AuthService";
+import CommonService from "~/services/CommonService";
+import { getShortQty } from "./productQtyUtils";
 
 interface POProduct {
   _scanned?: boolean;
-  _qty?: number; // received quantity
-  _damageQty?: number;
-  _raw?: { requestedQuantity?: number };
-  _variations?: any[];
+  quantity?: number;
   formData?: {
     receivedQty?: number;
     damageQty?: number;
+    invoiceQty?: number;
+    purchasePrice?: number;
     variations?: any[];
+    location?: string;
     [key: string]: any;
   };
   [key: string]: any;
@@ -35,53 +45,68 @@ type Props = {
 const POScanSummary = ({ products, callback, autoAllocate }: Props) => {
   const appToast = useAppToast();
   const { t } = useTranslation();
+  const { isMobile } = useScreenView();
 
   const [summary, setSummary] = useState({
-    totalProducts: 0,
-    processed: 0,
     ordered: 0,
+    invoiceUnits: 0,
     received: 0,
     damaged: 0,
-    variations: 0,
+    short: 0,
+    payable: 0,
+    credit: 0,
   });
 
   const [busyLoader, setBusyLoader] = useState(false);
-  const [showAutoFillAll, setShowAutoFillAll] = useState(false);
 
   useEffect(() => {
-    let totalProducts = products.length;
-    let processed = 0;
     let ordered = 0;
+    let invoiceUnits = 0;
     let received = 0;
     let damaged = 0;
-    let variations = 0;
-
-    let noLocation = 0;
+    let short = 0;
+    let payable = 0;
+    let invoiceValue = 0;
 
     products.forEach((product) => {
-      ordered += Number(product?.quantity) || 0;
-      // Use correct keys from ProductItemForm
-      received += Number(product.formData?.receivedQty) || 0;
-      damaged += Number(product.formData?.damageQty) || 0;
-      // Prefer _variations, fallback to formData.variations
-      const vArr = product._variations || product.formData?.variations || [];
-      variations += Array.isArray(vArr) ? vArr.length : 0;
-      if (product._scanned) processed += 1;
+      const qtyOrdered = Number(product?.quantity) || 0;
+      const invoiceQty =
+        Number(product.formData?.invoiceQty) || qtyOrdered;
+      const receivedQty = Number(product.formData?.receivedQty) || 0;
+      const damageQty = Number(product.formData?.damageQty) || 0;
+      const purchasePrice = Number(product.formData?.purchasePrice) || 0;
 
-      if (!product.formData?.location) {
-        noLocation += 1;
-      }
+      ordered += qtyOrdered;
+      invoiceUnits += invoiceQty;
+      received += receivedQty;
+      damaged += damageQty;
+      short += getShortQty(product);
+
+      let productPayable = purchasePrice * receivedQty;
+      let productInvoiceValue = purchasePrice * invoiceQty;
+
+      const variations = product.formData?.variations || [];
+      variations.forEach((variation: any) => {
+        const variationPurchasePrice =
+          Number(variation.formData?.purchasePrice) || purchasePrice;
+        const variationQty = Number(variation.formData?.qty) || 0;
+        productPayable += variationPurchasePrice * variationQty;
+      });
+
+      payable += productPayable;
+      invoiceValue += productInvoiceValue;
     });
 
-    setShowAutoFillAll(noLocation > 0);
-
     setSummary({
-      totalProducts,
-      processed,
       ordered,
+      invoiceUnits,
       received,
       damaged,
-      variations,
+      short,
+      payable: CommonService.roundedByDecimalPlace(payable),
+      credit: CommonService.roundedByDecimalPlace(
+        Math.max(0, invoiceValue - payable),
+      ),
     });
   }, [products]);
 
@@ -104,10 +129,6 @@ const POScanSummary = ({ products, callback, autoAllocate }: Props) => {
 
     if (response.statusCode === 200) {
       const deals = response.data?.data?.deals || [];
-
-      if (deals.length === items.length) {
-        setShowAutoFillAll(false);
-      }
 
       let temp: Record<string, any> = {};
       deals.forEach((deal: any) => {
@@ -167,112 +188,148 @@ const POScanSummary = ({ products, callback, autoAllocate }: Props) => {
       typeof autoAllocate === "boolean" ? false : autoAllocate.silent;
 
     if (enabled) {
-      // trigger auto-fill when parent requests auto allocation
       handleAutoFillAll({ silent });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAllocate]);
 
-  return (
-    <>
-      <div className="tw:mb-4">
-        <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-start tw:mb-3">
-          <div className="tw:flex-1">
-            <div className="tw:flex tw:items-center tw:gap-2 tw:text-base tw:font-semibold">
-              <Package className="tw:text-gray-700" size={18} />
-              {t("receivingMode", { count: summary.totalProducts })}
+  const receivedPct =
+    summary.invoiceUnits > 0
+      ? Math.round((summary.received / summary.invoiceUnits) * 100)
+      : 0;
+
+  const cards = [
+    {
+      key: "ordered",
+      label: t("ordered"),
+      value: summary.ordered,
+      sub: t("unitsOnInvoice", { defaultValue: "units on invoice" }),
+      icon: Package,
+      iconWrap: "tw:bg-blue-50",
+      iconClass: "tw:text-blue-600",
+      labelClass: "tw:text-blue-600",
+      valueClass: "tw:text-slate-900",
+    },
+    {
+      key: "received",
+      label: t("received"),
+      value: summary.received,
+      sub: t("pctOfInvoice", {
+        defaultValue: "{{pct}}% of invoice",
+        pct: receivedPct,
+      }),
+      icon: CheckCircle,
+      iconWrap: "tw:bg-emerald-50",
+      iconClass: "tw:text-emerald-600",
+      labelClass: "tw:text-emerald-600",
+      valueClass: "tw:text-emerald-700",
+    },
+    {
+      key: "damaged",
+      label: t("damaged"),
+      value: summary.damaged,
+      sub: t("needsDecision", { defaultValue: "needs decision" }),
+      icon: AlertTriangle,
+      iconWrap: "tw:bg-red-50",
+      iconClass: "tw:text-red-500",
+      labelClass: "tw:text-red-500",
+      valueClass: "tw:text-red-600",
+    },
+    {
+      key: "short",
+      label: t("short", { defaultValue: "Short" }),
+      value: summary.short,
+      sub: t("notInBox", { defaultValue: "not in box" }),
+      icon: CircleX,
+      iconWrap: "tw:bg-amber-50",
+      iconClass: "tw:text-amber-500",
+      labelClass: "tw:text-amber-600",
+      valueClass: "tw:text-amber-700",
+    },
+    {
+      key: "payable",
+      label: t("payable", { defaultValue: "Payable" }),
+      value: <Amount value={summary.payable} decimalPlaces={0} />,
+      sub:
+        summary.credit > 0 ? (
+          <>
+            <Amount value={summary.credit} decimalPlaces={0} />{" "}
+            {t("credit", { defaultValue: "credit" })}
+          </>
+        ) : (
+          t("noCredit", { defaultValue: "no credit" })
+        ),
+      icon: CreditCard,
+      iconWrap: "tw:bg-violet-50",
+      iconClass: "tw:text-violet-600",
+      labelClass: "tw:text-violet-600",
+      valueClass: "tw:text-violet-800",
+    },
+  ];
+
+  const renderCard = (card: (typeof cards)[number]) => {
+    const Icon = card.icon;
+    return (
+      <AppCard className="tw:px-3.5 tw:py-3" noPadding noContentPadding>
+        <div className="tw:flex tw:items-start tw:gap-2.5">
+          <div
+            className={`tw:w-9 tw:h-9 tw:rounded-lg tw:flex tw:items-center tw:justify-center tw:shrink-0 ${card.iconWrap}`}
+          >
+            <Icon className={card.iconClass} size={18} />
+          </div>
+          <div className="tw:min-w-0">
+            <div
+              className={`tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide ${card.labelClass}`}
+            >
+              {card.label}
             </div>
-            <div className="tw:text-xs tw:opacity-80">
-              {t("scanProductsAndManageVariations")}
+            <div
+              className={`tw:text-xl tw:font-bold tw:leading-tight tw:mt-0.5 ${card.valueClass}`}
+            >
+              {card.value}
+            </div>
+            <div className="tw:text-[11px] tw:text-slate-500 tw:mt-0.5 tw:truncate">
+              {card.sub}
             </div>
           </div>
-          {/* <div className="tw:flex tw:gap-2 tw:items-center tw:mt-3 tw:md:mt-0">
-            <AppBadge variant="white" className="tw:font-semibold">
-              {summary.processed} / {summary.totalProducts} Processed
-            </AppBadge>
-            {showAutoFillAll && (
-              <AppButton
-                color="light"
-                fill="outline"
-                className="tw:font-semibold tw:h-6 tw:bg-white"
-                size="small"
-                onClick={handleAutoFillAll}
-              >
-                {t("autoFillAll")}
-              </AppButton>
-            )}
-          </div> */}
         </div>
+      </AppCard>
+    );
+  };
 
-        <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-x-4 tw:mt-2 tw:items-start">
-          <AppCard className="tw:px-4 tw:py-3" noPadding noContentPadding>
-            <div className="tw:flex tw:flex-row tw:items-center">
-              <div className="tw:w-10 tw:h-10 tw:flex tw:items-center tw:justify-center tw:rounded tw:bg-blue-100">
-                <Package className="tw:text-blue-700" size={24} />
-              </div>
-              <div className="tw:ml-3">
-                <div className="tw:text-xs tw:text-blue-500 tw:uppercase te:font-medium">
-                  {t("ordered")}
-                </div>
-                <div className="tw:text-base tw:font-bold tw:text-blue-900">
-                  {summary.ordered}
-                </div>
-              </div>
-            </div>
-          </AppCard>
-
-          <AppCard className="tw:px-4 tw:py-3" noPadding noContentPadding>
-            <div className="tw:flex tw:flex-row tw:items-center">
-              <div className="tw:w-10 tw:h-10 tw:flex tw:items-center tw:justify-center tw:rounded tw:bg-green-100">
-                <CheckCircle className="tw:text-green-700" size={24} />
-              </div>
-              <div className="tw:ml-3">
-                <div className="tw:text-xs tw:text-green-700 tw:uppercase tw:font-medium">
-                  {t("received")}
-                </div>
-                <div className="tw:text-base tw:font-bold tw:text-green-700">
-                  {summary.received}
-                </div>
-              </div>
-            </div>
-          </AppCard>
-
-          <AppCard className="tw:px-4 tw:py-3" noPadding noContentPadding>
-            <div className="tw:flex tw:flex-row tw:items-center">
-              <div className="tw:w-10 tw:h-10 tw:flex tw:items-center tw:justify-center tw:rounded tw:bg-blue-100">
-                <Layers className="tw:text-blue-700" size={24} />
-              </div>
-              <div className="tw:ml-3">
-                <div className="tw:text-xs tw:text-blue-700 tw:uppercase tw:font-medium">
-                  {t("variations")}
-                </div>
-                <div className="tw:text-base tw:font-bold tw:text-blue-700">
-                  {summary.variations}
-                </div>
-              </div>
-            </div>
-          </AppCard>
-
-          <AppCard className="tw:px-4 tw:py-3" noPadding noContentPadding>
-            <div className="tw:flex tw:flex-row tw:items-center">
-              <div className="tw:w-10 tw:h-10 tw:flex tw:items-center tw:justify-center tw:rounded tw:bg-red-100">
-                <AlertTriangle className="tw:text-red-600" size={24} />
-              </div>
-              <div className="tw:ml-3">
-                <div className="tw:text-xs tw:text-red-600 tw:uppercase tw:font-medium">
-                  {t("damaged")}
-                </div>
-                <div className="tw:text-base tw:font-bold tw:text-red-600">
-                  {summary.damaged}
-                </div>
-              </div>
-            </div>
-          </AppCard>
+  return (
+    <>
+      {/* Desktop only — on mobile the per-product cards already carry these
+          counters, so the strip is redundant. The component still mounts on
+          mobile because it owns the auto-allocate run and its busy loader. */}
+      {!isMobile && (
+        <div className="tw:mb-4">
+          <AppSwiper config={desktopSwiperConfig}>
+            {cards.map((card) => (
+              <AppSwiper.Slide key={card.key}>
+                {renderCard(card)}
+              </AppSwiper.Slide>
+            ))}
+          </AppSwiper>
         </div>
-      </div>
+      )}
       <BusyLoader show={busyLoader} message={t("autoFillingAllProducts")} />
     </>
   );
+};
+
+const baseSwiperConfig: SwiperOptions = {
+  spaceBetween: 12,
+  pagination: false,
+  navigation: false,
+  slidesOffsetAfter: 1,
+  slidesOffsetBefore: 1,
+};
+
+// Desktop lays the five cards out in one row.
+const desktopSwiperConfig: SwiperOptions = {
+  ...baseSwiperConfig,
+  slidesPerView: 5,
 };
 
 export default POScanSummary;

@@ -1,5 +1,5 @@
 import React from "react";
-import { Barcode, Box, Trash2 } from "lucide-react";
+import { Box, Trash2 } from "lucide-react";
 
 import Amount from "~/components/core/amount/Amount";
 import AppButton from "~/components/core/button/AppButton";
@@ -7,12 +7,10 @@ import AppTable from "~/components/core/table/AppTable";
 import TableHeader from "~/components/core/table/TableHeader";
 import ImgRender from "~/components/core/img/ImgRender";
 import MatchingBadge from "./MatchingBadge";
-import MatchStatusBadge from "~/shared/inventory/subscribe-scan/components/MatchStatusBadge";
 import ScanItemActions from "~/shared/inventory/components/scan-item-actions/ScanItemActions";
-import {
-  dealImageProps,
-  type ReviewItem,
-} from "../../helper";
+import SubscribeAction from "./SubscribeAction";
+import { BarcodeChip, QtyChip, StatusChip } from "./ItemChips";
+import { dealImageProps, type ReviewItem } from "../../helper";
 
 interface ReviewViewProps {
   items: ReviewItem[];
@@ -21,7 +19,11 @@ interface ReviewViewProps {
   onSkSuggestions: (item: ReviewItem) => void;
   onCreateProduct: (item: ReviewItem) => void;
   onRemove: (barcode: string) => void;
-  onImagePreview?: (images: string[], initialImageId?: string, useProxy?: boolean) => void;
+  onImagePreview?: (
+    images: string[],
+    initialImageId?: string,
+    useProxy?: boolean,
+  ) => void;
 }
 
 const headers = [
@@ -50,10 +52,7 @@ const PendingRow: React.FC<{
       </div>
     </AppTable.Cell>
     <AppTable.Cell>
-      <span className="tw:inline-flex tw:items-center tw:gap-1 tw:text-xs tw:font-mono tw:font-medium tw:text-gray-800 tw:bg-gray-50 tw:border tw:border-gray-200 tw:rounded tw:px-1.5 tw:py-0.5">
-        <Barcode className="tw:w-3 tw:h-3 tw:text-gray-400" />
-        {barcode}
-      </span>
+      <BarcodeChip barcode={barcode} />
     </AppTable.Cell>
     <AppTable.Cell>
       <div className="tw:h-4 tw:w-12 tw:rounded skeleton-loader" />
@@ -101,7 +100,7 @@ const DesktopView: React.FC<ReviewViewProps> = ({
             if (item.matchStatus === "Pending") {
               return (
                 <PendingRow
-                  key={item.barcode}
+                  key={item.id || item.barcode}
                   barcode={item.barcode}
                   removing={removing?.has(item.barcode)}
                   onRemove={onRemove}
@@ -110,7 +109,7 @@ const DesktopView: React.FC<ReviewViewProps> = ({
             }
             const deal = item.deal;
             return (
-              <AppTable.Row key={item.barcode}>
+              <AppTable.Row key={item.id || item.barcode}>
                 <AppTable.Cell>
                   <div className="tw:flex tw:items-center tw:gap-2.5">
                     <div className="tw:flex tw:items-center tw:justify-center tw:w-12 tw:h-12 tw:rounded-lg tw:bg-gray-50 tw:border tw:border-gray-100 tw:shrink-0">
@@ -166,10 +165,7 @@ const DesktopView: React.FC<ReviewViewProps> = ({
                   </div>
                 </AppTable.Cell>
                 <AppTable.Cell>
-                  <span className="tw:inline-flex tw:items-center tw:gap-1 tw:text-xs tw:font-mono tw:font-medium tw:text-gray-800 tw:bg-gray-50 tw:border tw:border-gray-200 tw:rounded tw:px-1.5 tw:py-0.5">
-                    <Barcode className="tw:w-3 tw:h-3 tw:text-gray-400" />
-                    {item.barcode}
-                  </span>
+                  <BarcodeChip barcode={item.barcode} />
                 </AppTable.Cell>
                 <AppTable.Cell>
                   {deal && deal.mrp > 0 ? (
@@ -183,34 +179,22 @@ const DesktopView: React.FC<ReviewViewProps> = ({
                 </AppTable.Cell>
                 <AppTable.Cell>
                   {item.qty > 0 ? (
-                    <span className="tw:inline-flex tw:items-center tw:text-[11px] tw:font-medium tw:text-gray-600 tw:bg-gray-100 tw:rounded tw:px-1.5 tw:py-0.5">
-                      {item.qty}
-                    </span>
+                    <QtyChip qty={item.qty} />
                   ) : (
                     <span className="tw:text-xs tw:text-gray-300">—</span>
                   )}
                 </AppTable.Cell>
                 <AppTable.Cell>
-                  {item.status === "Requested" ? (
-                    <div className="tw:flex tw:flex-col">
-                      <span className="tw:text-xs tw:font-semibold tw:text-orange-600">
-                        Already requested
-                      </span>
-                      <span className="tw:text-[10px] tw:text-gray-500">
-                        Awaiting SK catalog approval
-                      </span>
-                    </div>
-                  ) : item.deal?.isSubscribed ? (
-                    <span className="tw:inline-flex tw:items-center tw:gap-1 tw:text-[10px] tw:font-semibold tw:rounded-full tw:px-2 tw:py-0.5 tw:text-gray-600 tw:bg-gray-100">
-                      <span className="tw:w-1.5 tw:h-1.5 tw:rounded-full tw:bg-gray-400" />
-                      Already Subscribed
-                    </span>
-                  ) : (
-                    <MatchStatusBadge badge={item.badge} />
-                  )}
+                  {/* One chip covers all three states — requested, already
+                      subscribed, and the match badge — with the caveat line
+                      folded into the pill. */}
+                  <StatusChip item={item} className="tw:max-w-full" />
                 </AppTable.Cell>
                 <AppTable.Cell>
-                  <div className="tw:flex tw:items-center tw:gap-2 tw:justify-end tw:flex-wrap">
+                  {/* Single line, never wrapping: the trash icon has to stay
+                      on the same row as the action buttons so every row's
+                      controls line up on the right edge. */}
+                  <div className="tw:flex tw:items-center tw:gap-2 tw:justify-end tw:flex-nowrap tw:whitespace-nowrap">
                     {item.status !== "Requested" && (
                       <ScanItemActions
                         item={item}
@@ -218,6 +202,12 @@ const DesktopView: React.FC<ReviewViewProps> = ({
                         onSkSuggestions={onSkSuggestions}
                       />
                     )}
+
+                    {/* SK-catalog rows have nothing to create — they subscribe
+                        straight from the row, or link to the cart if already
+                        added. */}
+                    <SubscribeAction item={item} />
+
                     <AppButton
                       fill="clear"
                       color="danger"

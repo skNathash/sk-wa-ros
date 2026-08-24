@@ -77,7 +77,10 @@ const BillSummary = ({ order }: Props) => {
       {cartDiscount > 0 ? (
         <div className="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:mb-2 tw:-mx-1 tw:px-2 tw:py-1.5 tw:rounded-md tw:bg-green-50 tw:border tw:border-green-200">
           <div className="tw:flex tw:items-center tw:gap-1.5">
-            <TicketPercent size={15} className="tw:text-green-600 tw:shrink-0" />
+            <TicketPercent
+              size={15}
+              className="tw:text-green-600 tw:shrink-0"
+            />
             <span className="tw:text-sm tw:font-semibold tw:text-green-700">
               {t("cartDiscount", "Cart Discount")}
             </span>
@@ -103,7 +106,10 @@ const BillSummary = ({ order }: Props) => {
       {couponDiscount > 0 ? (
         <div className="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:mb-2 tw:-mx-1 tw:px-2 tw:py-1.5 tw:rounded-md tw:bg-green-50 tw:border tw:border-green-200">
           <div className="tw:flex tw:items-center tw:gap-1.5 tw:min-w-0">
-            <TicketPercent size={15} className="tw:text-green-600 tw:shrink-0" />
+            <TicketPercent
+              size={15}
+              className="tw:text-green-600 tw:shrink-0"
+            />
             <span className="tw:text-sm tw:font-semibold tw:text-green-700">
               {t("couponDiscount", "Coupon Discount")}
             </span>
@@ -166,43 +172,43 @@ const BillSummary = ({ order }: Props) => {
                 {settlements.map((s, idx) => {
                   const isPending = s.status === "Pending";
                   return (
-                  <button
-                    type="button"
-                    key={String(s.refundSettlementId ?? idx)}
-                    disabled={isPending}
-                    onClick={() =>
-                      !isPending &&
-                      s.refundSettlementId &&
-                      setActiveSettlementId(s.refundSettlementId)
-                    }
-                    className="tw:flex tw:flex-col tw:gap-1 tw:bg-white tw:border tw:border-red-200 tw:rounded tw:px-2 tw:py-1.5 tw:text-left hover:tw:bg-red-100 disabled:tw:cursor-default disabled:hover:tw:bg-white"
-                  >
-                    <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
-                      <div className="tw:flex tw:items-center tw:gap-2 tw:min-w-0">
-                        <span className="tw:text-[11px] tw:font-semibold tw:text-gray-500">
-                          #{idx + 1}
-                        </span>
-                        <span className="tw:text-sm tw:font-semibold tw:text-red-600">
-                          <Amount value={s.amount || 0} decimalPlaces={2} />
-                        </span>
-                        <span
-                          className={`tw:text-[10px] tw:font-semibold tw:px-1.5 tw:py-0.5 tw:rounded ${statusStyle(s.status)}`}
-                        >
-                          {s.status || "—"}
-                        </span>
+                    <button
+                      type="button"
+                      key={String(s.refundSettlementId ?? idx)}
+                      disabled={isPending}
+                      onClick={() =>
+                        !isPending &&
+                        s.refundSettlementId &&
+                        setActiveSettlementId(s.refundSettlementId)
+                      }
+                      className="tw:flex tw:flex-col tw:gap-1 tw:bg-white tw:border tw:border-red-200 tw:rounded tw:px-2 tw:py-1.5 tw:text-left hover:tw:bg-red-100 disabled:tw:cursor-default disabled:hover:tw:bg-white"
+                    >
+                      <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+                        <div className="tw:flex tw:items-center tw:gap-2 tw:min-w-0">
+                          <span className="tw:text-[11px] tw:font-semibold tw:text-gray-500">
+                            #{idx + 1}
+                          </span>
+                          <span className="tw:text-sm tw:font-semibold tw:text-red-600">
+                            <Amount value={s.amount || 0} decimalPlaces={2} />
+                          </span>
+                          <span
+                            className={`tw:text-[10px] tw:font-semibold tw:px-1.5 tw:py-0.5 tw:rounded ${statusStyle(s.status)}`}
+                          >
+                            {s.status || "—"}
+                          </span>
+                        </div>
+                        {!isPending ? (
+                          <span className="tw:text-xs tw:font-semibold tw:text-red-600">
+                            View →
+                          </span>
+                        ) : null}
                       </div>
-                      {!isPending ? (
-                        <span className="tw:text-xs tw:font-semibold tw:text-red-600">
-                          View →
-                        </span>
+                      {s.remarks ? (
+                        <p className="tw:text-xs tw:text-gray-500 tw:m-0">
+                          {s.remarks}
+                        </p>
                       ) : null}
-                    </div>
-                    {s.remarks ? (
-                      <p className="tw:text-xs tw:text-gray-500 tw:m-0">
-                        {s.remarks}
-                      </p>
-                    ) : null}
-                  </button>
+                    </button>
                   );
                 })}
               </div>
@@ -211,17 +217,15 @@ const BillSummary = ({ order }: Props) => {
         </>
       ) : null}
 
-      <div className="tw:h-px tw:bg-gray-200 tw:my-2" />
-      <KeyValue
-        label={t("totalAmount")}
-        horizontal={true}
-        className="tw:flex tw:items-center tw:justify-between tw:gap-4"
-      >
+      <div className="tw:mt-3 tw:rounded-lg tw:bg-primary/5 tw:border tw:border-primary/10 tw:px-3 tw:py-2.5 tw:flex tw:items-center tw:justify-between tw:gap-4">
+        <span className="app-label tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-wider tw:text-gray-600">
+          {t("totalAmount")}
+        </span>
         <div className="tw:flex tw:items-center tw:gap-2">
           <Amount
             value={summary._payableAmt}
             decimalPlaces={2}
-            className="tw:font-bold tw:text-green-600"
+            className="tw:font-bold tw:text-[17px] tw:text-green-600 tw:tabular-nums"
           />
           {order._hasRoundDifference && (
             <AppPopover triggerContent={<Info size={16} />}>
@@ -242,7 +246,7 @@ const BillSummary = ({ order }: Props) => {
             </AppPopover>
           )}
         </div>
-      </KeyValue>
+      </div>
 
       {activeSettlementId ? (
         <RefundSettlementViewModal

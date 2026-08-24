@@ -35,7 +35,7 @@ const Filter = ({
   }, 500);
 
   const [filterModal, setFilterModal] = useState<{ show: boolean; data?: any }>(
-    { show: false, data: undefined }
+    { show: false, data: undefined },
   );
 
   const openFilterModal = () => {

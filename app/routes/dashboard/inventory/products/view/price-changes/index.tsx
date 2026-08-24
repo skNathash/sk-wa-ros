@@ -1,32 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
-import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
-import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
-import useScreenView from "~/hooks/useScreenView";
 import CommonService from "~/services/CommonService";
-import type { SortValue } from "~/types/CommonTypes";
 import InventoryProductAuditTab from "../components/inventory-audit-tab/InventoryAuditTab";
-import DesktopView from "./components/DesktopView";
 import Filter from "./components/Filter";
 import MobileView from "./components/MobileView";
 import { getCount, getData, prepareParams } from "./helper";
 
 const ProductPriceChanges = () => {
-  const { t } = useTranslation(["common"]);
   const { id } = useParams();
-  const { isMobile } = useScreenView();
-
-  const [view, setView] = useState<"list" | "card">("list");
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
   const [loadingTotalRecords, setLoadingTotalRecords] = useState(false);
-  const [sortKey, setSortKey] = useState<string>("createdAt");
-  const [sortValue, setSortValue] = useState<"asc" | "desc">("desc");
+  const [sortKey] = useState<string>("createdAt");
+  const [sortValue] = useState<"asc" | "desc">("desc");
 
   // State and refs for filter, pagination, and data
   const filterRef = useRef<Record<string, any>>({ productId: id });
@@ -106,13 +96,6 @@ const ProductPriceChanges = () => {
     applyFilter();
   };
 
-  const handleSort = (sortData: { key: string; value: SortValue }) => {
-    if (sortData.value) {
-      setSortKey(sortData.key);
-      setSortValue(sortData.value);
-    }
-  };
-
   return (
     <>
       <InventoryProductAuditTab
@@ -131,34 +114,17 @@ const ProductPriceChanges = () => {
             fwSize="sm"
           />
         </div>
-        <ViewToggle viewType={view} callback={setView} />
       </div>
-      {isMobile || view === "card" ? (
-        <MobileView
-          data={data}
-          showLoadMore={hasMoreData && !loading}
-          loadingMore={loadingMore}
-          loadMore={loadMore}
-          totalCount={paginationRef.current.totalRecords}
-          loadedCount={data.length}
-        />
-      ) : (
-        <AppCard noPadding>
-          <DesktopView
-            data={data}
-            loading={loading}
-            emptyText={t("noPriceChangesFound")}
-            onSort={handleSort}
-            sortKey={sortKey}
-            sortValue={sortValue}
-            showLoadMore={hasMoreData && !loading}
-            loadingMore={loadingMore}
-            loadMore={loadMore}
-            totalCount={paginationRef.current.totalRecords}
-            loadedCount={data.length}
-          />
-        </AppCard>
-      )}
+
+      <MobileView
+        data={data}
+        loading={loading}
+        showLoadMore={hasMoreData && !loading}
+        loadingMore={loadingMore}
+        loadMore={loadMore}
+        totalCount={paginationRef.current.totalRecords}
+        loadedCount={data.length}
+      />
     </>
   );
 };

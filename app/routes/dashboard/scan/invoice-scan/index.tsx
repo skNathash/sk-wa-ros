@@ -42,10 +42,11 @@ import Vendor from "./components/Vendor";
 import { preparePurchaseOrderPayload } from "./helper";
 import AddProductModal from "~/shared/catalog/modals/AddProductModal";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
-import ChooseDealModal from "./modals/choose-deal/ChooseDealModal";
-import ConfirmModal from "./modals/ConfirmModal";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
+import PoSectionTabs from "~/shared/purchase-order/components/PoSectionTabs";
+import ChooseDealModal from "./modals/choose-deal/ChooseDealModal";import ConfirmModal from "./modals/ConfirmModal";
 import ChooseVendorModal from "./modals/ChooseVendorModal";
 import CreateVendorModal from "./modals/CreateVendorModal";
 import EditItemModal from "./modals/EditItemModal";
@@ -72,6 +73,16 @@ const breadcrumbs: BreadcrumbItem[] = [
   {
     label: "SK Invoice AI",
   },
+];
+
+const SAMPLE_INVOICES = [
+  "inv-1.png",
+  "inv-2.png",
+  "inv-3.png",
+  "inv-4.png",
+  "inv-5.png",
+  "inv-6.png",
+  "inv-7.png",
 ];
 
 const InvoiceScan = () => {
@@ -893,16 +904,11 @@ const InvoiceScan = () => {
       />
       <div className="app-page page-bg tw:p-4">
         <div className="app-container">
-          {/* Supply section navigation. Mobile shows the horizontal tab
-              scroller; desktop shows the left rail below. Hidden in result mode
-              so the scanned invoice review gets the full width. */}
+          {/* PO section tab bar. Mobile shows the horizontal tab scroller;
+              desktop shows the left rail below. Hidden in result mode so the
+              scanned invoice review gets the full width. */}
           {display !== "result" && (
-            <SectionTabs
-              sectionKey="supply"
-              activeTab="purchase-orders"
-              noShadow
-              sticky
-            />
+            <PoSectionTabs activeTab="scan-ai" outerClassName="tw:mb-3" />
           )}
 
           <div className="section-layout">
@@ -912,7 +918,7 @@ const InvoiceScan = () => {
                 <div className="tw:sticky tw:top-20">
                   <SectionMenu
                     sectionKey="supply"
-                    activeTab="purchase-orders"
+                    activeTab="receive-stock"
                     title={t("manageSupply", { ns: "menu" })}
                   />
                 </div>
@@ -920,6 +926,8 @@ const InvoiceScan = () => {
             )}
 
             <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+                <AppPaneMain className="tw:lg:col-span-12 tw:space-y-0">
               <AppBreadcrumbs data={breadcrumbs} />
 
               <div className="tw:mb-4">
@@ -1056,8 +1064,8 @@ const InvoiceScan = () => {
                   <div className="tw:text-xs tw:text-gray-500 tw:mb-2">
                     Reference samples showing supported invoice format.
                   </div>
-                  <div className="tw:flex tw:gap-2">
-                    {["inv-1.png", "inv-2.png"].map((f, idx) => (
+                  <div className="tw:flex tw:flex-wrap tw:gap-2">
+                    {SAMPLE_INVOICES.map((f, idx) => (
                       <div
                         key={f}
                         className="tw:relative tw:w-24 tw:h-24 tw:rounded-md tw:border tw:border-gray-200 tw:overflow-hidden tw:bg-gray-50 tw:group"
@@ -1350,6 +1358,17 @@ const InvoiceScan = () => {
                 </div>
               );
             })()}
+                </AppPaneMain>
+
+                {/* Side pane — theme-2 desktop only. Hidden in result mode so
+                    the scanned invoice review keeps full width, matching the
+                    section menu behavior above. */}
+                {display !== "result" && (
+                  <AppPaneSide className="app-pane-only">
+                    <PurchaseOrderSidePane />
+                  </AppPaneSide>
+                )}
+              </div>
             </div>
           </div>
         </div>

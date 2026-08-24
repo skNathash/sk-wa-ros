@@ -41,6 +41,23 @@ class OmsDashboardService {
     );
   }
 
+  /**
+   * What one buyer has bought from the logged-in seller over a window — spend,
+   * order count, units and average order value.
+   * Endpoint: GET sales/dashboard/purchase/scorecard?franchiseId=<buyerId>
+   */
+  static async getPurchaseScorecard(
+    params: Record<string, any> = {},
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}sales/dashboard/purchase/scorecard`,
+      "GET",
+      params,
+      config,
+    );
+  }
+
   static async getOrderReport(
     params: Record<string, any> = {},
     config?: AxiosRequestConfig,

@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { orderBy } from "lodash";
 import Amount from "~/components/core/amount/Amount";
-import AppCard from "~/components/core/card/AppCard";
 import ImgRender from "~/components/core/img/ImgRender";
 import AppModal from "~/components/core/modal/AppModal";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
@@ -28,6 +27,7 @@ import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
 import CommonService from "~/services/CommonService";
 import AddToCartActionHandler from "~/shared/products/add-to-cart-action-handler/AddToCartActionHandler";
 import { AppCheckbox } from "~/components/core/form";
+import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 
 const swiperConfig: SwiperOptions = {
   slidesPerView: 1,
@@ -38,11 +38,17 @@ const swiperConfig: SwiperOptions = {
   },
 };
 
+const chipsSwiperConfig: SwiperOptions = {
+  slidesPerView: "auto",
+  spaceBetween: 8,
+  freeMode: true,
+};
+
 type Props = {
   show: boolean;
   dealId: string;
   callback: (a: { action: string; data?: any }) => void;
-  distance?: number;
+  distance?: number | string;
   type?: string;
 };
 
@@ -54,6 +60,55 @@ const defaultTabs: TabItem[] = [
   },
   { key: "similar", name: "Similar Deals" },
 ];
+
+// Seller list ordering. Sellers are paginated, so a chip tap re-queries the
+// network deals API from page 1 with the matching sort, and the fetched list
+// is re-ordered client side as well (harmless when the API already sorted it,
+// and keeps the order correct if it ignores the param).
+type SellerFilterKey = "best-price" | "nearest" | "trending";
+
+// Sort value sent to the network deals API for each chip.
+const SELLER_SORT_PARAM: Record<SellerFilterKey, string> = {
+  "best-price": "price-asc",
+  nearest: "distance-asc",
+  trending: "trending",
+};
+
+const FILTER_CHIPS: { key: SellerFilterKey; label: string }[] = [
+  { key: "best-price", label: "Best price" },
+  { key: "nearest", label: "Nearest" },
+  // { key: "trending", label: "Trending" },
+];
+
+// Recommendation tags the network APIs put on a seller, most "trending" first.
+const TRENDING_TAG_RANK = ["fast-delivery", "previously-purchased", "cheap"];
+
+const trendingScore = (seller: SellersArrayItem) => {
+  const tags = seller.tags || [];
+  const best = TRENDING_TAG_RANK.findIndex((tag) => tags.includes(tag));
+  return best === -1 ? TRENDING_TAG_RANK.length : best;
+};
+
+const applySellerFilter = <T extends SellersArrayItem & { deal: Deal }>(
+  sellers: T[],
+  key: SellerFilterKey,
+): T[] => {
+  if (key === "nearest") {
+    return orderBy(sellers, [(s) => s.distance ?? Infinity], ["asc"]);
+  }
+  if (key === "trending") {
+    return orderBy(
+      sellers,
+      [trendingScore, (s) => Number(s.price) || Infinity],
+      ["asc", "asc"],
+    );
+  }
+  // Best price — cheapest first.
+  return orderBy(sellers, [(s) => Number(s.price) || Infinity], ["asc"]);
+};
+
+// Sellers are paginated by the network deals API.
+const SELLERS_LIMIT = 5;
 
 const SellerListModal = ({
   show,
@@ -84,11 +139,31 @@ const SellerListModal = ({
   });
 
   const [slabOnly, setSlabOnly] = useState<boolean>(false);
+  const [sellerFilter, setSellerFilter] =
+    useState<SellerFilterKey>("best-price");
+  // Mirror of `sellerFilter` so fetchProduct can read the active sort without
+  // taking it as a dependency (which would re-trigger the open-modal fetch).
+  const sellerFilterRef = useRef<SellerFilterKey>("best-price");
+
+  const [totalSellers, setTotalSellers] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  // Current sellers page; ref so silent refetches don't re-create fetchProduct.
+  const sellersPageRef = useRef(1);
 
   const connectedSeller = AuthService.getLinkedSeller();
 
   const hasSlabSellers = (sellers || []).some(
     (s: any) => s?.priceSlab?.isAvailable && s?.priceSlab?.configId,
+  );
+
+  // Units the logged-in retailer sold in the last 7 days for this deal.
+  const lastWeekSold =
+    Number(product?.salesAnalytics?.last7Days?.quantity) || 0;
+
+  // Sellers in the order picked by the active filter chip.
+  const visibleSellers = useMemo(
+    () => applySellerFilter(sellers, sellerFilter),
+    [sellers, sellerFilter],
   );
 
   const fetchSkSellerDealStock = async (userId: string) => {
@@ -117,22 +192,25 @@ const SellerListModal = ({
     return skDealsData;
   };
 
-  const fetchSkDeal = async (dealId: string) => {
-    let skDeal = {
-      maxQty: 0,
-      price: 0,
-    };
+  // Returns null when no SK record exists for the deal, so callers can tell
+  // "no authoritative data" apart from "authoritatively zero stock" and keep
+  // the qty/price already present on the seller record.
+  type SkDeal = { maxQty: number | null; price: number };
+
+  const fetchSkDeal = async (dealId: string): Promise<SkDeal | null> => {
     const dealResp = await ProductService.getProducts({
       page: 1,
       count: 1,
       filter: { _id: dealId },
     });
-    if (Array.isArray(dealResp.data) && dealResp.data.length > 0) {
-      const d = dealResp.data[0];
-      skDeal.maxQty = Number(d?.maxQty || 0) || 0;
-      skDeal.price = Number(d?.price ?? d?.dealPrice ?? 0) || 0;
-    }
-    return skDeal;
+    if (!Array.isArray(dealResp.data) || dealResp.data.length === 0)
+      return null;
+
+    const d = dealResp.data[0];
+    return {
+      maxQty: d?.maxQty != null ? Number(d.maxQty) || 0 : null,
+      price: Number(d?.price ?? d?.dealPrice ?? 0) || 0,
+    };
   };
 
   const sortSellers = (
@@ -187,7 +265,7 @@ const SellerListModal = ({
     sellers: Array<SellersArrayItem & { deal: Deal }>,
     productData: Deal,
     skDealsData: Record<string, any>,
-    skDeal?: { maxQty: number; price: number },
+    skDeal?: SkDeal | null,
   ) => {
     return (sellers || []).map((seller: SellersArrayItem & { deal: Deal }) => {
       // Prefer seller.cartQuantity for non-SK sellers. For SK seller fallback to skDeal.quantity
@@ -213,14 +291,15 @@ const SellerListModal = ({
       const cartId = seller.cartId || "";
       const itemId = seller.itemId || "";
 
-      // For SK sellers, prefer authoritative max stock from ProductService, otherwise fallback to seller.qty
-      let computedMaxQty = seller.isSkSeller
-        ? (skDeal?.maxQty ?? seller.qty ?? 0)
-        : seller.qty || 0;
+      // For SK sellers, prefer authoritative max stock from ProductService.
+      // A missing SK record (or a zero from it) means "no stock data here" —
+      // fall back to the qty the network sellers array already carries instead
+      // of rendering the seller as out of stock.
+      let computedMaxQty =
+        seller.isSkSeller && skDeal?.maxQty ? skDeal.maxQty : seller.qty || 0;
 
-      const basePrice = seller.isSkSeller
-        ? (skDeal?.price ?? seller.price)
-        : seller.price;
+      const basePrice =
+        seller.isSkSeller && skDeal?.price ? skDeal.price : seller.price;
 
       // If seller has an active price slab and the item is already in cart,
       // compute price based on slab using the cart quantity. Otherwise use basePrice.
@@ -269,7 +348,7 @@ const SellerListModal = ({
   };
 
   const fetchProduct = useCallback(
-    async (id: string, silent = false) => {
+    async (id: string, silent = false, resetPage = !silent) => {
       if (!id) return;
 
       if (!silent) {
@@ -283,8 +362,15 @@ const SellerListModal = ({
       try {
         const userId = AuthService.getLoggedInUserId(true);
 
+        // Fresh load (and a sort change) starts at page 1; silent refresh
+        // reloads every page fetched so far so in-cart/slab data stays
+        // accurate for all sellers.
+        if (resetPage) sellersPageRef.current = 1;
         const params = {
           filter: { dealId: id },
+          sellersPage: 1,
+          sellersLimit: sellersPageRef.current * SELLERS_LIMIT,
+          sellersSortBy: SELLER_SORT_PARAM[sellerFilterRef.current],
         };
         let response;
         if (type === "PromotionalDeal") {
@@ -315,12 +401,10 @@ const SellerListModal = ({
           });
 
           setProduct(productData);
+          setTotalSellers(Number(productData.totalSellers) || sellers.length);
 
           // Only fetch SK-related data (cart + authoritative deal) when an SK seller exists.
-          let skDealForProduct: { maxQty: number; price: number } = {
-            maxQty: 0,
-            price: 0,
-          };
+          let skDealForProduct: SkDeal | null = null;
           try {
             const hasSkSeller = (sellers || []).some((s: any) => s.isSkSeller);
 
@@ -338,7 +422,7 @@ const SellerListModal = ({
             }
           } catch (e) {
             console.warn("Error fetching SK deal/cart data:", e);
-            skDealForProduct = { maxQty: 0, price: 0 };
+            skDealForProduct = null;
             skDealsData = {};
           }
 
@@ -376,17 +460,20 @@ const SellerListModal = ({
 
           setTabs((prev) => {
             const tmp = [...prev];
-            tmp[0].count = sellersWithDeal.length;
+            tmp[0].count =
+              Number(productData.totalSellers) || sellersWithDeal.length;
             return tmp;
           });
         } else {
           setProduct(null);
           setSellers([]);
+          setTotalSellers(0);
         }
       } catch (error) {
         console.error("Error fetching product:", error);
         setProduct(null);
         setSellers([]);
+        setTotalSellers(0);
       } finally {
         if (!silent) setLoading(false);
         else setSilentLoading(false);
@@ -394,6 +481,70 @@ const SellerListModal = ({
     },
     [distance, type, connectedSeller?._id],
   );
+
+  const loadMoreSellers = async () => {
+    if (loading || silentLoading || loadingMore) return;
+    const id = product?._id || product?.id || dealId;
+    if (!id) return;
+
+    setLoadingMore(true);
+    try {
+      const nextPage = sellersPageRef.current + 1;
+      const params = {
+        filter: { dealId: id },
+        sellersPage: nextPage,
+        sellersLimit: SELLERS_LIMIT,
+        sellersSortBy: SELLER_SORT_PARAM[sellerFilterRef.current],
+      };
+      let response;
+      if (type === "PromotionalDeal") {
+        response = await SellerCatalogService.getPromotionalDeal(
+          params,
+          distance,
+        );
+      } else {
+        response = await SellerCatalogService.getNetworkDeals(params, distance);
+      }
+      const data = response.data?.data || [];
+      if (data.length > 0) {
+        const formatted = SellerCatalogService.formatProductResponse(data, {
+          view: "buyer",
+        });
+        const productData = formatted[0];
+
+        const newSellers = (productData.sellers || []).map((seller: any) => ({
+          ...seller,
+          isConnectedSeller: seller.id === connectedSeller?._id,
+        }));
+
+        // SK-specific cart/stock data is only relevant for the SK seller,
+        // which the API returns on the first page; skip those fetches here.
+        const newWithDeal = attachDealToSellers(newSellers, productData, {});
+
+        setSellers((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          const merged = [
+            ...prev,
+            ...newWithDeal.filter((s) => !existingIds.has(s.id)),
+          ];
+          try {
+            return sortSellers(
+              merged as any,
+              AuthService.isSkBuyer(),
+              connectedSeller?._id,
+            );
+          } catch (e) {
+            return merged;
+          }
+        });
+        sellersPageRef.current = nextPage;
+      }
+    } catch (error) {
+      console.error("Error loading more sellers:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     if (show && dealId) {
@@ -406,8 +557,20 @@ const SellerListModal = ({
     if (show) {
       setActiveTab(defaultTabs[0].key);
       setShowFullDescription(false);
+      setSellerFilter("best-price");
+      sellerFilterRef.current = "best-price";
     }
   }, [show]);
+
+  // Chip tap re-queries the sellers from page 1 with the new sort. Silent so
+  // only the seller list shows the loader, not the whole modal.
+  const handleSellerFilterChange = (key: SellerFilterKey) => {
+    if (key === sellerFilter) return;
+    sellerFilterRef.current = key;
+    setSellerFilter(key);
+    const id = product?._id || product?.id || dealId;
+    if (id) fetchProduct(id, true, true);
+  };
 
   const handleClose = () => {
     callback({ action: "close" });
@@ -547,6 +710,7 @@ const SellerListModal = ({
     // Default behavior for other sellers: retailer page
     appNav.to("/products/buy-from-other-retailer/retailer/" + seller.id, {
       sellerId: seller.id,
+      distance: String(distance),
     });
   };
 
@@ -566,7 +730,7 @@ const SellerListModal = ({
       <AppModal
         show={show}
         callback={callback}
-        className="tw:max-w-4xl tw:h-[90vh]"
+        className="tw:max-w-4xl tw:lg:max-w-6xl tw:xl:max-w-7xl tw:h-[90vh]"
       >
         <AppModal.Title onClose={handleClose}>
           <div className="tw:text-lg tw:font-semibold">
@@ -580,10 +744,12 @@ const SellerListModal = ({
             </div>
           ) : product ? (
             <div className="tw:flex tw:flex-col tw:h-full">
-              <AppCard noPadding>
+              {/* Product summary band. On mobile it breaks out of the modal
+                  content padding so the tint runs edge to edge. */}
+              <div className="tw:-mx-[calc(1rem+2px)] tw:md:mx-0 tw:mb-3 tw:bg-amber-50 tw:border-b tw:border-amber-200/80 tw:md:rounded-xl tw:md:border">
                 <div className="tw:flex tw:gap-3 tw:p-3">
                   <div
-                    className="tw:shrink-0 tw:w-20 tw:h-20"
+                    className="tw:shrink-0 tw:w-20 tw:h-20 tw:rounded-xl tw:bg-white tw:border tw:border-amber-200/70 tw:overflow-hidden"
                     onClick={() => handleImgPreviewModal(product.images)}
                   >
                     <AppSwiper config={swiperConfig}>
@@ -592,17 +758,17 @@ const SellerListModal = ({
                           <ImgRender
                             assetId={image}
                             alt={product.name}
-                            className="tw:w-20 tw:h-20 tw:object-cover"
+                            className="tw:w-20 tw:h-20 tw:object-contain"
                           />
                         </AppSwiper.Slide>
                       ))}
                     </AppSwiper>
                   </div>
                   <div className="tw:flex-1 tw:min-w-0">
-                    <h3 className="tw:text-sm tw:font-semibold tw:mb-1 tw:line-clamp-2">
+                    <h3 className="tw:text-sm tw:font-bold tw:mb-1 tw:line-clamp-2">
                       {product.name}
                     </h3>
-                    <div className="tw:flex tw:flex-wrap tw:gap-x-4 tw:gap-y-1 tw:text-xs tw:text-gray-600">
+                    <div className="tw:flex tw:flex-wrap tw:gap-x-4 tw:gap-y-1 tw:text-xs tw:text-muted-foreground">
                       {product.brand?.name && (
                         <span
                           role="button"
@@ -627,34 +793,66 @@ const SellerListModal = ({
                     {/* Price / MRP / Discount row */}
                     <div className="tw:flex tw:flex-row tw:items-center tw:gap-2 tw:mt-1">
                       {product.price != null && (
-                        <span className="tw:text-base tw:font-semibold tw:text-green-600">
+                        <span className="tw:text-base tw:font-semibold tw:text-primary">
                           <Amount value={product.price} />
                         </span>
                       )}
                       {product.mrp != null && product.discount > 0 && (
-                        <span className="tw:text-xs tw:text-gray-500 tw:line-through">
+                        <span className="tw:text-xs tw:text-muted-foreground tw:line-through">
                           <Amount value={product.mrp} />
                         </span>
                       )}
                       {product.discount > 0 && (
-                        <span className="tw:text-xs tw:text-orange-600 tw:font-semibold">
+                        <span className="tw:text-xs tw:font-bold tw:text-orange-600 tw:bg-orange-100 tw:px-1.5 tw:py-0.5 tw:rounded">
                           {product.discount}% OFF
                         </span>
                       )}
                     </div>
+                    {/* Sales momentum — the buyer's own last-7-day sales for
+                        this deal, from the network deal response. */}
+                    {lastWeekSold > 0 && (
+                      <div className="tw:mt-1.5">
+                        <span className="tw:inline-flex tw:items-center tw:gap-1 tw:text-[11px] tw:font-bold tw:text-emerald-700 tw:bg-emerald-100 tw:px-1.5 tw:py-0.5 tw:rounded">
+                          You sold {lastWeekSold} last week
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </AppCard>
+              </div>
 
               <AppTab
                 tabs={tabs}
                 activeTab={activeTab}
                 onTabChange={handleTabChange}
+                variant="underline"
+                noShadow
                 className="tw:mb-4"
               />
 
               {activeTab === "sellers" && (
                 <>
+                  {/* Ordering chips — refetch the sellers with the new sort. */}
+                  <div className="tw:pb-2">
+                    <AppSwiper config={chipsSwiperConfig}>
+                      {FILTER_CHIPS.map((chip) => (
+                        <AppSwiper.Slide key={chip.key} isAutoWidth>
+                          <button
+                            type="button"
+                            onClick={() => handleSellerFilterChange(chip.key)}
+                            className={
+                              sellerFilter === chip.key
+                                ? "tw:cursor-pointer tw:inline-block tw:rounded-full tw:px-3 tw:py-1 tw:text-xs tw:font-semibold tw:bg-foreground tw:text-background"
+                                : "tw:cursor-pointer tw:inline-block tw:rounded-full tw:px-3 tw:py-1 tw:text-xs tw:font-medium tw:bg-card tw:text-muted-foreground tw:border tw:border-border"
+                            }
+                          >
+                            {chip.label}
+                          </button>
+                        </AppSwiper.Slide>
+                      ))}
+                    </AppSwiper>
+                  </div>
+
                   {hasSlabSellers && (
                     <div className="tw:py-2">
                       <AppCheckbox
@@ -669,11 +867,20 @@ const SellerListModal = ({
                   <Sellers
                     loading={false}
                     silentLoading={silentLoading}
-                    sellers={sellers}
+                    sellers={visibleSellers}
                     onAddToCart={handleAddToCart}
                     onSellerClick={handleSellerClick}
                     slabOnly={slabOnly}
                   />
+
+                  {sellers.length < totalSellers && (
+                    <LoadMoreButton
+                      loadMore={loadMoreSellers}
+                      loading={loadingMore}
+                      totalCount={totalSellers}
+                      loadedCount={sellers.length}
+                    />
+                  )}
                 </>
               )}
 
@@ -681,15 +888,19 @@ const SellerListModal = ({
                 <div className="tw:px-1 tw:pt-2 tw:flex-1">
                   <div className="tw:flex tw:flex-col tw:gap-3 tw:text-xs">
                     <div className="tw:flex tw:items-start">
-                      <div className="tw:w-36 tw:text-gray-500">Menu</div>
-                      <div className="tw:flex-1 tw:font-medium tw:text-gray-800 tw:truncate">
+                      <div className="tw:w-36 tw:text-muted-foreground">
+                        Menu
+                      </div>
+                      <div className="tw:flex-1 tw:font-medium tw:text-foreground tw:truncate">
                         {product.menu?.name || "-"}
                       </div>
                     </div>
 
                     <div className="tw:flex tw:items-start">
-                      <div className="tw:w-36 tw:text-gray-500">Category</div>
-                      <div className="tw:flex-1 tw:font-medium tw:text-gray-800 tw:truncate">
+                      <div className="tw:w-36 tw:text-muted-foreground">
+                        Category
+                      </div>
+                      <div className="tw:flex-1 tw:font-medium tw:text-foreground tw:truncate">
                         {product.category?.name ? (
                           <span
                             role="button"
@@ -707,8 +918,10 @@ const SellerListModal = ({
                     </div>
 
                     <div className="tw:flex tw:items-start">
-                      <div className="tw:w-36 tw:text-gray-500">Brand</div>
-                      <div className="tw:flex-1 tw:font-medium tw:text-gray-800 tw:truncate">
+                      <div className="tw:w-36 tw:text-muted-foreground">
+                        Brand
+                      </div>
+                      <div className="tw:flex-1 tw:font-medium tw:text-foreground tw:truncate">
                         {product.brand?.name ? (
                           <span
                             role="button"
@@ -726,19 +939,21 @@ const SellerListModal = ({
                     </div>
 
                     <div className="tw:flex tw:items-start">
-                      <div className="tw:w-36 tw:text-gray-500">Deal ID</div>
-                      <div className="tw:flex-1 tw:font-medium tw:text-gray-800 tw:truncate">
+                      <div className="tw:w-36 tw:text-muted-foreground">
+                        Deal ID
+                      </div>
+                      <div className="tw:flex-1 tw:font-medium tw:text-foreground tw:truncate">
                         {product.id || "-"}
                       </div>
                     </div>
 
                     {product.description && (
                       <div className="tw:flex tw:items-start tw:flex-col">
-                        <div className="tw:text-gray-500 tw:text-xs tw:mb-1">
+                        <div className="tw:text-muted-foreground tw:text-xs tw:mb-1">
                           Description
                         </div>
                         <div
-                          className={`tw:flex-1 tw:font-medium tw:text-gray-800 tw:text-xs ${
+                          className={`tw:flex-1 tw:font-medium tw:text-foreground tw:text-xs ${
                             showFullDescription
                               ? ""
                               : "tw:overflow-hidden tw:line-clamp-3"
@@ -779,7 +994,7 @@ const SellerListModal = ({
             </div>
           ) : (
             <div className="tw:text-center tw:py-12">
-              <p className="tw:text-gray-400">Product not found</p>
+              <p className="tw:text-muted-foreground">Product not found</p>
             </div>
           )}
         </AppModal.Content>

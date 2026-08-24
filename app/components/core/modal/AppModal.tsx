@@ -152,7 +152,7 @@ const Header: React.FC<HeaderProps> & { displayName?: string } = ({
           "tw:flex-shrink-0",
           className,
           showCloseBtn || noShadow ? "tw:border-none" : "",
-          noShadow ? "tw:border-b tw:border-gray-200" : "",
+          noShadow ? "tw:border-b tw:border-border" : "",
         )}
       >
         <div className="tw:flex tw:items-center tw:justify-between">
@@ -169,7 +169,7 @@ const Header: React.FC<HeaderProps> & { displayName?: string } = ({
         "tw:flex-shrink-0",
         className,
         showCloseBtn || noShadow ? "tw:border-none" : "",
-        noShadow ? "tw:border-b tw:border-gray-200" : "",
+        noShadow ? "tw:border-b tw:border-border" : "",
       )}
     >
       <DialogTitle>
@@ -207,20 +207,22 @@ const Title: React.FC<TitleProps> & { displayName?: string } = ({
         className={clsx(
           "app-modal-title tw:px-4 tw:pt-4 tw:flex-shrink-0",
           {
-            "tw:bg-white": !noBg,
+            "tw:bg-background": !noBg,
             "tw:border-none": noShadow,
-            "tw:border-b tw:border-gray-200": noShadow,
+            "tw:border-b tw:border-border": noShadow,
           },
           toolbarClassName,
         )}
       >
         <DrawerTitle>
           <div className="tw:flex tw:justify-between tw:items-center">
-            <div className="tw:flex-1 tw:text-left">{children}</div>
+            {/* min-w-0 so long titles truncate instead of pushing the close
+                button past the modal edge. */}
+            <div className="tw:min-w-0 tw:flex-1 tw:text-left">{children}</div>
             {!hideCloseBtns && !showBackBtn ? (
               <Button
                 onClick={onClose}
-                className="tw:p-2 tw:self-start tw:cursor-pointer"
+                className="tw:p-2 tw:self-start tw:shrink-0 tw:cursor-pointer"
                 variant="ghost"
               >
                 <X />
@@ -238,9 +240,9 @@ const Title: React.FC<TitleProps> & { displayName?: string } = ({
       className={clsx(
         "app-modal-title tw:px-4 tw:pt-4 tw:flex-shrink-0",
         {
-          "tw:bg-white": !noBg,
+          "tw:bg-background": !noBg,
           "tw:border-none": noShadow,
-          "tw:border-b tw:border-gray-200": noShadow,
+          "tw:border-b tw:border-border": noShadow,
         },
         toolbarClassName,
       )}
@@ -252,11 +254,13 @@ const Title: React.FC<TitleProps> & { displayName?: string } = ({
             <X className="tw:text-2xl"></X>
           </button>
         ) : null} */}
-          <div className="tw:flex-1 tw:text-left">{children}</div>
+          {/* min-w-0 so long titles truncate instead of pushing the close
+              button past the modal edge. */}
+          <div className="tw:min-w-0 tw:flex-1 tw:text-left">{children}</div>
           {!hideCloseBtns && !showBackBtn ? (
             <Button
               onClick={onClose}
-              className="tw:p-2 tw:self-start tw:cursor-pointer"
+              className="tw:p-2 tw:self-start tw:shrink-0 tw:cursor-pointer"
               variant="ghost"
             >
               <X />

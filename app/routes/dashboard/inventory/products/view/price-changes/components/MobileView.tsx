@@ -1,6 +1,7 @@
-import { ArrowDownLeft, ArrowUpRight, Calendar, Info } from "lucide-react";
+import { Calendar, Info, User } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import clsx from "clsx";
 import DisplayPrice from "~/shared/products/display-price/DisplayPrice";
 import AppBadge from "~/components/core/badge/AppBadge";
 import AppCard from "~/components/core/card/AppCard";
@@ -13,6 +14,7 @@ import SchemeDetailsPopover from "~/routes/configs/rsp/history/components/Scheme
 
 interface MobileViewProps {
   data: any[];
+  loading?: boolean;
   showLoadMore?: boolean;
   loadingMore?: boolean;
   loadMore: () => void;
@@ -20,8 +22,17 @@ interface MobileViewProps {
   loadedCount: number;
 }
 
+// auto-fill keeps every card at least 280px wide, so the content never gets
+// squeezed into overlapping/one-character columns on any breakpoint.
+const gridClass =
+  "tw:grid tw:gap-3 tw:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]";
+
+const cardClass =
+  "tw:mb-0 tw:h-full tw:transition-shadow tw:hover:shadow-md tw:gap-0";
+
 const MobileView: React.FC<MobileViewProps> = ({
   data,
+  loading,
   showLoadMore = false,
   loadingMore = false,
   loadMore,
@@ -30,231 +41,208 @@ const MobileView: React.FC<MobileViewProps> = ({
 }) => {
   const { t } = useTranslation(["common"]);
 
-  if (!data || data.length === 0) {
-    return <NoData />;
+  // Loading state
+  if (loading) {
+    return (
+      <div className={gridClass}>
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <AppCard key={`skeleton-${idx}`} noPadding className={cardClass}>
+            <div className="tw:animate-pulse">
+              <div className="tw:flex tw:items-start tw:justify-between tw:gap-3 tw:px-3 tw:py-2.5">
+                <div className="tw:flex-1 tw:space-y-1.5">
+                  <div className="tw:h-4 tw:w-32 tw:rounded tw:bg-gray-200" />
+                  <div className="tw:h-3 tw:w-24 tw:rounded tw:bg-gray-100" />
+                </div>
+                <div className="tw:space-y-1.5">
+                  <div className="tw:h-4 tw:w-16 tw:rounded tw:bg-gray-200" />
+                  <div className="tw:h-3 tw:w-14 tw:rounded tw:bg-gray-100" />
+                </div>
+              </div>
+              <Divider className="tw:my-0!" />
+              <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:py-2">
+                <div className="tw:h-3.5 tw:w-28 tw:rounded tw:bg-gray-100" />
+                <div className="tw:h-5 tw:w-20 tw:rounded-full tw:bg-gray-100" />
+              </div>
+            </div>
+          </AppCard>
+        ))}
+      </div>
+    );
   }
 
+  // No data state
+  if (!data || data.length === 0) {
+    return (
+      <AppCard>
+        <NoData />
+      </AppCard>
+    );
+  }
+
+  // Data state
   return (
     <>
-      <div className="mobile-view-list tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-3">
+      <div className={clsx("mobile-view-list", gridClass)}>
         {data.map((item, idx) => {
+          const oldMrp =
+            item.oldData?.mrp !== undefined ? Number(item.oldData.mrp) : 0;
+          const newMrp =
+            item.newData?.mrp !== undefined ? Number(item.newData.mrp) : 0;
+          const changeColor = !item.isPositive
+            ? "tw:text-red-600"
+            : "tw:text-green-600";
+
           return (
-            <AppCard key={item._id || idx} noPadding className="tw:mb-0">
-              <div className="tw:p-4">
-                <div className="tw:flex tw:justify-between tw:items-start">
-                  <div>
-                    <div className="tw:flex tw:flex-col tw:mb-1">
-                      <span className="tw:text-xs tw:text-gray-500 tw:mb-1">
-                        {t("updatedBy")}
-                      </span>
-                      <div className="tw:flex tw:items-center tw:gap-1.5">
-                        <span className="tw:font-bold tw:text-gray-800 tw:text-lg">
-                          {item.createdByName || t("unknownUser")}
-                        </span>
-                        {item.reason && (
-                          <AppPopover
-                            triggerContent={
-                              <Info
-                                size={16}
-                                className="tw:text-gray-400 tw:cursor-pointer"
-                              />
-                            }
-                          >
-                            <div>
-                              <div className="tw:text-xs">Remarks</div>
-                              <p className="tw:text-xs tw:text-gray-700">
-                                {item.reason}
-                              </p>
-                            </div>
-                          </AppPopover>
-                        )}
-                      </div>
-                    </div>
-                    <div className="tw:flex tw:items-center tw:gap-1.5 tw:text-gray-500 tw:text-xs tw:mb-2">
-                      <Calendar size={14} />
-                      <DateFormat value={item.createdAt} />
-                    </div>
-                    <div className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:text-gray-500">
-                      {t("applicableForLabel")}{" "}
-                      <div className="tw:inline-block tw:flex tw:flex-col tw:items-start">
-                        <AppBadge variant={item.applicableForVariant}>
-                          {item.applicableForText}
-                        </AppBadge>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`tw:rounded-full tw:p-3 tw:border-2 ${
-                      !item.isPositive
-                        ? "tw:text-red-500 tw:border-red-100 tw:bg-red-50/30"
-                        : "tw:text-green-500 tw:border-green-100 tw:bg-green-50/30"
-                    }`}
-                  >
-                    {!item.isPositive ? (
-                      <ArrowUpRight size={24} strokeWidth={1.5} />
-                    ) : (
-                      <ArrowDownLeft size={24} strokeWidth={1.5} />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <Divider className="tw:!m-0" />
-
-              <div className="tw:grid tw:grid-cols-3 tw:gap-4 tw:p-4">
-                <div className="tw:flex tw:flex-col tw:gap-1">
-                  <span className="tw:text-xs tw:text-gray-400">
-                    {t("previousPrice")}
-                  </span>
-                  <span className="tw:text-gray-500 tw:font-medium">
-                    <DisplayPrice
-                      price={item.prevPrice}
-                      uom={item.oldData?.selectedStockUom}
-                    />
-                  </span>
-                </div>
-                <div className="tw:flex tw:flex-col tw:gap-1">
-                  <span className="tw:text-xs tw:text-gray-400">
-                    {t("newPrice")}
-                  </span>
-                  <span className="tw:text-gray-900 tw:font-bold tw:text-lg">
-                    <DisplayPrice
-                      price={item.newPrice}
-                      uom={item.newData?.selectedStockUom}
-                    />
-                  </span>
-                  {item.newData?.offerDiscount ||
-                  item.newData?.isOfferOfTheDay ? (
-                    <div>
-                      <SchemeDetailsPopover
-                        oldData={item.oldData}
-                        newData={item.newData}
-                        triggerText="Scheme updated"
+            <AppCard key={item._id || idx} noPadding className={cardClass}>
+              <div className="tw:px-3 tw:py-2.5">
+                {/* prev → new price + change */}
+                <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+                  <span className="tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-1 tw:text-sm tw:whitespace-nowrap">
+                    <span className="tw:text-gray-400 tw:line-through">
+                      <DisplayPrice
+                        price={item.prevPrice}
+                        uom={item.oldData?.selectedStockUom}
+                        hideUom
                       />
-                    </div>
-                  ) : (
-                    <div className="tw:md:h-4"></div>
-                  )}
-                </div>
-                <div className="tw:flex tw:flex-col tw:gap-1">
-                  <span className="tw:text-xs tw:text-gray-400">
-                    {t("mrp")}
+                    </span>
+                    <span className="tw:text-gray-300">→</span>
+                    <span className="tw:font-semibold tw:text-slate-900">
+                      <DisplayPrice
+                        price={item.newPrice}
+                        uom={item.newData?.selectedStockUom}
+                      />
+                    </span>
                   </span>
-                  {(() => {
-                    const oldMrp = item.oldData?.mrp !== undefined ? Number(item.oldData.mrp) : 0;
-                    const newMrp = item.newData?.mrp !== undefined ? Number(item.newData.mrp) : 0;
-                    if (oldMrp > 0 || newMrp > 0) {
-                      return (
-                        <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-gray-500 tw:font-medium">
-                          {oldMrp > 0 && oldMrp !== newMrp ? (
-                            <>
-                              <span className="tw:line-through tw:text-gray-400">
-                                <DisplayPrice
-                                  price={oldMrp}
-                                  uom={item.oldData?.selectedStockUom}
-                                  hideUom
-                                />
-                              </span>
-                              <span className="tw:text-gray-300">→</span>
-                            </>
-                          ) : null}
-                          <DisplayPrice
-                            price={newMrp}
-                            uom={item.newData?.selectedStockUom}
-                            hideUom
-                          />
-                        </span>
-                      );
-                    }
-                    return <span className="tw:text-gray-400 tw:text-xs">--</span>;
-                  })()}
-                </div>
-              </div>
-
-              <div
-                className={`tw:p-4 tw:flex tw:justify-between tw:items-center tw:h-[50px] ${
-                  !item.isPositive ? "tw:bg-red-50" : "tw:bg-green-50"
-                }`}
-              >
-                <div className="tw:text-xs tw:text-gray-500 tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
-                  <span>{t("change")}:</span>
                   <span
-                    className={`tw:font-bold ${
-                      !item.isPositive ? "tw:text-red-600" : "tw:text-green-600"
-                    }`}
+                    className={clsx(
+                      "tw:shrink-0 tw:text-sm tw:font-semibold tw:whitespace-nowrap",
+                      changeColor,
+                    )}
                   >
                     {item.change < 0 ? "" : "+"}
                     <DisplayPrice
                       price={item.change}
                       uom={item.newData?.selectedStockUom}
                       hideUom
-                    />
-                  </span>
-                  <span className="tw:text-gray-300">/</span>
-                  <span
-                    className={`tw:font-bold ${
-                      !item.isPositive ? "tw:text-red-600" : "tw:text-green-600"
-                    }`}
-                  >
-                    {item.percent < 0 ? "" : "+"}
-                    {item.percent.toFixed(1)}%
-                  </span>
-                  <span className="tw:text-gray-300">/</span>
-                  <span className="tw:text-gray-500">
-                    {(() => {
-                      const oldMrp = item.oldData?.mrp !== undefined ? Number(item.oldData.mrp) : 0;
-                      const newMrp = item.newData?.mrp !== undefined ? Number(item.newData.mrp) : 0;
-                      if (oldMrp > 0 && oldMrp !== newMrp) {
-                        return (
-                          <>
-                            {t("mrp")}: <span className="tw:line-through tw:text-gray-400"><DisplayPrice price={oldMrp} uom={item.oldData?.selectedStockUom} hideUom /></span> → <DisplayPrice price={newMrp} uom={item.newData?.selectedStockUom} hideUom />
-                          </>
-                        );
-                      }
-                      return (
-                        <>
-                          {t("mrp")}: <DisplayPrice price={newMrp} uom={item.newData?.selectedStockUom} hideUom />
-                        </>
-                      );
-                    })()}
+                    />{" "}
+                    ({item.percent < 0 ? "" : "+"}
+                    {item.percent.toFixed(1)}%)
                   </span>
                 </div>
-                {item.newData?.isFixedPrice && (
-                  <AppPopover
-                    triggerContent={
-                      <div className="tw:flex tw:items-center tw:gap-1 tw:bg-white tw:border tw:border-gray-100 tw:shadow-sm tw:rounded-md tw:px-2 tw:py-1 tw:cursor-pointer">
-                        <span className="tw:text-[10px] tw:font-bold tw:text-gray-600 tw:uppercase">
-                          {t("fixed")}
-                        </span>
-                        <Info size={12} className="tw:text-gray-400" />
-                      </div>
-                    }
+
+                {/* date + mrp */}
+                <div className="tw:mt-1 tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-gray-500">
+                  <span className="tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-1">
+                    <Calendar
+                      size={12}
+                      className="tw:shrink-0 tw:text-slate-400"
+                    />
+                    <DateFormat
+                      value={item.createdAt}
+                      formatStr="dd MMM yy, hh:mm a"
+                      className="tw:truncate"
+                    />
+                  </span>
+                  <span className="tw:shrink-0 tw:whitespace-nowrap">
+                    {t("mrp")}:{" "}
+                    {oldMrp > 0 && oldMrp !== newMrp && (
+                      <>
+                        <span className="tw:text-gray-400 tw:line-through">
+                          <DisplayPrice
+                            price={oldMrp}
+                            uom={item.oldData?.selectedStockUom}
+                            hideUom
+                          />
+                        </span>{" "}
+                        <span className="tw:text-gray-300">→</span>{" "}
+                      </>
+                    )}
+                    <DisplayPrice
+                      price={newMrp}
+                      uom={item.newData?.selectedStockUom}
+                      hideUom
+                    />
+                  </span>
+                </div>
+              </div>
+
+              <Divider className="tw:my-0!" />
+
+              {/* updated by + badges */}
+              <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:px-3 tw:py-1.5">
+                <span className="tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-1">
+                  <User size={12} className="tw:shrink-0 tw:text-slate-400" />
+                  <span
+                    className="tw:truncate tw:text-xs tw:text-gray-500"
+                    title={item.createdByName}
                   >
-                    <div>
-                      <div className="tw:text-xs tw:font-semibold">
-                        Fixed Price
+                    {item.createdByName || t("unknownUser")}
+                  </span>
+                  {item.reason && (
+                    <AppPopover
+                      triggerContent={
+                        <Info
+                          size={12}
+                          className="tw:shrink-0 tw:cursor-pointer tw:text-gray-400"
+                        />
+                      }
+                    >
+                      <div>
+                        <div className="tw:text-xs">Remarks</div>
+                        <p className="tw:text-xs tw:text-gray-700">
+                          {item.reason}
+                        </p>
                       </div>
-                      <p className="tw:text-xs tw:text-gray-700">
-                        This item is sold at a fixed price, not subject to
-                        discounts or variations.
-                      </p>
-                    </div>
-                  </AppPopover>
-                )}
+                    </AppPopover>
+                  )}
+                </span>
+
+                <span className="tw:flex tw:shrink-0 tw:items-center tw:gap-1.5">
+                  {(item.newData?.offerDiscount ||
+                    item.newData?.isOfferOfTheDay) && (
+                    <SchemeDetailsPopover
+                      oldData={item.oldData}
+                      newData={item.newData}
+                      triggerText="Scheme"
+                    />
+                  )}
+                  {item.newData?.isFixedPrice && (
+                    <AppPopover
+                      triggerContent={
+                        <span className="tw:cursor-pointer">
+                          <AppBadge variant="secondary" size="sm">
+                            {t("fixed")}
+                          </AppBadge>
+                        </span>
+                      }
+                    >
+                      <div>
+                        <div className="tw:text-xs tw:font-semibold">
+                          Fixed Price
+                        </div>
+                        <p className="tw:text-xs tw:text-gray-700">
+                          This item is sold at a fixed price, not subject to
+                          discounts or variations.
+                        </p>
+                      </div>
+                    </AppPopover>
+                  )}
+                  <AppBadge variant={item.applicableForVariant} size="sm">
+                    {item.applicableForText}
+                  </AppBadge>
+                </span>
               </div>
             </AppCard>
           );
         })}
       </div>
       {showLoadMore && data.length > 0 && (
-        <div className="tw:min-h-[60px] tw:flex tw:justify-center tw:items-center">
-          <LoadMoreButton
-            loadMore={loadMore}
-            loading={loadingMore}
-            totalCount={totalCount}
-            loadedCount={loadedCount}
-          />
-        </div>
+        <LoadMoreButton
+          loadMore={loadMore}
+          loading={loadingMore}
+          totalCount={totalCount}
+          loadedCount={loadedCount}
+        />
       )}
     </>
   );

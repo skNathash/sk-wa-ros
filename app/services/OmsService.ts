@@ -2,7 +2,7 @@ import { API } from "~/constants";
 import AjaxService from "./AjaxService";
 import AuthService from "./AuthService";
 import SellerCatalogService from "./SellerCatalogService";
-import { set } from "date-fns";
+import { endOfDay, set, startOfDay, sub } from "date-fns";
 
 class OmsService {
   public static getOrderStatuses(): Array<{
@@ -136,6 +136,21 @@ class OmsService {
     return response;
   }
 
+  /**
+   * Aggregate order/payment totals between the logged-in user and a seller.
+   * Endpoint: GET sales/order/ordersummary/{sellerId}
+   */
+  static async getOrderSummary(
+    sellerId: string,
+    params: Record<string, any> = {},
+  ) {
+    return AjaxService.request(
+      `${API}sales/order/ordersummary/${sellerId}`,
+      "GET",
+      params,
+    );
+  }
+
   static async getPendingOrderCount(): Promise<number> {
     try {
       const fid = AuthService.getLoggedInUserId() || "";
@@ -151,6 +166,62 @@ class OmsService {
       return resp?.data?.data || 0;
     } catch (e) {
       return 0;
+    }
+  }
+
+  /**
+   * Today's sales total for the logged-in seller — the amount shown in the
+   * header pill.
+   */
+  static async getTodaySalesSummary(): Promise<{
+    amount: number;
+    orderCount: number;
+  }> {
+    const now = new Date();
+    return OmsService.getSalesSummaryBetween(startOfDay(now), endOfDay(now));
+  }
+
+  /**
+   * Sales total for the last `days` days (today included) — the figure the
+   * profile side pane shows. Same `count`-mode aggregate as the header pill,
+   * so the two figures are computed the same way.
+   */
+  static async getRecentSalesSummary(days = 30): Promise<{
+    amount: number;
+    orderCount: number;
+  }> {
+    const now = new Date();
+    return OmsService.getSalesSummaryBetween(
+      startOfDay(sub(now, { days: days - 1 })),
+      endOfDay(now),
+    );
+  }
+
+  /**
+   * Aggregate takings between two dates for the logged-in seller. Uses the
+   * sales order list in `count` mode, which returns the aggregate metrics
+   * alongside the count, so no order rows are transferred. Cancelled orders
+   * are excluded so the figure matches the store's real takings.
+   */
+  private static async getSalesSummaryBetween(
+    from: Date,
+    to: Date,
+  ): Promise<{ amount: number; orderCount: number }> {
+    try {
+      const fid = AuthService.getLoggedInUserId() || "";
+      const resp = await OmsService.getSalesOrders(fid, {
+        outputType: "count",
+        filter: {
+          orderedDate: { $gte: from, $lte: to },
+          status: { $nin: ["Cancelled"] },
+        },
+      });
+      return {
+        amount: resp?.data?.metrics?.totalSalesValue || 0,
+        orderCount: resp?.data?.data || 0,
+      };
+    } catch (e) {
+      return { amount: 0, orderCount: 0 };
     }
   }
 

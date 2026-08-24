@@ -21,6 +21,7 @@ import AuditLogTab from "./components/AuditLogTab";
 import DetailsTab from "./components/DetailsTab";
 import EditBannerModal from "./modals/EditBannerModal";
 import PageAccessService from "~/services/PageAccessService";
+import AuthService from "~/services/AuthService";
 import Rbac from "~/components/core/rbac/Rbac";
 
 export async function clientLoader() {
@@ -140,7 +141,7 @@ export default function BannerView() {
   };
 
   const renderActionButtons = () => (
-    <Rbac roles={rbacRoles.update}>
+    <Rbac roles={rbacRoles.update} forceDisplay={AuthService.isMasterLogin()}>
       {data.isActive ? (
         <AppButton
           color="danger"

@@ -1,7 +1,9 @@
-import { ShoppingCart } from "lucide-react";
+import { ArrowRight, RefreshCw, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
+import Amount from "~/components/core/amount/Amount";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AppButton from "~/components/core/button/AppButton";
@@ -15,11 +17,14 @@ import PosService from "~/services/PosService";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
-import useScreenView from "~/hooks/useScreenView";
+import { useSidebar } from "~/components/ui/sidebar";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import { AppPaneMain } from "~/shared/layout/app-pane/AppPane";
+import CartTab from "~/shared/catalog/components/cart-tab/CartTab";
+import AddToCartActionHandler from "~/shared/products/add-to-cart-action-handler/AddToCartActionHandler";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import Seller from "./components/Seller";
+import CartSummary from "./components/CartSummary";
 import Summary from "./components/Summary";
 import { getData } from "./helper";
 import type { SellerData } from "./types";
@@ -27,10 +32,8 @@ import {
   ALERT_DISMISS_TIME,
   CART_ITEM_ADDED,
   CART_ITEM_REMOVED,
+  DEFAULT_BROWSE_DISTANCE,
 } from "~/constants";
-import CartTab from "~/shared/catalog/components/cart-tab/CartTab";
-import AddToCartActionHandler from "~/shared/products/add-to-cart-action-handler/AddToCartActionHandler";
-import { useSearchParams } from "react-router";
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -40,8 +43,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
   },
   {
-    label: "Cart",
-    langKey: "cart",
+    label: "Purchase Cart",
   },
 ];
 
@@ -49,11 +51,19 @@ const BuyFromOtherRetailerProductsCartPage = () => {
   const { t } = useTranslation(["common", "menu"]);
   const { to } = useAppNav();
   const { show: showToast } = useAppToast();
-  const { isMobile } = useScreenView();
+  const { setOpen } = useSidebar();
 
   const [searchParams] = useSearchParams();
 
   const showTab = searchParams.get("tab") === "1";
+
+  const rawDistance = searchParams.get("distance") || DEFAULT_BROWSE_DISTANCE;
+  const distance: any = rawDistance === "all" ? "all" : Number(rawDistance);
+
+  // Collapse the side menu when this page opens; the user can reopen it via the toggle.
+  useEffect(() => {
+    setOpen(false);
+  }, []);
 
   const [data, setData] = useState<SellerData[] | null>(null);
 
@@ -96,19 +106,29 @@ const BuyFromOtherRetailerProductsCartPage = () => {
     totalItemsLabel: "0 units",
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await getData();
-        setData(result);
-        calculateSummary(result);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
+  const loadCart = async (showBusyLoader = false) => {
+    if (showBusyLoader) {
+      setBusyLoader({ show: true, msg: "Refreshing cart..." });
+    } else {
+      setLoading(true);
+    }
+    try {
+      const result = await getData();
+      setData(result);
+      calculateSummary(result);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      if (showBusyLoader) {
+        setBusyLoader({ show: false, msg: "" });
+      } else {
         setLoading(false);
       }
-    };
-    fetchData();
+    }
+  };
+
+  useEffect(() => {
+    loadCart();
   }, []);
 
   useEffect(() => {
@@ -272,7 +292,7 @@ const BuyFromOtherRetailerProductsCartPage = () => {
           });
 
           // Clear local cart
-          CartService.removeFromCart(data.deal.deal.refId);
+          CartService.removeFromCart(data.deal.deal.refId, data.sellerId);
           // Re-fetch cart data
           const result = await getData();
           setData(result);
@@ -302,6 +322,12 @@ const BuyFromOtherRetailerProductsCartPage = () => {
       // discount. The apply/remove response doesn't return the discount in the
       // shape the UI reads (totalCouponDiscount), so an optimistic update would
       // show the coupon chip but leave the payable unchanged.
+      const result = await getData();
+      setData(result);
+      calculateSummary(result);
+    } else if (action === "paylaterRequested") {
+      // Paylater request sent to a seller — refetch so that seller's payment
+      // chip flips from "request" to "pending".
       const result = await getData();
       setData(result);
       calculateSummary(result);
@@ -570,20 +596,20 @@ const BuyFromOtherRetailerProductsCartPage = () => {
 
   return (
     <>
-      <AppHeader title={t("cart")} />
+      <AppHeader title="Purchase Cart" />
       <div
-        className={`app-page page-bg tw:p-4 ${isMobile && data && data.length > 0 ? "has-footer" : ""}`}
+        className={`app-page page-bg tw:p-4 ${data && data.length > 0 ? "has-footer cart-has-checkout-footer" : ""}`}
       >
         <div className="app-container">
           {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css).
               `sticky` pins them under the header and breaks out of the page
               padding so the underline runs edge to edge. */}
-          <SectionTabs
+          {/* <SectionTabs
             sectionKey="supply"
-            activeTab="buy-from-network"
+            activeTab="sellers"
             noShadow
             sticky
-          />
+          /> */}
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -591,7 +617,7 @@ const BuyFromOtherRetailerProductsCartPage = () => {
               <div className="tw:sticky tw:top-20">
                 <SectionMenu
                   sectionKey="supply"
-                  activeTab="buy-from-network"
+                  activeTab="sellers"
                   title={t("manageSupply", { ns: "menu" })}
                 />
               </div>
@@ -602,9 +628,9 @@ const BuyFromOtherRetailerProductsCartPage = () => {
 
               {showTab ? (
                 <>
-                  <CartTab activeTab="others" className="tw:mb-2" />
+                  {/* <CartTab activeTab="others" className="edge-tabs tw:mb-2" /> */}
                   <div
-                    className="tw:text-xs tw:text-gray-500 tw:mb-4"
+                    className="hide-in-theme-2 tw:text-xs tw:text-gray-500 tw:mb-4"
                     aria-live="polite"
                   >
                     List of products added to cart from other retailers
@@ -612,112 +638,206 @@ const BuyFromOtherRetailerProductsCartPage = () => {
                 </>
               ) : null}
 
-              {loading && (
-                <div className="tw:flex tw:justify-center tw:items-center tw:h-full">
-                  <AppSpinner className="tw:w-8 tw:h-8" />
-                </div>
-              )}
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Capped and centred: with the summary rail hidden the cart is
+                    a single column, and left to fill a wide monitor the seller
+                    rows stretched far past a comfortable reading measure. */}
+                <AppPaneMain className="tw:lg:col-span-12 tw:w-full tw:max-w-6xl tw:mx-auto">
+                  {loading && (
+                    <div className="tw:flex tw:justify-center tw:items-center tw:h-full">
+                      <AppSpinner className="tw:w-8 tw:h-8" />
+                    </div>
+                  )}
 
-              {data && data.length > 0 ? (
-                <>
-                  <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-2 tw:lg:gap-4">
-                    <div>
-                      <div className="tw:flex tw:justify-between tw:items-center tw:mb-2">
-                        <div className="tw:text-base tw:font-semibold">
-                          {summary.totalSellers} Sellers (
-                          {summary.totalItemsLabel})
+                  {data && data.length > 0 ? (
+                    <>
+                      {/* Top-level cart summary strip — owns its own
+                          calculations from the cart data. */}
+                      <div className="tw:mb-3">
+                        <CartSummary sellers={data} />
+                      </div>
+
+                      {/* Two explicit rows at md+: both headings share row 1 and
+                          both card stacks share row 2, so the columns stay level
+                          no matter how tall either heading renders. Below md the
+                          grid is a single column and DOM order takes over. */}
+                      <div className="cart-thread-grid tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:md:grid-rows-[auto_1fr] tw:gap-x-2 tw:md:gap-x-6 tw:lg:gap-x-6 tw:gap-y-1">
+                        {/* Threads column heading. Just the label and the two
+                            list-wide actions: the seller count is the first
+                            cell of the digest plate directly above, and the
+                            quantity is a row of the summary card — repeating
+                            both here only crowded the line. Refresh drops to
+                            its icon so "Clear cart" is the one worded action. */}
+                        <div className="tw:flex tw:items-center tw:gap-2 tw:md:col-start-1 tw:md:row-start-1">
+                          <div className="app-section-label tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-slate-500">
+                            {t("sellers", { defaultValue: "Sellers" })}
+                          </div>
+                          {/* Actions hug their own heading instead of the column
+                              edge — pushed right they landed against the summary
+                              heading and the two columns read as one crowded row.
+                              On phones the single-column grid puts them back at
+                              the far edge, where there's no neighbour to collide
+                              with. */}
+                          <div className="tw:flex tw:shrink-0 tw:items-center tw:gap-1 tw:ml-auto tw:md:ml-0">
+                            <AppButton
+                              onClick={() => loadCart(true)}
+                              disabled={busyLoader.show}
+                              size="small"
+                              fill="clear"
+                              className="tw:text-slate-500"
+                              title={t("refresh")}
+                            >
+                              <RefreshCw
+                                size={16}
+                                className={busyLoader.show ? "tw:animate-spin" : ""}
+                              />
+                              {/* Icon-only on phones, where the row is tight;
+                                  the word returns once there's room for it. */}
+                              <span className="tw:hidden tw:sm:inline">
+                                {t("refresh")}
+                              </span>
+                            </AppButton>
+                            <AppButton
+                              onClick={handleClearCart}
+                              size="small"
+                              fill="clear"
+                              className="tw:text-red-600"
+                            >
+                              {t("clearCart")}
+                            </AppButton>
+                          </div>
+                        </div>
+
+                        {/* Cart Items */}
+                        <div className="tw:md:col-start-1 tw:md:row-start-2">
+                          {data.map((seller) => (
+                            <Seller
+                              key={seller.franchiseInfo.id}
+                              seller={seller}
+                              callback={handleCartAction}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Order-summary rail. Theme-2 desktop drops it (see
+                            `.cart-thread-grid` in theme-2.css): each seller
+                            thread now states its own payable in its header, and
+                            the checkout total lives with the action. */}
+                        <div className="theme-2-desktop-hide tw:flex tw:items-center tw:gap-2 tw:md:col-start-2 tw:md:row-start-1">
+                          <div className="app-section-label tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-slate-500">
+                            {t("orderSummary", { defaultValue: "Order summary" })}
+                          </div>
+                        </div>
+
+                        <div className="theme-2-desktop-hide tw:md:col-start-2 tw:md:row-start-2 tw:lg:sticky tw:lg:top-20 tw:lg:self-start">
+                          <Summary
+                            totalMRP={summary.totalMRP}
+                            subTotal={summary.subTotal}
+                            totalDiscount={summary.totalDiscount}
+                            totalAmountBeforeTax={summary.totalAmountBeforeTax}
+                            savings={summary.savings}
+                            totalCouponDiscount={summary.totalCouponDiscount}
+                            totalItemsLabel={summary.totalItemsLabel}
+                            totalSellers={summary.totalSellers}
+                            // Desktop CTA lives inside the card so the payable
+                            // total and the action that commits it read as one
+                            // block. Hidden below md by CSS — the same
+                            // breakpoint the sticky footer appears at — so the
+                            // cart never shows two checkout buttons at once.
+                            action={
+                              <div className="tw:hidden tw:md:block">
+                                <AppButton
+                                  fill="solid"
+                                  size="large"
+                                  className="tw:w-full tw:h-12 tw:font-semibold"
+                                  onClick={handleMakePayment}
+                                >
+                                  {t("proceedToCheckout")}
+                                </AppButton>
+                              </div>
+                            }
+                          />
+                        </div>
+                      </div>
+
+                    </>
+                  ) : null}
+
+                  {!loading && (!data || data.length === 0) && (
+                    <AppCard className="app-thread">
+                      <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:h-full tw:gap-4 tw:my-10">
+                        <div className="tw:text-center">
+                          <span className="tw:inline-flex tw:h-20 tw:w-20 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary/5">
+                            <ShoppingCart
+                              className="tw:text-primary/50"
+                              size={40}
+                            />
+                          </span>
+                          <div className="tw:mt-3 tw:text-lg tw:font-semibold">
+                            Your cart is empty
+                          </div>
+                          <div className="tw:mt-1 tw:text-sm tw:text-gray-500">
+                            Browse products and add them to your cart.
+                          </div>
                         </div>
                         <AppButton
-                          onClick={handleClearCart}
-                          size="small"
-                          fill="clear"
-                          className="tw:text-red-600"
+                          fill="solid"
+                          className="tw:w-auto"
+                          onClick={() => to("/products/main")}
                         >
-                          {t("clearCart")}
+                          Shop Now
                         </AppButton>
                       </div>
-                      {/* Cart Items */}
-                      {data.map((seller, index) => (
-                        <Seller
-                          key={seller.franchiseInfo.id}
-                          seller={seller}
-                          callback={handleCartAction}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="tw:lg:sticky tw:lg:top-20 tw:lg:self-start tw:lg:pt-1.5">
-                      <div className="tw:text-base tw:font-semibold tw:mb-3">
-                        {t("summary")}
-                      </div>
-                      <Summary
-                        totalMRP={summary.totalMRP}
-                        subTotal={summary.subTotal}
-                        totalDiscount={summary.totalDiscount}
-                        totalAmountBeforeTax={summary.totalAmountBeforeTax}
-                        savings={summary.savings}
-                        totalCouponDiscount={summary.totalCouponDiscount}
-                        totalItemsLabel={summary.totalItemsLabel}
-                        totalSellers={summary.totalSellers}
-                      />
-                      {!isMobile && (
-                        <div className="tw:mt-4">
-                          <AppButton
-                            fill="solid"
-                            className="tw:w-full"
-                            onClick={handleMakePayment}
-                          >
-                            {t("proceedToCheckout")}
-                          </AppButton>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : null}
-
-              {!loading && (!data || data.length === 0) && (
-                <AppCard>
-                  <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:h-full tw:gap-4 tw:my-10">
-                    <div className="tw:text-center">
-                      <ShoppingCart
-                        className="tw:text-gray-400 tw:inline-block"
-                        size={96}
-                      />
-                      <div className="tw:mt-2 tw:text-lg tw:font-semibold">
-                        Your cart is empty
-                      </div>
-                      <div className="tw:mt-1 tw:text-sm tw:text-gray-500">
-                        Browse products and add them to your cart.
-                      </div>
-                    </div>
-                    <AppButton
-                      fill="solid"
-                      className="tw:w-auto"
-                      onClick={() => to("/products/main")}
-                    >
-                      Shop Now
-                    </AppButton>
-                  </div>
-                </AppCard>
-              )}
+                    </AppCard>
+                  )}
+                </AppPaneMain>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      {isMobile && data && data.length > 0 && (
-        <div className="app-footer">
-          <div className="tw:flex tw:gap-2 tw:justify-end">
+      {data && data.length > 0 && (
+        // Sticky action bar carrying the payable and the action that commits
+        // it. `app-composer` gives theme-2 the composer's white strip and lift;
+        // the total and the action are left to sit on it plainly — a capsule
+        // around the total only turned it into a slab. A phone affordance in
+        // the base theme; theme-2 desktop shows it too, closing the cart here
+        // now that the order-summary rail is dropped (see theme-2.css).
+        <div className="app-footer app-composer cart-checkout-footer">
+          <div className="tw:mx-auto tw:flex tw:max-w-6xl tw:gap-3 tw:justify-between tw:items-center">
+            <div className="tw:flex tw:min-w-0 tw:flex-col tw:leading-tight">
+              <span className="tw:text-[11px] tw:text-gray-500">
+                {t("total")}
+              </span>
+              <span className="tw:text-lg tw:font-bold tw:text-primary tw:tabular-nums tw:lg:text-xl">
+                <Amount
+                  value={Math.max(
+                    summary.subTotal - summary.totalCouponDiscount,
+                    0,
+                  )}
+                  decimalPlaces={2}
+                />
+              </span>
+              {/* Basket makeup only where there is room for it — on a phone the
+                  strip is just the total and the action. */}
+              <span className="tw:hidden tw:lg:block tw:text-[11px] tw:text-gray-500">
+                {summary.totalItemsLabel} · {summary.totalSellers}{" "}
+                {t("sellers", { defaultValue: "sellers" })}
+              </span>
+            </div>
+            {/* Kept to a 40px tap target, not sized to fill the strip — the
+                total is what the bar is for, the action just closes it. */}
             <AppButton
-              onClick={handleClearCart}
+              fill="solid"
               size="small"
-              fill="clear"
-              className="tw:text-red-600"
+              className="tw:h-10 tw:shrink-0 tw:rounded-full tw:px-4 tw:text-sm tw:font-semibold tw:gap-1.5 tw:lg:px-5"
+              onClick={handleMakePayment}
             >
-              {t("clearCart")}
-            </AppButton>
-            <AppButton fill="solid" onClick={handleMakePayment}>
-              {t("proceedToCheckout")}
+              <span className="tw:lg:hidden">{t("checkout")}</span>
+              <span className="tw:hidden tw:lg:inline">
+                {t("proceedToCheckout")}
+              </span>
+              <ArrowRight size={15} />
             </AppButton>
           </div>
         </div>

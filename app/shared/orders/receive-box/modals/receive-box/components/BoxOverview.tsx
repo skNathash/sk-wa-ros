@@ -5,9 +5,14 @@ import { useTranslation } from "react-i18next";
 interface BoxOverviewProps {
   box: any;
   items: any[];
+  hideAllocationHint?: boolean;
 }
 
-const BoxOverview: React.FC<BoxOverviewProps> = ({ box, items }) => {
+const BoxOverview: React.FC<BoxOverviewProps> = ({
+  box,
+  items,
+  hideAllocationHint = false,
+}) => {
   const { t } = useTranslation("common");
 
   if (!box) {
@@ -21,9 +26,11 @@ const BoxOverview: React.FC<BoxOverviewProps> = ({ box, items }) => {
 
   return (
     <>
-      <div className="tw:text-sm tw:text-gray-500 tw:mb-2">
-        {t("itemsInSelectedBoxesWillBeAutomaticallyAllocatedToLocations")}
-      </div>
+      {!hideAllocationHint && (
+        <div className="tw:text-sm tw:text-gray-500 tw:mb-2">
+          {t("itemsInSelectedBoxesWillBeAutomaticallyAllocatedToLocations")}
+        </div>
+      )}
       <div className="tw:bg-white tw:border tw:border-gray-200 tw:rounded-lg tw:shadow-sm tw:p-4">
         {/* Box Header */}
         <div className="tw:flex tw:items-center tw:justify-between tw:mb-2">

@@ -464,8 +464,8 @@ const ProductBasicInfo = ({ basic, onPriceUpdate }: ProductBasicInfoProps) => {
   return (
     <>
       <AppCard noPadding>
-        <div className="tw:flex tw:flex-col tw:md:flex-row tw:gap-4 tw:items-stretch">
-          <div className="tw:md:w-1/2 tw:pt-4 tw:md:pb-4">
+        <div className="tw:flex tw:flex-col tw:gap-4 tw:items-stretch">
+          <div className="tw:pt-4">
             <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-1 tw:gap-2 tw:px-4">
               <div>
                 <div>
@@ -548,7 +548,7 @@ const ProductBasicInfo = ({ basic, onPriceUpdate }: ProductBasicInfoProps) => {
           </div>
 
           {/* Info Blocks */}
-          <div className="tw:flex tw:flex-col tw:justify-between tw:h-full tw:md:w-1/2 tw:w-full tw:px-4 tw:pb-4 tw:md:pt-4">
+          <div className="tw:flex tw:flex-col tw:justify-between tw:h-full tw:w-full tw:px-4 tw:pb-4">
             {/* Price Block */}
             <div className="tw:hidden tw:md:block">
               <PriceBlock

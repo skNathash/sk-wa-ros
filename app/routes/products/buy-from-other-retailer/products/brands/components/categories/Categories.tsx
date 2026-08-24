@@ -173,6 +173,7 @@ const Categories = ({
                           it.name,
                         )}&distance=${distance}`}
                         asLink={true}
+                        noUnderline
                         className="tw:w-full"
                       >
                         <AppButton size="small" className="tw:w-full">

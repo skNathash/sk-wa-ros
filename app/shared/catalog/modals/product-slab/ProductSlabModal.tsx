@@ -61,6 +61,7 @@ const ProductSlabModal: React.FC<Props> = ({
         const formatted = d
           ? SellerCatalogService.formatProductResponse([d], {
               view: "buyer",
+              sellerId,
             })?.[0]
           : null;
 

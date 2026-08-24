@@ -10,6 +10,7 @@ export const prepareParams = (filter: any, pagination: any, sort: any) => {
     sort: { [sort.key]: sort.value === "asc" ? 1 : -1 },
     filter: {
       isNewProduct: true,
+      isSubscribed: false,
     },
   };
 
@@ -20,7 +21,7 @@ export const prepareParams = (filter: any, pagination: any, sort: any) => {
 
   if (filter.alpha) {
     params.filter.productName = CommonService.prepareAlphaRegexFilter(
-      filter.alpha
+      filter.alpha,
     );
   }
 
@@ -38,7 +39,7 @@ export const prepareParams = (filter: any, pagination: any, sort: any) => {
 
   if (filter.status && filter.status !== "All") {
     const status = InventorySubscribeService.getStatuses().find(
-      (s) => s.value === filter.status
+      (s) => s.value === filter.status,
     );
     if (status) {
       params.filter.status = { $in: status.statuses };
@@ -64,12 +65,11 @@ export const prepareParams = (filter: any, pagination: any, sort: any) => {
 // Get seller import products data from API
 export const getData = async (params: Record<string, any>) => {
   try {
-    const response = await InventorySubscribeService.getSellerImportProducts(
-      params
-    );
+    const response =
+      await InventorySubscribeService.getSellerImportProducts(params);
     if (response.statusCode === 200 && response.data?.data) {
       return InventorySubscribeService.formatSellerImportProducts(
-        response.data.data || []
+        response.data.data || [],
       );
     }
     return [];

@@ -137,7 +137,7 @@ const ProductSocialLinksModal = ({
         sellerSocialMediaLinks,
       );
       if (resp.statusCode === 200 || resp.statusCode === 201) {
-        toast.show({ msg: "Links updated successfully", color: "success" });
+        toast.show({ msg: "Saved successfully", color: "success" });
         callback({ action: "submit", data: sellerSocialMediaLinks });
       } else {
         toast.show({

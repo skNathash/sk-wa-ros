@@ -3,10 +3,12 @@ import { useTranslation } from "react-i18next";
 import type { Swiper } from "swiper/types";
 import AppSwiper from "~/components/core/swiper";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 // Brand removed
 import Category from "./components/category/Category";
 import ParentCategory from "./components/parent-category/ParentCategory";
 import Menus from "./components/menus/Menus";
+import CategoryGrid from "./components/category-grid/CategoryGrid";
 import BrowseProducts from "../components/browse/products/Products";
 import PageAccessService from "~/services/PageAccessService";
 
@@ -27,6 +29,7 @@ const swiperConfig = {
 const BrowseCategory: React.FC = () => {
   const { t } = useTranslation(["inventorySubscribe"]);
   const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
 
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [selectedParentCategory, setSelectedParentCategory] =
@@ -158,6 +161,12 @@ const BrowseCategory: React.FC = () => {
       setSelectedCategory(params.data);
     }
   };
+
+  // Theme-2 gets the category accordion wall; the legacy swiper stays as the
+  // fallback for the classic theme.
+  if (isTheme2) {
+    return <CategoryGrid />;
+  }
 
   return (
     <>

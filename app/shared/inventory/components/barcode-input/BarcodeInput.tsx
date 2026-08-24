@@ -98,7 +98,7 @@ const BarcodeInput = ({
   return (
     <div className={`tw:relative tw:w-full ${className ?? ""}`}>
       <input
-        className="tw:w-full tw:border tw:border-gray-300 tw:rounded-md tw:h-8 tw:p-2 tw:pr-8 tw:text-sm tw:outline-none tw:placeholder:text-sm"
+        className="tw:w-full tw:border tw:border-gray-300 tw:rounded-md tw:h-8 tw:p-2 tw:pr-8 tw:text-sm tw:bg-white tw:outline-none tw:placeholder:text-sm"
         value={localValue}
         placeholder={placeholder ?? t("enterBarcode")}
         onChange={handleChange}

@@ -1,28 +1,58 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useOutletContext } from "react-router";
 import type { PaginationState } from "~/types/CommonTypes";
-import { getCount, getData, prepareParams } from "./helper";
+import { getCount, getData, getDispatchSummary, prepareParams } from "./helper";
 
 import { produce } from "immer";
+import { debounce } from "lodash";
+import { Search } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
-import AppCard from "~/components/core/card/AppCard";
+import { AppInput } from "~/components/core/form";
+import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import NoData from "~/components/core/no-data/NoData";
+import PageDescription from "~/components/core/page-description/PageDescription";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import useAppToast from "~/hooks/useAppToast";
+import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import AssignDeliveryPersonModal from "~/modals/feature/delivery/assign-delivery/AssignDeliveryPersonModal";
 import DeliveryAssignOtpVerifyModal from "~/modals/feature/delivery/DeliveryAssignOtpVerifyModal";
-import DispatchMethodModal from "./components/DispatchMethodModal";
-import SellerService from "~/services/SellerService";
-import Item from "./components/Item";
-import { AppInput } from "~/components/core/form";
-import { useForm } from "react-hook-form";
-import { debounce } from "lodash";
-import PageAccessService from "~/services/PageAccessService";
-import CommonService from "~/services/CommonService";
-import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
-import { useTranslation } from "react-i18next";
 import AuthService from "~/services/AuthService";
+import CommonService from "~/services/CommonService";
+import PageAccessService from "~/services/PageAccessService";
+import SellerService from "~/services/SellerService";
+import DeliveryTabs from "~/shared/delivery/components/delivery-tabs/DeliveryTabs";
+import type { BreadcrumbItem } from "~/types/CommonTypes";
+import CardView from "./components/CardView";
+import DispatchMethodModal from "./components/DispatchMethodModal";
+import Item from "./components/Item";
 import ItemLoader from "./components/ItemLoader";
-import { Search } from "lucide-react";
+import DispatchSummary from "./components/theme2/DispatchSummary";
+import DispatchTrackerMap from "./components/theme2/DispatchTrackerMap";
+import type { DispatchSummaryTile } from "./components/theme2/helper";
+import {
+  defaultLiveRunners,
+  defaultLiveShipments,
+  defaultTrackerMarkers,
+} from "./components/theme2/helper";
+import LiveShipmentFeed from "./components/theme2/LiveShipmentFeed";
+
+const breadcrumbs: BreadcrumbItem[] = [
+  {
+    label: "Dashboard",
+    langKey: "dashboard",
+    redirect: {
+      path: "/dashboard",
+    },
+  },
+  {
+    label: "Delivery Management",
+    langKey: "deliveryManagement",
+  },
+];
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage(["DELIVERY.DISPATCH"]);
@@ -30,14 +60,21 @@ export async function clientLoader() {
 
 const Dispatch = () => {
   const { t } = useTranslation(["common"]);
+  const isTheme2 = useTheme() === "theme-2";
+  const { isMobile } = useScreenView();
+  // Toggled from the mobile-only search action in the delivery layout AppHeader.
+  const { showSearch = false } = useOutletContext<{ showSearch?: boolean }>();
   const { register, getValues } = useForm({
     defaultValues: {
       search: "",
     },
   });
   const appToast = useAppToast();
+  const navigate = useNavigate();
 
   const [data, setData] = useState<any[]>([]);
+  const [summary, setSummary] = useState<DispatchSummaryTile[]>([]);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
@@ -53,7 +90,7 @@ const Dispatch = () => {
     data?: any;
   }>({ show: false });
   const [assignModal, setAssignModal] = useState<{ show: boolean; data?: any }>(
-    { show: false }
+    { show: false },
   );
   const [otpModal, setOtpModal] = useState<{ show: boolean; data?: any }>({
     show: false,
@@ -89,7 +126,7 @@ const Dispatch = () => {
       const totalRecords = await getCount(params);
       paginationRef.current.totalRecords = totalRecords;
       setHasMoreData(
-        (result || []).length >= paginationRef.current.rowsPerPage
+        (result || []).length >= paginationRef.current.rowsPerPage,
       );
     } catch (e) {
       setData([]);
@@ -115,7 +152,7 @@ const Dispatch = () => {
       const result = await getData(params);
       setData((prev) => [...prev, ...(result || [])]);
       setHasMoreData(
-        (result || []).length >= paginationRef.current.rowsPerPage
+        (result || []).length >= paginationRef.current.rowsPerPage,
       );
     } catch (e) {
       // handle error
@@ -128,6 +165,16 @@ const Dispatch = () => {
   useEffect(() => {
     applyFilter();
   }, []);
+
+  // Counters for the theme-2 summary strip.
+  useEffect(() => {
+    if (!isTheme2) return;
+    setSummaryLoading(true);
+    getDispatchSummary()
+      .then(setSummary)
+      .catch(() => setSummary([]))
+      .finally(() => setSummaryLoading(false));
+  }, [isTheme2]);
 
   const onFilterChange = useCallback((data: any) => {
     filterRef.current = {
@@ -149,9 +196,18 @@ const Dispatch = () => {
       }
 
       if (args.action === "assign") {
+        // theme-2 works the assignment on its own desk instead of the modal
+        // chain — hand the order over through the query string.
+        if (isTheme2) {
+          navigate(
+            `/dashboard/delivery/assign-runner?orderId=${args.data.orderId}`,
+          );
+          return;
+        }
+
         setBusyloader({ show: true, message: "Loading order details..." });
         const response = await SellerService.getSellerOrderDetail(
-          args.data.orderId
+          args.data.orderId,
         );
         setBusyloader({ show: false, message: "" });
 
@@ -192,7 +248,7 @@ const Dispatch = () => {
         });
       }
     },
-    [appToast]
+    [appToast, isTheme2, navigate],
   );
 
   // Handler for DispatchMethodModal callback
@@ -208,7 +264,7 @@ const Dispatch = () => {
             const orderId =
               args.data?.orderId || dispatchMethodModal.data?.orderId;
             const index = draft.findIndex(
-              (item: any) => item._id === orderId || item.orderId === orderId
+              (item: any) => item._id === orderId || item.orderId === orderId,
             );
             if (index !== -1) {
               if (!draft[index].invoices) draft[index].invoices = [{}];
@@ -217,7 +273,7 @@ const Dispatch = () => {
               draft[index].invoices[0].shippingDetails.isApproved = true;
               draft[index].status = "Pending Shipment";
             }
-          })
+          }),
         );
         setDispatchMethodModal({ show: false });
         // Optionally refresh from server after a short delay
@@ -234,7 +290,7 @@ const Dispatch = () => {
         });
       }
     },
-    [dispatchMethodModal.data, applyFilter]
+    [dispatchMethodModal.data, applyFilter],
   );
 
   // Handler for AssignDeliveryPersonModal callback
@@ -254,7 +310,7 @@ const Dispatch = () => {
         setAssignModal({ show: false });
       }
     },
-    [assignModal.data]
+    [assignModal.data],
   );
 
   // Handler for OtpVerifyModal callback
@@ -281,7 +337,7 @@ const Dispatch = () => {
                 draft[index].invoices[0].shippingDetails.isApproved = true;
               }
             }
-          })
+          }),
         );
 
         setOtpModal({ show: false });
@@ -292,7 +348,7 @@ const Dispatch = () => {
         }, 1000);
       }
     },
-    [otpModal.data, appToast, applyFilter]
+    [otpModal.data, appToast, applyFilter],
   );
 
   const handleSearchChange = useCallback(
@@ -303,19 +359,86 @@ const Dispatch = () => {
       };
       applyFilter();
     }, 500),
-    [applyFilter, getValues]
+    [applyFilter, getValues],
   );
 
   return (
     <>
-      <AppInput
-        register={register}
-        name="search"
-        placeholder={t("searchByOrderIdCustomerNameMobile")}
-        className="tw:w-full tw:mb-4"
-        onChange={handleSearchChange}
-        leftIcon={<Search size={16} />}
-      />
+      {/* Sub-nav + search on one full-bleed white strip pinned under the app
+          header — the top block every reworked section page opens with. */}
+      {!isTheme2 ? (
+        <DeliveryTabs
+          activeTab="dispatch"
+          variant={isTheme2 ? "pills" : undefined}
+        />
+      ) : null}
+
+      {/* theme-2 drops the breadcrumb block; the strip above is the page's
+          whole top section there. */}
+      <div className="hide-in-theme-2">
+        <AppBreadcrumbs data={breadcrumbs} />
+        <PageDescription description="lastMileDelivery" className="tw:mb-4" />
+      </div>
+      {/* Counters the dispatch desk watches while working the list. */}
+      {isTheme2 && (
+        <DispatchSummary
+          data={summary}
+          loading={summaryLoading}
+          className={`tw:max-lg:-mt-4 ${
+            isMobile && showSearch ? "tw:mb-0" : "tw:mb-4"
+          }`}
+        />
+      )}
+
+      {/* Mobile search appears after the summary strip, inside a white
+          container. */}
+      {isMobile && showSearch && (
+        <div className="tw:-ml-4 tw:-mr-4 tw:mb-4 tw:flex tw:items-center tw:gap-2 tw:bg-white tw:px-4 tw:py-3">
+          <div className="tw:flex-1">
+            <AppInput
+              register={register}
+              name="search"
+              placeholder={t("searchByOrderIdCustomerNameMobile")}
+              className="tw:w-full"
+              onChange={handleSearchChange}
+              leftIcon={<Search size={16} />}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Live tracking surface + shipment feed — theme-2 desktop only; phones
+          skip mounting the map entirely. */}
+      {isTheme2 && !isMobile && (
+        <div className="tw:mb-4 tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-3">
+          <DispatchTrackerMap
+            className="tw:lg:col-span-2"
+            liveCount={10}
+            runnerCount={4}
+            markers={defaultTrackerMarkers}
+            runners={defaultLiveRunners}
+          />
+          <LiveShipmentFeed
+            className="tw:lg:col-span-1"
+            shipments={defaultLiveShipments}
+            autoRefreshSeconds={5}
+          />
+        </div>
+      )}
+
+      {/* Desktop search sits above the pagination summary block. */}
+      {!isMobile && (
+        <div className="tw:mb-4 tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white tw:p-3">
+          <AppInput
+            register={register}
+            name="search"
+            placeholder={t("searchByOrderIdCustomerNameMobile")}
+            className="tw:w-full"
+            onChange={handleSearchChange}
+            leftIcon={<Search size={16} />}
+          />
+        </div>
+      )}
 
       {!loading && data.length > 0 && (
         <div className="tw:mb-4">
@@ -327,8 +450,11 @@ const Dispatch = () => {
           />
         </div>
       )}
-
-      {loading ? (
+      {/* theme-2 runs one card everywhere — a single column on phones, three
+          across on desktop; every other theme keeps its own cards. */}
+      {isTheme2 ? (
+        <CardView data={data} loading={loading} callback={handleItemCallback} />
+      ) : loading ? (
         <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
           {Array.from({ length: 6 }).map((_, index) => (
             <ItemLoader key={index} />
@@ -353,26 +479,22 @@ const Dispatch = () => {
           />
         </div>
       )}
-
       <DispatchMethodModal
         show={dispatchMethodModal.show}
         callback={handleDispatchMethodModalCallback}
         data={dispatchMethodModal.data}
       />
-
       <AssignDeliveryPersonModal
         show={assignModal.show}
         callback={handleAssignModalCallback}
         type="self-shipment"
         data={assignModal.data}
       />
-
       <DeliveryAssignOtpVerifyModal
         show={otpModal.show}
         callback={handleOtpModalCallback}
         data={otpModal.data}
       />
-
       <BusyLoader show={busyloader.show} message={busyloader.message} />
     </>
   );

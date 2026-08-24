@@ -30,7 +30,7 @@ import AppButton from "~/components/core/button/AppButton";
 import DocumentDisplayItem from "./components/DocumentDisplayItem";
 import PageLoader from "~/components/core/page-loader/PageLoader";
 import AuthService from "~/services/AuthService";
-import { cn } from "~/lib/utils";
+import clsx from "clsx";
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -412,7 +412,7 @@ const PaylaterRequestPage = () => {
                     <div className="tw:flex tw:flex-col tw:md:flex-row tw:items-stretch tw:gap-4 tw:md:gap-0">
                       {requester && (
                         <div
-                          className={cn(
+                          className={clsx(
                             "tw:flex-1 tw:p-4 tw:rounded-xl tw:bg-emerald-50 tw:border tw:border-emerald-100",
                             !franchise && "tw:w-full",
                           )}
@@ -465,7 +465,7 @@ const PaylaterRequestPage = () => {
 
                       {franchise && (
                         <div
-                          className={cn(
+                          className={clsx(
                             "tw:flex-1 tw:p-4 tw:rounded-xl tw:bg-blue-50 tw:border tw:border-blue-100",
                             !requester && "tw:w-full",
                           )}

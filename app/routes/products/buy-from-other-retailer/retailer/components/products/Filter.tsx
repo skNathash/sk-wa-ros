@@ -60,7 +60,7 @@ const Filter = ({ retailerId, callback }: Props) => {
 
   return (
     <>
-      <div className="tw:flex tw:items-center tw:gap-2 tw:mb-4">
+      <div className="app-full-bleed search-sticky vendor-search-sticky tw:sticky tw:top-29 tw:lg:top-15 tw:z-10 tw:max-md:bg-white tw:flex tw:items-center tw:gap-2 tw:px-4 tw:pt-2 tw:pb-3 tw:mb-2">
         <AppInput
           name="search"
           placeholder="Search"

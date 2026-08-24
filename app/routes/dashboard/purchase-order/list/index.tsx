@@ -2,7 +2,6 @@ import { produce } from "immer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
@@ -35,7 +34,12 @@ import Rbac from "~/components/core/rbac/Rbac";
 import CommonService from "~/services/CommonService";
 import SkSellerAvailableNote from "~/shared/vendor/components/sk-seller-available/SkSellerAvailableNote";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
-import PageDescription from "~/components/core/page-description/PageDescription";
+import PageHeader from "~/shared/page-header/PageHeader";
+import useTheme from "~/hooks/useTheme";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage(["PURCHASE-ORDER.PO-VIEW-ORDERS"]);
@@ -63,9 +67,10 @@ const rbacRoles = {
 };
 
 const PurchaseOrderDashboard = () => {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["common", "menu"]);
   const appNav = useAppNav();
   const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
 
   const [view, setView] = useState<ViewToggleType>("list");
 
@@ -389,120 +394,172 @@ const PurchaseOrderDashboard = () => {
         audioFeature="po"
       />
       <div className="tw:p-4 page-bg app-page">
-        <div className="app-container">
-          <SkSellerAvailableNote />
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2 tw:mb-4">
-            <div>
-              <AppBreadcrumbs data={defaultBreadcrumbs} />
-              <PageDescription description="purchaseOrder" />
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css).
+            `sticky` pins them under the header and breaks out of the page
+            padding so the underline runs edge to edge. */}
+        <SectionTabs
+          sectionKey="supply"
+          activeTab="purchase-orders"
+          noShadow
+          sticky
+        />
+
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="supply"
+                activeTab="purchase-orders"
+                title={t("manageSupply", { ns: "menu" })}
+              />
             </div>
-            <div className="tw:flex tw:gap-2">
-              <Rbac roles={rbacRoles.viewVendors}>
-                <AppButton
-                  size="small"
-                  onClick={() => appNav.to("/dashboard/vendor/list")}
-                  noShadow={true}
-                  fill="outline"
-                >
-                  <Users className="tw:mr-1" size={16} aria-hidden />
-                  {t("vendors")}
-                </AppButton>
-              </Rbac>
-              <Rbac roles={rbacRoles.createPO}>
-                <AppButton
-                  size="small"
-                  onClick={handleCreatePurchaseOrder}
-                  noShadow={true}
-                >
-                  <Plus className="tw:mr-1" size={16} aria-hidden />
-                  {t("createPO")}
-                </AppButton>
-              </Rbac>
-            </div>
-          </div>
+          </aside>
 
-          <PoListTabs activeTab={activeTab} className="tw:mb-4" />
-
-          {activeTab !== "auto-allocation" && (
-            <>
-              {feature === "purchase" && (
-                <Summary
-                  summary={summary}
-                  callback={onSummaryClick}
-                  selected={filterRef.current.status}
-                />
-              )}
-              <AppCard>
-                <Filter
-                  onFilterChange={handleFilterChange}
-                  feature={feature}
-                  className="tw:mb-4"
-                  activeTab={activeTab}
-                />
-
-                <div className="tw:flex tw:justify-between tw:items-center tw:mb-3">
-                  <div>
-                    <PaginationSummary
-                      paginationConfig={paginationRef.current}
-                      loadingTotalRecords={loadingTotalRecords}
-                      fwSize="sm"
-                      loadedCount={orders.length}
-                    />
-                  </div>
-                  <ViewToggle viewType={view} callback={setView} />
+          <div className="section-content">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+              {/* Main feed column — spans the full grid in theme-2 desktop
+                  because the side pane is lifted into the fixed rail panel. */}
+              <AppPaneMain className="tw:lg:col-span-12 tw:space-y-0">
+                <SkSellerAvailableNote />
+                {/* Hidden in theme-2 at every breakpoint — the app header
+                    already shows "Purchase Orders", so this would be a
+                    second copy of the same title on the page. */}
+                <div className="theme-2-hide tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2 tw:mb-4">
+                  <PageHeader
+                    breadcrumbs={defaultBreadcrumbs}
+                    title={t("purchaseOrders")}
+                    description="purchaseOrder"
+                  />
+                  {!isTheme2 && (
+                    <div className="tw:flex tw:gap-2">
+                      <Rbac roles={rbacRoles.viewVendors}>
+                        <AppButton
+                          size="small"
+                          onClick={() => appNav.to("/dashboard/vendor/list")}
+                          noShadow={true}
+                          fill="outline"
+                        >
+                          <Users className="tw:mr-1" size={16} aria-hidden />
+                          {t("vendors")}
+                        </AppButton>
+                      </Rbac>
+                      <Rbac roles={rbacRoles.createPO}>
+                        <AppButton
+                          size="small"
+                          onClick={handleCreatePurchaseOrder}
+                          noShadow={true}
+                        >
+                          <Plus className="tw:mr-1" size={16} aria-hidden />
+                          {t("createPO")}
+                        </AppButton>
+                      </Rbac>
+                    </div>
+                  )}
                 </div>
 
-                {orders.length === 0 && !loading && (
-                  <AppCard>
-                    <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:py-12 tw:text-gray-500">
-                      <div>{t("noPurchaseOrdersFound")}</div>
-                      <div className="tw:text-xs tw:mt-1">
-                        {t("tryAdjustingFilters")}
-                      </div>
-                    </div>
-                  </AppCard>
+                {!isTheme2 && (
+                  <PoListTabs activeTab={activeTab} className="tw:mb-4" />
                 )}
 
-                {isMobile || view == "card" ? (
+                {activeTab !== "auto-allocation" && (
                   <>
-                    <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
-                      {orders.map((order: any) => (
-                        <div key={order._id}>
-                          <MobileView
-                            data={order}
-                            callback={onOrderItemClick}
-                            tab={activeTab}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    {hasMoreData && !loading && (
-                      <LoadMoreButton
-                        loadMore={loadMore}
-                        loading={loadingMore}
-                        totalCount={paginationRef.current.totalRecords}
-                        loadedCount={orders.length}
+                    {feature === "purchase" && (
+                      <Summary
+                        summary={summary}
+                        callback={onSummaryClick}
+                        selected={filterRef.current.status}
                       />
                     )}
+                    {/* Filter sits in its own card so the list/table below is a
+                        separate, edge-to-edge surface. */}
+                    <AppCard noPadding>
+                      <div className="tw:p-2">
+                        <Filter
+                          onFilterChange={handleFilterChange}
+                          feature={feature}
+                          activeTab={activeTab}
+                        />
+                      </div>
+                    </AppCard>
+
+                    <div className="tw:flex tw:justify-between tw:items-center tw:mb-3">
+                      <div>
+                        <PaginationSummary
+                          paginationConfig={paginationRef.current}
+                          loadingTotalRecords={loadingTotalRecords}
+                          fwSize="sm"
+                          loadedCount={orders.length}
+                        />
+                      </div>
+                      <ViewToggle viewType={view} callback={setView} />
+                    </div>
+
+                    {orders.length === 0 && !loading && (
+                      <AppCard>
+                        <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:py-12 tw:text-gray-500">
+                          <div>{t("noPurchaseOrdersFound")}</div>
+                          <div className="tw:text-xs tw:mt-1">
+                            {t("tryAdjustingFilters")}
+                          </div>
+                        </div>
+                      </AppCard>
+                    )}
+
+                    {isMobile || view == "card" ? (
+                      <>
+                        <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+                          {orders.map((order: any) => (
+                            <div key={order._id}>
+                              <MobileView
+                                data={order}
+                                callback={onOrderItemClick}
+                                tab={activeTab}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        {hasMoreData && !loading && (
+                          <LoadMoreButton
+                            loadMore={loadMore}
+                            loading={loadingMore}
+                            totalCount={paginationRef.current.totalRecords}
+                            loadedCount={orders.length}
+                          />
+                        )}
+                      </>
+                    ) : (
+                      // DesktopView renders nothing once loading settles with no
+                      // rows, so skip the empty card shell in that state.
+                      (loading || orders.length > 0) && (
+                        <AppCard noPadding>
+                          <DesktopView
+                            data={orders}
+                            callback={onOrderItemClick}
+                            tab={activeTab}
+                            sortKey={sortRef.current.key}
+                            sortValue={sortRef.current.value || "desc"}
+                            sortCb={handleSortChange}
+                            loading={loading}
+                            showLoadMore={hasMoreData}
+                            loadingMore={loadingMore}
+                            loadMore={loadMore}
+                            totalCount={paginationRef.current.totalRecords}
+                          />
+                        </AppCard>
+                      )
+                    )}
                   </>
-                ) : (
-                  <DesktopView
-                    data={orders}
-                    callback={onOrderItemClick}
-                    tab={activeTab}
-                    sortKey={sortRef.current.key}
-                    sortValue={sortRef.current.value || "desc"}
-                    sortCb={handleSortChange}
-                    loading={loading}
-                    showLoadMore={hasMoreData}
-                    loadingMore={loadingMore}
-                    loadMore={loadMore}
-                    totalCount={paginationRef.current.totalRecords}
-                  />
                 )}
-              </AppCard>
-            </>
-          )}
+              </AppPaneMain>
+
+              {/* Side pane — only active in theme-2 desktop, where it is
+                  re-homed as the fixed quick-action panel beside the rail. */}
+              <AppPaneSide className="app-pane-only">
+                <PurchaseOrderSidePane />
+              </AppPaneSide>
+            </div>
+          </div>
         </div>
       </div>
     </>

@@ -41,7 +41,7 @@ interface MobileViewProps {
  * The card's status presentation — mirrors the barcode-scan-bulk review card so
  * a scanned row reads the same in history as it did at review time. Colours and
  * labels come from the item's match badge (`item.badge`); the icons echo the
- * match summary (Store = SK catalog, Sparkles = SK AI, AlertCircle = no match).
+ * match summary (Store = SK Library, Sparkles = SK AI, AlertCircle = no match).
  */
 type StatusMeta = {
   Icon: React.ComponentType<{ className?: string }>;
@@ -60,7 +60,7 @@ function statusMeta(item: ReviewItem): StatusMeta {
       text: "tw:text-amber-700",
       dot: "tw:bg-amber-400",
       label: "Sent for approval",
-      subLabel: "SK catalog team is reviewing",
+      subLabel: "SK Library team is reviewing",
     };
   }
   if (item.deal?.isSubscribed) {
@@ -126,7 +126,7 @@ const MobileView: React.FC<MobileViewProps> = ({
 
   return (
     <div className="tw:flex tw:flex-col tw:gap-2.5">
-      <ul className="tw:flex tw:flex-col tw:gap-2">
+      <ul className="tw:flex tw:flex-col">
         {items.map((item, index) => {
           const deal = item.deal;
           const status = statusMeta(item);
@@ -143,7 +143,7 @@ const MobileView: React.FC<MobileViewProps> = ({
           return (
             <li
               key={`${item.id || item.barcode}-${index}`}
-              className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white"
+              className="app-bleed-x tw:relative tw:overflow-hidden tw:rounded-xl tw:border-b tw:first:border-t tw:border-gray-200 tw:bg-white"
             >
               <span
                 className={`tw:absolute tw:left-0 tw:top-0 tw:bottom-0 tw:w-1 ${status.dot}`}

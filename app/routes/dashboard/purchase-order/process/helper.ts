@@ -3,14 +3,15 @@ import PurchaseOrderService from "~/services/PurchaseOrderService";
 
 // Helper to build location object
 function buildLocationObj(formData: any) {
-  if (formData.locationDetails && formData.rackDetails && formData.binDetails) {
+  const locationDetails = formData.locationDetails || null;
+  if (locationDetails && formData.rackDetails && formData.binDetails) {
     return {
-      name: formData.locationDetails.name || "",
+      name: locationDetails.name || "",
       rackId: formData.rackDetails?.rackId || "",
       binId: formData.binDetails?.binId || "",
-      id: formData.locationDetails?._id || "",
+      id: locationDetails.id || "",
       rackName: formData.rackDetails?.rackName || "",
-      binName: formData.binDetails?.name || formData.binDetails?.binName || "",
+      binName: formData.binDetails?.binName || "",
       binCode: formData.binDetails?.binCode || "",
     };
   }
@@ -84,111 +85,165 @@ function validateExpiryDate(
   return expDate >= mfgDate;
 }
 
+// Prefer an explicit purchase price; fall back to MRP when missing/zero.
+export function resolvePurchasePrice(product: any): number | string {
+  const fromForm = Number(product?.formData?.purchasePrice);
+  if (fromForm > 0) return fromForm;
+
+  const fromProduct = Number(product?.purchasePrice);
+  if (fromProduct > 0) return fromProduct;
+
+  const mrpFromForm = Number(product?.formData?.mrp);
+  if (mrpFromForm > 0) return mrpFromForm;
+
+  const mrpFromProduct = Number(product?.mrp);
+  if (mrpFromProduct > 0) return mrpFromProduct;
+
+  return product?.formData?.purchasePrice || product?.purchasePrice || "";
+}
+
+export type ProductValidationIssue = {
+  field?:
+    | "purchasePrice"
+    | "invoiceQty"
+    | "receivedQty"
+    | "damageQty"
+    | "location"
+    | "rack"
+    | "bin"
+    | "manufactureDate"
+    | "expiryDate"
+    | "variations";
+  message: string;
+};
+
+/** Validate a single product's receive formData. Returns null when valid. */
+export function validateProduct(
+  product: any,
+  label = "Product",
+): ProductValidationIssue | null {
+  const formData = product?.formData || {};
+
+  if (!formData.purchasePrice || Number(formData.purchasePrice) <= 0) {
+    return {
+      field: "purchasePrice",
+      message: `${label}: Purchase price is required`,
+    };
+  }
+
+  if (formData.mrp && Number(formData.purchasePrice) > Number(formData.mrp)) {
+    return {
+      field: "purchasePrice",
+      message: `${label}: Purchase price cannot be greater than MRP`,
+    };
+  }
+
+  if (!formData.invoiceQty || Number(formData.invoiceQty) <= 0) {
+    return {
+      field: "invoiceQty",
+      message: `${label}: Invoice quantity is required`,
+    };
+  }
+
+  if (
+    (Number(formData.receivedQty) || 0) <= 0 &&
+    (Number(formData.damageQty) || 0) <= 0
+  ) {
+    return {
+      field: "receivedQty",
+      message: `${label}: Received or damage quantity is required`,
+    };
+  }
+
+  if (Number(formData.receivedQty) > Number(formData.invoiceQty)) {
+    return {
+      field: "receivedQty",
+      message: `${label}: Received quantity cannot be greater than invoice quantity (${formData.invoiceQty})`,
+    };
+  }
+
+  if (
+    (Number(formData.receivedQty) || 0) + (Number(formData.damageQty) || 0) >
+    Number(formData.invoiceQty)
+  ) {
+    return {
+      field: "damageQty",
+      message: `${label}: Received + damage quantity cannot be greater than invoice quantity (${formData.invoiceQty})`,
+    };
+  }
+
+  if (
+    formData.manufactureDate &&
+    formData.expiryDate &&
+    !validateExpiryDate(formData.manufactureDate, formData.expiryDate)
+  ) {
+    return {
+      field: "expiryDate",
+      message: `${label}: Manufacture date cannot be greater than expiry date`,
+    };
+  }
+
+  if (!formData.location) {
+    return { field: "location", message: `${label}: Location is required` };
+  }
+  if (!formData.rack) {
+    return { field: "rack", message: `${label}: Rack is required` };
+  }
+  if (!formData.bin) {
+    return { field: "bin", message: `${label}: Bin is required` };
+  }
+
+  const variations = formData.variations || [];
+  if (variations.length > 0) {
+    const receivedQty = Number(formData.receivedQty) || 0;
+    const totalVariationQty = variations.reduce(
+      (sum: number, variation: any) => sum + (variation.formData?.qty || 0),
+      0,
+    );
+    if (totalVariationQty > receivedQty) {
+      return {
+        field: "variations",
+        message: `${label}: Total variation quantity (${totalVariationQty}) cannot be greater than received quantity (${receivedQty})`,
+      };
+    }
+
+    for (let vIndex = 0; vIndex < variations.length; vIndex++) {
+      const variationFormData = variations[vIndex]?.formData;
+      if (
+        variationFormData?.manufactureDate &&
+        variationFormData?.expiryDate &&
+        !validateExpiryDate(
+          variationFormData.manufactureDate,
+          variationFormData.expiryDate,
+        )
+      ) {
+        return {
+          field: "variations",
+          message: `${label}, Variation ${vIndex + 1}: Manufacture date cannot be greater than expiry date`,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 // Helper to validate products
 function validateProducts(products: any[]): string {
-  let msg = "";
-
-  // Check if at least one product is scanned
   const scannedProducts = products.filter((p) => p._scanned);
   if (scannedProducts.length === 0) {
-    msg = "At least one product must be scanned";
-    return msg;
+    return "At least one product must be scanned";
   }
 
-  // Check each scanned product for required fields
   for (let index = 0; index < scannedProducts.length; index++) {
-    const product = scannedProducts[index];
-    const formData = product.formData || {};
-
-    // Validate purchase price
-    if (!formData.purchasePrice || Number(formData.purchasePrice) <= 0) {
-      msg = `Product ${index + 1}: Purchase price is required`;
-      break;
-    } else if (
-      formData.mrp &&
-      Number(formData.purchasePrice) > Number(formData.mrp)
-    ) {
-      msg = `Product ${index + 1}: Purchase price cannot be greater than MRP`;
-      break;
-    }
-
-    if (!formData.invoiceQty || Number(formData.invoiceQty) <= 0) {
-      msg = `Product ${index + 1}: Invoice quantity is required`;
-      break;
-    } else if (!formData.receivedQty || Number(formData.receivedQty) <= 0) {
-      msg = `Product ${index + 1}: Received quantity is required`;
-      break;
-    } else if (Number(formData.receivedQty) > Number(formData.invoiceQty)) {
-      // Received qty must not exceed invoice qty, but it can be less
-      msg = `Product ${
-        index + 1
-      }: Received quantity cannot be greater than invoice quantity (${
-        formData.invoiceQty
-      })`;
-      break;
-    } else if (
-      formData.manufactureDate &&
-      formData.expiryDate &&
-      !validateExpiryDate(formData.manufactureDate, formData.expiryDate)
-    ) {
-      msg = `Product ${
-        index + 1
-      }: Manufacture date cannot be greater than expiry date`;
-      break;
-    } else if (!formData.location) {
-      msg = `Product ${index + 1}: Location is required`;
-      break;
-    } else if (!formData.rack) {
-      msg = `Product ${index + 1}: Rack is required`;
-      break;
-    } else if (!formData.bin) {
-      msg = `Product ${index + 1}: Bin is required`;
-      break;
-    }
-
-    // Validate variation quantities
-    const variations = formData.variations || [];
-    if (variations.length > 0) {
-      const receivedQty = Number(formData.receivedQty) || 0;
-      const totalVariationQty = variations.reduce(
-        (sum: number, variation: any) => {
-          return sum + (variation.formData?.qty || 0);
-        },
-        0
-      );
-      if (totalVariationQty > receivedQty) {
-        msg = `Product ${
-          index + 1
-        }: Total variation quantity (${totalVariationQty}) cannot be greater than received quantity (${receivedQty})`;
-        break;
-      }
-
-      // Validate variations expiry dates
-      for (let vIndex = 0; vIndex < variations.length; vIndex++) {
-        const variation = variations[vIndex];
-        const variationFormData = variation.formData;
-        if (
-          variationFormData?.manufactureDate &&
-          variationFormData?.expiryDate
-        ) {
-          if (
-            !validateExpiryDate(
-              variationFormData.manufactureDate,
-              variationFormData.expiryDate
-            )
-          ) {
-            msg = `Product ${index + 1}, Variation ${
-              vIndex + 1
-            }: Manufacture date cannot be greater than expiry date`;
-            break;
-          }
-        }
-      }
-      if (msg) break;
-    }
+    const issue = validateProduct(
+      scannedProducts[index],
+      `Product ${index + 1}`,
+    );
+    if (issue) return issue.message;
   }
 
-  return msg;
+  return "";
 }
 
 // Helper to build product/variation payload
@@ -252,8 +307,8 @@ function buildProductPayload({
       : product.formData.expiryDate || "",
     receivedQuantity: receivedQuantity,
     status: "Completed",
-    category: product._raw?.category,
-    brand: product._raw?.brand,
+    category: product.category,
+    brand: product.brand,
     damagedQuantity: damageQuantity,
     damagedImages: isVariation
       ? []
@@ -268,13 +323,11 @@ function buildProductPayload({
     remarks: isVariation
       ? variation.formData?.notes || ""
       : product.formData.notes || "",
-    allowedUnitTypes: product._raw?.allowedUnitTypes,
     preferredUnitType: "",
-    uom: product._raw?.uom,
-    packSize: product._raw?.packSize,
+    uom: product.uom,
     location: isVariation
       ? buildLocationObj({
-          locationDetails: variation.formData?.locationDetail,
+          locationDetails: variation.formData?.locationDetails,
           rackDetails: variation.formData?.rackDetails,
           binDetails: variation.formData?.binDetails,
         })
@@ -325,11 +378,11 @@ const preparePayload = (products: any[], remarks: any, invoice: any) => {
           remarks: invoice.remarks || "",
           invoiceDate: invoice.invoiceDate || "",
           documentAssetIds: Array.isArray(invoice.invoiceUpload)
-            ? invoice.invoiceUpload.map((file: any) => file.id || file)
+            ? invoice.invoiceUpload.map((file: any) => file.id)
             : invoice.invoiceUpload
             ? [invoice.invoiceUpload]
             : [],
-          amount: invoice.invoiceValue || invoice.amount || 0,
+          amount: invoice.amount || 0,
         },
       ]
     : undefined;
@@ -344,7 +397,7 @@ const preparePayload = (products: any[], remarks: any, invoice: any) => {
             paymentDate: invoice.paymentDate || "",
             paymentMode: invoice.paymentMode || "",
             proofs: Array.isArray(invoice.paymentUpload)
-              ? invoice.paymentUpload.map((file: any) => file.id || file)
+              ? invoice.paymentUpload.map((file: any) => file.id)
               : invoice.paymentUpload
               ? [invoice.paymentUpload]
               : [],

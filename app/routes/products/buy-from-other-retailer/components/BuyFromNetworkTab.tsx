@@ -3,7 +3,7 @@ import AppTab from "~/components/core/tab/AppTab";
 import { DEFAULT_BROWSE_DISTANCE } from "~/constants";
 import useAppNav from "~/hooks/useAppNav";
 import type { TabItem } from "~/types/CommonTypes";
-import { Box, Search, Tag, Grid, Compass } from "lucide-react";
+import { Box, Search, Tag, Grid, Compass, LayoutList } from "lucide-react";
 
 interface BuyFromNetworkTabProps {
   activeTab?: string;
@@ -31,6 +31,11 @@ const getTabs = (): TabItem[] => {
       key: "categories",
       langKey: "browseByCategory",
       icon: <Grid />,
+    },
+    {
+      name: "Browse by Menu",
+      key: "menus",
+      icon: <LayoutList />,
     },
     // { name: "Discover", key: "discover", icon: <Compass /> },
   ];
@@ -66,6 +71,10 @@ const BuyFromNetworkTab = ({
       appNav.to("/products/buy-from-other-retailer/products/category", {
         distance,
       });
+    } else if (tab.key === "menus") {
+      appNav.to("/products/buy-from-other-retailer/products/menu", {
+        distance,
+      });
     }
     onTabChange?.(tab);
   };
@@ -76,7 +85,7 @@ const BuyFromNetworkTab = ({
         activeTab={initialTab?.key}
         tabs={tabs}
         onTabChange={handleTabChange}
-        className="theme-2-edge-tabs"
+        className="edge-tabs"
       />
     </div>
   );

@@ -63,6 +63,21 @@ export class ExpenseService {
     );
   }
 
+  /**
+   * Scan an expense bill image with AI to extract the expense details.
+   * Sends the raw image as multipart/form-data under the `bill` field; axios
+   * sets the multipart boundary automatically for a FormData instance.
+   */
+  public static scanBill(file: File) {
+    const formData = new FormData();
+    formData.append("bill", file);
+    return AjaxService.request(
+      `${this.BASE_URL}/franchise/expense/transaction/scan`,
+      "POST",
+      formData
+    );
+  }
+
   public static async getTransactions(params: Record<string, any>) {
     const response = await AjaxService.request(
       `${this.BASE_URL}/franchise/expense/transaction/list`,

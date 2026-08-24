@@ -7,9 +7,11 @@ import CaseQtyPopover from "~/shared/catalog/components/CaseQtyPopover";
 import SellingTypeDisplay from "~/shared/catalog/components/SellingTypeDsiplay";
 import ConsumerOfferBadge from "~/shared/catalog/components/consumer-offer-badge/ConsumerOfferBadge";
 import type { BuyCartType } from "~/types/CommonTypes";
+import TintTile from "~/components/core/tint/TintTile";
 import AddToCart from "../add-to-cart/AddToCart";
 import DisplayQty from "../display-qty/DisplayQty";
 import KingSlabInfo from "../king-slab/KingSlabInfo";
+import { productTintIndex } from "./productTint";
 
 type Props = {
   data: any;
@@ -18,6 +20,7 @@ type Props = {
   cartType?: BuyCartType;
   useBusyLoader?: boolean;
   hideAddToCart?: boolean;
+  tint?: boolean | number;
 };
 
 const ProductCardOne = ({
@@ -27,7 +30,9 @@ const ProductCardOne = ({
   cartType,
   useBusyLoader = false,
   hideAddToCart = false,
+  tint = false,
 }: Props) => {
+  const tintIndex = productTintIndex(tint, data);
   let finalCartType =
     cartType || (AuthService.isBuyerUser() ? "buyer" : "normal");
 
@@ -72,13 +77,31 @@ const ProductCardOne = ({
           </div>
         ) : null}
 
-        <div className="text-center" style={imgBgStyle}>
-          <ImgRender
-            assetId={data.images[0] ?? ""}
-            className="tw:w-full tw:h-36 tw:lg:h-32 tw:inline-block tw:object-contain"
-            size={PRD_IMG_RESOLUTION}
-          />
-        </div>
+        {tintIndex === null ? (
+          <div className="text-center" style={imgBgStyle}>
+            <ImgRender
+              assetId={data.images[0] ?? ""}
+              className="tw:w-full tw:h-36 tw:lg:h-32 tw:inline-block tw:object-contain"
+              size={PRD_IMG_RESOLUTION}
+            />
+          </div>
+        ) : (
+          /* Full-bleed wash with a white inner plate — the same treatment the
+             buy-from-other-retailer card uses, so a packaged good and a bare
+             logo both read cleanly. Negative margins undo the card's p-2. */
+          <TintTile
+            index={tintIndex}
+            className="tw:-mx-2 tw:-mt-2 tw:mb-1.5 tw:h-36 tw:lg:h-32 tw:rounded-t-md"
+          >
+            <div className="tw:relative tw:flex tw:h-24 tw:w-24 tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-xl tw:bg-white tw:shadow-sm">
+              <ImgRender
+                assetId={data.images[0] ?? ""}
+                className="tw:w-full tw:h-full tw:object-contain tw:p-1"
+                size={PRD_IMG_RESOLUTION}
+              />
+            </div>
+          </TintTile>
+        )}
         <div className="tw:text-app-gray-5 tw:text-xs tw:h-4 tw:mb-1">
           <button onClick={viewBrand}>{data?.brand[0]?._displayName}</button>
         </div>
@@ -141,51 +164,60 @@ const ProductCardOne = ({
             )}
           </div>
 
-          <div className="tw:relative tw:w-full">
-            {hideAddToCart ? null : !data.isOutOfStock ? (
-              <>
-                <AddToCart
-                  deal={data}
-                  callback={onCartCb}
-                  cartType={finalCartType}
-                  useBusyLoader={useBusyLoader}
-                  fullWidth
-                />
-                {data.priceSlabs?.length > 0 && (
-                  <div className="tw:absolute tw:-top-6 tw:-right-1 tw:z-20">
-                    <KingSlabInfo slabs={data.priceSlabs} size="xs" />
-                  </div>
-                )}
-              </>
-            ) : (
-              <span className="tw:text-xs tw:text-gray-600">Out of stock</span>
-            )}
-          </div>
-
-          {data.maxQty > 0 && (
-            <div className="tw:flex tw:items-center tw:gap-1 tw:text-[10px] tw:text-gray-400">
-              <span>Stock</span>
-              <span className="tw:text-gray-600 tw:font-medium">
-                <DisplayQty
-                  qty={data.maxQty || 0}
-                  isLooseQty={false}
-                  uom={data.selectedStockUom}
-                  hideDefaultUom={true}
-                />
-                {!data.selectedStockUom && (
-                  <>
-                    {" "}
-                    <SellingTypeDisplay sellingType={data.sellingType} />
-                  </>
-                )}
-              </span>
-              <CaseQtyPopover
-                packageQty={data.packageQty}
-                sellingType={data.sellingType}
-                className="tw:inline-block tw:self-center"
-              />
+          <div className="tw:mt-auto tw:flex tw:flex-col tw:gap-1.5">
+            {/* Fixed-height action slot so ADD, the qty stepper and the
+                out-of-stock label all occupy the same vertical space and cards
+                in a row stay aligned. */}
+            <div className="tw:relative tw:flex tw:h-8 tw:w-full tw:items-center">
+              {hideAddToCart ? null : !data.isOutOfStock ? (
+                <>
+                  <AddToCart
+                    deal={data}
+                    callback={onCartCb}
+                    cartType={finalCartType}
+                    useBusyLoader={useBusyLoader}
+                    fullWidth
+                  />
+                  {data.priceSlabs?.length > 0 && (
+                    <div className="tw:absolute tw:-top-6 tw:-right-1 tw:z-20">
+                      <KingSlabInfo slabs={data.priceSlabs} size="xs" />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span className="tw:text-xs tw:text-gray-600">Out of stock</span>
+              )}
             </div>
-          )}
+
+            {/* Always rendered — an empty row keeps the card height identical
+                for products that carry no stock figure. */}
+            <div className="tw:flex tw:h-4 tw:items-center tw:gap-1 tw:text-[10px] tw:text-gray-400">
+              {data.maxQty > 0 && (
+                <>
+                  <span>Stock</span>
+                  <span className="tw:text-gray-600 tw:font-medium">
+                    <DisplayQty
+                      qty={data.maxQty || 0}
+                      isLooseQty={false}
+                      uom={data.selectedStockUom}
+                      hideDefaultUom={true}
+                    />
+                    {!data.selectedStockUom && (
+                      <>
+                        {" "}
+                        <SellingTypeDisplay sellingType={data.sellingType} />
+                      </>
+                    )}
+                  </span>
+                  <CaseQtyPopover
+                    packageQty={data.packageQty}
+                    sellingType={data.sellingType}
+                    className="tw:inline-block tw:self-center"
+                  />
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

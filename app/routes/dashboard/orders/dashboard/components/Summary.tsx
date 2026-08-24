@@ -2,6 +2,8 @@ import { BoxIcon, IndianRupee, ShoppingCart, Users } from "lucide-react";
 import Amount from "~/components/core/amount/Amount";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import AppStatsCard from "~/components/core/stats-card/AppStatsCard";
+import useTheme from "~/hooks/useTheme";
+import SummaryTiles from "./theme2/SummaryTiles";
 
 const iconForKey = (key: string) => {
   switch (key) {
@@ -19,6 +21,12 @@ const iconForKey = (key: string) => {
 };
 
 const Summary = ({ summary }: { summary: Array<Record<string, any>> }) => {
+  const isTheme2 = useTheme() === "theme-2";
+
+  if (isTheme2) {
+    return <SummaryTiles summary={summary} className="tw:mb-4" />;
+  }
+
   return (
     <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-4 tw:md:gap-6 tw:gap-2 tw:mb-4">
       {summary.map((it) => (

@@ -13,8 +13,10 @@ const dateConfig: DayPickerProps = {
 
 const Filter = ({
   callback,
+  className = "",
 }: {
   callback: (data: { formData: any }) => void;
+  className?: string;
 }) => {
   const { control, getValues } = useForm({
     defaultValues: {
@@ -28,8 +30,11 @@ const Filter = ({
       callback({ formData: getValues() });
     };
 
+  // Only the date-range control; spacing/positioning is owned by the parent
+  // toolbar in ActivityLog (it places this on the right on desktop and stacks
+  // it full-width on mobile).
   return (
-    <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4 tw:mb-4">
+    <div className={className}>
       <Controller
         control={control}
         name="dateRange"

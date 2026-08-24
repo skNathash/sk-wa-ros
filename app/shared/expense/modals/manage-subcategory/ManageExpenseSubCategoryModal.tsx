@@ -173,11 +173,11 @@ const ManageExpenseSubCategoryModal = ({
         ) : (
           <>
             {parentName && (
-              <div className="tw:bg-gray-50 tw:p-3 tw:rounded-lg tw:mb-4">
-                <p className="tw:text-xs tw:text-gray-500">
+              <div className="tw:bg-muted tw:p-3 tw:rounded-lg tw:mb-4">
+                <p className="tw:text-xs tw:text-muted-foreground">
                   {t("manageSubCategory.parentCategory")}
                 </p>
-                <h3 className="tw:text-sm tw:font-medium tw:text-gray-900">
+                <h3 className="tw:text-sm tw:font-medium tw:text-foreground">
                   {parentName}
                 </h3>
               </div>
@@ -200,7 +200,7 @@ const ManageExpenseSubCategoryModal = ({
               placeholder={t("manageSubCategory.enterDescription")}
               maxLength={200}
             />
-            <div className="tw:text-xs tw:text-gray-500">
+            <div className="tw:text-xs tw:text-muted-foreground">
               Max 200 characters
             </div>
           </>

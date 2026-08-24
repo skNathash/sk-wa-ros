@@ -47,18 +47,22 @@ interface Product {
   packQuantity?: number;
   requestedPackQuantity?: number;
   isReserveOrder?: boolean;
+  selectedStockUom?: string;
 }
 
 interface MobileViewProps {
   data: Product[];
   loading?: boolean;
   callback?: (action: { action: string; data: any }) => void;
+  /** Compact single-row card: image, name, bin, qty, stock and price only. */
+  minimal?: boolean;
 }
 
 const MobileView: React.FC<MobileViewProps> = ({
   data = [],
   loading = false,
   callback,
+  minimal = false,
 }) => {
   const { t } = useTranslation();
 
@@ -79,6 +83,77 @@ const MobileView: React.FC<MobileViewProps> = ({
     return (
       <div className="tw:text-center tw:py-8 tw:text-gray-500">
         No data found
+      </div>
+    );
+  }
+
+  if (minimal) {
+    return (
+      <div>
+        {data.map((item, idx) => {
+          const firstLocation = item.dealDetails?.locations?.[0]?.location;
+          const extraLocations =
+            (item.dealDetails?.locations?.length || 0) - 1;
+          return (
+            <div
+              key={item.id || idx}
+              className="tw:flex tw:items-center tw:gap-3 tw:px-4 tw:py-2.5 tw:border-b tw:border-gray-100 tw:last:border-b-0"
+            >
+              <ImgRender
+                assetId={item.dealDetails?.images?.[0]}
+                alt={item.dealName}
+                className="tw:w-10 tw:h-10 tw:shrink-0 tw:object-contain tw:rounded-md tw:bg-gray-50"
+              />
+              <div className="tw:flex-1 tw:min-w-0">
+                <AppLink
+                  asLink
+                  href={`/dashboard/inventory/products/view/${item.dealId}`}
+                  className="tw:font-medium tw:text-sm tw:text-gray-900 tw:truncate tw:block"
+                >
+                  {item.dealName}
+                </AppLink>
+                <div className="tw:flex tw:items-center tw:gap-1.5 tw:mt-0.5 tw:text-xs tw:text-gray-500">
+                  {firstLocation?.binName && (
+                    <span className="tw:inline-flex tw:items-center tw:gap-1 tw:bg-gray-100 tw:rounded tw:px-1.5 tw:py-0.5">
+                      Bin{" "}
+                      <span className="tw:font-semibold tw:text-primary">
+                        {firstLocation.binName}
+                      </span>
+                      {extraLocations > 0 && (
+                        <span className="tw:text-gray-400">
+                          +{extraLocations}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  <span>
+                    · qty{" "}
+                    <span className="tw:font-semibold tw:text-gray-800">
+                      <DisplayQty
+                        qty={item.quantity || 0}
+                        isLooseQty={false}
+                        uom={item.selectedStockUom}
+                      />
+                    </span>
+                  </span>
+                  <span>
+                    · stock{" "}
+                    <span className="tw:font-semibold tw:text-gray-800">
+                      <DisplayQty
+                        qty={item.dealDetails?.maxQty || 0}
+                        isLooseQty={false}
+                        uom={item.selectedStockUom}
+                      />
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <div className="tw:shrink-0 tw:font-semibold tw:text-sm">
+                <Amount value={item.finalPrice || 0} decimalPlaces={2} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   }

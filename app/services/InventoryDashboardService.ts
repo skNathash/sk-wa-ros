@@ -38,6 +38,19 @@ class InventoryDashboardService {
     );
   }
 
+  static async getSellableInventoryValue(
+    params: Record<string, any> = {},
+    config?: AxiosRequestConfig,
+  ) {
+    const merged = { ...this.getDefaultFilter(), ...params };
+    return AjaxService.request(
+      `${API}catalog/dashboard/sellable-nonsellable`,
+      "GET",
+      merged,
+      config,
+    );
+  }
+
   static async getInventoryTurnover(
     params: Record<string, any> = {},
     config?: AxiosRequestConfig,
@@ -58,6 +71,19 @@ class InventoryDashboardService {
     const merged = { ...this.getDefaultFilter(), ...params };
     return AjaxService.request(
       `${API}catalog/dashboard/sku-movement`,
+      "GET",
+      merged,
+      config,
+    );
+  }
+
+  static async getSkuMovementBreakdown(
+    params: Record<string, any> = {},
+    config?: AxiosRequestConfig,
+  ) {
+    const merged = { ...this.getDefaultFilter(), ...params };
+    return AjaxService.request(
+      `${API}catalog/dashboard/sku-movement/breakdown`,
       "GET",
       merged,
       config,
@@ -136,6 +162,19 @@ class InventoryDashboardService {
     const merged = { ...this.getDefaultFilter(), ...params };
     return AjaxService.request(
       `${API}catalog/dashboard/sku-movement/list`,
+      "GET",
+      merged,
+      config,
+    );
+  }
+
+  static async getSellableNonSellableList(
+    params: Record<string, any> = {},
+    config?: AxiosRequestConfig,
+  ) {
+    const merged = { ...this.getDefaultFilter(), ...params };
+    return AjaxService.request(
+      `${API}catalog/dashboard/sellable-nonsellable/list`,
       "GET",
       merged,
       config,

@@ -6,6 +6,7 @@ import AppCard from "~/components/core/card/AppCard";
 import AppChart from "~/components/core/chart/AppChart";
 import AppSelect from "~/components/core/form/AppSelect";
 import ExpenseService from "~/services/ExpenseService";
+import ExpenseOverview from "~/shared/expense/components/expense-overview/ExpenseOverview";
 import MiscService from "~/services/MiscService";
 
 const chartConfig = {
@@ -117,7 +118,12 @@ const Analytics = () => {
   };
 
   return (
-    <AppCard
+    <>
+      {/* Period total + category split — owns the `month`/`year` query params
+          the selects below mirror. */}
+      <ExpenseOverview className="tw:mb-4" />
+
+      <AppCard
       title={
         <div className="tw:flex tw:flex-col tw:md:flex-row tw:items-center tw:justify-between tw:gap-2 tw:w-full">
           <div className="card-title">Expense Analytics</div>
@@ -150,7 +156,8 @@ const Analytics = () => {
           xAxisDataKey="category"
         />
       )}
-    </AppCard>
+      </AppCard>
+    </>
   );
 };
 

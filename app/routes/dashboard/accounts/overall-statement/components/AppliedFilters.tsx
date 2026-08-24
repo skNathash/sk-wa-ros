@@ -31,15 +31,10 @@ const AppliedFilters = () => {
     debit: t("debit"),
   };
 
-  // Create mapping for filters
+  // Create mapping for filters. `dateRange` is intentionally not mapped: the
+  // accounts layout already renders the active range as a date pill directly
+  // above this block, so a second chip here only duplicates it.
   const filterMapping: Record<string, AppliedFilterLabel> = {
-    dateRange: {
-      label: t("dateRange") || "Date Range",
-      type: "dateRange",
-      resetValue: defaultFilter.dateRange,
-      dateFormat: "dd MMM yyyy",
-      showCloseIcon: false,
-    },
     type: {
       label: t("type"),
       resetValue: defaultFilter.type,
@@ -118,7 +113,6 @@ const AppliedFilters = () => {
       filter={transformedData}
       callback={handleFilterCallback}
       mapping={filterMapping}
-      className="tw:mb-4"
     />
   );
 };

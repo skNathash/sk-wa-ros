@@ -241,7 +241,6 @@ const Filter: React.FC<FilterProps> = ({
                   <VoiceMic callback={handleVoiceCallback} />
                 </div>
               }
-              className="tw:bg-white"
               inputClassName="tw:placeholder:text-xs tw:placeholder:md:text-sm tw:pr-20"
             />
           </div>

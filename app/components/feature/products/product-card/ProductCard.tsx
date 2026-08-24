@@ -13,6 +13,12 @@ type Props = {
   cartType?: BuyCartType;
   useBusyLoader?: boolean;
   hideAddToCart?: boolean;
+  /**
+   * Paint the image area with a `TintTile` instead of the plain `imgBgStyle`
+   * plate. `true` picks a tone off the brand so every SKU of a brand shares one
+   * colour, a number pins a tone, `-1` uses the theme tint.
+   */
+  tint?: boolean | number;
 };
 
 const ProductCard = ({
@@ -25,6 +31,7 @@ const ProductCard = ({
   cartType,
   useBusyLoader = false,
   hideAddToCart = false,
+  tint = false,
 }: Props) => {
   const appNav = useAppNav();
 
@@ -71,6 +78,7 @@ const ProductCard = ({
           cartType={cartType}
           useBusyLoader={useBusyLoader}
           hideAddToCart={hideAddToCart}
+          tint={tint}
         />
       ) : null}
       {type == 2 ? (
@@ -81,6 +89,7 @@ const ProductCard = ({
           callback={onCardCb}
           cartType={cartType}
           useBusyLoader={useBusyLoader}
+          tint={tint}
         />
       ) : null}
     </>

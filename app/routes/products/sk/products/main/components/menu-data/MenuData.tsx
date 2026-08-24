@@ -61,13 +61,15 @@ const MenuData: React.FC<MenuDataProps> = ({ menuId, menuName, callback }) => {
   return (
     <div id={`menu-section-${menuId}`}>
       <div className="tw:flex tw:items-center tw:justify-between tw:mb-2">
-        <h2 className="tw:text-lg tw:font-bold tw:text-slate-900">{menuName}</h2>
+        <h2 className="app-label tw:text-[0.8125rem]! tw:font-semibold tw:uppercase tw:tracking-[0.12em] tw:text-primary/70">
+          {menuName}
+        </h2>
         {!loading && categories.length >= 3 && (
           <span
-            className="tw:text-sm tw:text-gray-600 tw:cursor-pointer"
+            className="tw:inline-flex tw:items-center tw:gap-0.5 tw:cursor-pointer tw:text-[13px] tw:font-semibold tw:text-primary"
             onClick={handleSeeAllClick}
           >
-            See all
+            See all <span aria-hidden>→</span>
           </span>
         )}
       </div>

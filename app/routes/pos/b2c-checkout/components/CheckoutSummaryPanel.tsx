@@ -57,21 +57,21 @@ const CheckoutSummaryPanel = ({
     return (
       <div
         className={clsx(
-          "tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-sm",
+          "app-osum-drawer tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white tw:shadow-sm",
           className,
         )}
       >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="tw:flex tw:w-full tw:items-center tw:justify-between tw:px-4 tw:py-3 tw:cursor-pointer"
+          className="app-osum-drawer-bar tw:flex tw:w-full tw:items-center tw:justify-between tw:px-4 tw:py-3 tw:cursor-pointer"
         >
           <span className="tw:flex tw:items-center tw:gap-2 tw:text-sm">
             {open ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-            <span className="tw:text-muted-foreground">
+            <span className="app-osum-drawer-count tw:text-gray-600">
               {itemCount} {itemCount === 1 ? "item" : "items"}
             </span>
-            <span className="wa-amount tw:font-semibold tw:text-foreground">
+            <span className="app-osum-drawer-total tw:font-semibold tw:text-gray-900">
               · <Amount value={total} />
             </span>
           </span>
@@ -83,14 +83,14 @@ const CheckoutSummaryPanel = ({
                 e.stopPropagation();
                 onEditCart();
               }}
-              className="tw:text-primary tw:text-xs tw:flex tw:items-center tw:gap-1"
+              className="app-osum-edit tw:text-primary tw:text-xs tw:flex tw:items-center tw:gap-1"
             >
               <Edit3 size={12} /> {t("editCart", "Edit cart")}
             </span>
           )}
         </button>
         {open && (
-          <div className="tw:border-t tw:border-border tw:px-4 tw:py-3 tw:max-h-60 tw:overflow-auto">
+          <div className="app-osum-drawer-body tw:border-t tw:border-gray-100 tw:px-4 tw:py-3 tw:max-h-60 tw:overflow-auto">
             <SummaryBody
               items={items}
               summary={summary}
@@ -107,19 +107,22 @@ const CheckoutSummaryPanel = ({
   return (
     <div
       className={clsx(
-        "tw:rounded-xl tw:border tw:border-border tw:bg-card tw:p-4 tw:shadow-sm",
+        "app-osum tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white tw:p-4 tw:shadow-sm",
         className,
       )}
     >
-      <div className="tw:flex tw:items-center tw:justify-between tw:mb-3">
-        <h3 className="wa-section-label tw:text-foreground">
+      <div className="app-osum-head tw:flex tw:items-center tw:justify-between tw:mb-3">
+        <h3 className="app-osum-title tw:text-sm tw:font-semibold">
           {t("orderSummary", "Order summary")}
+          <span className="app-osum-count">
+            {itemCount} {itemCount === 1 ? "item" : "items"}
+          </span>
         </h3>
         {onEditCart && (
           <button
             type="button"
             onClick={onEditCart}
-            className="tw:text-primary tw:text-xs tw:flex tw:items-center tw:gap-1 tw:cursor-pointer"
+            className="app-osum-edit tw:text-primary tw:text-xs tw:flex tw:items-center tw:gap-1 tw:cursor-pointer"
           >
             <Edit3 size={12} /> {t("editCart", "Edit cart")}
           </button>
@@ -159,7 +162,7 @@ const SummaryBody = ({
     : rawTotalPayable;
   return (
     <>
-      <div className="tw:max-h-48 tw:overflow-auto tw:mb-2">
+      <div className="app-osum-items tw:max-h-48 tw:overflow-auto tw:mb-2">
         {items.map((item: any, idx: number) => {
           const name = item?.deal?.name || item?.name || "Item";
           const qty = item?.quantity || 0;
@@ -168,22 +171,22 @@ const SummaryBody = ({
           return (
             <div
               key={item?.deal?.id || idx}
-              className="tw:flex tw:justify-between tw:text-xs tw:py-1"
+              className="app-osum-item tw:flex tw:justify-between tw:text-xs tw:py-1"
             >
-              <span className="tw:truncate tw:pr-2 tw:text-foreground">
+              <span className="app-osum-item-name tw:truncate tw:pr-2 tw:text-gray-700">
                 {name}{" "}
-                <span className="wa-mono tw:text-muted-foreground">
+                <span className="app-osum-item-qty tw:text-gray-400">
                   × {qty}
                 </span>
               </span>
-              <span className="wa-mono tw:text-foreground">
+              <span className="app-osum-item-amt tw:text-gray-800">
                 <Amount value={lineTotal} />
               </span>
             </div>
           );
         })}
       </div>
-      <div className="tw:border-t tw:border-border tw:pt-2 tw:space-y-1">
+      <div className="app-osum-rows tw:border-t tw:border-gray-100 tw:pt-2 tw:space-y-1">
         <Row
           label={t("subtotal", "Subtotal")}
           value={<Amount value={summary?.subtotal || 0} />}
@@ -225,32 +228,30 @@ const SummaryBody = ({
           <Row
             label={t("checkoutModal.summary.cartDiscount", "Cart Discount")}
             value={
-              <span
-                className="wa-mono tw:font-semibold"
-                style={{ color: "var(--wa-bubble-text)" }}
-              >
+              <>
                 − <Amount value={discount} />
-              </span>
+              </>
             }
+            className="tw:text-emerald-600 tw:font-semibold"
           />
         )}
       </div>
-      <div className="tw:border-t tw:border-border tw:mt-3 tw:pt-3 tw:flex tw:justify-between tw:items-baseline">
+      <div className="app-osum-total tw:border-t tw:border-gray-200 tw:mt-3 tw:pt-3 tw:flex tw:justify-between tw:items-baseline">
         <div className="tw:flex tw:flex-col">
-          <span className="tw:font-semibold tw:text-sm tw:text-foreground">
+          <span className="app-osum-total-label tw:font-semibold tw:text-sm tw:text-gray-900">
             {t("total", "Total payable")}
           </span>
-          <span className="wa-section-label">
+          <span className="app-osum-total-sub tw:text-[10px] tw:text-gray-500 tw:tracking-wide tw:uppercase">
             {t("inclusiveTaxes", "Inclusive of all taxes")}
           </span>
         </div>
         <Amount
           value={totalPayable}
-          className="wa-amount tw:font-bold tw:text-xl tw:text-primary tw:tabular-nums"
+          className="app-osum-total-value tw:font-bold tw:text-xl tw:text-primary tw:tabular-nums"
         />
       </div>
-      <div className="tw:mt-3 tw:flex tw:items-center tw:gap-1.5 tw:text-[11px] tw:text-muted-foreground">
-        <ShieldCheck size={12} style={{ color: "var(--wa-accent)" }} />
+      <div className="app-osum-secure tw:mt-3 tw:flex tw:items-center tw:gap-1.5 tw:text-[11px] tw:text-gray-500">
+        <ShieldCheck size={12} className="tw:text-emerald-600" />
         <span>{t("secureCheckout", "Secure checkout")}</span>
       </div>
     </>
@@ -269,13 +270,13 @@ const Row = ({
   className?: string;
 }) => (
   <div
-    className={clsx("tw:flex tw:justify-between tw:text-xs", className, {
-      "tw:text-muted-foreground": muted && !className,
-      "tw:text-foreground": !muted && !className,
+    className={clsx("app-osum-row tw:flex tw:justify-between tw:text-xs", className, {
+      "tw:text-gray-500": muted && !className,
+      "tw:text-gray-700": !muted && !className,
     })}
   >
     <span>{label}</span>
-    <span className="wa-mono">{value}</span>
+    <span>{value}</span>
   </div>
 );
 

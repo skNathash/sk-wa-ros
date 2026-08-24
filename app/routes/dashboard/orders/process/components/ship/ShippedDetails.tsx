@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import useAppNav from "~/hooks/useAppNav";
 import DateFormat from "~/components/core/date/DateFormat";
 import OtpVerifyModal from "./modals/OtpVerifyModal";
+import useTheme from "~/hooks/useTheme";
 
 type Props = {
   shipment: {
@@ -43,6 +44,8 @@ const ShippedDetails = ({
     shipment.isApproved || false
   );
   const nav = useAppNav();
+  // theme-2 drops the delivery-dashboard callout — tracking lives in its own nav.
+  const isTheme2 = useTheme() === "theme-2";
 
   // Use effect to watch for trigger prop and open OTP modal when parent requests it
   useEffect(() => {
@@ -69,11 +72,24 @@ const ShippedDetails = ({
 
   return (
     <>
-      <AppCard
-        title="Order In-Transit"
-        icon={<Truck />}
-        subtitle="This order has been shipped and is on its way to the customer."
-      >
+      <AppCard className="op-stage-handover">
+        <div className="tw:flex tw:items-center tw:gap-3 tw:mb-4">
+          <div
+            className="tw:p-2.5 tw:rounded-xl tw:shrink-0"
+            style={{
+              backgroundColor: "var(--op-tint)",
+              color: "var(--op-accent)",
+            }}
+          >
+            <Truck size={20} />
+          </div>
+          <div>
+            <div className="op-eyebrow tw:mb-0.5">Order In-Transit</div>
+            <div className="tw:text-sm tw:text-gray-600">
+              This order has been shipped and is on its way to the customer.
+            </div>
+          </div>
+        </div>
         <div className="tw:bg-slate-100 tw:p-4 tw:rounded-md tw:mb-4">
           <div className="tw:flex tw:items-center tw:gap-2 tw:mb-2">
             <div className="tw:text-sm tw:font-medium">Method:</div>
@@ -162,7 +178,7 @@ const ShippedDetails = ({
           </>
         )}
 
-        {shipment.shipmentType === "selfship" ? (
+        {shipment.shipmentType === "selfship" && !isTheme2 ? (
           <div className="tw:bg-blue-50 tw:p-4 tw:rounded-md tw:text-center tw:border tw:border-blue-300">
             <div className="tw:text-sm tw:font-medium tw:text-blue-800 tw:mb-2">
               Order is now with the delivery team

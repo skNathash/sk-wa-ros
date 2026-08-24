@@ -7,9 +7,13 @@ import { defaultFilterValues, type FilterFormFields } from "../helper";
 
 interface AppliedFiltersProps {
   callback?: (params: { action: string; data?: any }) => void;
+  className?: string;
 }
 
-const AppliedFilters = ({ callback }: AppliedFiltersProps) => {
+const AppliedFilters = ({
+  callback,
+  className = "tw:mb-2",
+}: AppliedFiltersProps) => {
   const { t } = useTranslation(["common", "inventorySubscribe"]);
   const { getValues } = useFormContext<FilterFormFields>();
 
@@ -122,7 +126,7 @@ const AppliedFilters = ({ callback }: AppliedFiltersProps) => {
       filter={formData}
       callback={handleFilterCallback}
       mapping={filterMapping}
-      className="tw:mb-2"
+      className={className}
     />
   );
 };

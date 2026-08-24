@@ -4,6 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { AppInput, AppSelect } from "~/components/core/form";
 import AppDateInput from "~/components/core/form/AppDateInput";
+import AppCard from "~/components/core/card/AppCard";
 import type { DayPickerProps } from "react-day-picker";
 import MiscService from "~/services/MiscService";
 import { sub } from "date-fns";
@@ -67,45 +68,54 @@ const Filter = ({ callback }: FilterProps) => {
   };
 
   return (
-    <>
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4 tw:mb-4">
+    <AppCard noPadding bodyClassName="tw:p-3" className="tw:mb-4">
+      <div className="tw:flex tw:flex-col tw:gap-3">
+        {/* row 1: search takes the full width */}
         <AppInput
           name="search"
           register={register}
           onChange={debounceSearch}
           placeholder={t("searchByReferenceId")}
+          className="tw:w-full"
           leftIcon={<Search size={16} className="tw:text-gray-500" />}
         />
 
-        <div className="tw:flex tw:flex-row tw:flex-wrap tw:gap-2 tw:md:tw-grid tw:md:tw-grid-cols-2 tw:md:tw-gap-4">
-          <Controller
-            control={control}
-            name="dateRange"
-            render={({ field }) => (
-              <AppDateInput
-                value={field.value}
-                callback={onDateChange(field.onChange)}
-                dateConfig={dateConfig}
-                placeholder={t("selectDateRange")}
-                className="tw:w-full tw:flex-1"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="type"
-            render={({ field }) => (
-              <AppSelect
-                options={types}
-                value={field.value}
-                onChange={onTypeChange(field.onChange)}
-                inputClassName="tw:w-full"
-              />
-            )}
-          />
+        {/* row 2: date range + type share the width */}
+        <div className="tw:flex tw:flex-nowrap tw:items-center tw:gap-3">
+          <div className="tw:min-w-0 tw:flex-1">
+            <Controller
+              control={control}
+              name="dateRange"
+              render={({ field }) => (
+                <AppDateInput
+                  value={field.value}
+                  callback={onDateChange(field.onChange)}
+                  dateConfig={dateConfig}
+                  placeholder={t("selectDateRange")}
+                  className="tw:w-full"
+                  inputClassName="tw:truncate"
+                />
+              )}
+            />
+          </div>
+
+          <div className="tw:min-w-0 tw:flex-1">
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <AppSelect
+                  options={types}
+                  value={field.value}
+                  onChange={onTypeChange(field.onChange)}
+                  inputClassName="tw:w-full"
+                />
+              )}
+            />
+          </div>
         </div>
       </div>
-    </>
+    </AppCard>
   );
 };
 

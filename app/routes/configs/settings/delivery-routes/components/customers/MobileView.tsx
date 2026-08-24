@@ -44,7 +44,7 @@ const CustomerItem = ({
               <AppLink
                 asLink
                 href={`/dashboard/network/view/b2b/${item._id}`}
-                className="tw:text-blue-600 hover:tw:underline"
+                className="tw:text-primary hover:tw:underline"
               >
                 {item.name}
               </AppLink>
@@ -59,8 +59,8 @@ const CustomerItem = ({
                 color={hasRoute ? "secondary" : "primary"}
                 className={
                   hasRoute
-                    ? "tw:bg-blue-600 hover:tw:bg-blue-700 tw:text-white"
-                    : "tw:bg-green-600 hover:tw:bg-green-700 tw:text-white"
+                    ? "tw:bg-primary hover:tw:bg-primary/80 tw:text-white"
+                    : "tw:bg-success hover:tw:bg-success/80 tw:text-white"
                 }
               >
                 {hasRoute ? "Change" : "Assign"}

@@ -22,6 +22,40 @@ import {
 } from "lucide-react";
 import PlatformFeeTabs from "../../../components/PlatformFeeTabs";
 import useAppNav from "~/hooks/useAppNav";
+import AppTable from "~/components/core/table/AppTable";
+import TableHeader from "~/components/core/table/TableHeader";
+import type { TableHeaderItem } from "~/types/CommonTypes";
+
+const tierHeaders: TableHeaderItem[] = [
+  { label: "Distributor Tier", key: "name", width: "18%" },
+  { label: "Purchase Credits", key: "credits", width: "16%" },
+  {
+    label: "Traditional TCO (3%)",
+    key: "traditionalCost",
+    width: "17%",
+    isRightAligned: true,
+  },
+  {
+    label: "StoreKing Cost",
+    key: "skCost",
+    width: "16%",
+    isRightAligned: true,
+  },
+  {
+    label: "Annual Net Savings",
+    key: "savings",
+    width: "17%",
+    isRightAligned: true,
+    className: "tw:text-emerald-600",
+  },
+  {
+    label: "Cost Reduction %",
+    key: "reduction",
+    width: "16%",
+    isRightAligned: true,
+    className: "tw:text-emerald-600",
+  },
+];
 
 export default function DistributorBenefits() {
   const appNav = useAppNav();
@@ -187,36 +221,14 @@ export default function DistributorBenefits() {
         {/* Tier Table */}
         <AppCard noShadow bordered>
           <div className="tw:overflow-x-auto">
-            <table className="tw:w-full tw:min-w-[700px] tw:text-sm">
-              <thead>
-                <tr className="tw:border-b tw:border-gray-200">
-                  <th className="tw:text-left tw:py-3 tw:px-4 tw:font-semibold tw:text-gray-600 tw:whitespace-nowrap">
-                    Distributor Tier
-                  </th>
-                  <th className="tw:text-left tw:py-3 tw:px-4 tw:font-semibold tw:text-gray-600 tw:whitespace-nowrap">
-                    Purchase Credits
-                  </th>
-                  <th className="tw:text-right tw:py-3 tw:px-4 tw:font-semibold tw:text-gray-600 tw:whitespace-nowrap">
-                    Traditional TCO (3%)
-                  </th>
-                  <th className="tw:text-right tw:py-3 tw:px-4 tw:font-semibold tw:text-gray-600 tw:whitespace-nowrap">
-                    StoreKing Cost
-                  </th>
-                  <th className="tw:text-right tw:py-3 tw:px-4 tw:font-semibold tw:text-emerald-600 tw:whitespace-nowrap">
-                    Annual Net Savings
-                  </th>
-                  <th className="tw:text-right tw:py-3 tw:px-4 tw:font-semibold tw:text-emerald-600 tw:whitespace-nowrap">
-                    Cost Reduction %
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+            <AppTable size="sm" fixedLayout minWidth="700px">
+              <AppTable.Header>
+                <TableHeader headers={tierHeaders} noBg />
+              </AppTable.Header>
+              <AppTable.Body>
                 {roiTiers.map((tier, i) => (
-                  <tr
-                    key={i}
-                    className="tw:border-b tw:border-gray-100 last:tw:border-0"
-                  >
-                    <td className="tw:py-3 tw:px-4">
+                  <AppTable.Row key={i}>
+                    <AppTable.Cell>
                       <div className="tw:flex tw:items-center tw:gap-2">
                         <div
                           className={`tw:w-2.5 tw:h-2.5 tw:rounded-full ${tier.dotColor}`}
@@ -225,28 +237,28 @@ export default function DistributorBenefits() {
                           {tier.name}
                         </span>
                       </div>
-                    </td>
-                    <td className="tw:py-3 tw:px-4 tw:text-gray-600">
+                    </AppTable.Cell>
+                    <AppTable.Cell className="tw:text-gray-600">
                       {tier.credits}
-                    </td>
-                    <td className="tw:py-3 tw:px-4 tw:text-right tw:font-medium tw:text-gray-700">
+                    </AppTable.Cell>
+                    <AppTable.Cell className="tw:text-right tw:font-medium tw:text-gray-700">
                       {tier.traditionalCost}
-                    </td>
-                    <td className="tw:py-3 tw:px-4 tw:text-right tw:font-medium tw:text-gray-700">
+                    </AppTable.Cell>
+                    <AppTable.Cell className="tw:text-right tw:font-medium tw:text-gray-700">
                       {tier.skCost}
-                    </td>
-                    <td className="tw:py-3 tw:px-4 tw:text-right tw:font-semibold tw:text-emerald-600">
+                    </AppTable.Cell>
+                    <AppTable.Cell className="tw:text-right tw:font-semibold tw:text-emerald-600">
                       + {tier.savings}
-                    </td>
-                    <td className="tw:py-3 tw:px-4 tw:text-right">
+                    </AppTable.Cell>
+                    <AppTable.Cell className="tw:text-right">
                       <span className="tw:bg-emerald-50 tw:text-emerald-700 tw:font-bold tw:px-2 tw:py-0.5 tw:rounded-full tw:text-xs">
                         {tier.reduction}
                       </span>
-                    </td>
-                  </tr>
+                    </AppTable.Cell>
+                  </AppTable.Row>
                 ))}
-              </tbody>
-            </table>
+              </AppTable.Body>
+            </AppTable>
           </div>
         </AppCard>
 

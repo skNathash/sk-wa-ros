@@ -19,8 +19,8 @@
     "title": "Cart",
     "totalItems": "Total items",
     "emptyCart": {
-      "title": "Your cart is empty",
-      "subtitle": "Add items to get started"
+      "title": "Namaste!",
+      "subtitle": "Please place items on the counter. Your bill will appear here as we scan them."
     },
     "summary": {
       "subTotal": "Sub Total",

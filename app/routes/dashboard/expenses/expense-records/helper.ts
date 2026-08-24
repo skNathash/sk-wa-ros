@@ -1,4 +1,4 @@
-import { endOfDay, startOfDay } from "date-fns";
+import { endOfDay, endOfMonth, startOfDay, startOfMonth } from "date-fns";
 import ExpenseService from "~/services/ExpenseService";
 import type { PaginationState, SortProps } from "~/types/CommonTypes";
 
@@ -26,17 +26,23 @@ export const prepareParams = (
     ];
   }
 
-  // Date range filter: expect [from, to]
-  if (
+  // Date range filter: expect [from, to]. When no range is selected,
+  // default to the current month so the list shows current-month records.
+  const hasDateRange =
     filters.dateRange &&
     Array.isArray(filters.dateRange) &&
-    filters.dateRange.length === 2
-  ) {
-    params.filter.expenseDate = {
-      $gte: startOfDay(filters.dateRange[0]).toISOString(),
-      $lte: endOfDay(filters.dateRange[1]).toISOString(),
-    };
-  }
+    filters.dateRange.length === 2 &&
+    filters.dateRange[0] &&
+    filters.dateRange[1];
+
+  const [rangeStart, rangeEnd] = hasDateRange
+    ? filters.dateRange
+    : [startOfMonth(new Date()), endOfMonth(new Date())];
+
+  params.filter.expenseDate = {
+    $gte: startOfDay(rangeStart).toISOString(),
+    $lte: endOfDay(rangeEnd).toISOString(),
+  };
 
   // Category / Subcategory filters
   if (filters.category && filters.category?.length > 0) {

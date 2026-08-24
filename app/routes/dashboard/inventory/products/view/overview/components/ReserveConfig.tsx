@@ -11,9 +11,14 @@ import SellerCatalogService from "~/services/SellerCatalogService";
 interface ReserveConfigProps {
   dealId: string;
   isReserve: boolean;
+  sellerDealObjId: string;
 }
 
-const ReserveConfig: React.FC<ReserveConfigProps> = ({ dealId, isReserve }) => {
+const ReserveConfig: React.FC<ReserveConfigProps> = ({
+  dealId,
+  isReserve,
+  sellerDealObjId,
+}) => {
   const [loading, setLoading] = useState(false);
   const [_, setSearchParams] = useSearchParams();
   const toast = useAppToast();
@@ -40,6 +45,7 @@ const ReserveConfig: React.FC<ReserveConfigProps> = ({ dealId, isReserve }) => {
       const response: any = await SellerCatalogService.updateReserveConfig({
         configType: "Deal",
         dealId,
+        sellerDealObjId: dealId,
         isActive: checked,
         maxReserveQty: checked ? MAX_RESERVE_QTY : 0,
         remarks: `${checked ? "Enable" : "Disable"} reserve for specific deal`,

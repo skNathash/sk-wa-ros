@@ -112,7 +112,7 @@ const SubscribeTopProductInfo = ({
   };
 
   return (
-    <div className="tw:flex tw:min-w-0 tw:items-center tw:gap-1.5 tw:rounded-md tw:border tw:border-blue-100 tw:bg-blue-50/40 tw:px-2 tw:py-1 tw:text-xs tw:text-gray-600">
+    <div className="tw:flex tw:min-w-0 tw:items-center tw:gap-1.5 tw:bg-white tw:px-2 tw:py-1 tw:text-xs tw:text-gray-600">
       <span className="tw:min-w-0 tw:truncate tw:leading-tight">
         Popular for{" "}
         <span className="tw:font-semibold">"{primaryBusiness.name}"</span>

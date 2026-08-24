@@ -41,10 +41,10 @@ const AiSearching: React.FC<Props> = ({ barcode }) => {
         <Sparkles className="tw:absolute tw:-top-1.5 tw:-right-2 tw:w-5 tw:h-5 tw:text-amber-400 tw:animate-bounce" />
       </div>
 
-      {/* Headline: clearly state the product was NOT found in the SK Catalog */}
+      {/* Headline: clearly state the product was NOT found in the SK Library */}
       <div className="tw:relative tw:inline-flex tw:items-center tw:gap-1.5 tw:text-[11px] tw:font-medium tw:text-gray-500">
         <SearchX className="tw:w-3.5 tw:h-3.5" />
-        Barcode not found in SK Catalog
+        Barcode not found in SK Library
       </div>
 
       <div className="tw:relative tw:flex tw:items-center tw:gap-1 tw:text-base tw:font-bold tw:text-violet-900 tw:mt-2">

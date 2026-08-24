@@ -1,15 +1,24 @@
-import clsx from "clsx";
-import { Eye, EyeOff, PhoneCall } from "lucide-react";
+import {
+  ArrowRight,
+  Globe,
+  KeyRound,
+  Lock,
+  LogIn,
+  MessageCircle,
+  Phone,
+  Store,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { redirect } from "react-router";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
-import AppButton from "~/components/core/button/AppButton";
-import Divider from "~/components/core/divider/Divider";
-import { AppInput } from "~/components/core/form";
 import ImgRender from "~/components/core/img/ImgRender";
-import { OLD_APP, SUPPORT_WHATSAPP_NUMBER } from "~/constants";
+import {
+  MISSED_CALL_NUMBER,
+  OLD_APP,
+  SUPPORT_WHATSAPP_NUMBER,
+} from "~/constants";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
 import OtpModal from "~/modals/core/otp-modal/OtpModal";
@@ -17,11 +26,26 @@ import UpgradeModal from "~/modals/upgrade/UpgradeModal";
 import AuthService from "~/services/AuthService";
 import CommonService from "~/services/CommonService";
 import FranchiseService from "~/services/FranchiseService";
+import MarketplaceRunnerService from "~/services/MarketplaceRunnerService";
 import MiscService from "~/services/MiscService";
 import StorageService from "~/services/StorageService";
-import "./Login.css";
 
-const MAX_BG_IMG_INDEX = 13;
+const HERO_IMG = "login/hero-retailer.jpg";
+
+const OS_MODULES = [
+  "Storefront",
+  "Orders",
+  "Catalogue",
+  "Billing",
+  "PayLater",
+  "King Coins",
+];
+
+// "9606980465" / "919606980465" -> "+91 96069 80465"
+const formatSupportNumber = (num: string) => {
+  const local = num.length > 10 ? num.replace(/^91/, "") : num;
+  return `+91 ${local.slice(0, 5)} ${local.slice(5)}`.trim();
+};
 
 export async function clientLoader() {
   if (AuthService.isMasterLogin()) {
@@ -48,6 +72,8 @@ interface LoginForm {
   password: string;
   rememberMe: boolean;
 }
+
+const PREFERRED_LANGUAGES = ["English", "हिन्दी", "ಕನ್ನಡ", "தமிழ்", "తెలుగు"];
 
 const Login = () => {
   const appToast = useAppToast();
@@ -78,9 +104,6 @@ const Login = () => {
   const [validatingMobile, setValidatingMobile] = useState(false);
   const [loginType, setLoginType] = useState("retailer");
 
-  const [bgImgIndex, setBgImgIndex] = useState(1);
-  const [isFading, setIsFading] = useState(false);
-
   const [upgradeModal, setUpgradeModal] = useState<{
     show: boolean;
     data: any;
@@ -110,10 +133,12 @@ const Login = () => {
   });
 
   const loginRespRef = useRef<any>(null);
+  const userTypeRef = useRef<string>("");
 
   const otpRef = useRef<number | null>(null);
 
   const mobileValue = useWatch({ control: control, name: "mobile" });
+  const passwordValue = useWatch({ control: control, name: "password" });
 
   // Autofill mobile from AuthService cache if available
   useEffect(() => {
@@ -124,23 +149,6 @@ const Login = () => {
       }
     } catch (e) {}
   }, [setValue]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsFading(true);
-      setTimeout(() => {
-        setBgImgIndex((prev) => {
-          const next = prev + 1;
-          if (next > MAX_BG_IMG_INDEX) {
-            return 1;
-          }
-          return next;
-        });
-        setIsFading(false);
-      }, 1000);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Hide password input when mobile number changes
   useEffect(() => {
@@ -159,6 +167,7 @@ const Login = () => {
     try {
       const resp = await AuthService.validateNumber(mobile + "");
       const data = resp.data;
+      userTypeRef.current = data.type || "";
 
       if (data.hasAccount === false) {
         return {
@@ -254,7 +263,7 @@ const Login = () => {
 
   const onSubmit = async (data: LoginForm) => {
     if (!data.mobile) {
-      appToast.show({ msg: "Please provide username", color: "danger" });
+      appToast.show({ msg: "Please provide mobile number", color: "danger" });
       return;
     }
 
@@ -330,15 +339,37 @@ const Login = () => {
     StorageService.set("_mob", decodedToken.username);
   };
 
+  const fetchAndStoreRunnerDetails = async () => {
+    try {
+      const decodedToken = MiscService.decodeJwt(
+        loginRespRef.current["token"],
+      );
+      const referenceId = decodedToken?.referenceId;
+      if (!referenceId) {
+        return;
+      }
+      const resp = await MarketplaceRunnerService.getRunners({
+        filter: { _id: referenceId },
+      });
+      const runnerDetails = resp?.data?.data?.[0] || null;
+      if (runnerDetails) {
+        StorageService.set("_runner", runnerDetails);
+      }
+    } catch (e) {
+      // Runner details are optional; do not block login on failure
+    }
+  };
+
   const doLogin = async (data: LoginForm, noPassword: boolean = false) => {
     setIsForceLogin(false);
 
     otpRef.current = null;
 
     setLoading(true);
+    const isRunner = userTypeRef.current === "Runner";
     const params: Record<string, any> = {
       mobileNo: data.mobile.toString(),
-      userPlatformType: "RETAILER",
+      userPlatformType: isRunner ? "RUNNER" : "RETAILER",
     };
 
     if (!noPassword) {
@@ -346,7 +377,9 @@ const Login = () => {
     }
 
     try {
-      const resp = await AuthService.doLogin(params);
+      const resp = isRunner
+        ? await AuthService.otpLogin({ mobileNo: data.mobile.toString() })
+        : await AuthService.doLogin(params);
       if (resp.statusCode !== 200) {
         if (resp.data?.hasActiveSession) {
           setAppAlertDialog({
@@ -372,6 +405,15 @@ const Login = () => {
       }
 
       loginRespRef.current = resp.data?.data || {};
+
+      // Runner OTP login: OTP is sent by the server, open the OTP modal directly
+      if (isRunner) {
+        setIsOtpLogin(true);
+        setOtpMobile(data.mobile);
+        setOtpModal(true);
+        setLoading(false);
+        return;
+      }
 
       if (loginRespRef.current.otpRequired) {
         setOtpModal(true);
@@ -411,19 +453,25 @@ const Login = () => {
       return;
     }
     if (!CommonService.isValidMobileNo(mobile)) {
-      appToast.show({ msg: "Please provide valid Mobile no.", color: "danger" });
+      appToast.show({
+        msg: "Please provide valid Mobile no.",
+        color: "danger",
+      });
       return;
     }
 
     setIsForceLogin(false);
     otpRef.current = null;
     setLoading(true);
+    const isRunner = userTypeRef.current === "Runner";
     try {
-      const resp = await AuthService.doLogin({
-        mobileNo: mobile.toString(),
-        loginWithOtp: true,
-        userPlatformType: "RETAILER",
-      });
+      const resp = isRunner
+        ? await AuthService.otpLogin({ mobileNo: mobile.toString() })
+        : await AuthService.doLogin({
+            mobileNo: mobile.toString(),
+            loginWithOtp: true,
+            userPlatformType: "RETAILER",
+          });
       if (resp.statusCode !== 200) {
         appToast.show({
           msg: resp.data?.message || "Failed to send OTP",
@@ -441,7 +489,10 @@ const Login = () => {
       setOtpMobile(mobile);
       setOtpModal(true);
     } catch (e: any) {
-      appToast.show({ msg: e?.message || "Failed to send OTP", color: "danger" });
+      appToast.show({
+        msg: e?.message || "Failed to send OTP",
+        color: "danger",
+      });
     } finally {
       setLoading(false);
     }
@@ -453,6 +504,7 @@ const Login = () => {
       return;
     }
     setOtpValidating(true);
+    const isRunner = userTypeRef.current === "Runner";
     try {
       if (isOtpLogin) {
         const params = {
@@ -461,9 +513,16 @@ const Login = () => {
           externalUserId: loginRespRef.current.externalUserId,
           otp: "" + otp,
           loginWithOtp: true,
-          userPlatformType: "RETAILER",
+          userPlatformType: isRunner ? "RUNNER" : "RETAILER",
         };
-        const resp = await AuthService.doLogin(params);
+        const resp = isRunner
+          ? await AuthService.verifyOtpLogin({
+              mobileNo: "" + getValues("mobile"),
+              otpRequestId: loginRespRef.current.otpRequestId,
+              otp: "" + otp,
+              userPlatformType: "RUNNER",
+            })
+          : await AuthService.doLogin(params);
         if (resp.statusCode !== 200) {
           appToast.show({
             msg: resp.data?.message || "Failed to login",
@@ -478,6 +537,11 @@ const Login = () => {
         try {
           AuthService.setLastMobileNumber(null);
         } catch (e) {}
+
+        if (isRunner) {
+          await fetchAndStoreRunnerDetails();
+        }
+
         redirect();
         return;
       }
@@ -485,7 +549,7 @@ const Login = () => {
         mobileNo: "" + getValues("mobile"),
         otpRequestId: loginRespRef.current.otpRequestId,
         otp: "" + otp,
-        userPlatformType: "RETAILER",
+        userPlatformType: isRunner ? "RUNNER" : "RETAILER",
       };
       const resp = await AuthService.verifyOtpLogin(params);
       if (resp.statusCode !== 200) {
@@ -517,7 +581,10 @@ const Login = () => {
         );
         let franchiseId = decodedForClone?.franchise || "";
 
-        if (decodedForClone?.userType === "Manpower") {
+        if (
+          decodedForClone?.userType === "Manpower" &&
+          decodedForClone?.userType !== "Runner"
+        ) {
           try {
             const manpowerResp = await FranchiseService.getFranSubUserById(
               decodedForClone.referenceId,
@@ -592,7 +659,7 @@ const Login = () => {
       }
       const params: Record<string, any> = {
         mobileNo: "" + getValues("mobile"),
-        userPlatformType: "RETAILER",
+        userPlatformType: userTypeRef.current === "Runner" ? "RUNNER" : "RETAILER",
         otpRequestId: loginRespRef.current.otpRequestId,
       };
       if (isOtpLogin) {
@@ -664,7 +731,9 @@ const Login = () => {
       let franchiseId = decodedToken?.franchise;
 
       let manpowerDetails: Record<string, any> = {};
-      if (decodedToken?.userType === "Manpower") {
+      if (decodedToken?.userType === "Runner") {
+        // Runner login does not need the franchise/manpower profile fetch
+      } else if (decodedToken?.userType === "Manpower") {
         const manpowerResp = await FranchiseService.getFranSubUserById(
           decodedToken.referenceId,
         );
@@ -753,6 +822,19 @@ const Login = () => {
     }
   };
 
+  const handleMissedCall = () => {
+    // dial without the country code
+    const dialNumber =
+      MISSED_CALL_NUMBER.length > 10
+        ? MISSED_CALL_NUMBER.replace(/^91/, "")
+        : MISSED_CALL_NUMBER;
+    CommonService.windowOpenHandler(`tel:${dialNumber}`, () => {});
+  };
+
+  const handleDirectSignup = () => {
+    appNav.to("/auth/signup/intro");
+  };
+
   const handleContactSupport = () => {
     const waUrl = CommonService.prepareWhatsappMessage(
       "hi",
@@ -761,173 +843,284 @@ const Login = () => {
     CommonService.windowOpenHandler(waUrl, () => {});
   };
 
+  const mobileField = register("mobile");
+
   return (
     <>
-      <div className="login-page app-page tw:min-h-screen">
-        <div className=" tw:md:bg-blue-50 tw:min-h-screen tw:flex tw:md:items-center tw:md:justify-center">
-          <div className="tw:md:py-12 tw:md:px-8 tw:bg-white tw:md:bg-[#FAF9FA] tw:rounded-lg tw:md:gap-4 tw:relative tw:md:shadow-xl tw:md:max-w-[1200px] tw:md:mx-auto tw:flex-1 tw:flex tw:flex-col tw:md:flex-row tw:md:items-center">
-            <div className="tw:md:p-10 tw:p-6 tw:md:shadow-lg tw:md:rounded-lg tw:md:bg-gradient-to-br tw:md:from-blue-50 tw:md:to-white tw:bg-gradient-to-b tw:from-blue-100/80 tw:to-white/80 tw:md:w-[450px] tw:md:m-6 tw:relative tw:z-20">
-              <div className="tw:text-2xl tw:font-bold tw:flex tw:items-center tw:gap-2 tw:justify-center">
-                <span className="tw:font-bold tw:hidden">Welcome to</span>
-                <ImgRender src="logo/logo.png" className="tw:h-10 tw:!hidden tw:md:!block" />
-              </div>
-              <div className="tw:text-xs tw:text-gray-700 tw:mb-10 tw:font-medium tw:text-center">
-                Transform your store into an online supermarket.
+      <div className="login-page app-page">
+        <nav className="sk-nav">
+          <div className="sk-nav-inner">
+            <div className="sk-logo">
+              <ImgRender src="logo/logo.png" alt="StoreKing" />
+            </div>
+            <button
+              type="button"
+              className="sk-nav-help"
+              onClick={handleContactSupport}
+            >
+              <span className="sk-nav-help-icon">
+                <MessageCircle size={13} />
+              </span>
+              Need help? Chat on{" "}
+              <span className="sk-nav-help-num">
+                {formatSupportNumber(SUPPORT_WHATSAPP_NUMBER)}
+              </span>
+            </button>
+          </div>
+        </nav>
+
+        <div className="sk-shell">
+          {/* ---------- Branded panel ---------- */}
+          <aside className="sk-brand">
+            <div className="sk-brand-photo-frame">
+              <ImgRender src={HERO_IMG} className="sk-brand-photo" />
+            </div>
+
+            <div className="sk-brand-content">
+              <div>
+                <span className="sk-os-badge">
+                  <span className="sk-os-badge-mark">
+                    <Store size={12} strokeWidth={2.4} />
+                  </span>
+                  StoreKing <strong>Retail OS</strong>
+                </span>
+
+                <h2 className="sk-brand-headline">
+                  Welcome back, <em>King</em>. <br />
+                  Your town is waiting.
+                </h2>
+                <p className="sk-brand-sub">
+                  Log in to manage your online storefront, orders, catalogue,
+                  King Coins and PayLater — all from one place.
+                </p>
               </div>
 
-              <div className="tw:relative">
-                <ImgRender
-                  src="login/fly.png"
-                  className="tw:absolute tw:-top-12 tw:md:-top-16 tw:right-0 tw:md:-right-3 tw:w-[160px] tw:md:w-[190px]"
-                />
-                <div className="tw:text-xl tw:font-bold tw:text-slate-700 tw:mb-4">
-                  Sign in to your account
+              <div className="sk-brand-storefront">
+                <span className="sk-brand-storefront-icon">
+                  <Globe size={16} strokeWidth={2.2} />
+                </span>
+                <span className="sk-brand-storefront-body">
+                  <span className="sk-brand-storefront-label">
+                    Your live storefront
+                  </span>
+                  <span className="sk-brand-storefront-url">
+                    storeking.in/your-mobile
+                  </span>
+                </span>
+              </div>
+
+              <div className="sk-brand-modules">
+                <div className="sk-brand-modules-label">
+                  What&apos;s inside your OS
                 </div>
-                <div className="tw:text-xs tw:text-gray-700 tw:mt-2 tw:mb-6 tw:font-medium tw:hidden">
-                  Log in to manage everything from your store.
+                <div className="sk-module-chips">
+                  {OS_MODULES.map((m) => (
+                    <span className="sk-module-chip" key={m}>
+                      {m}
+                    </span>
+                  ))}
+                </div>
+                <div className="sk-module-chips sk-module-chips-stat">
+                  <span className="sk-module-chip">
+                    <strong>20,000+</strong> retailers signed in today
+                  </span>
                 </div>
               </div>
+            </div>
+          </aside>
 
-              <div className="tw:md:w-11/12">
-                <AppInput
-                  name="mobile"
-                  register={register}
-                  placeholder="Mobile Number"
-                  type="number"
-                  error={errors.mobile?.message}
-                  className="tw:mb-4"
-                  inputClassName="tw:bg-white"
-                  maxLength={10}
-                />
+          {/* ---------- Form ---------- */}
+          <main className="sk-canvas">
+            <div className="sk-head">
+              <span className="sk-eyebrow">Retailer login</span>
+              <h1 className="sk-h1">
+                Log in to <em>your shop</em>.
+              </h1>
+              <p className="sk-sub">
+                Manage the <strong>online shop</strong> you already created with
+                StoreKing.
+              </p>
+            </div>
 
-                {showPwdInp && (
-                  <div className="tw:relative">
-                    <AppInput
-                      name="password"
+            <form className="sk-card" onSubmit={handleSubmit(onSubmit)}>
+              <div className="sk-field">
+                <div className="sk-field-label">
+                  <span>Mobile number</span>
+                </div>
+                <label className="sk-input-wrap sk-phone-input">
+                  <span className="sk-phone-cc">
+                    <span className="sk-flag" aria-hidden="true" />
+                    +91
+                  </span>
+                  <input
+                    {...mobileField}
+                    onChange={(e) => {
+                      e.target.value = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 10);
+                      mobileField.onChange(e);
+                    }}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    autoComplete="tel-national"
+                    placeholder="98765 43210"
+                  />
+                </label>
+                {errors.mobile?.message && (
+                  <span className="sk-field-error">
+                    {errors.mobile.message}
+                  </span>
+                )}
+              </div>
+
+              {showPwdInp && (
+                <div className="sk-field">
+                  <div className="sk-field-label">
+                    <span>Password</span>
+                  </div>
+                  <label className="sk-input-wrap">
+                    <span className="sk-input-icon">
+                      <Lock size={18} />
+                    </span>
+                    <input
+                      {...register("password")}
                       type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      register={register}
-                      error={errors.password?.message as string}
-                      className="tw:mb-4"
-                      inputClassName="tw:bg-white"
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
                     />
                     <button
                       type="button"
+                      className="sk-input-toggle"
                       onClick={togglePassword}
-                      className="tw:absolute tw:cursor-pointer tw:inset-y-0 tw:right-2 tw:pr-3 tw:flex tw:items-center tw:text-sm tw:leading-5 tw:text-gray-400 hover:tw:text-gray-600 focus:tw:outline-none"
                     >
-                      {showPassword ? (
-                        <EyeOff className="tw:h-5 tw:w-5" />
-                      ) : (
-                        <Eye className="tw:h-5 tw:w-5" />
-                      )}
+                      {showPassword ? "Hide" : "Show"}
                     </button>
-                  </div>
-                )}
-
-                <div className="tw:flex tw:justify-between tw:items-center tw:mb-3">
-                  <button
-                    type="button"
-                    className="tw:text-blue-800 tw:text-xs tw:font-medium tw:cursor-pointer"
-                    onClick={handleLoginWithOtp}
-                  >
-                    Login with OTP
-                  </button>
-                  <button
-                    type="button"
-                    className="tw:text-blue-800 tw:text-xs tw:font-medium tw:cursor-pointer"
-                    onClick={handleForgotPassword}
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-
-                <div className="tw:flex tw:gap-3 tw:mb-8">
-                  <AppButton
-                    onClick={() => appNav.to("/auth/signup/intro")}
-                    className="tw:flex-1 tw:uppercase"
-                    fill="outline"
-                  >
-                    Sign Up
-                  </AppButton>
-                  <AppButton
-                    type="submit"
-                    onClick={handleSubmit(onSubmit)}
-                    noShadow={true}
-                    className="tw:flex-1 tw:uppercase"
-                  >
-                    Sign in
-                  </AppButton>
-                </div>
-
-                <div className="tw:flex tw:justify-between tw:mt-4 tw:gap-2">
-                  <div className="tw:flex tw:justify-center tw:items-center tw:gap-1 tw:text-xs tw:text-gray-600 tw:underline">
-                    <button
-                      onClick={() => {
-                        CommonService.windowOpenHandler(
-                          "https://www.instagram.com/clubonlinesupermarket/",
-                          () => {},
-                        );
-                      }}
-                      className="tw:cursor-pointer"
-                    >
-                      <ImgRender
-                        src="/vendors/instagram-logo.svg"
-                        className="tw:h-6 tw:w-6"
-                      />
-                    </button>
-
-                    {/* <span>Know more</span>
-                      <PlayCircle size={16} className="tw:text-blue-800" /> */}
-                  </div>
-
-                  <div className="tw:flex tw:items-start tw:gap-1">
-                    {/* <div className="tw:text-xs tw:text-gray-600 tw:font-medium">
-                      Need help?
-                    </div> */}
-                    <button
-                      className="tw:text-blue-800 tw:text-xs tw:font-medium tw:cursor-pointer tw:underline tw:flex tw:items-center tw:gap-1"
-                      onClick={handleContactSupport}
-                    >
-                      <PhoneCall size={16} />
-                      Contact
-                    </button>
-                  </div>
-                </div>
-
-                <div className="tw:mb-6">
-                  <Divider />
-                </div>
-
-                <div className="tw:flex tw:gap-2 tw:justify-center tw:items-center tw:text-xs tw:text-slate-500 tw:absolute tw:bottom-2 tw:md:bottom-4 tw:left-0 tw:right-0">
-                  Powered by{" "}
-                  <ImgRender
-                    src="/ai/ai.gif"
-                    className="tw:h-8 tw:inline-block tw:rounded-full"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop brain connector - hidden on mobile */}
-            <ImgRender
-              src="login/brain.jpg"
-              className="tw:!hidden tw:md:!block tw:md:absolute tw:md:left-[410px] tw:md:top-1/2 tw:md:-translate-y-1/2 tw:md:w-[420px] tw:md:z-10 tw:md:pointer-events-none"
-            />
-
-            {/* Poster loop section - desktop right side, mobile bottom */}
-            <div className="tw:order-first tw:md:order-none tw:md:flex-1 tw:md:flex tw:md:items-center tw:md:justify-end tw:md:p-6">
-              <div className="tw:relative tw:w-full tw:md:w-[420px] tw:md:h-[420px] tw:aspect-square tw:md:rounded-lg tw:overflow-hidden tw:md:z-20 tw:md:shadow-2xl">
-                <ImgRender
-                  src={`category-posters/category-${bgImgIndex}.jpg`}
-                  className={clsx(
-                    "tw:w-full tw:h-full tw:object-cover tw:transition-all tw:duration-500",
-                    isFading ? "tw:blur-xs tw:opacity-80" : "tw:opacity-100",
+                  </label>
+                  {errors.password?.message && (
+                    <span className="sk-field-error">
+                      {errors.password.message as string}
+                    </span>
                   )}
-                />
+                </div>
+              )}
+
+              <button type="submit" className="sk-btn-primary">
+                <span className="sk-btn-primary-left">
+                  <span className="sk-btn-primary-icon">
+                    <LogIn size={18} strokeWidth={2.2} />
+                  </span>
+                  <span>
+                    <span className="sk-btn-primary-main">
+                      {showPwdInp ? "Log in to my shop" : "Continue"}
+                    </span>
+                    <span className="sk-btn-primary-sub">
+                      {showPwdInp
+                        ? "Mobile number + password"
+                        : "We'll check your mobile number first"}
+                    </span>
+                  </span>
+                </span>
+                <span className="sk-btn-primary-arrow">
+                  <ArrowRight size={20} strokeWidth={2.4} />
+                </span>
+              </button>
+
+              <div className="sk-btn-row">
+                <button
+                  type="button"
+                  className="sk-btn-ghost"
+                  onClick={handleLoginWithOtp}
+                >
+                  <KeyRound size={16} />
+                  Login with OTP
+                </button>
+                <button
+                  type="button"
+                  className="sk-btn-ghost"
+                  onClick={handleForgotPassword}
+                >
+                  <Lock size={15} />
+                  Forgot password
+                </button>
+              </div>
+            </form>
+
+            {/* New retailer */}
+            <div className="sk-new-card">
+              <div className="sk-new-card-inner">
+                <span className="sk-new-card-eyebrow">
+                  Don&apos;t have a shop yet?
+                </span>
+                <div className="sk-new-card-title">
+                  Create your online shop in <em>5 minutes</em>.
+                </div>
+                <button
+                  type="button"
+                  className="sk-new-card-cta"
+                  onClick={handleMissedCall}
+                >
+                  <span className="sk-new-card-cta-left">
+                    <span className="sk-new-card-cta-icon">
+                      <Phone size={16} strokeWidth={2.2} />
+                    </span>
+                    <span>
+                      <span className="sk-new-card-cta-label">
+                        Give a free missed call
+                      </span>
+                      <span className="sk-new-card-cta-sub">
+                        {formatSupportNumber(MISSED_CALL_NUMBER)}
+                      </span>
+                    </span>
+                  </span>
+                  <ArrowRight size={18} strokeWidth={2.4} />
+                </button>
+
+                <div className="sk-new-card-alt">
+                  <span>or</span>
+                  <button type="button" onClick={handleDirectSignup}>
+                    Sign up yourself
+                    <ArrowRight size={13} strokeWidth={2.6} />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+
+            <div className="sk-foot">
+              <button
+                type="button"
+                className="sk-foot-link"
+                onClick={handleContactSupport}
+              >
+                <MessageCircle size={15} />
+                Trouble logging in? Talk to us
+              </button>
+              <button
+                type="button"
+                className="sk-foot-link"
+                onClick={() => {
+                  CommonService.windowOpenHandler(
+                    "https://www.instagram.com/storekingindia",
+                    () => {},
+                  );
+                }}
+              >
+                <ImgRender
+                  src="/vendors/instagram-logo.svg"
+                  className="tw:h-4 tw:w-4"
+                />
+                Instagram
+              </button>
+            </div>
+
+            <div className="sk-powered">
+              Powered by
+              <ImgRender
+                src="/ai/ai.gif"
+                className="tw:h-7 tw:inline-block tw:rounded-full"
+              />
+            </div>
+          </main>
         </div>
       </div>
 

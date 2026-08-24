@@ -1,24 +1,15 @@
 import React from "react";
-import {
-  AlertCircle,
-  Barcode,
-  Box,
-  CircleCheck,
-  Clock,
-  Sparkles,
-  Store,
-  Trash2,
-} from "lucide-react";
+import { Box, Trash2 } from "lucide-react";
 
+import useTheme from "~/hooks/useTheme";
 import Amount from "~/components/core/amount/Amount";
 import AppButton from "~/components/core/button/AppButton";
 import ImgRender from "~/components/core/img/ImgRender";
 import MatchingBadge from "./MatchingBadge";
 import ScanItemActions from "~/shared/inventory/components/scan-item-actions/ScanItemActions";
-import {
-  dealImageProps,
-  type ReviewItem,
-} from "../../helper";
+import SubscribeAction from "./SubscribeAction";
+import { BarcodeChip, QtyChip, StatusChip, statusMeta } from "./ItemChips";
+import { dealImageProps, type ReviewItem } from "../../helper";
 
 interface ReviewViewProps {
   items: ReviewItem[];
@@ -27,58 +18,11 @@ interface ReviewViewProps {
   onSkSuggestions: (item: ReviewItem) => void;
   onCreateProduct: (item: ReviewItem) => void;
   onRemove: (barcode: string) => void;
-  onImagePreview?: (images: string[], initialImageId?: string, useProxy?: boolean) => void;
-}
-
-/**
- * The card's status presentation. Colours and labels come straight from the
- * item's match badge (`item.badge`) so the status itself never changes — this
- * only makes it prominent: a larger icon-led pill. The icons mirror the match
- * summary above the list (Store = SK catalog, Sparkles = SK AI, AlertCircle =
- * no match), so a row's status reads as part of the same tally.
- */
-type StatusMeta = {
-  Icon: React.ComponentType<{ className?: string }>;
-  bg: string;
-  text: string;
-  dot: string;
-  label: string;
-  subLabel?: string;
-};
-
-function statusMeta(item: ReviewItem): StatusMeta {
-  if (item.status === "Requested") {
-    return {
-      Icon: Clock,
-      bg: "tw:bg-amber-50",
-      text: "tw:text-amber-700",
-      dot: "tw:bg-amber-400",
-      label: "Already requested",
-    };
-  }
-  if (item.deal?.isSubscribed) {
-    return {
-      Icon: CircleCheck,
-      bg: "tw:bg-gray-100",
-      text: "tw:text-gray-600",
-      dot: "tw:bg-gray-400",
-      label: "Already Subscribed",
-    };
-  }
-  const Icon =
-    item.matchStatus === "FoundInSk"
-      ? Store
-      : item.matchStatus === "FoundInAi"
-        ? Sparkles
-        : AlertCircle;
-  return {
-    Icon,
-    bg: item.badge.bg,
-    text: item.badge.text,
-    dot: item.badge.dot,
-    label: item.badge.label,
-    subLabel: item.badge.subLabel,
-  };
+  onImagePreview?: (
+    images: string[],
+    initialImageId?: string,
+    useProxy?: boolean,
+  ) => void;
 }
 
 /** Ghost trash button shared by every card. */
@@ -104,26 +48,28 @@ const RemoveButton: React.FC<{
 const PendingCard: React.FC<{
   barcode: string;
   removing?: boolean;
+  className: string;
   onRemove: (barcode: string) => void;
-}> = ({ barcode, removing, onRemove }) => (
-  <li className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white">
+}> = ({ barcode, removing, className, onRemove }) => (
+  <li className={className}>
     <span className="tw:absolute tw:left-0 tw:top-0 tw:bottom-0 tw:w-1 tw:bg-violet-300" />
-    <div className="tw:flex tw:items-start tw:gap-3 tw:py-2.5 tw:pl-4 tw:pr-2.5">
-      <div className="tw:w-14 tw:h-14 tw:rounded-lg skeleton-loader tw:shrink-0" />
+    <div className="tw:flex tw:items-start tw:gap-3 tw:py-3 tw:pl-4 tw:pr-2.5">
+      <div className="tw:w-14 tw:h-14 tw:rounded-xl skeleton-loader tw:shrink-0" />
       <div className="tw:flex-1 tw:min-w-0">
         <div className="tw:flex tw:items-start tw:gap-2">
           <div className="tw:flex-1 tw:min-w-0">
             <div className="tw:h-3.5 tw:w-3/4 tw:rounded skeleton-loader" />
             <div className="tw:h-3 tw:w-1/2 tw:rounded skeleton-loader tw:mt-2" />
           </div>
-          <RemoveButton barcode={barcode} removing={removing} onRemove={onRemove} />
+          <RemoveButton
+            barcode={barcode}
+            removing={removing}
+            onRemove={onRemove}
+          />
         </div>
-        <div className="tw:flex tw:items-center tw:gap-2 tw:mt-2">
+        <div className="tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap tw:mt-2">
           <MatchingBadge />
-          <span className="tw:inline-flex tw:items-center tw:gap-1 tw:font-mono tw:text-[10px] tw:text-gray-400">
-            <Barcode className="tw:w-2.5 tw:h-2.5 tw:shrink-0" />
-            {barcode}
-          </span>
+          <BarcodeChip barcode={barcode} />
         </div>
       </div>
     </div>
@@ -138,15 +84,28 @@ const MobileView: React.FC<ReviewViewProps> = ({
   onRemove,
   onImagePreview,
 }) => {
+  const isTheme2 = useTheme() === "theme-2";
+
+  // theme-2 mobile: the list is one white sheet running edge to edge
+  // (`app-bleed-x` pulls it out of the page gutter), rows separated by a
+  // hairline instead of floating as gapped cards. Other themes keep the cards.
+  const listClass = isTheme2
+    ? "app-bleed-x tw:flex tw:flex-col tw:divide-y tw:divide-gray-100 tw:border-y tw:border-gray-200 tw:bg-white"
+    : "tw:flex tw:flex-col tw:gap-2";
+  const cardClass = isTheme2
+    ? "tw:relative tw:overflow-hidden tw:bg-white"
+    : "tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white";
+
   return (
-    <ul className="tw:flex tw:flex-col tw:gap-2">
+    <ul className={listClass}>
       {items.map((item) => {
         if (item.matchStatus === "Pending") {
           return (
             <PendingCard
-              key={item.barcode}
+              key={item.id || item.barcode}
               barcode={item.barcode}
               removing={removing?.has(item.barcode)}
+              className={cardClass}
               onRemove={onRemove}
             />
           );
@@ -162,141 +121,108 @@ const MobileView: React.FC<ReviewViewProps> = ({
             item.matchStatus === "NotFound");
 
         return (
-          <li
-            key={item.barcode}
-            className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white"
-          >
+          <li key={item.id || item.barcode} className={cardClass}>
             <span
               className={`tw:absolute tw:left-0 tw:top-0 tw:bottom-0 tw:w-1 ${status.dot}`}
             />
 
-            <div className="tw:py-2.5 tw:pl-4 tw:pr-2.5">
-              <div className="tw:flex tw:items-start tw:gap-3">
-                <div className="tw:flex tw:items-center tw:justify-center tw:w-14 tw:h-14 tw:rounded-lg tw:bg-gray-50 tw:border tw:border-gray-100 tw:shrink-0">
-                  {deal?.image ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onImagePreview?.(
-                          deal?.images || (deal?.image ? [deal.image] : []),
-                          deal?.image,
-                          item.matchStatus === "FoundInAi",
-                        )
-                      }
-                      className="tw:cursor-pointer tw:flex tw:items-center tw:justify-center hover:tw:opacity-90 tw:transition-opacity focus:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-blue-500"
-                    >
-                      <ImgRender
-                        {...dealImageProps(deal.image)}
-                        alt={deal.title}
-                        className="tw:max-h-14 tw:max-w-14 tw:object-contain"
-                        useProxy={item.matchStatus === "FoundInAi"}
-                      />
-                    </button>
-                  ) : (
-                    <Box size={22} className="tw:text-gray-300" />
-                  )}
-                </div>
-
-                <div className="tw:flex-1 tw:min-w-0">
-                  <div className="tw:flex tw:items-start tw:gap-2.5">
-                    <div className="tw:flex-1 tw:min-w-0">
-                      <div className="tw:text-sm tw:font-medium tw:text-gray-900 tw:line-clamp-2 tw:leading-snug">
-                        {deal?.title || (
-                          <span className="tw:text-gray-400 tw:italic">
-                            No match found
-                          </span>
-                        )}
-                      </div>
-                      <div className="tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap tw:mt-1 tw:text-[10px] tw:text-gray-500">
-                        {deal?.brandName && (
-                          <span className="tw:font-medium tw:text-gray-600">
-                            {deal.brandName}
-                          </span>
-                        )}
-                        {deal?.brandName && (
-                          <span className="tw:text-gray-300">·</span>
-                        )}
-                        <span className="tw:inline-flex tw:items-center tw:gap-1 tw:font-mono">
-                          <Barcode className="tw:w-2.5 tw:h-2.5 tw:shrink-0" />
-                          {item.barcode}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Right column — the seller's price + count, the two
-                        facts read most after match status. MRP gets the bold
-                        slot; qty rides beneath it. */}
-                    {(Boolean(deal && deal.mrp > 0) || item.qty > 0) && (
-                      <div className="tw:shrink-0 tw:text-right tw:leading-none">
-                        {deal && deal.mrp > 0 && (
-                          <>
-                            <div className="tw:text-[9px] tw:font-semibold tw:uppercase tw:tracking-wider tw:text-gray-400">
-                              MRP
-                            </div>
-                            <Amount
-                              value={deal.mrp}
-                              className="tw:text-[15px] tw:font-semibold tw:text-gray-900"
-                            />
-                          </>
-                        )}
-                        {item.qty > 0 && (
-                          <div className="tw:text-[10px] tw:font-medium tw:text-gray-500 tw:tabular-nums tw:mt-0.5">
-                            Qty {item.qty}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:mt-2">
-                    <span
-                      className={`tw:inline-flex tw:items-center tw:gap-1.5 tw:rounded-lg tw:px-2.5 tw:py-1.5 ${status.bg}`}
-                    >
-                      <status.Icon
-                        className={`tw:w-4 tw:h-4 tw:shrink-0 ${status.text}`}
-                      />
-                      <span className="tw:flex tw:flex-col tw:leading-tight tw:text-left">
-                        <span
-                          className={`tw:text-xs tw:font-bold ${status.text}`}
-                        >
-                          {status.label}
-                        </span>
-                        {status.subLabel && (
-                          <span className="tw:text-[10px] tw:font-medium tw:text-gray-500">
-                            {status.subLabel}
-                          </span>
-                        )}
-                      </span>
-                    </span>
-                    {/* No action footer on this card — give the trash a home
-                        here so the row stays tight instead of adding a row. */}
-                    {!showActions && (
-                      <RemoveButton
-                        barcode={item.barcode}
-                        removing={removing?.has(item.barcode)}
-                        onRemove={onRemove}
-                      />
-                    )}
-                  </div>
-                </div>
+            {/* The image is the only thing in the left column — everything
+                else (title, chips, status, price and actions) shares one text
+                column so their left edges line up down the card. */}
+            <div className="tw:flex tw:items-start tw:gap-3 tw:py-3 tw:pl-4 tw:pr-2.5">
+              <div className="tw:flex tw:items-center tw:justify-center tw:w-14 tw:h-14 tw:rounded-xl tw:bg-gray-50 tw:border tw:border-gray-100 tw:shrink-0">
+                {deal?.image ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onImagePreview?.(
+                        deal?.images || (deal?.image ? [deal.image] : []),
+                        deal?.image,
+                        item.matchStatus === "FoundInAi",
+                      )
+                    }
+                    className="tw:cursor-pointer tw:flex tw:items-center tw:justify-center hover:tw:opacity-90 tw:transition-opacity focus:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-blue-500"
+                  >
+                    <ImgRender
+                      {...dealImageProps(deal.image)}
+                      alt={deal.title}
+                      className="tw:max-h-14 tw:max-w-14 tw:object-contain"
+                      useProxy={item.matchStatus === "FoundInAi"}
+                    />
+                  </button>
+                ) : (
+                  <Box size={22} className="tw:text-gray-300" />
+                )}
               </div>
 
-              {showActions && (
-                <div className="tw:flex tw:items-center tw:gap-2 tw:mt-2.5">
-                  <ScanItemActions
-                    item={item}
-                    align="start"
-                    className="tw:flex-1"
-                    onCreateProduct={onCreateProduct}
-                    onSkSuggestions={onSkSuggestions}
-                  />
+              <div className="tw:flex tw:flex-col tw:gap-2 tw:flex-1 tw:min-w-0">
+                <div className="tw:flex tw:items-start tw:gap-2.5">
+                  <div className="tw:flex-1 tw:min-w-0">
+                    <div className="tw:text-sm tw:font-semibold tw:text-gray-900 tw:line-clamp-2 tw:leading-snug">
+                      {deal?.title || (
+                        <span className="tw:text-gray-400 tw:italic tw:font-normal">
+                          No match found
+                        </span>
+                      )}
+                    </div>
+                    {deal?.brandName && (
+                      <div className="tw:text-[11px] tw:font-medium tw:text-gray-500 tw:truncate tw:mt-0.5">
+                        {deal.brandName}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* The trash lives with the title so it never competes with
+                        the row's primary action down in the footer. */}
                   <RemoveButton
                     barcode={item.barcode}
                     removing={removing?.has(item.barcode)}
                     onRemove={onRemove}
                   />
                 </div>
-              )}
+
+                {/* Which code is this, how many did we scan, and where did it
+                      match? One wrapping chip group so the status pill keeps
+                      the barcode chip's left edge instead of starting its own
+                      column. */}
+                <div className="tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
+                  <BarcodeChip barcode={item.barcode} />
+                  {item.qty > 0 && <QtyChip qty={item.qty} />}
+                  <StatusChip item={item} />
+                </div>
+
+                {/* Money on the left, the decision on the right. */}
+                <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:flex-wrap">
+                  {deal && deal.mrp > 0 ? (
+                    <div className="tw:flex tw:items-baseline tw:gap-1">
+                      <span className="tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wider tw:text-gray-400">
+                        MRP
+                      </span>
+                      <Amount
+                        value={deal.mrp}
+                        className="tw:text-[15px] tw:font-bold tw:text-gray-900"
+                      />
+                    </div>
+                  ) : (
+                    <span className="tw:text-[11px] tw:text-gray-400">
+                      No price yet
+                    </span>
+                  )}
+
+                  {showActions && (
+                    <ScanItemActions
+                      item={item}
+                      className="tw:shrink-0"
+                      onCreateProduct={onCreateProduct}
+                      onSkSuggestions={onSkSuggestions}
+                    />
+                  )}
+
+                  {/* SK-catalog rows carry their own subscribe action — nothing
+                        to create, so the decision is right here on the row. */}
+                  <SubscribeAction item={item} className="tw:shrink-0" />
+                </div>
+              </div>
             </div>
           </li>
         );

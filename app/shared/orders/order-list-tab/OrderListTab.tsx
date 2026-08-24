@@ -1,12 +1,5 @@
 import { produce } from "immer";
-import {
-  BarChart2,
-  Box,
-  Coins,
-  CreditCard,
-  ShoppingCart,
-  Truck,
-} from "lucide-react";
+import { Box, Coins, CreditCard, ShoppingCart, Truck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AppTab from "~/components/core/tab/AppTab";
@@ -25,6 +18,8 @@ import {
 interface OrderListTabProps {
   activeTab?: string;
   className?: string;
+  /** Tab styling — see {@link AppTab}. Defaults to the segmented control. */
+  variant?: "tabs" | "pills" | "underline" | "chips";
 }
 
 const description = {
@@ -41,14 +36,8 @@ const description = {
 const getTabs = (isBuyer: boolean, isSeller: boolean): TabItem[] => {
   const baseTabs: TabItem[] = [];
 
-  // Analytics tab appears in the list top tab group
-  baseTabs.push({
-    name: "Analytics",
-    langKey: "orderAnalytics",
-    key: "analytics",
-    icon: <BarChart2 />,
-  });
-
+  // Analytics is no longer a channel here — it is one of the three views on
+  // the Board / Directory / Analytics bar (see `OrderViewTabs`).
   baseTabs.push({
     name: "B2C Orders",
     langKey: "b2cOrders",
@@ -87,9 +76,27 @@ const getTabs = (isBuyer: boolean, isSeller: boolean): TabItem[] => {
   return baseTabs;
 };
 
+/**
+ * Where a tab in this bar lands. Exported so other surfaces (e.g. the order
+ * side pane) can navigate to the same destinations without restating them.
+ */
+export const getOrderListTabRedirect = (
+  key: string,
+): { url: string; params?: Record<string, string> } => {
+  if (key === "receive-order")
+    return { url: "/dashboard/orders/primary/receive/list" };
+  if (key === "analytics") return { url: "/dashboard/orders/dashboard" };
+  return { url: "/dashboard/orders/list", params: { tab: key } };
+};
+
+/** The order channels this bar covers, for surfaces that render their own. */
+export const getOrderChannelTabs = (): TabItem[] =>
+  getTabs(AuthService.isBuyerUser(), AuthService.loggedInUserIsSeller());
+
 const OrderListTab = ({
   activeTab = "b2c-orders",
   className = "",
+  variant,
 }: OrderListTabProps) => {
   const { t } = useTranslation(["common"]);
   const appNav = useAppNav();
@@ -104,15 +111,8 @@ const OrderListTab = ({
   const initialTab = tabs.find((tab) => tab.key === activeTab) ?? tabs[0];
 
   const handleTabChange = (tab: TabItem) => {
-    if (tab.key === "receive-order") {
-      appNav.to(`/dashboard/orders/primary/receive/list`);
-    } else if (tab.key === "analytics") {
-      appNav.to(`/dashboard/orders/dashboard`);
-    } else {
-      appNav.to(`/dashboard/orders/list`, {
-        tab: tab.key,
-      });
-    }
+    const redirect = getOrderListTabRedirect(tab.key);
+    appNav.to(redirect.url, redirect.params);
   };
 
   useEffect(() => {
@@ -201,6 +201,7 @@ const OrderListTab = ({
         activeTab={initialTab?.key}
         tabs={tabs}
         onTabChange={handleTabChange}
+        variant={variant}
       />
       {/* Description removed as per UI changes */}
     </div>

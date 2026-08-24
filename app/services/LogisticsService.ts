@@ -529,6 +529,14 @@ class LogisticsService {
     return AjaxService.request(`${API}sales/shipment/approve`, "POST", params);
   }
 
+  /**
+   * Fetch shipments for the dispatch desk.
+   * Endpoint: GET sales/shipment/fetch
+   */
+  static async fetchShipments(params: Record<string, any> = {}) {
+    return AjaxService.request(`${API}sales/shipment/fetch`, "GET", params);
+  }
+
   static async getBoxes(id: string, params: Record<string, any> = {}) {
     return AjaxService.request(
       `${API}sales/package/buyer/${id}/list`,

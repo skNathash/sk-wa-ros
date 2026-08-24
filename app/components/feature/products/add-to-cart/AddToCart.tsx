@@ -53,24 +53,34 @@ const AddToCart: React.FC<AddToCartProps> = ({
   const [localQty, setLocalQty] = useState(selectedQuantity);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
+  // Which seller's shelf this card belongs to — blank for the buyer's own cart.
+  const dealSellerId = deal?.buyFromOtherRetailer?.retailerId;
+
   useEffect(() => {
     setLocalQty(dealData?.inCart?.qty || 1);
     setShowQuantitySelect(dealData?.inCart?.status || false);
   }, [dealData?.inCart?.qty]);
 
   useEffect(() => {
+    // The same catalog deal is sold by several sellers, so a cart event only
+    // belongs to this card when the seller matches too — otherwise adding the
+    // deal at one seller flips every other seller's card to "in cart".
+    const isThisCard = (data: any) =>
+      String(data.dealId) === String(deal.id) &&
+      String(data.sellerId ?? "") === String(dealSellerId ?? "");
+
     const handleCartAddedEvent = (ev: any) => {
       // CustomEvent comes through as an Event with `detail` property
       const data = ev?.detail || {};
       // Coerce both sides to string to avoid number/string mismatches
-      if (String(data.dealId) === String(deal.id)) {
+      if (isThisCard(data)) {
         setSelectedQuantity(data.qty);
         setShowQuantitySelect(true);
       }
     };
     const handleCartRemovedEvent = (ev: any) => {
       const data = ev?.detail || {};
-      if (String(data.dealId) === String(deal.id)) {
+      if (isThisCard(data)) {
         setSelectedQuantity(0);
         setShowQuantitySelect(false);
       }
@@ -87,7 +97,7 @@ const AddToCart: React.FC<AddToCartProps> = ({
         handleCartRemovedEvent,
       );
     };
-  }, [deal.id]);
+  }, [deal.id, dealSellerId]);
 
   useEffect(() => {
     setDealData(deal);
@@ -148,7 +158,7 @@ const AddToCart: React.FC<AddToCartProps> = ({
 
       if (result.status) {
         if (operation === "add" || operation === "update") {
-          CartService.triggerCartAddedEvent(dealId, quantity);
+          CartService.triggerCartAddedEvent(dealId, quantity, dealSellerId);
           setDealData((prev) =>
             prev ? { ...prev, inCart: { status: true, qty: quantity } } : prev,
           );
@@ -157,7 +167,7 @@ const AddToCart: React.FC<AddToCartProps> = ({
         }
 
         if (operation === "remove") {
-          CartService.triggerCartRemovedEvent(dealId);
+          CartService.triggerCartRemovedEvent(dealId, dealSellerId);
           setShowQuantitySelect(false);
           // Update local dealData to reflect removal
           setDealData((prev) =>
@@ -321,6 +331,8 @@ const AddToCart: React.FC<AddToCartProps> = ({
         color: "danger",
       });
       setSelectedQuantity(previousQuantity); // Revert to previous value on failure
+      // Revert the optimistic stepper value back to the actual cart qty
+      setLocalQty(dealData?.inCart?.qty ?? previousQuantity);
     } finally {
       setUpdating(false); // Ensure updating state is reset
     }
@@ -335,6 +347,7 @@ const AddToCart: React.FC<AddToCartProps> = ({
 
   const onDecr = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (updating) return;
     // If this deal has price slabs, we shouldn't perform incr/decr
     // Instead trigger the price-slab callback so caller can open slab UI
     if (
@@ -347,11 +360,25 @@ const AddToCart: React.FC<AddToCartProps> = ({
       return;
     }
 
-    setPopoverOpen(true);
+    const minQty = dealData?.minQty || 1;
+    const incr = dealData?.incrQty || 1;
+    const current = localQty || minQty;
+
+    // At (or below) the minimum qty, decrementing removes the item from cart
+    if (current <= minQty) {
+      setLocalQty(0);
+      debounceQty(0);
+      return;
+    }
+
+    const newQty = Math.max(current - incr, minQty);
+    setLocalQty(newQty);
+    debounceQty(newQty);
   };
 
   const onIncr = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (updating) return;
     // If this deal has price slabs, trigger callback instead of changing qty
     if (
       dealData?.priceSlabs &&
@@ -363,7 +390,23 @@ const AddToCart: React.FC<AddToCartProps> = ({
       return;
     }
 
-    setPopoverOpen(true);
+    const minQty = dealData?.minQty || 1;
+    const incr = dealData?.incrQty || 1;
+    const maxQty = dealData?.maxQty || 0;
+    const current = localQty || minQty;
+    // Step up by incrQty
+    const newQty = current + incr;
+
+    if (maxQty > 0 && newQty > maxQty) {
+      toast.show({
+        msg: `Only ${maxQty} in stock`,
+        color: "warning",
+      });
+      return;
+    }
+
+    setLocalQty(newQty);
+    debounceQty(newQty);
   };
 
   if (AuthService.isMasterLogin()) {

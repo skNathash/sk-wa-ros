@@ -124,9 +124,9 @@ const SearchWithVoice = ({
     <>
       <div>
         <div className="tw:flex tw:items-center tw:gap-2">
-          <div className="tw:relative tw:flex-1">
-            <div className="tw:absolute tw:left-3 tw:top-1/2 tw:-translate-y-1/2 tw:z-10 tw:pointer-events-none">
-              <Search size={18} />
+          <div className="tw:group tw:relative tw:flex-1 tw:min-w-0">
+            <div className="tw:absolute tw:left-3.5 tw:top-1/2 tw:-translate-y-1/2 tw:z-10 tw:pointer-events-none tw:text-gray-400 tw:group-focus-within:text-primary tw:transition-colors">
+              <Search size={19} />
             </div>
             <Input
               type="text"
@@ -136,23 +136,32 @@ const SearchWithVoice = ({
               onChange={handleChange}
               readOnly={readOnly}
               onClick={readOnly ? onInputClick : undefined}
-              className={clsx("tw:pl-10 tw:pr-10", {
-                "tw:cursor-pointer": readOnly,
-              })}
+              className={clsx(
+                "tw:h-11 tw:rounded-xl tw:bg-transparent tw:pl-11 tw:pr-26 tw:text-[15px] tw:placeholder:text-gray-400 tw:transition-colors",
+                {
+                  "tw:cursor-pointer": readOnly,
+                },
+              )}
             />
-            <div className="tw:absolute tw:right-3 tw:top-1/2 tw:-translate-y-1/2 tw:z-10 tw:flex tw:items-center tw:gap-2">
+            <div className="tw:absolute tw:right-2 tw:top-1/2 tw:-translate-y-1/2 tw:z-10 tw:flex tw:items-center tw:gap-1">
               <span onClick={handleMicClick}>
                 <VoiceMic callback={handleVoiceSearchCallback} />
               </span>
+              <span aria-hidden className="tw:h-5 tw:w-px tw:bg-gray-200" />
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowAiModal(true);
                 }}
-                className="tw:inline-flex tw:items-center tw:justify-center"
+                className="tw:inline-flex tw:h-8 tw:w-8 tw:items-center tw:justify-center tw:rounded-full tw:hover:bg-primary/10 tw:transition-colors"
                 aria-label="AI search"
+                title="Search with AI"
               >
-                <ImgRender src="ai/sk-ai.png" alt="AI" className="tw:h-6 tw:w-6" />
+                <ImgRender
+                  src="ai/sk-ai.png"
+                  alt="AI"
+                  className="tw:h-6 tw:w-6"
+                />
               </button>
             </div>
           </div>

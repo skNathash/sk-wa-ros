@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { Check, Printer } from "lucide-react";
+import { Check, ChevronRight, Printer } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
@@ -20,7 +20,7 @@ import {
   prepareItems,
   caluclatePercentage,
 } from "./helper";
-import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 
 interface ItemPickListProps {
   activeTab?: string;
@@ -49,7 +49,7 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
   onPickupConfirm,
   orderItems,
 }) => {
-  const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
 
   const toast = useAppToast();
 
@@ -82,7 +82,7 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
   const [loading, setLoading] = useState(true);
   const [hasStartedPicking, setHasStartedPicking] = useState(false);
   const [pickslipDocumentId, setPickslipDocumentId] = useState<string | null>(
-    null
+    null,
   );
   const [pickingId, setPickingId] = useState<string | null>(null);
 
@@ -204,7 +204,7 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
       }
       setTotalPickedItems(getTotalPickedItems(response.data.data?.items || []));
       setTotalOrderedItems(
-        getTotalOrderedItems(response.data.data?.items || [])
+        getTotalOrderedItems(response.data.data?.items || []),
       );
     } else {
       toast.show({
@@ -316,7 +316,7 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
       try {
         const response = await RackBinService.removePickingItem(
           orderId || "",
-          result.data.dealId
+          result.data.dealId,
         );
 
         await fetchPickingDetails();
@@ -342,7 +342,7 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
 
   const updatePicking = async (
     product: Record<string, any>,
-    snapshots: Record<string, any>[]
+    snapshots: Record<string, any>[],
   ) => {
     let snapshotsPayload: Record<string, any>[] = [];
 
@@ -390,7 +390,7 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
           // Sum quantity from the selected snapshots (ensure numeric)
           const addedQty = snapshotsPayload.reduce(
             (acc, curr) => acc + (Number(curr.quantity) || 0),
-            0
+            0,
           );
 
           draft[index].snapshots = snapshotsPayload;
@@ -456,11 +456,11 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
 
   const handleConfirmPicking = () => {
     const notPickedItems = products.filter(
-      (product) => product.percentage <= 0
+      (product) => product.percentage <= 0,
     );
 
     const fullyPickedItems = products.filter(
-      (product) => product.percentage >= 100
+      (product) => product.percentage >= 100,
     );
 
     if (notPickedItems.length === products.length) {
@@ -509,36 +509,41 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
   };
 
   const titleSection = (
-    <div className="tw:flex tw:md:justify-between tw:md:items-center tw:w-full tw:flex-col tw:md:flex-row tw:gap-2 tw:md:mb-4">
+    <div className="tw:flex tw:justify-between tw:items-center tw:w-full tw:gap-2 tw:md:mb-4">
       <div>
-        <div className="tw:mb-1 tw:font-medium">Pick Items for Order</div>
+        <div className="op-eyebrow tw:mb-0.5">Pick List</div>
         <div className="tw:text-xs tw:text-gray-500 tw:font-normal">
           Scan barcodes or enter quantities manually
         </div>
       </div>
       {hasStartedPicking ? (
-        <div className="tw:flex tw:gap-2">
-          <AppButton
-            color="light"
-            fill="outline"
-            size="small"
-            onClick={handlePrintPickSlip}
-          >
-            <Printer />
-            <span className="tw-ml-2">Print Pick Slip</span>
-          </AppButton>
-          <AppButton
-            color="success"
-            size="small"
-            onClick={handleConfirmPicking}
-          >
-            <Check />
-            {pickUpAtStore ? "Bill & Deliver" : "Confirm Picking"} ({totalPickedItems}/{totalOrderedItems})
-          </AppButton>
-        </div>
+        <AppButton
+          color="light"
+          fill="outline"
+          size="small"
+          onClick={handlePrintPickSlip}
+        >
+          <Printer />
+          <span className="tw:hidden tw:md:inline">Print Pick Slip</span>
+        </AppButton>
       ) : null}
     </div>
   );
+
+  const ctaSection = hasStartedPicking ? (
+    <div className="op-cta tw:mt-4">
+      <button
+        type="button"
+        className="op-cta-btn"
+        onClick={handleConfirmPicking}
+      >
+        <Check size={18} />
+        {pickUpAtStore ? "Bill & Deliver" : "Confirm Picking"} ·{" "}
+        {totalPickedItems} / {totalOrderedItems}
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  ) : null;
 
   const mainContent = (
     <>
@@ -552,6 +557,7 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
             activeTab={currentTab}
             tabs={tabs}
             onTabChange={handleTabChange}
+            variant={isTheme2 ? "pills" : "tabs"}
           />
 
           <div className="tw:mt-3">
@@ -569,8 +575,15 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
           </div>
         </>
       ) : (
-        <div className="tw:text-center">
-          <AppButton onClick={handleStartPicking}>Start Picking</AppButton>
+        <div className="op-stage-pick">
+          <button
+            type="button"
+            className="op-cta-btn"
+            onClick={handleStartPicking}
+          >
+            Start Picking
+            <ChevronRight size={18} />
+          </button>
         </div>
       )}
 
@@ -593,17 +606,15 @@ const ItemPickList: React.FC<ItemPickListProps> = ({
 
   return (
     <>
-      {isMobile ? (
-        <>
-          <AppCard>{titleSection}</AppCard>
-          {mainContent}
-        </>
-      ) : (
-        <AppCard>
+      {/* One white parent card wraps the whole picking block on every
+          breakpoint so the tabs/list/CTA never float on the page bg. */}
+      <div className="op-stage-pick">
+        <AppCard className="op-pick-card">
           {titleSection}
           {mainContent}
+          {ctaSection}
         </AppCard>
-      )}
+      </div>
 
       <BusyLoader show={busyloading.show} message={busyloading.message} />
 

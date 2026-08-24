@@ -35,8 +35,8 @@ const ProductForBarcodeModal: React.FC<ProductForBarcodeModalProps> = ({
 
     const searchLower = searchTerm.toLowerCase();
     return products.filter((product) => {
-      const name = product.name?.toLowerCase() || "";
-      const sku = product._id?.toLowerCase() || "";
+      const name = product.dealName?.toLowerCase() || "";
+      const sku = product.dealRefId?.toLowerCase() || "";
 
       return name.includes(searchLower) || sku.includes(searchLower);
     });
@@ -76,7 +76,7 @@ const ProductForBarcodeModal: React.FC<ProductForBarcodeModalProps> = ({
           ) : (
             filteredProducts.map((product, idx) => (
               <div
-                key={product._id || idx}
+                key={product.dealId || idx}
                 className="tw:bg-white tw:rounded tw:p-2 tw:mb-2 tw:border tw:border-gray-200"
               >
                 <div className="tw:flex tw:items-center tw:justify-between">

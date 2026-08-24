@@ -1,0 +1,125 @@
+/* Subscribe side-pane "Add Products" panel — the capture methods (scan, image
+   search, voice, nearby), the manual-create fallback and the subscription cart.
+   Consumed by app/shared/inventory/components/subscribe-add-methods.
+
+   The capture methods are the panel's subject, so they carry the colour: each
+   tile owns a muted hue keyed to the sensor it uses, held to the icon chip and
+   to a hairline that sweeps in along the tile's edge on hover. Manual create
+   stays a quiet dashed row, and --primary is spent only on the cart, which is
+   state rather than an action. */
+
+/* --- Capture-method tiles -------------------------------------------------- */
+
+.app-capture-tile {
+  --app-capture-accent: #475569;
+  position: relative;
+  overflow: hidden;
+  background-color: #fff;
+  border: 1px solid var(--border, #e2e8f0);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.app-capture-tile:hover {
+  border-color: color-mix(in srgb, var(--app-capture-accent) 40%, transparent);
+  box-shadow: 0 2px 10px
+    color-mix(in srgb, var(--app-capture-accent) 14%, transparent);
+  transform: translateY(-1px);
+}
+
+/* Scan line: the hairline reading across the tile on hover. One motif, shared
+   by all four, so the grid holds together as a set of instruments. */
+.app-capture-tile::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background-color: var(--app-capture-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 220ms ease;
+}
+
+.app-capture-tile:hover::after,
+.app-capture-tile:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.app-capture-icon {
+  background-color: color-mix(in srgb, var(--app-capture-accent) 12%, #fff);
+  color: var(--app-capture-accent);
+  transition: background-color 150ms ease;
+}
+
+.app-capture-tile:hover .app-capture-icon {
+  background-color: color-mix(in srgb, var(--app-capture-accent) 20%, #fff);
+}
+
+/* One hue per sensor: barcode ink, camera amber, voice violet, nearby teal. */
+.app-capture-tile--scan {
+  --app-capture-accent: #2f4858;
+}
+
+.app-capture-tile--photo {
+  --app-capture-accent: #b45309;
+}
+
+.app-capture-tile--voice {
+  --app-capture-accent: #6d28d9;
+}
+
+.app-capture-tile--nearby {
+  --app-capture-accent: #0f766e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-capture-tile,
+  .app-capture-tile::after,
+  .app-capture-icon {
+    transition: none;
+  }
+  .app-capture-tile:hover {
+    transform: none;
+  }
+}
+
+/* --- Manual create --------------------------------------------------------- */
+
+/* The fallback when no capture method finds the item. Dashed, so it reads as
+   "make one yourself" rather than as a fifth capture method. Driven by
+   --primary, so theme-1 (blue) and theme-2 (WhatsApp green) each get their own
+   brand without a per-theme override. */
+.app-create-item-row {
+  border: 1px dashed color-mix(in srgb, var(--primary, #075e54) 40%, #cbd5e1);
+  background-color: transparent;
+  color: color-mix(in srgb, var(--primary, #075e54) 88%, black);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.app-create-item-row:hover {
+  background-color: color-mix(in srgb, var(--primary, #075e54) 7%, #fff);
+  border-color: color-mix(in srgb, var(--primary, #075e54) 60%, #cbd5e1);
+}
+
+/* --- Subscription cart ----------------------------------------------------- */
+
+/* The cart row once it holds items: a tinted echo of the accent, so "you have
+   items waiting" is legible without competing with the tiles above it. */
+.app-subscribe-cart-row--filled {
+  background-color: color-mix(in srgb, var(--primary, #075e54) 6%, #fff);
+  border-color: color-mix(in srgb, var(--primary, #075e54) 28%, transparent);
+}
+
+.app-subscribe-cart-row--filled:hover {
+  background-color: color-mix(in srgb, var(--primary, #075e54) 11%, #fff);
+}
+
+.app-subscribe-cart-row--filled .app-subscribe-cart-count {
+  background-color: color-mix(in srgb, var(--primary, #075e54) 12%, #fff);
+  color: color-mix(in srgb, var(--primary, #075e54) 82%, black);
+}

@@ -1,0 +1,308 @@
+/* ============================================================
+   Expense — feature styles
+   Theme-neutral `expense-*` seam classes shared by the expenses
+   module. Surfaces and inks use design-token fallbacks so the
+   same markup reads correctly in the default theme, theme-2 and
+   dark mode.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Expense categories — list cards (mobile)
+   A white card with a per-category left accent + initial avatar,
+   mirroring the expense-row aesthetic so both lists read as one
+   system.
+   ------------------------------------------------------------ */
+.expense-cat-card {
+  background-color: var(--card, #fff);
+  border: 1px solid var(--border, #eef0f2);
+  border-left-width: 3px;
+  border-radius: 0.7rem;
+  padding: 0.85rem 0.9rem;
+  transition: box-shadow 0.12s ease;
+}
+.expense-cat-card:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.expense-cat-avatar {
+  flex: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.expense-cat-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--card-foreground, #101828);
+  line-height: 1.25;
+}
+.expense-cat-desc {
+  font-size: 0.75rem;
+  color: var(--muted-foreground, #98a2b3);
+  margin-top: 0.1rem;
+}
+/* "Global" pill — a read-only, platform-shipped category */
+.expense-cat-tag {
+  flex: none;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground, #667085);
+  background-color: var(--muted, #f2f4f7);
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+  line-height: 1.4;
+}
+/* Action bar pinned to the card foot, divided from the content above */
+.expense-cat-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border, #f2f4f7);
+}
+
+/* Modal variant — sits flush on the modal surface instead of reading as a
+   white card, which looks off against theme-2's cream dialog background. */
+.expense-cat-card-modal {
+  background-color: var(--background, #fff);
+}
+/* Colored initial avatar for the desktop table name cell */
+.expense-cat-avatar-sm {
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+/* ============================================================
+   Expenses — overview card + list rows
+   Feature classes (theme-neutral). The overview renders as a white
+   rounded card that reads well on the theme-2 teal page bg; the
+   category bar/legend colors are set inline per segment.
+   ============================================================ */
+.expense-overview {
+  background-color: #fff;
+  border: 1px solid #eef0f2;
+  border-radius: 0.85rem;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+@media (min-width: 1024px) {
+  .expense-overview {
+    padding: 1.15rem 1.35rem;
+  }
+}
+
+.expense-overview-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: #98a2b3;
+}
+
+.expense-overview-amount {
+  font-size: 1.65rem;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #101828;
+}
+
+@media (min-width: 768px) {
+  .expense-overview-amount {
+    font-size: 1.95rem;
+  }
+}
+
+/* Month-over-month chip. Spend going up is the bad direction, so it
+   takes the red tint and a drop takes green. */
+.expense-overview-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.expense-overview-delta.is-up {
+  color: #d92d20;
+  background-color: #fef3f2;
+}
+.expense-overview-delta.is-down {
+  color: #067647;
+  background-color: #ecfdf3;
+}
+
+/* Stacked category breakdown bar */
+.expense-overview-bar {
+  display: flex;
+  width: 100%;
+  height: 0.6rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background-color: #f2f4f7;
+}
+.expense-overview-bar > span {
+  height: 100%;
+  min-width: 2px;
+}
+.expense-overview-bar > span:not(:last-child) {
+  margin-right: 1px;
+}
+
+.expense-overview-empty {
+  border: 1px dashed #e4e7ec;
+  border-radius: 0.6rem;
+  padding: 0.85rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #98a2b3;
+}
+
+/* List rows — compact, with a left category accent */
+.expense-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background-color: #fff;
+  border: 1px solid #eef0f2;
+  border-left-width: 3px;
+  border-radius: 0.65rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+.expense-row:hover {
+  background-color: #fafbfc;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+.expense-row-icon {
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.expense-row-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #101828;
+  line-height: 1.25;
+}
+.expense-row-meta {
+  font-size: 0.72rem;
+  color: #98a2b3;
+  margin-top: 0.1rem;
+}
+.expense-row-amount {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #d92d20;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Recent expenses — compact list (side pane / dashboard card)
+   A flat, ledger-style list: a date rail on the left, title +
+   category in the middle, amount on the right. Deliberately not
+   built from tiles — the surrounding AppCard is the card, and
+   stacking rounded tiles inside it reads as cards-in-cards.
+   Rows are divided by hairlines and bleed to the card padding so
+   the hover tint reads as one row, not a floating chip.
+   ============================================================ */
+.expense-recent-list {
+  display: flex;
+  flex-direction: column;
+}
+.expense-recent-list > li + li {
+  border-top: 1px solid var(--border, #f2f4f7);
+}
+
+.expense-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  /* Bleed past the card's content padding so the hover tint and the
+     hairline run the full width of the card. */
+  margin-inline: -0.5rem;
+  padding: 0.55rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.expense-recent-row:hover {
+  background-color: var(--muted, #f6f7f9);
+}
+.expense-recent-row:focus-visible {
+  outline: 2px solid var(--ring, #075e54);
+  outline-offset: -2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .expense-recent-row {
+    transition: none;
+  }
+}
+
+/* Date rail — day over month, tabular so the column stays aligned. */
+.expense-recent-date {
+  flex: none;
+  width: 2.1rem;
+  text-align: center;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.expense-recent-day {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--card-foreground, #101828);
+}
+.expense-recent-month {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground, #667085);
+}
+
+.expense-recent-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--card-foreground, #101828);
+}
+/* Meta ink is the darker muted step (#667085 ≈ 5.3:1 on white) rather
+   than the placeholder grey — 12px text needs the contrast. */
+.expense-recent-meta {
+  margin-top: 0.05rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: var(--muted-foreground, #667085);
+}
+.expense-recent-amount {
+  flex: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #d92d20;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

@@ -5,12 +5,16 @@ import KeyValue from "~/components/core/key-value/KeyValue";
 import CommonService from "~/services/CommonService";
 import DisplayPrice from "~/shared/products/display-price/DisplayPrice";
 
-const PriceChangeLog = ({ logs }: { logs: any[] }) => {
+const PriceChangeLog = ({ logs }: { logs?: any[] }) => {
   const [users, setUsers] = useState<{ [key: string]: string }>({});
+  // Items that have never been re-priced come through without an auditLog.
+  const entries = logs || [];
 
   useEffect(() => {
+    if (!entries.length) return;
     const fetchUsers = async () => {
-      const userIds = logs.map((log) => log.loggedBy);
+      const userIds = entries.map((log) => log.loggedBy).filter(Boolean);
+      if (!userIds.length) return;
       const userDetails = await CommonService.getUsers({
         page: 1,
         count: userIds.length,
@@ -27,11 +31,13 @@ const PriceChangeLog = ({ logs }: { logs: any[] }) => {
       setUsers(obj);
     };
     fetchUsers();
-  }, [logs]);
+  }, [entries]);
+
+  if (!entries.length) return null;
 
   return (
     <AppCard title="Logs">
-      {logs.map((log) => (
+      {entries.map((log) => (
         <div
           className="tw:border-b tw:border-gray-200 tw:py-4 tw:last:border-b-0"
           key={log._id}

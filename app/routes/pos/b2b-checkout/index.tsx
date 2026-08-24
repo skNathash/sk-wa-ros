@@ -558,32 +558,32 @@ const B2bCheckoutPage = () => {
 
   const renderRetailerCard = () =>
     retailer ? (
-      <div className="tw:rounded-xl tw:border tw:border-primary/20 tw:bg-primary/5 tw:overflow-hidden">
-        <div className="tw:px-3 tw:py-1.5 tw:bg-primary/10 tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-wider tw:text-primary">
+      <div className="app-oret tw:rounded-xl tw:border tw:border-primary/20 tw:bg-primary/5 tw:overflow-hidden">
+        <div className="app-oret-strap tw:px-3 tw:py-1.5 tw:bg-primary/10 tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-wider tw:text-primary">
           {t("b2bCheckout.orderingFor", "Ordering for")}
         </div>
         <div className="tw:p-3 tw:flex tw:items-start tw:gap-3">
-          <span className="tw:flex tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-full tw:bg-primary tw:text-white tw:shrink-0">
+          <span className="app-oret-avatar tw:flex tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-full tw:bg-primary tw:text-white tw:shrink-0">
             <Building2 size={20} />
           </span>
           <div className="tw:min-w-0 tw:flex-1">
             <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
-              <div className="tw:font-semibold tw:text-sm tw:text-foreground tw:truncate">
+              <div className="app-oret-name tw:font-semibold tw:text-sm tw:text-gray-900 tw:truncate">
                 {retailer.name || "-"}
               </div>
-              <div className="wa-mono tw:text-[11px] tw:font-medium tw:text-muted-foreground tw:shrink-0">
+              <div className="app-oret-id tw:text-[11px] tw:font-medium tw:text-gray-500 tw:shrink-0">
                 ID: {retailer.franchiseId || "-"}
               </div>
             </div>
-            <div className="wa-mono tw:text-xs tw:text-muted-foreground tw:mt-1 tw:flex tw:items-center tw:gap-1.5">
-              <Phone size={12} className="tw:text-muted-foreground tw:shrink-0" />
+            <div className="app-oret-line tw:text-xs tw:text-gray-700 tw:mt-1 tw:flex tw:items-center tw:gap-1.5">
+              <Phone size={12} className="tw:text-gray-400 tw:shrink-0" />
               {retailer.mobile || "-"}
             </div>
             {retailer.formatAddress && (
-              <div className="tw:text-xs tw:text-muted-foreground tw:mt-1 tw:flex tw:items-start tw:gap-1.5">
+              <div className="app-oret-line tw:text-xs tw:text-gray-700 tw:mt-1 tw:flex tw:items-start tw:gap-1.5">
                 <MapPin
                   size={12}
-                  className="tw:text-muted-foreground tw:shrink-0 tw:mt-0.5"
+                  className="tw:text-gray-400 tw:shrink-0 tw:mt-0.5"
                 />
                 <span>{retailer.formatAddress}</span>
               </div>
@@ -598,7 +598,12 @@ const B2bCheckoutPage = () => {
       {/* Retailer + summary shown inline on mobile; desktop has the sidebar */}
       <div className="tw:md:hidden tw:space-y-4">
         {renderRetailerCard()}
-        <Summary summary={summary} totalItems={totalItems} />
+        <Summary
+          summary={summary}
+          totalItems={totalItems}
+          items={cart}
+          onEditCart={() => backToBilling()}
+        />
       </div>
 
       {fetchingPaylater ? (
@@ -608,17 +613,19 @@ const B2bCheckoutPage = () => {
       ) : (
         <div className="tw:space-y-3">
           <div className="tw:flex tw:items-center tw:justify-between">
-            <div className="wa-section-label">Payment Mode</div>
+            <div className="tw:text-xs tw:font-bold tw:text-gray-500 tw:uppercase tw:tracking-wider">
+              Payment Mode
+            </div>
           </div>
 
           <div className="tw:flex tw:gap-2">
             {allowedPayments.cod && (
               <button
                 onClick={() => handleMethodSelect("COD")}
-                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-xl tw:border tw:cursor-pointer tw:transition-all ${
+                className={`app-pay-opt tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-lg tw:border tw:cursor-pointer tw:transition-all ${
                   selectedMethod === "COD"
-                    ? "wa-incart tw:border-transparent tw:shadow-sm"
-                    : "tw:bg-card tw:border-border tw:text-muted-foreground tw:hover:bg-muted/40"
+                    ? "app-pay-opt-active tw:bg-blue-50 tw:border-blue-500 tw:text-blue-700 tw:ring-1 tw:ring-blue-500"
+                    : "tw:bg-white tw:border-gray-200 tw:text-gray-600 tw:hover:bg-gray-50"
                 }`}
               >
                 <IndianRupee size={16} />
@@ -628,10 +635,10 @@ const B2bCheckoutPage = () => {
             {allowedPayments.prepaid && (
               <button
                 onClick={() => handleMethodSelect("PREPAID")}
-                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-xl tw:border tw:cursor-pointer tw:transition-all ${
+                className={`app-pay-opt tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-lg tw:border tw:cursor-pointer tw:transition-all ${
                   selectedMethod === "PREPAID"
-                    ? "wa-incart tw:border-transparent tw:shadow-sm"
-                    : "tw:bg-card tw:border-border tw:text-muted-foreground tw:hover:bg-muted/40"
+                    ? "app-pay-opt-active tw:bg-blue-50 tw:border-blue-500 tw:text-blue-700 tw:ring-1 tw:ring-blue-500"
+                    : "tw:bg-white tw:border-gray-200 tw:text-gray-600 tw:hover:bg-gray-50"
                 }`}
               >
                 <Wallet size={16} />
@@ -641,10 +648,10 @@ const B2bCheckoutPage = () => {
             {paylaterEligible && (
               <button
                 onClick={() => handleMethodSelect("PAYLATER")}
-                className={`tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-xl tw:border tw:cursor-pointer tw:transition-all ${
+                className={`app-pay-opt tw:flex-1 tw:md:flex-none tw:md:min-w-32 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2.5 tw:px-4 tw:rounded-lg tw:border tw:cursor-pointer tw:transition-all ${
                   selectedMethod === "PAYLATER"
-                    ? "wa-incart tw:border-transparent tw:shadow-sm"
-                    : "tw:bg-card tw:border-border tw:text-muted-foreground tw:hover:bg-muted/40"
+                    ? "app-pay-opt-active tw:bg-blue-50 tw:border-blue-500 tw:text-blue-700 tw:ring-1 tw:ring-blue-500"
+                    : "tw:bg-white tw:border-gray-200 tw:text-gray-600 tw:hover:bg-gray-50"
                 }`}
               >
                 <Wallet size={16} />
@@ -654,7 +661,7 @@ const B2bCheckoutPage = () => {
           </div>
 
           {selectedMethod === "PREPAID" && !prepaidPayment && (
-            <div className="tw:p-2.5 tw:bg-amber-50 tw:border tw:border-amber-200 tw:rounded-xl tw:flex tw:items-center tw:gap-2 tw:flex-wrap">
+            <div className="tw:p-2.5 tw:bg-amber-50 tw:border tw:border-amber-200 tw:rounded-md tw:flex tw:items-center tw:gap-2 tw:flex-wrap">
               <div className="tw:text-xs tw:text-amber-700 tw:font-medium">
                 Add the prepaid payment details to continue.
               </div>
@@ -669,23 +676,20 @@ const B2bCheckoutPage = () => {
           )}
 
           {selectedMethod === "PREPAID" && prepaidPayment && (
-            <div className="wa-incart tw:p-1.5 tw:border tw:border-transparent tw:rounded-xl tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
-              <div
-                className="wa-mono tw:text-xs tw:font-semibold tw:px-1.5 tw:py-0.5 tw:rounded-full"
-                style={{ backgroundColor: "var(--wa-accent)", color: "var(--wa-accent-foreground)" }}
-              >
+            <div className="app-pay-panel tw:p-1.5 tw:bg-blue-50 tw:border tw:border-blue-200 tw:rounded-md tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
+              <div className="app-pay-panel-tag tw:text-xs tw:font-semibold tw:text-blue-700 tw:bg-blue-100 tw:px-1.5 tw:py-0.5 tw:rounded">
                 {prepaidPayment.type || "Prepaid"}
               </div>
-              <div className="wa-mono tw:text-xs tw:font-medium">
+              <div className="app-pay-panel-amt tw:text-xs tw:text-blue-600 tw:font-medium">
                 <Amount value={prepaidPayment.amount} />
               </div>
               {prepaidPayment.referenceNumber && (
-                <div className="wa-mono tw:text-xs tw:opacity-80">
+                <div className="tw:text-xs tw:text-gray-500">
                   Ref: {prepaidPayment.referenceNumber}
                 </div>
               )}
               {prepaidPayment.proof?.length > 0 && (
-                <div className="tw:text-xs tw:opacity-80">
+                <div className="tw:text-xs tw:text-gray-500">
                   Proof: {prepaidPayment.proof.length} file
                   {prepaidPayment.proof.length > 1 ? "s" : ""}
                 </div>
@@ -693,7 +697,7 @@ const B2bCheckoutPage = () => {
               <button
                 type="button"
                 onClick={openPrepaidModal}
-                className="tw:ml-auto tw:inline-flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:cursor-pointer tw:hover:opacity-70"
+                className="app-pay-panel-edit tw:ml-auto tw:inline-flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-blue-600 hover:tw:text-blue-800 tw:cursor-pointer"
               >
                 <Pencil size={12} />
                 Edit
@@ -702,22 +706,22 @@ const B2bCheckoutPage = () => {
           )}
 
           {selectedMethod === "PAYLATER" && (
-            <div className="tw:p-3 tw:rounded-xl tw:bg-primary/5 tw:border tw:border-primary/15 tw:animate-in tw:fade-in tw:duration-300">
+            <div className="app-pay-panel tw:p-3 tw:rounded-lg tw:bg-blue-50/50 tw:border tw:border-blue-100 tw:animate-in tw:fade-in tw:duration-300">
               <div className="tw:flex tw:justify-between tw:items-center">
-                <div className="wa-section-label tw:text-primary">
+                <div className="app-pay-panel-label tw:text-[10px] tw:text-blue-700 tw:font-semibold tw:uppercase tw:tracking-tight">
                   Paylater Limit
                 </div>
-                <div className="wa-mono tw:text-sm tw:font-bold tw:text-primary">
+                <div className="app-pay-panel-value tw:text-sm tw:font-bold tw:text-blue-900">
                   <Amount value={paylaterBalance} />
                 </div>
               </div>
-              <div className="tw:text-[10px] tw:text-primary/80 tw:mt-1 tw:flex tw:items-center tw:gap-1">
-                <div className="tw:w-1 tw:h-1 tw:bg-primary/60 tw:rounded-full" />
+              <div className="app-pay-panel-note tw:text-[10px] tw:text-blue-600 tw:mt-1 tw:flex tw:items-center tw:gap-1">
+                <div className="app-pay-panel-dot tw:w-1 tw:h-1 tw:bg-blue-400 tw:rounded-full" />
                 Amount will be debited from this limit.
               </div>
 
               {orderAmount > paylaterBalance && (
-                <div className="tw:mt-2 tw:p-2 tw:rounded-lg tw:bg-destructive/10 tw:text-[10px] tw:text-destructive tw:font-medium tw:border tw:border-destructive/20">
+                <div className="tw:mt-2 tw:p-2 tw:rounded tw:bg-red-50 tw:text-[10px] tw:text-red-600 tw:font-medium tw:border tw:border-red-100">
                   Insufficient limit to place this order via Paylater.
                 </div>
               )}
@@ -788,7 +792,9 @@ const B2bCheckoutPage = () => {
             : t("b2bCheckout.title", "B2B Checkout")
         }
       />
-      <div className="page-padding app-page page-bg">
+      {/* `pos-checkout` is the parent hook every style written for the checkout
+          pages hangs off (app/styles/pos-checkout.css). */}
+      <div className="pos-checkout pos-checkout-b2b page-padding app-page page-bg">
         <div className="app-container">
           {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
           <SectionTabs sectionKey="bill" activeTab="pos" noShadow sticky />
@@ -811,19 +817,19 @@ const B2bCheckoutPage = () => {
                 <button
                   type="button"
                   onClick={() => backToBilling()}
-                  className="tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-medium tw:text-muted-foreground tw:cursor-pointer tw:px-2.5 tw:py-1 tw:rounded-full tw:hover:bg-muted tw:hover:text-foreground tw:transition-colors"
+                  className="tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-medium tw:text-gray-700 tw:cursor-pointer tw:px-2.5 tw:py-1 tw:rounded-md tw:hover:bg-gray-100 tw:transition-colors"
                 >
                   <ArrowLeft size={16} />
                   {t("backToCart", "Back to cart")}
                 </button>
               </div>
 
-              <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:gap-5">
+              <div className="app-checkout-body tw:flex tw:flex-col tw:md:flex-row tw:md:gap-5">
                 {/* Main content */}
                 <div className="tw:flex-1 tw:min-w-0">
-                  <div className="tw:bg-card tw:rounded-xl tw:border tw:border-border tw:shadow-sm tw:overflow-hidden tw:mb-3">
+                  <div className="tw:bg-white tw:rounded-xl tw:border tw:border-gray-200 tw:shadow-sm tw:overflow-hidden tw:mb-3">
                     {/* Desktop stepper */}
-                    <div className="tw:hidden tw:md:block tw:px-5 tw:pt-4 tw:pb-2 tw:border-b tw:border-border tw:bg-muted/50">
+                    <div className="tw:hidden tw:md:block tw:px-5 tw:pt-4 tw:pb-2 tw:border-b tw:border-gray-100 tw:bg-gray-50/50">
                       <AppSteps
                         steps={steps}
                         activeKey={currentStep}
@@ -833,21 +839,21 @@ const B2bCheckoutPage = () => {
                     </div>
 
                     {/* Mobile step indicator */}
-                    <div className="tw:md:hidden tw:px-4 tw:pt-4 tw:pb-3 tw:border-b tw:border-border tw:bg-muted/50">
+                    <div className="tw:md:hidden tw:px-4 tw:pt-4 tw:pb-3 tw:border-b tw:border-gray-100 tw:bg-gray-50/50">
                       <div className="tw:flex tw:items-baseline tw:justify-between tw:mb-2">
-                        <span className="wa-section-label tw:text-primary">
+                        <span className="tw:text-[11px] tw:font-semibold tw:tracking-wide tw:uppercase tw:text-primary">
                           {t("step", "Step")} {safeStepIndex + 1} /{" "}
                           {Math.max(steps.length, 1)}
                         </span>
                         {nextStepTitle && (
-                          <span className="tw:text-[11px] tw:text-muted-foreground tw:flex tw:items-center tw:gap-0.5">
+                          <span className="tw:text-[11px] tw:text-gray-500 tw:flex tw:items-center tw:gap-0.5">
                             {t("next", "Next")}
                             <ChevronRight size={12} />
                             {nextStepTitle}
                           </span>
                         )}
                       </div>
-                      <div className="tw:h-1.5 tw:bg-muted tw:rounded-full tw:overflow-hidden">
+                      <div className="tw:h-1.5 tw:bg-gray-200 tw:rounded-full tw:overflow-hidden">
                         <div
                           className="tw:h-full tw:bg-primary tw:rounded-full tw:transition-all tw:duration-300"
                           style={{ width: `${progressPct}%` }}
@@ -856,17 +862,17 @@ const B2bCheckoutPage = () => {
                     </div>
 
                     {/* Step header */}
-                    <div className="tw:px-4 tw:md:px-5 tw:pt-4 tw:pb-3 tw:border-b tw:border-border">
+                    <div className="tw:px-4 tw:md:px-5 tw:pt-4 tw:pb-3 tw:border-b tw:border-gray-100">
                       <div className="tw:flex tw:items-center tw:gap-3">
                         <span className="tw:flex tw:items-center tw:justify-center tw:w-7 tw:h-7 tw:rounded-full tw:bg-primary tw:text-white tw:text-xs tw:font-semibold tw:shrink-0">
                           {safeStepIndex + 1}
                         </span>
                         <div className="tw:min-w-0">
-                          <h2 className="tw:text-base tw:font-semibold tw:text-foreground tw:leading-tight">
+                          <h2 className="tw:text-base tw:font-semibold tw:text-gray-900 tw:leading-tight">
                             {steps[safeStepIndex]?.title}
                           </h2>
                           {stepHelper[currentStep] && (
-                            <p className="tw:text-xs tw:text-muted-foreground tw:mt-0.5">
+                            <p className="tw:text-xs tw:text-gray-500 tw:mt-0.5">
                               {stepHelper[currentStep]}
                             </p>
                           )}
@@ -889,7 +895,7 @@ const B2bCheckoutPage = () => {
                     {!loadingConfig &&
                       (currentStep === "payment" ||
                         currentStep === "delivery") && (
-                        <div className="tw:bg-muted/50 tw:border-t tw:border-border tw:px-4 tw:md:px-5 tw:py-3">
+                        <div className="tw:bg-gray-50/50 tw:border-t tw:border-gray-100 tw:px-4 tw:md:px-5 tw:py-3">
                           <div className="tw:flex tw:justify-between tw:items-center">
                             <div>
                               {currentStep !== "payment" && (
@@ -898,7 +904,6 @@ const B2bCheckoutPage = () => {
                                   isLoading={isProceeding}
                                   fill="outline"
                                   color="light"
-                                  className="tw:rounded-xl"
                                 >
                                   <ArrowLeft size={16} /> Back
                                 </AppButton>
@@ -906,13 +911,12 @@ const B2bCheckoutPage = () => {
                             </div>
 
                             <div>
-                              <button
-                                type="button"
+                              <AppButton
+                                color="primary"
                                 onClick={handleNextClick}
-                                disabled={nextDisabled || isProceeding}
-                                className="wa-cta tw:flex tw:items-center tw:justify-center tw:gap-1.5 tw:px-5 tw:h-10 tw:rounded-xl tw:text-sm tw:font-bold tw:cursor-pointer tw:transition-all tw:disabled:cursor-not-allowed"
+                                isLoading={isProceeding}
+                                disabled={nextDisabled}
                               >
-                                {isProceeding && <AppSpinner size="xs" />}
                                 {currentStep === "delivery" ||
                                 (!hasDeliveryStep && currentStep === "payment")
                                   ? !enableOtpForPOS
@@ -920,7 +924,7 @@ const B2bCheckoutPage = () => {
                                     : "Send OTP"
                                   : "Next"}{" "}
                                 <ArrowRight size={16} />
-                              </button>
+                              </AppButton>
                             </div>
                           </div>
                         </div>
@@ -928,11 +932,20 @@ const B2bCheckoutPage = () => {
                   </div>
                 </div>
 
-                {/* Desktop sidebar: retailer + order summary */}
-                <div className="tw:hidden tw:md:block tw:md:w-1/3 tw:shrink-0">
+                {/* Desktop sidebar: retailer + order summary. In theme-2 this
+                    column is lifted out of the flow into a fixed full-height
+                    pane welded to the right edge of the viewport (see
+                    pos-checkout.css); elsewhere it stays a sticky third of the
+                    row. */}
+                <div className="app-osum-col tw:hidden tw:md:block tw:md:w-1/3 tw:shrink-0">
                   <div className="tw:sticky tw:top-20 tw:space-y-3">
                     {renderRetailerCard()}
-                    <Summary summary={summary} totalItems={totalItems} />
+                    <Summary
+                      summary={summary}
+                      totalItems={totalItems}
+                      items={cart}
+                      onEditCart={() => backToBilling()}
+                    />
                   </div>
                 </div>
               </div>

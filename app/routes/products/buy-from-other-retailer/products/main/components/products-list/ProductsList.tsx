@@ -5,7 +5,7 @@ import NoData from "~/components/core/no-data/NoData";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { PaginationState } from "~/types/CommonTypes";
 import { getData, getCount, prepareParams } from "./helper";
-import SellerListModal from "../../../modals/seller-list/SellerListModal";
+import SellerListModal from "~/shared/catalog/modals/seller-list/SellerListModal";
 import ProductCard from "../../../components/ProductCard";
 import { CART_ITEM_ADDED, DEFAULT_BROWSE_DISTANCE } from "~/constants";
 import useTheme from "~/hooks/useTheme";
@@ -32,9 +32,10 @@ const ProductsList: React.FC<ProductsListProps> = ({
   title = "Products",
 }) => {
   const [searchParams] = useSearchParams();
-  // theme-2 shows a denser 4-up grid on desktop; the default theme keeps 5-up.
+  // theme-2 hides the side rails, so the content column is wider — show a denser
+  // 6-up grid on desktop; the default theme keeps 5-up.
   const gridCols =
-    useTheme() === "theme-2" ? "tw:md:grid-cols-4" : "tw:md:grid-cols-5";
+    useTheme() === "theme-2" ? "tw:md:grid-cols-6" : "tw:md:grid-cols-5";
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);

@@ -16,6 +16,10 @@ export const defaultFilter: FilterFormData = {
   sourceType: "All",
 };
 
+// Ordered by cash-flow direction for readability: money-in cards (success)
+// first, money-out cards (danger) after. This array is index-aligned with the
+// promises in getSummaryData and the icons array in SummaryOverview — keep all
+// three in the same order when changing it.
 export const baseSummaryData = [
   {
     labelKey: "totalSales",
@@ -25,8 +29,22 @@ export const baseSummaryData = [
     color: "success",
   },
   {
+    labelKey: "paymentReceived",
+    infoKey: "accountsummary.description.paymentReceived",
+    value: 0,
+    icon: null,
+    color: "success",
+  },
+  {
     labelKey: "totalPurchase",
     infoKey: "accountsummary.description.totalPurchase",
+    value: 0,
+    icon: null,
+    color: "danger",
+  },
+  {
+    labelKey: "paymentMade",
+    infoKey: "accountsummary.description.paymentMade",
     value: 0,
     icon: null,
     color: "danger",
@@ -41,20 +59,6 @@ export const baseSummaryData = [
   {
     labelKey: "totalExpense",
     infoKey: "accountsummary.description.totalExpense",
-    value: 0,
-    icon: null,
-    color: "danger",
-  },
-  {
-    labelKey: "paymentReceived",
-    infoKey: "accountsummary.description.paymentReceived",
-    value: 0,
-    icon: null,
-    color: "success",
-  },
-  {
-    labelKey: "paymentMade",
-    infoKey: "accountsummary.description.paymentMade",
     value: 0,
     icon: null,
     color: "danger",
@@ -197,6 +201,9 @@ export const getSummaryData = async (filter: Record<string, any>) => {
     }
   };
 
+  // Order must match baseSummaryData / the icons array: money-in cards first
+  // (sales, payment received), then money-out cards (purchase, payment made,
+  // platform fee, expense).
   let promises = [
     // sales (debit)
     getStatements({
@@ -207,6 +214,17 @@ export const getSummaryData = async (filter: Record<string, any>) => {
           $in: ["POS_SALES", "B2B_SALES", "CLUB_SALES", "SALES"],
         },
         statementType: "debit",
+      },
+    }),
+    // payment received (sourceType PAYMENT, statementType credit)
+    getStatements({
+      filter: {
+        ...globalFilter,
+        ...dateFilter,
+        sourceType: {
+          $in: ["PAYMENT"],
+        },
+        statementType: "credit",
       },
     }),
     // purchase (credit)
@@ -224,6 +242,17 @@ export const getSummaryData = async (filter: Record<string, any>) => {
           ],
         },
         statementType: "credit",
+      },
+    }),
+    // payment made (sourceType PAYMENT, statementType debit)
+    getStatements({
+      filter: {
+        ...globalFilter,
+        ...dateFilter,
+        sourceType: {
+          $in: ["PAYMENT"],
+        },
+        statementType: "debit",
       },
     }),
     // PO charge (debit)
@@ -244,28 +273,6 @@ export const getSummaryData = async (filter: Record<string, any>) => {
         ...dateFilter,
         sourceType: {
           $in: ["EXPENSE"],
-        },
-        statementType: "debit",
-      },
-    }),
-    // payment received (sourceType PAYMENT, statementType debit)
-    getStatements({
-      filter: {
-        ...globalFilter,
-        ...dateFilter,
-        sourceType: {
-          $in: ["PAYMENT"],
-        },
-        statementType: "credit",
-      },
-    }),
-    // payment made (sourceType PAYMENT, statementType credit)
-    getStatements({
-      filter: {
-        ...globalFilter,
-        ...dateFilter,
-        sourceType: {
-          $in: ["PAYMENT"],
         },
         statementType: "debit",
       },

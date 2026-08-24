@@ -85,6 +85,7 @@ const DesktopView = ({
   return (
     <AppTable
       size="sm"
+      condensed
       fixedLayout={true}
       container
       minWidth="1200px"

@@ -6,7 +6,8 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useBlocker, useSearchParams } from "react-router";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
@@ -19,6 +20,7 @@ import PageDescription from "~/components/core/page-description/PageDescription"
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
+import useTheme from "~/hooks/useTheme";
 import useScreenView from "~/hooks/useScreenView";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
 import AuthService from "~/services/AuthService";
@@ -29,6 +31,9 @@ import PageAccessService from "~/services/PageAccessService";
 import UomPriceService from "~/services/UomPriceService";
 import AddMoreImagesModal from "~/shared/catalog/modals/add-more-images/AddMoreImagesModal";
 import ConsumerOfferConfigModal from "~/shared/catalog/modals/consumer-offer-config/ConsumerOfferConfigModal";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import PageTopBar from "~/shared/layout/page-top-bar/PageTopBar";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import AppTab from "~/components/core/tab/AppTab";
 import type { TabItem } from "~/types/CommonTypes";
@@ -42,6 +47,11 @@ import CreatePending from "./components/create-pending/CreatePending";
 import GlobalQtyApply from "./components/GlobalQtyApply";
 import MobileView from "./components/MobileView";
 import Summary from "./components/Summary";
+import CartSidePane from "./components/theme2/CartSidePane";
+import CartSummaryTheme2 from "./components/theme2/CartSummaryTheme2";
+import DesktopViewTheme2 from "./components/theme2/DesktopViewTheme2";
+import MobileViewTheme2 from "./components/theme2/MobileViewTheme2";
+import { getCartTotals, toCartRowViews } from "./components/theme2/helper";
 import type { CartItem } from "./helper";
 import { clearCart, clone, removeItem, validateProducts } from "./helper";
 import EditProductDetailModal from "./modals/EditProductDetailModal";
@@ -58,9 +68,11 @@ export async function clientLoader() {
 }
 
 const SubscribeCart: React.FC = () => {
+  const { t } = useTranslation(["menu"]);
   const appToast = useAppToast();
   const appNav = useAppNav();
   const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
 
   // Set just before an intentional programmatic navigation (after saving or
   // clearing the cart) so the "leave this page?" guard lets it through instead
@@ -134,6 +146,10 @@ const SubscribeCart: React.FC = () => {
   // AI "create pending" items (products found by AI but not yet in the SK
   // catalog). When any exist we surface a second tab to create them.
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingStats, setPendingStats] = useState({
+    foundBySk: 0,
+    notMatched: 0,
+  });
   // Honour a deep-linked tab (e.g. arriving from bulk barcode scan with only
   // creatable items). The tab bar still only shows once pending items exist.
   const [activeTab, setActiveTab] = useState<"current" | "pending">(
@@ -304,12 +320,29 @@ const SubscribeCart: React.FC = () => {
 
   const fetchPendingCount = useCallback(async () => {
     try {
-      const params = preparePendingParams(
+      const baseParams = preparePendingParams(
         {},
         { activePage: 1, rowsPerPage: 10 },
       );
-      const count = await getPendingCount(params);
+      const [count, foundBySk, notMatched] = await Promise.all([
+        getPendingCount(baseParams),
+        getPendingCount({
+          ...baseParams,
+          filter: {
+            ...baseParams.filter,
+            matchStatus: { $in: ["FoundInAi"] },
+          },
+        }),
+        getPendingCount({
+          ...baseParams,
+          filter: {
+            ...baseParams.filter,
+            matchStatus: { $in: ["NotFound"] },
+          },
+        }),
+      ]);
       setPendingCount(count);
+      setPendingStats({ foundBySk, notMatched });
     } catch {
       // Best-effort
     } finally {
@@ -781,7 +814,7 @@ const SubscribeCart: React.FC = () => {
 
     if (data.length > SUBSCRIBE_MAX_PRODUCTS_COUNT) {
       appToast.show({
-        msg: "You can only save up to ${SUBSCRIBE_MAX_PRODUCTS_COUNT} items at a time. Please remove some items from the cart.",
+        msg: `You can only save up to ${SUBSCRIBE_MAX_PRODUCTS_COUNT} items at a time. Please remove some items from the cart.`,
         color: "warning",
       });
       return;
@@ -880,8 +913,8 @@ const SubscribeCart: React.FC = () => {
   }) => {
     setSubscribeSuccessModal({ show: false, count: 0 });
 
-    if (params.action === "update_config") {
-      navigateAway("/dashboard/inventory/products/missing-config");
+    if (params.action === "subscribe_more") {
+      navigateAway("/dashboard/inventory/subscribe/search?tab=search");
     } else if (params.action === "go_to_inventory") {
       navigateAway("/dashboard/inventory/products/list");
     } else if (params.action === "review_pending") {
@@ -1348,6 +1381,12 @@ const SubscribeCart: React.FC = () => {
     }
   };
 
+  // theme-2 reads the cart through a view model: display-scale prices, UOM
+  // hints and badge flags per line, plus the cart-wide tally the overview and
+  // the footer share. Cheap to derive, and it keeps the markup call-free.
+  const theme2Rows = useMemo(() => toCartRowViews(data), [data]);
+  const theme2Totals = useMemo(() => getCartTotals(theme2Rows), [theme2Rows]);
+
   const hasCartItems = data?.length > 0;
   const hasPending = pendingCount > 0;
   const isInitialLoading = !cartLoaded || !pendingLoaded;
@@ -1384,7 +1423,7 @@ const SubscribeCart: React.FC = () => {
   // Title reflects the active tab so the header and breadcrumb tell the user
   // which list they're looking at (ready-to-submit cart vs AI create-pending).
   const pageTitle =
-    effectiveTab === "pending" ? "Create Pending" : "Catalog Cart";
+    effectiveTab === "pending" ? "Create Pending" : "Subscription Cart";
 
   const breadcrumbs: BreadcrumbItem[] = [
     { label: "Dashboard", redirect: { path: "/dashboard" } },
@@ -1415,146 +1454,303 @@ const SubscribeCart: React.FC = () => {
     },
   ];
 
+  // theme-2 top block — the page's sub-nav and its tools on one full-bleed
+  // white strip pinned under the header, the same idiom the subscribe search
+  // pages use. With the section chip strip commented out below, `PageTopBar` is
+  // the right carrier: it pins directly under the header rather than assuming a
+  // bar above it. It only renders once it has a tab row or the tools to carry —
+  // an empty band would just be a white strip under the header.
+  const showCartTools = effectiveTab === "current" && !loading && hasCartItems;
+  const theme2TopBar =
+    !showTabs && !showCartTools ? null : (
+      <PageTopBar
+        // Every block the strip carries is itself `app-pane-hide` — the pane
+        // owns the tabs, the qty tool and the readiness split on desktop — so
+        // on the pane layout the band would render with nothing in it, showing
+        // as a blank white strip under the header. Drop the whole strip there.
+        className="app-top-bar-flush app-top-bar-divided app-pane-hide"
+        lead={
+          showTabs ? (
+            // `app-pane-hide`: on theme-2 desktop the split layout is active
+            // and CartSidePane carries the tab row, so the strip drops its
+            // copy rather than showing the same switch twice.
+            <div className="app-pane-hide">
+              <AppTab
+                tabs={tabs}
+                activeTab={effectiveTab}
+                onTabChange={(tab) =>
+                  setActiveTab(tab.key as "current" | "pending")
+                }
+                // The strip is the page's only sub-nav, so it reads as the same
+                // chip row the subscribe browse pages pin under the header
+                // (SubscribeNavChips) rather than a segmented control — on
+                // desktop too, so the two surfaces don't switch idiom at md. The
+                // lead track drops the strip's side padding below md, so the
+                // leading/trailing inset comes from inside the track instead.
+                variant="pills"
+                slideOffset={isMobile ? 16 : 0}
+              />
+            </div>
+          ) : null
+        }
+        trail={
+          showCartTools ? (
+            /* Also a pane resident on desktop — see CartSidePane. The list/card
+               toggle used to sit alongside it here, but desktop is the only
+               place it ever rendered (it hides below md) and the header reads
+               cleaner without it. */
+            <GlobalQtyApply
+              onApply={handleGlobalQtyApply}
+              className="tw:flex-1 app-pane-hide"
+            />
+          ) : null
+        }
+      >
+        {/* Mirrors the "Showing x of y records" line on the search strip, but
+            the cart's count is a readiness split rather than a page count — a
+            flat sentence buries the one number that decides whether Save will
+            go through. Read it as a bar plus two dotted counts instead: the
+            fill answers "how close am I", the dots name what's left. The pane
+            carries the same split on desktop, so this copy stands down there. */}
+        {showCartTools ? (
+          <div className="app-pane-hide tw:hidden tw:items-center tw:gap-2.5 tw:md:flex">
+            <div
+              className="tw:h-1 tw:w-14 tw:shrink-0 tw:overflow-hidden tw:rounded-full tw:bg-slate-200"
+              role="presentation"
+            >
+              <div
+                className="tw:h-full tw:rounded-full tw:bg-emerald-500 tw:transition-all"
+                style={{ width: `${theme2Totals.readyPercent}%` }}
+              />
+            </div>
+            <div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:gap-x-2 tw:gap-y-0.5 tw:text-xs tw:tabular-nums tw:text-slate-500">
+              <span>
+                {theme2Totals.totalProducts} item
+                {theme2Totals.totalProducts === 1 ? "" : "s"}
+              </span>
+              <span className="tw:inline-flex tw:items-center tw:gap-1 tw:font-medium tw:text-emerald-600">
+                <span className="tw:h-1.5 tw:w-1.5 tw:rounded-full tw:bg-emerald-500" />
+                {theme2Totals.readyCount} ready
+              </span>
+              {theme2Totals.pendingCount > 0 ? (
+                <span className="tw:inline-flex tw:items-center tw:gap-1 tw:font-medium tw:text-amber-600">
+                  <span className="tw:h-1.5 tw:w-1.5 tw:rounded-full tw:bg-amber-500" />
+                  {theme2Totals.pendingCount} need info
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </PageTopBar>
+    );
+
   return (
     <>
-      <AppHeader title={pageTitle} />
+      {/* Same header contract as the subscribe layout — section switcher on
+          theme-2 mobile — but the cart is a drill-down, so it keeps the back
+          lead rather than the layout's menu. */}
+      <AppHeader title={pageTitle} sectionKey="catalog" activeTab="library" />
       <div className="page-bg app-page tw:p-4 has-footer">
-        <div className="app-container">
-          <div className="tw:flex tw:items-center tw:justify-between tw:gap-3">
-            <AppBreadcrumbs data={breadcrumbs} />
-          </div>
-
-          <PageDescription
-            description={
-              effectiveTab === "pending" ? "catalogCartPending" : "catalogCart"
-            }
-            className="tw:mb-4"
-          />
-
-          {showTabs ? (
-            <AppTab
-              tabs={tabs}
-              activeTab={effectiveTab}
-              onTabChange={(tab) =>
-                setActiveTab(tab.key as "current" | "pending")
-              }
-              className="tw:mb-4"
-            />
-          ) : null}
-
-          {isInitialLoading ? (
-            <div className="tw:flex tw:justify-center tw:items-center tw:h-64">
-              <AppSpinner />
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title={t("menu:manageCatalog")}
+              />
             </div>
-          ) : effectiveTab === "pending" ? (
-            <>
-              {showPendingBanner ? (
-                <div className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-violet-200 tw:bg-linear-to-r tw:from-violet-500/10 tw:via-indigo-500/5 tw:to-blue-500/10 tw:p-4 tw:flex tw:items-start tw:gap-3.5 tw:shadow-xs tw:backdrop-blur-xs tw:mb-4">
-                  {/* Soft background glow decoration */}
-                  <div className="tw:absolute tw:-right-10 tw:-top-10 tw:w-32 tw:h-32 tw:rounded-full tw:bg-violet-400/10 tw:blur-xl tw:pointer-events-none" />
-                  <div className="tw:absolute tw:-left-10 tw:-bottom-10 tw:w-32 tw:h-32 tw:rounded-full tw:bg-blue-400/10 tw:blur-xl tw:pointer-events-none" />
+          </aside>
 
-                  {/* AI Purple Icon Container */}
-                  <div className="tw:relative tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-lg tw:bg-linear-to-br tw:from-violet-500 tw:to-indigo-600 tw:text-white tw:shrink-0 tw:shadow-md">
-                    <Sparkles className="tw:w-4.5 tw:h-4.5 tw:animate-pulse" />
-                    <span className="tw:absolute tw:inset-0 tw:rounded-lg tw:border tw:border-violet-300/30 tw:animate-ping tw:opacity-70" />
-                  </div>
-
-                  {/* Banner Text Content */}
-                  <div className="tw:flex-1 tw:space-y-0.5">
-                    <div className="tw:flex tw:items-center tw:gap-1.5">
-                      <span className="tw:text-xs tw:font-bold tw:text-violet-900 tw:tracking-wide uppercase">
-                        StoreKing AI Assist
-                      </span>
-                      <span className="tw:inline-flex tw:items-center tw:px-1.5 tw:py-0.5 tw:rounded-full tw:text-[9px] tw:font-semibold tw:bg-violet-100 tw:text-violet-800 tw:border tw:border-violet-200">
-                        AI Suggestion
-                      </span>
+          {/* Unlike the subscribe layout this page renders no chip strip of its
+              own, so it doesn't take `subscribe-flush-top`: the top bar owns
+              the pull-up here (`app-top-bar-flush`), which also has to clear
+              the content grid's mobile top gap. */}
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                {/* theme-2 hides both of these (see `.app-breadcrumbs` /
+                    `.app-page-description` in theme-2.css), but they'd still be
+                    DOM siblings — and the column's `space-y-4` would then pay a
+                    1rem gap above the top bar that its own -1rem bleed can no
+                    longer cancel, showing as a page-bg band under the header.
+                    Skip them so the strip is the column's first block. */}
+                {!isTheme2 && (
+                  <>
+                    <div className="tw:flex tw:items-center tw:justify-between tw:gap-3">
+                      <AppBreadcrumbs data={breadcrumbs} />
                     </div>
-                    <p className="tw:text-xs tw:font-medium tw:text-indigo-950 tw:leading-relaxed">
-                      These items were found by StoreKing AI but aren't in the
-                      SK catalog yet. Create them below to add them to your
-                      store.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-              <CreatePending />
-            </>
-          ) : (
-            <>
-              {loading ? (
-                <div className="tw:flex tw:justify-center tw:items-center tw:h-full">
-                  <AppSpinner />
-                </div>
-              ) : null}
 
-              {!loading && !data?.length ? (
-                <NoData>
-                  <div className="tw:flex tw:flex-col tw:items-center tw:text-center tw:max-w-sm">
-                    <div className="tw:relative tw:mb-5 tw:flex tw:items-center tw:justify-center tw:w-16 tw:h-16 tw:rounded-full tw:bg-linear-to-br tw:from-violet-50 tw:to-indigo-50 tw:border tw:border-violet-100">
-                      <ShoppingCart className="tw:w-7 tw:h-7 tw:text-violet-500" />
-                    </div>
-                    <h3 className="tw:text-sm tw:font-semibold tw:text-slate-800 tw:mb-1">
-                      Your cart is empty
-                    </h3>
-                    <p className="tw:text-xs tw:text-slate-500 tw:leading-relaxed tw:mb-5">
-                      Add products to subscribe and they'll show up here, ready
-                      to save to your inventory.
-                    </p>
-                    <AppButton
-                      color="primary"
-                      size="small"
-                      onClick={() =>
-                        appNav.replace("/dashboard/inventory/subscribe/main")
+                    <PageDescription
+                      description={
+                        effectiveTab === "pending"
+                          ? "catalogCartPending"
+                          : "catalogCart"
                       }
-                    >
-                      <PackagePlus className="tw:w-4 tw:h-4 tw:mr-1" />
-                      Browse products
-                    </AppButton>
-                  </div>
-                </NoData>
-              ) : null}
+                      className="tw:mb-4"
+                    />
+                  </>
+                )}
 
-              {!loading && data?.length > 0 ? (
-                <>
-                  {showCurrentBanner ? (
-                    <div className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-violet-200 tw:bg-linear-to-r tw:from-violet-500/10 tw:via-indigo-500/5 tw:to-blue-500/10 tw:p-4 tw:flex tw:items-start tw:gap-3.5 tw:shadow-xs tw:backdrop-blur-xs tw:mb-4">
-                      {/* Soft background glow decoration */}
-                      <div className="tw:absolute tw:-right-10 tw:-top-10 tw:w-32 tw:h-32 tw:rounded-full tw:bg-violet-400/10 tw:blur-xl tw:pointer-events-none" />
-                      <div className="tw:absolute tw:-left-10 tw:-bottom-10 tw:w-32 tw:h-32 tw:rounded-full tw:bg-blue-400/10 tw:blur-xl tw:pointer-events-none" />
+                {/* Sub-nav + content share one wrapper, as in the subscribe
+                    layout, so the sticky top band has a tall enough parent to
+                    travel over. `has-subscribe-nav` tells anything sticky below
+                    that there's a strip above it to clear. */}
+                <div>
+                  {/* Section chip strip — commented out on the cart: it's a
+                      drill-down, not a browse surface, so the strip only
+                      competed with the tab row below it. */}
+                  {/* <SubscribeNavChips className="tw:mb-2" /> */}
 
-                      {/* AI Purple Icon Container */}
-                      <div className="tw:relative tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-lg tw:bg-linear-to-br tw:from-violet-500 tw:to-indigo-600 tw:text-white tw:shrink-0 tw:shadow-md">
-                        <Sparkles className="tw:w-4.5 tw:h-4.5 tw:animate-pulse" />
-                        <span className="tw:absolute tw:inset-0 tw:rounded-lg tw:border tw:border-violet-300/30 tw:animate-ping tw:opacity-70" />
-                      </div>
-
-                      {/* Banner Text Content */}
-                      <div className="tw:flex-1 tw:space-y-0.5">
-                        <div className="tw:flex tw:items-center tw:gap-1.5">
-                          <span className="tw:text-xs tw:font-bold tw:text-violet-900 tw:tracking-wide uppercase">
-                            StoreKing AI Assist
-                          </span>
-                          <span className="tw:inline-flex tw:items-center tw:px-1.5 tw:py-0.5 tw:rounded-full tw:text-[9px] tw:font-semibold tw:bg-violet-100 tw:text-violet-800 tw:border tw:border-violet-200">
-                            AI Suggestion
-                          </span>
-                        </div>
-                        <p className="tw:text-xs tw:font-medium tw:text-indigo-950 tw:leading-relaxed">
-                          {showTabs && newPendingCount > 0
-                            ? `You have ${data.length} product${
-                                data.length > 1 ? "s" : ""
-                              } ready to submit in your cart, and ${pendingCount} scanned product${
-                                pendingCount > 1 ? "s" : ""
-                              } waiting to be created. Please review both tabs to complete the process.`
-                            : "Review your subscribed products below and click 'Save all to Inventory' at the bottom of the page to add them to your store."}
-                        </p>
-                      </div>
-                    </div>
+                  {isTheme2 ? (
+                    theme2TopBar
+                  ) : showTabs ? (
+                    <AppTab
+                      tabs={tabs}
+                      activeTab={effectiveTab}
+                      onTabChange={(tab) =>
+                        setActiveTab(tab.key as "current" | "pending")
+                      }
+                      className="tw:mb-4"
+                    />
                   ) : null}
-                  {showSummary ? <Summary products={data} /> : null}
 
-                  <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:mb-4 tw:gap-3">
-                    {/* <div className="tw:flex tw:items-center tw:space-x-2 tw:bg-gray-50 tw:py-2 tw:rounded-lg">
+                  {isInitialLoading ? (
+                    <div className="tw:flex tw:justify-center tw:items-center tw:h-64">
+                      <AppSpinner />
+                    </div>
+                  ) : effectiveTab === "pending" ? (
+                    <>
+                      {showPendingBanner ? (
+                        <div className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-violet-200 tw:bg-linear-to-r tw:from-violet-500/10 tw:via-indigo-500/5 tw:to-blue-500/10 tw:p-4 tw:flex tw:items-start tw:gap-3.5 tw:shadow-xs tw:backdrop-blur-xs tw:mb-4">
+                          {/* Soft background glow decoration */}
+                          <div className="tw:absolute tw:-right-10 tw:-top-10 tw:w-32 tw:h-32 tw:rounded-full tw:bg-violet-400/10 tw:blur-xl tw:pointer-events-none" />
+                          <div className="tw:absolute tw:-left-10 tw:-bottom-10 tw:w-32 tw:h-32 tw:rounded-full tw:bg-blue-400/10 tw:blur-xl tw:pointer-events-none" />
+
+                          {/* AI Purple Icon Container */}
+                          <div className="tw:relative tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-lg tw:bg-linear-to-br tw:from-violet-500 tw:to-indigo-600 tw:text-white tw:shrink-0 tw:shadow-md">
+                            <Sparkles className="tw:w-4.5 tw:h-4.5 tw:animate-pulse" />
+                            <span className="tw:absolute tw:inset-0 tw:rounded-lg tw:border tw:border-violet-300/30 tw:animate-ping tw:opacity-70" />
+                          </div>
+
+                          {/* Banner Text Content */}
+                          <div className="tw:flex-1 tw:space-y-0.5">
+                            <div className="tw:flex tw:items-center tw:gap-1.5">
+                              <span className="tw:text-xs tw:font-bold tw:text-violet-900 tw:tracking-wide uppercase">
+                                StoreKing AI Assist
+                              </span>
+                              <span className="tw:inline-flex tw:items-center tw:px-1.5 tw:py-0.5 tw:rounded-full tw:text-[9px] tw:font-semibold tw:bg-violet-100 tw:text-violet-800 tw:border tw:border-violet-200">
+                                AI Suggestion
+                              </span>
+                            </div>
+                            <p className="tw:text-xs tw:font-medium tw:text-indigo-950 tw:leading-relaxed">
+                              These items were found by StoreKing AI but aren't
+                              in the SK catalog yet. Create them below to add
+                              them to your store.
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
+                      <CreatePending />
+                    </>
+                  ) : (
+                    <>
+                      {loading ? (
+                        <div className="tw:flex tw:justify-center tw:items-center tw:h-full">
+                          <AppSpinner />
+                        </div>
+                      ) : null}
+
+                      {!loading && !data?.length ? (
+                        <NoData>
+                          <div className="tw:flex tw:flex-col tw:items-center tw:text-center tw:max-w-sm">
+                            <div className="tw:relative tw:mb-5 tw:flex tw:items-center tw:justify-center tw:w-16 tw:h-16 tw:rounded-full tw:bg-linear-to-br tw:from-violet-50 tw:to-indigo-50 tw:border tw:border-violet-100">
+                              <ShoppingCart className="tw:w-7 tw:h-7 tw:text-violet-500" />
+                            </div>
+                            <h3 className="tw:text-sm tw:font-semibold tw:text-slate-800 tw:mb-1">
+                              Your cart is empty
+                            </h3>
+                            <p className="tw:text-xs tw:text-slate-500 tw:leading-relaxed tw:mb-5">
+                              Add products to subscribe and they'll show up
+                              here, ready to save to your inventory.
+                            </p>
+                            <AppButton
+                              color="primary"
+                              size="small"
+                              onClick={() =>
+                                appNav.replace(
+                                  "/dashboard/inventory/subscribe/main",
+                                )
+                              }
+                            >
+                              <PackagePlus className="tw:w-4 tw:h-4 tw:mr-1" />
+                              Browse products
+                            </AppButton>
+                          </div>
+                        </NoData>
+                      ) : null}
+
+                      {!loading && data?.length > 0 ? (
+                        <>
+                          {showCurrentBanner ? (
+                            <div className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-violet-200 tw:bg-linear-to-r tw:from-violet-500/10 tw:via-indigo-500/5 tw:to-blue-500/10 tw:p-4 tw:flex tw:items-start tw:gap-3.5 tw:shadow-xs tw:backdrop-blur-xs tw:mb-4">
+                              {/* Soft background glow decoration */}
+                              <div className="tw:absolute tw:-right-10 tw:-top-10 tw:w-32 tw:h-32 tw:rounded-full tw:bg-violet-400/10 tw:blur-xl tw:pointer-events-none" />
+                              <div className="tw:absolute tw:-left-10 tw:-bottom-10 tw:w-32 tw:h-32 tw:rounded-full tw:bg-blue-400/10 tw:blur-xl tw:pointer-events-none" />
+
+                              {/* AI Purple Icon Container */}
+                              <div className="tw:relative tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-lg tw:bg-linear-to-br tw:from-violet-500 tw:to-indigo-600 tw:text-white tw:shrink-0 tw:shadow-md">
+                                <Sparkles className="tw:w-4.5 tw:h-4.5 tw:animate-pulse" />
+                                <span className="tw:absolute tw:inset-0 tw:rounded-lg tw:border tw:border-violet-300/30 tw:animate-ping tw:opacity-70" />
+                              </div>
+
+                              {/* Banner Text Content */}
+                              <div className="tw:flex-1 tw:space-y-0.5">
+                                <div className="tw:flex tw:items-center tw:gap-1.5">
+                                  <span className="tw:text-xs tw:font-bold tw:text-violet-900 tw:tracking-wide uppercase">
+                                    StoreKing AI Assist
+                                  </span>
+                                  <span className="tw:inline-flex tw:items-center tw:px-1.5 tw:py-0.5 tw:rounded-full tw:text-[9px] tw:font-semibold tw:bg-violet-100 tw:text-violet-800 tw:border tw:border-violet-200">
+                                    AI Suggestion
+                                  </span>
+                                </div>
+                                <p className="tw:text-xs tw:font-medium tw:text-indigo-950 tw:leading-relaxed">
+                                  {showTabs && newPendingCount > 0
+                                    ? `You have ${data.length} product${
+                                        data.length > 1 ? "s" : ""
+                                      } ready to submit in your cart, and ${pendingCount} scanned product${
+                                        pendingCount > 1 ? "s" : ""
+                                      } waiting to be created. Please review both tabs to complete the process.`
+                                    : "Review your subscribed products below and click 'Save all to Inventory' at the bottom of the page to add them to your store."}
+                                </p>
+                              </div>
+                            </div>
+                          ) : null}
+                          {/* Both themes open the list with what the cart adds
+                              up to; theme-2 reads it off the same view model
+                              the rows and the footer use, and carries margin
+                              and tax on top of the item/value pair. */}
+                          {showSummary ? (
+                            isTheme2 ? (
+                              <CartSummaryTheme2
+                                totals={theme2Totals}
+                                className="tw:mb-4"
+                              />
+                            ) : (
+                              <Summary products={data} />
+                            )
+                          ) : null}
+
+                          {/* theme-2 moves these onto the sticky top band with
+                              the tabs (see `theme2TopBar`), so they only render
+                              here for the classic themes. */}
+                          {!isTheme2 ? (
+                            <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:mb-4 tw:gap-3">
+                              {/* <div className="tw:flex tw:items-center tw:space-x-2 tw:bg-gray-50 tw:py-2 tw:rounded-lg">
                   <Checkbox
                     id="update-price-from-mrp"
                     checked={updatePriceFromMrp}
@@ -1569,28 +1765,70 @@ const SubscribeCart: React.FC = () => {
                   </label>
                 </div> */}
 
-                    {/* Global Quantity Apply - Desktop only */}
-                    <GlobalQtyApply onApply={handleGlobalQtyApply} />
+                              {/* Global Quantity Apply - Desktop only */}
+                              <GlobalQtyApply onApply={handleGlobalQtyApply} />
 
-                    <ViewToggle
-                      viewType={viewType}
-                      callback={handleViewToggle}
-                    />
-                  </div>
+                              <ViewToggle
+                                viewType={viewType}
+                                callback={handleViewToggle}
+                              />
+                            </div>
+                          ) : null}
 
-                  {isMobile || viewType === "card" ? (
-                    <MobileView data={data} callback={handleItemCallback} />
-                  ) : (
-                    <DesktopView
-                      data={data}
-                      callback={handleItemCallback}
-                      unitOptions={unitOptions}
-                    />
+                          {isMobile || viewType === "card" ? (
+                            isTheme2 ? (
+                              <MobileViewTheme2
+                                rows={theme2Rows}
+                                totals={theme2Totals}
+                                unitOptions={unitOptions}
+                                callback={handleItemCallback}
+                              />
+                            ) : (
+                              <MobileView
+                                data={data}
+                                callback={handleItemCallback}
+                              />
+                            )
+                          ) : isTheme2 ? (
+                            <DesktopViewTheme2
+                              rows={theme2Rows}
+                              totals={theme2Totals}
+                              unitOptions={unitOptions}
+                              callback={handleItemCallback}
+                            />
+                          ) : (
+                            <DesktopView
+                              data={data}
+                              callback={handleItemCallback}
+                              unitOptions={unitOptions}
+                            />
+                          )}
+                        </>
+                      ) : null}
+                    </>
                   )}
-                </>
-              ) : null}
-            </>
-          )}
+                </div>
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed pane
+                  beside the icon rail. It carries the tab row, the cart
+                  summary and the apply-to-all qty tool; the top strip hides
+                  its copies of those there (`app-pane-hide`). */}
+              <AppPaneSide className="app-pane-only">
+                <CartSidePane
+                  activeTab={effectiveTab}
+                  onTabChange={setActiveTab}
+                  cartCount={data?.length || 0}
+                  pendingCount={pendingCount || 0}
+                  totals={theme2Totals}
+                  pendingStats={pendingStats}
+                  showTools={showCartTools}
+                  onApplyQty={handleGlobalQtyApply}
+                />
+              </AppPaneSide>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1598,21 +1836,48 @@ const SubscribeCart: React.FC = () => {
       {effectiveTab === "current" && !loading && data?.length ? (
         <footer className="app-footer">
           <div className="app-container">
-            <div className="tw:flex tw:justify-between tw:items-center tw:gap-3 tw:flex-wrap">
-              <AppButton
-                fill="outline"
-                color="danger"
-                onClick={() => handleClearCart()}
-              >
-                <Trash2 className="tw:w-4 tw:h-4 tw:mr-1" />
-                Clear Entire Cart
-              </AppButton>
+            {isTheme2 ? (
+              // The summary strip above the list already carries the tally and
+              // the cart's value, so the bar is just the two actions — pushed
+              // to opposite ends so the destructive one isn't next to Save.
+              <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+                <AppButton
+                  fill="outline"
+                  color="danger"
+                  size="small"
+                  className="tw:shrink-0"
+                  onClick={() => handleClearCart()}
+                >
+                  <Trash2 className="tw:w-4 tw:h-4 tw:mr-1" />
+                  Clear Entire Cart
+                </AppButton>
 
-              <AppButton color="success" onClick={handleSaveToInventory}>
-                <Save className="tw:w-4 tw:h-4 tw:mr-1" />
-                Save all to Inventory
-              </AppButton>
-            </div>
+                <AppButton
+                  color="primary"
+                  size="small"
+                  onClick={handleSaveToInventory}
+                >
+                  <Save className="tw:w-4 tw:h-4 tw:mr-1" />
+                  Save all to Inventory
+                </AppButton>
+              </div>
+            ) : (
+              <div className="tw:flex tw:justify-between tw:items-center tw:gap-3 tw:flex-wrap">
+                <AppButton
+                  fill="outline"
+                  color="danger"
+                  onClick={() => handleClearCart()}
+                >
+                  <Trash2 className="tw:w-4 tw:h-4 tw:mr-1" />
+                  Clear Entire Cart
+                </AppButton>
+
+                <AppButton color="primary" onClick={handleSaveToInventory}>
+                  <Save className="tw:w-4 tw:h-4 tw:mr-1" />
+                  Save all to Inventory
+                </AppButton>
+              </div>
+            )}
           </div>
         </footer>
       ) : null}

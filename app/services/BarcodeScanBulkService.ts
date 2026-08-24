@@ -1,5 +1,7 @@
 import { orderBy } from "lodash";
 
+import InventorySubscribeService from "./InventorySubscribeService";
+
 export type SortKey = "relevance" | "mrp_asc" | "mrp_desc";
 
 export const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
@@ -21,6 +23,12 @@ export interface ReviewDeal {
   barcode?: string;
   qty?: number;
   isSubscribed?: boolean;
+  /** Already sitting in the subscribe cart (matched against the local cart). */
+  isInCart?: boolean;
+  /** Cart line id for the deal, when it is already in the cart. */
+  cartItemId?: string;
+  /** Quantity already added to the cart for this deal. */
+  cartQuantity?: number;
   /** Cache id of the AI extraction this deal came from (AI-suggested rows). */
   aiCacheId?: string;
   /**
@@ -51,7 +59,7 @@ export const MATCH_STATUS_BADGE: Record<MatchStatus, MatchStatusBadge> = {
     dot: "tw:bg-violet-500",
   },
   FoundInSk: {
-    label: "Found in SK Catalog",
+    label: "Found in SK Library",
     text: "tw:text-emerald-700",
     bg: "tw:bg-emerald-50",
     dot: "tw:bg-emerald-500",
@@ -61,10 +69,10 @@ export const MATCH_STATUS_BADGE: Record<MatchStatus, MatchStatusBadge> = {
     text: "tw:text-emerald-700",
     bg: "tw:bg-emerald-50",
     dot: "tw:bg-emerald-500",
-    subLabel: "Not in SK catalog",
+    subLabel: "Not in SK Library",
   },
   NotFound: {
-    label: "Not found in SK AI or SK Catalog",
+    label: "Not found in SK AI or SK Library",
     text: "tw:text-gray-600",
     bg: "tw:bg-gray-100",
     dot: "tw:bg-gray-400",
@@ -83,6 +91,25 @@ export interface ReviewItem {
   skSuggestions: ReviewDeal[];
   createdAt?: string;
   status?: string;
+}
+
+/**
+ * Pick the first usable barcode out of a set of candidates. The scan API is
+ * inconsistent about the field it carries the code in — sometimes a plain
+ * string, sometimes an array (`barcodes`), sometimes objects like
+ * `{ barcode: "890…" }` — so accept all three rather than dropping the code.
+ */
+function firstBarcode(...candidates: any[]): string {
+  for (const candidate of candidates) {
+    for (const value of Array.isArray(candidate) ? candidate : [candidate]) {
+      const code =
+        typeof value === "string" || typeof value === "number"
+          ? String(value)
+          : value?.barcode || value?.code || value?.value || "";
+      if (code.trim()) return code.trim();
+    }
+  }
+  return "";
 }
 
 /** Payload for the client-side deal filter (brand chip + text search). */
@@ -145,6 +172,11 @@ export default class BarcodeScanBulkService {
       images = raw.images;
     }
     const mrp = Number(raw?.mrp) || 0;
+    // The subscribe cart is keyed on the deal's `_id` (same key SubscribeBtn
+    // writes), so a row can say "In cart" without a second round trip.
+    const cartItem = raw?._id
+      ? InventorySubscribeService.getLocalCartItem(raw._id)
+      : null;
     return {
       id: raw?._id || raw?.dealId || barcode || raw?.name || "",
       dealId: raw?.dealId,
@@ -155,9 +187,12 @@ export default class BarcodeScanBulkService {
       images,
       mrp,
       price: Number(raw?.price) || mrp,
-      barcode: raw?.barcode || barcode,
+      barcode: firstBarcode(raw?.barcode, raw?.barcodes, raw?.ean) || barcode,
       qty: raw?.qty,
       isSubscribed: raw?.isSubscribed,
+      isInCart: !!cartItem?.dealId,
+      cartItemId: cartItem?.itemId,
+      cartQuantity: cartItem?.quantity || 0,
       aiCacheId: raw?.aiCacheId,
       raw,
     };
@@ -196,8 +231,16 @@ export default class BarcodeScanBulkService {
 
   static formatItem(item: any): ReviewItem {
     const result = item?.result ?? {};
-    const barcode: string =
-      result?.barcode || item?.barcode || result?.text || item?.text || "";
+    const barcode: string = firstBarcode(
+      result?.barcode,
+      result?.barcodes,
+      item?.barcode,
+      item?.barcodes,
+      item?.searchKeyword,
+      result?.searchKeyword,
+      result?.text,
+      item?.text,
+    );
     const matchStatus: MatchStatus = item?.matchStatus || "NotFound";
 
     const matched: ReviewDeal[] = [];
@@ -223,7 +266,9 @@ export default class BarcodeScanBulkService {
     return {
       id: item?._id,
       batchId: item?.batchId || "",
-      barcode,
+      // Items scanned by name (or whose scan echo dropped the code) carry no
+      // barcode of their own — show the matched deal's code instead of a blank.
+      barcode: barcode || deal?.barcode || "",
       qty: Number(result?.qty ?? item?.qty) || 0,
       matchStatus,
       badge: MATCH_STATUS_BADGE[matchStatus] ?? MATCH_STATUS_BADGE.NotFound,

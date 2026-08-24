@@ -8,8 +8,28 @@ export default [
       "routes/dashboard/paylater/analytics/index.tsx"
     ),
     route(
+      "dashboard/paylater/portfolio",
+      "routes/dashboard/paylater/portfolio/index.tsx"
+    ),
+    route(
       "dashboard/paylater/orders",
       "routes/dashboard/paylater/orders/index.tsx"
+    ),
+    route(
+      "dashboard/paylater/ready-to-unlock",
+      "routes/dashboard/paylater/ready-to-unlock/index.tsx"
+    ),
+    route(
+      "dashboard/paylater/unlock",
+      "routes/dashboard/paylater/unlock/index.tsx"
+    ),
+    route(
+      "dashboard/paylater/approvals",
+      "routes/dashboard/paylater/approvals/index.tsx"
+    ),
+    route(
+      "dashboard/paylater/nudges",
+      "routes/dashboard/paylater/nudges/index.tsx"
     ),
     route(
       "dashboard/paylater/wallets/:type",

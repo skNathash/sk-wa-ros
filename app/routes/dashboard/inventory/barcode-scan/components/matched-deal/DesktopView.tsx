@@ -277,7 +277,7 @@ const DesktopView: React.FC<Props> = ({
         <div className="tw:flex tw:items-center tw:gap-1.5">
           <CheckCircle2 className="tw:w-3.5 tw:h-3.5 tw:text-emerald-600" />
           <span className="tw:text-[11px] tw:font-semibold tw:text-emerald-700">
-            {visibleDeals.length} of {deals.length} products found in SK Catalog
+            {visibleDeals.length} of {deals.length} products found in SK Library
           </span>
         </div>
         {onScanNext && (

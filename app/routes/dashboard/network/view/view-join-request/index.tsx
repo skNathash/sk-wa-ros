@@ -13,8 +13,11 @@ import ContactInfo from "./components/info/ContactInfo";
 import Documents from "./components/info/Documents";
 import StoreImages from "./components/info/StoreImages";
 import RequestDetails from "./components/RequestDetails";
+import JoinRequestSidePane from "./components/side-pane/JoinRequestSidePane";
 import RejectModal from "./modals/RejectModal";
 import AuthService from "~/services/AuthService";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import { useTranslation } from "react-i18next";
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -39,7 +42,7 @@ const ViewJoinRequest = () => {
 
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
   const [busyLoader, setBusyLoader] = useState<{ show: boolean; msg?: string }>(
-    { show: false, msg: "" }
+    { show: false, msg: "" },
   );
   const [rejectModal, setRejectModal] = useState({ show: false });
 
@@ -107,7 +110,7 @@ const ViewJoinRequest = () => {
       setBusyLoader({ show: true, msg: "Approving join request..." });
       const resp = await FranchiseService.updateNetworkRequest(
         joinRequest.requestId,
-        { status: "Approved", responseMessage: "" }
+        { status: "Approved", responseMessage: "" },
       );
       const statusCode = (resp as any)?.statusCode;
       if (statusCode !== 200) {
@@ -159,71 +162,100 @@ const ViewJoinRequest = () => {
   return (
     <>
       <AppHeader title="Join Request Details" />
-      <div className="page-bg app-page tw:p-4">
-        <div className="app-container tw:space-y-4">
-          <div>
-            <AppBreadcrumbs data={breadcrumbs} />
-            <div className="tw:text-gray-500 tw:text-xs">
-              {loading
-                ? "Loading join request details..."
-                : !joinRequest
-                  ? "Join request not found"
-                  : "Review and manage join request"}
+      <div className="page-bg app-page page-padding">
+        <div className="app-container">
+          <div className="section-layout">
+            {/* Desktop-only left rail — section side menu. */}
+            <aside className="section-menu-aside">
+              <div className="tw:sticky tw:top-20">
+                <SectionMenu
+                  sectionKey="business"
+                  activeTab="customers"
+                  title={t("manageBusiness", { ns: "menu" })}
+                />
+              </div>
+            </aside>
+
+            <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="tw:mb-4">
+                    <AppBreadcrumbs data={breadcrumbs} />
+                    <div className="tw:text-gray-500 tw:text-xs">
+                      {loading
+                        ? "Loading join request details..."
+                        : !joinRequest
+                          ? "Join request not found"
+                          : "Review and manage join request"}
+                    </div>
+                  </div>
+
+                  {loading ? (
+                    <div className="tw:flex tw:items-center tw:justify-center tw:h-64">
+                      <div className="tw:text-gray-500">Loading...</div>
+                    </div>
+                  ) : !joinRequest ? (
+                    <div className="tw:flex tw:items-center tw:justify-center tw:h-64">
+                      <div className="tw:text-gray-500">
+                        No join request data available
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* <SuspendRequest
+                          data={joinRequest}
+                          onAction={handleJoinRequestAction}
+                        /> */}
+                      {/* Request Details Meta */}
+                      <RequestDetails data={joinRequest} />
+
+                      {/* Join Request Basic Information */}
+                      <BasicInfo data={joinRequest} />
+
+                      {/* Contact Information */}
+                      <ContactInfo data={joinRequest} />
+
+                      {/* Store Images and Documents Grid */}
+                      <div className="tw:grid tw:grid-cols-1 tw:lg:grid-cols-2 tw:gap-4">
+                        <StoreImages
+                          images={
+                            (joinRequest.shopPhotosDetails as Array<{
+                              id?: string;
+                              fileUrl?: string;
+                            }>) || []
+                          }
+                        />
+                        <Documents
+                          documents={
+                            joinRequest.documents || {
+                              business: [],
+                              address: [],
+                              photo: [],
+                            }
+                          }
+                        />
+                      </div>
+                    </>
+                  )}
+                </AppPaneMain>
+
+                {joinRequest?._id ? (
+                  <AppPaneSide className="app-pane-only">
+                    <JoinRequestSidePane
+                      data={joinRequest}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                    />
+                  </AppPaneSide>
+                ) : null}
+              </div>
             </div>
           </div>
-
-          {loading ? (
-            <div className="tw:flex tw:items-center tw:justify-center tw:h-64">
-              <div className="tw:text-gray-500">Loading...</div>
-            </div>
-          ) : !joinRequest ? (
-            <div className="tw:flex tw:items-center tw:justify-center tw:h-64">
-              <div className="tw:text-gray-500">
-                No join request data available
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* <SuspendRequest
-                data={joinRequest}
-                onAction={handleJoinRequestAction}
-              /> */}
-              {/* Request Details Meta */}
-              <RequestDetails data={joinRequest} />
-
-              {/* Join Request Basic Information */}
-              <BasicInfo data={joinRequest} />
-
-              {/* Contact Information */}
-              <ContactInfo data={joinRequest} />
-
-              {/* Store Images and Documents Grid */}
-              <div className="tw:grid tw:grid-cols-1 tw:lg:grid-cols-2 tw:gap-4">
-                <StoreImages
-                  images={
-                    (joinRequest.shopPhotosDetails as Array<{
-                      id?: string;
-                      fileUrl?: string;
-                    }>) || []
-                  }
-                />
-                <Documents
-                  documents={
-                    joinRequest.documents || {
-                      business: [],
-                      address: [],
-                      photo: [],
-                    }
-                  }
-                />
-              </div>
-            </>
-          )}
         </div>
       </div>
       {joinRequest &&
         (joinRequest.status === "Pending" || !joinRequest.status) && (
-          <div className="app-footer tw:px-4 tw:py-3 tw:bg-white tw:border-t tw:flex tw:justify-end tw:gap-2">
+          <div className="app-footer tw:px-4 tw:py-3 tw:bg-white tw:border-t tw:flex tw:justify-end tw:gap-2 theme-2-desktop-hide">
             <AppButton
               onClick={handleApprove}
               size="default"

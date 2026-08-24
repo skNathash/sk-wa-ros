@@ -1,6 +1,7 @@
-import { Search, Users } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
 import { useCallback, useState } from "react";
+import clsx from "clsx";
 import { Input } from "~/components/ui/input";
 import VoiceMic from "~/components/core/voice-search/VoiceMic";
 import AiProductInfoModal from "~/shared/catalog/modals/ai-product-info/AiProductInfoModal";
@@ -12,12 +13,24 @@ import ImgRender from "~/components/core/img/ImgRender";
 type Props = {
   onDiscoverSellers?: () => void;
   trailing?: ReactNode;
+  className?: string;
 };
 
-const SearchWithVoice = ({ onDiscoverSellers, trailing }: Props) => {
+const SearchWithVoice = ({
+  onDiscoverSellers,
+  trailing,
+  className,
+}: Props) => {
   const appNav = useAppNav();
   const [searchParams] = useSearchParams();
   const currentDistance = searchParams.get("distance");
+
+  const goToSearch = (search?: string) => {
+    appNav.to("/products/buy-from-other-retailer/products/search", {
+      ...(search ? { search } : {}),
+      ...(currentDistance ? { distance: currentDistance } : {}),
+    });
+  };
 
   const handleVoiceSearchCallback = ({
     action,
@@ -35,12 +48,7 @@ const SearchWithVoice = ({ onDiscoverSellers, trailing }: Props) => {
         searchValue = data.search;
       }
 
-      if (searchValue) {
-        appNav.to("/products/buy-from-other-retailer/products/search", {
-          search: searchValue,
-          ...(currentDistance ? { distance: currentDistance } : {}),
-        });
-      }
+      if (searchValue) goToSearch(searchValue);
     }
   };
 
@@ -80,11 +88,7 @@ const SearchWithVoice = ({ onDiscoverSellers, trailing }: Props) => {
         .toString()
         .trim();
 
-      appNav.to("/products/buy-from-other-retailer/products/search", {
-        ...(searchTerm ? { search: searchTerm } : {}),
-        ...(currentDistance ? { distance: currentDistance } : {}),
-      });
-
+      goToSearch(searchTerm || undefined);
       setShowAiModal(false);
     }
   };
@@ -95,71 +99,75 @@ const SearchWithVoice = ({ onDiscoverSellers, trailing }: Props) => {
 
   return (
     <>
-      <div>
-        <div className="tw:flex tw:items-center tw:gap-3">
-          {/* Search field — the hero of this row. Taller, softly filled and
-              rounded so it reads as the primary target; the inline voice / AI
-              triggers stay visually quiet beside it. */}
-          <div
-            className="tw:group tw:relative tw:flex-1 tw:min-w-0"
-            onClick={() =>
-              appNav.to("/products/buy-from-other-retailer/products/search", {
-                ...(currentDistance ? { distance: currentDistance } : {}),
-              })
-            }
-          >
-            <div className="tw:absolute tw:left-3.5 tw:top-1/2 tw:-translate-y-1/2 tw:z-10 tw:pointer-events-none tw:text-gray-400 tw:group-focus-within:text-primary tw:transition-colors">
-              <Search size={19} />
-            </div>
-            <Input
-              type="text"
-              placeholder="Search products across the network"
-              readOnly
-              autoComplete="off"
-              className="tw:h-11 tw:rounded-xl tw:bg-gray-50 tw:pl-11 tw:pr-[6.5rem] tw:text-[15px] tw:placeholder:text-gray-400 tw:transition-colors tw:hover:bg-white tw:focus:bg-white tw:cursor-pointer"
-            />
-            <div className="tw:absolute tw:right-2 tw:top-1/2 tw:-translate-y-1/2 tw:z-10 tw:flex tw:items-center tw:gap-1">
-              <span onClick={handleMicClick}>
-                <VoiceMic callback={handleVoiceSearchCallback} />
-              </span>
-              <span
-                aria-hidden
-                className="tw:h-5 tw:w-px tw:bg-gray-200"
+      <div
+        className={clsx(
+          "tw:flex tw:items-center tw:gap-1.5 tw:rounded-2xl tw:border tw:border-gray-200 tw:bg-white tw:p-1.5 tw:shadow-[0_1px_2px_rgba(16,24,40,0.04)] tw:sm:gap-2 tw:sm:p-2",
+          className,
+        )}
+      >
+        {/* Unified search bar — input, voice/AI, area filter and nearby
+            sellers share one rounded surface so the row reads as a single
+            control (matching the browse-network hero search). */}
+        <div
+          className="tw:group tw:relative tw:flex-1 tw:min-w-0"
+          onClick={() => goToSearch()}
+        >
+          <div className="tw:absolute tw:left-2 tw:top-1/2 tw:-translate-y-1/2 tw:z-10 tw:pointer-events-none tw:text-gray-400 tw:group-focus-within:text-primary tw:transition-colors tw:sm:left-2.5">
+            <Search size={16} />
+          </div>
+          <Input
+            type="text"
+            placeholder="Search products or brands across the network — try 'atta', 'amul butter'..."
+            readOnly
+            autoComplete="off"
+            className="tw:h-9 tw:border-0 tw:bg-transparent tw:shadow-none tw:rounded-xl tw:pl-8 tw:pr-20 tw:text-[14px] tw:placeholder:text-gray-400 tw:focus-visible:ring-0 tw:cursor-pointer tw:sm:pl-9"
+          />
+          <div className="tw:absolute tw:right-0.5 tw:top-1/2 tw:-translate-y-1/2 tw:z-10 tw:flex tw:items-center tw:gap-0.5">
+            <span onClick={handleMicClick}>
+              <VoiceMic
+                callback={handleVoiceSearchCallback}
+                className="tw:h-8 tw:w-8 tw:rounded-lg tw:bg-transparent tw:text-gray-500 tw:hover:bg-gray-100 tw:hover:scale-100"
+                size={16}
               />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAiModal(true);
-                }}
-                className="tw:inline-flex tw:h-8 tw:w-8 tw:items-center tw:justify-center tw:rounded-full tw:hover:bg-primary/10 tw:transition-colors"
-                aria-label="AI search"
-                title="Search with AI"
-              >
-                <ImgRender
-                  src="ai/sk-ai.png"
-                  alt="AI"
-                  className="tw:h-6 tw:w-6"
-                />
-              </button>
-            </div>
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAiModal(true);
+              }}
+              type="button"
+              className="tw:inline-flex tw:h-8 tw:w-8 tw:items-center tw:justify-center tw:rounded-lg tw:bg-[#F0EFFF] tw:hover:bg-[#E6E4FF] tw:transition-colors"
+              aria-label="AI search"
+              title="Search with AI"
+            >
+              <ImgRender
+                src="ai/sk-ai.png"
+                alt="AI"
+                className="tw:h-[18px] tw:w-[18px]"
+              />
+            </button>
           </div>
-          {/* Action cluster — one quiet chip (distance filter) and one bold
-              accent (Discover Sellers), given room to breathe from the field. */}
-          <div className="tw:flex tw:items-center tw:gap-2 tw:shrink-0">
-            <DistanceChooser />
-            {onDiscoverSellers && (
-              <button
-                onClick={onDiscoverSellers}
-                type="button"
-                title="Discover Sellers"
-                className="tw:h-11 tw:inline-flex tw:items-center tw:gap-2 tw:px-3.5 tw:sm:px-5 tw:rounded-xl tw:bg-primary/10 tw:text-primary tw:border tw:border-primary/20 tw:text-sm tw:font-medium tw:hover:bg-primary/15 tw:transition-colors tw:whitespace-nowrap tw:shrink-0"
-              >
-                <Users className="tw:w-4 tw:h-4 tw:shrink-0" />
-                <span className="tw:hidden tw:sm:inline">Discover Sellers</span>
-              </button>
-            )}
-            {trailing}
-          </div>
+        </div>
+
+        <span
+          aria-hidden
+          className="tw:hidden tw:sm:block tw:h-7 tw:w-px tw:shrink-0 tw:bg-gray-200"
+        />
+
+        <div className="tw:flex tw:items-center tw:gap-1.5 tw:shrink-0 tw:pr-0.5 tw:sm:gap-2">
+          <DistanceChooser variant="inline" />
+          {onDiscoverSellers && (
+            <button
+              onClick={onDiscoverSellers}
+              type="button"
+              title="Sellers near you"
+              className="tw:h-9 tw:w-9 tw:sm:w-auto tw:inline-flex tw:items-center tw:justify-center tw:gap-1.5 tw:px-0 tw:sm:px-3.5 tw:rounded-full tw:sm:rounded-xl tw:bg-primary tw:text-primary-foreground tw:text-sm tw:font-medium tw:hover:bg-primary/90 tw:transition-colors tw:whitespace-nowrap tw:shrink-0"
+            >
+              <MapPin className="tw:w-3.5 tw:h-3.5 tw:shrink-0" />
+              <span className="tw:hidden tw:md:inline">Sellers near you</span>
+            </button>
+          )}
+          {trailing}
         </div>
       </div>
       <AiProductInfoModal

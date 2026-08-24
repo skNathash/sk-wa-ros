@@ -12,6 +12,18 @@ const productViewRoutes = [
     "routes/dashboard/inventory/products/view/analytics/index.tsx",
   ),
   route(
+    "dashboard/inventory/products/view/:id/pricing",
+    "routes/dashboard/inventory/products/view/pricing/index.tsx",
+  ),
+  route(
+    "dashboard/inventory/products/view/:id/trend",
+    "routes/dashboard/inventory/products/view/trend/index.tsx",
+  ),
+  route(
+    "dashboard/inventory/products/view/:id/retailers",
+    "routes/dashboard/inventory/products/view/retailers/index.tsx",
+  ),
+  route(
     "dashboard/inventory/products/view/:id/vendors",
     "routes/dashboard/inventory/products/view/vendors/index.tsx",
   ),
@@ -35,12 +47,20 @@ const productViewRoutes = [
 
 const subscribeRoutes = [
   route(
+    "dashboard/inventory/subscribe/discover",
+    "routes/dashboard/inventory/subscribe/discover/index.tsx",
+  ),
+  route(
     "dashboard/inventory/subscribe/search",
     "routes/dashboard/inventory/subscribe/search/index.tsx",
   ),
   route(
     "dashboard/inventory/subscribe/browse-category",
     "routes/dashboard/inventory/subscribe/browse-category/index.tsx",
+  ),
+  route(
+    "dashboard/inventory/subscribe/menus",
+    "routes/dashboard/inventory/subscribe/menus/index.tsx",
   ),
   route(
     "dashboard/inventory/subscribe/browse-brands",
@@ -85,6 +105,10 @@ export default [
     "routes/dashboard/inventory/products/list/index.tsx",
   ),
   route(
+    "dashboard/inventory/products/pre-owned",
+    "routes/dashboard/inventory/products/pre-owned/index.tsx",
+  ),
+  route(
     "dashboard/inventory/products/config",
     "routes/dashboard/inventory/products/config/index.tsx",
   ),
@@ -111,6 +135,10 @@ export default [
   route(
     "dashboard/inventory/browse-category",
     "routes/dashboard/inventory/browse-category/index.tsx",
+  ),
+  route(
+    "dashboard/inventory/menus",
+    "routes/dashboard/inventory/menus/index.tsx",
   ),
   route(
     "dashboard/inventory/purchase-basket",
@@ -161,8 +189,8 @@ export default [
     "routes/dashboard/inventory/subscribe/approval-history/bulk/view/index.tsx",
   ),
   route(
-    "dashboard/inventory/browse",
-    "routes/dashboard/inventory/browse/index.tsx",
+    "dashboard/inventory/browse-brand",
+    "routes/dashboard/inventory/browse-brand/index.tsx",
   ),
   route(
     "dashboard/inventory/cases",

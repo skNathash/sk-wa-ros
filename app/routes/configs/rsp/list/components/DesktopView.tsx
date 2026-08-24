@@ -10,9 +10,13 @@ import NoData from "~/components/core/no-data/NoData";
 import { TableSkeletonLoader } from "~/components/core/table";
 import AppTable from "~/components/core/table/AppTable";
 import TableHeader from "~/components/core/table/TableHeader";
+import { Checkbox } from "~/components/ui/checkbox";
 import LocationsBlock from "~/components/feature/inventory/location-block/LocationsBlock";
 import CommonService from "~/services/CommonService";
 import SchemePopover from "~/shared/catalog/components/SchemePopover";
+import InlinePriceEdit, {
+  type InlinePriceResult,
+} from "~/shared/catalog/components/inline-price-edit/InlinePriceEdit";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
 import DisplayPrice from "~/shared/products/display-price/DisplayPrice";
 import {
@@ -22,11 +26,19 @@ import {
 import MarketVerdict from "~/shared/catalog/components/competitor-price/MarketVerdict";
 import OtherCompetitorsPopover from "~/shared/catalog/components/competitor-price/OtherCompetitorsPopover";
 import type {
+  NetworkGroupPrice,
   SellerDeal,
   SortProps,
   SortValue,
   TableHeaderItem,
 } from "~/types/CommonTypes";
+import {
+  PRICE_COMPARISON_DISTANCE,
+  type PeerRange,
+  type PriceGroupColumn,
+} from "../helper";
+import GroupPriceCell, { groupTone } from "./GroupPriceCell";
+import PeerRangeBar from "./PeerRangeBar";
 
 // DesktopView component with LoadMoreButton integration
 
@@ -34,21 +46,47 @@ export interface DesktopViewProps {
   loading?: boolean;
   data: (SellerDeal & { _priceSlab?: any })[];
   callback?: (args: { action: string; data?: SellerDeal }) => void;
+  /** Outcome of an inline price edit — the row is patched by the host. */
+  onPriceResult?: (result: InlinePriceResult) => void;
   sortKey?: string;
   onSort?: (sort: SortProps) => void;
   sortValue?: SortValue;
   type?: "network" | "customer";
   showOnlinePrices?: boolean;
+  /** Buyer groups to render a price column for (B2B only). */
+  priceGroups?: PriceGroupColumn[];
   showLoadMore?: boolean;
   loadingMore?: boolean;
   loadMore: (event?: any) => void;
   totalCount?: number;
   loadedCount: number;
+  /** Deal ids currently picked for the bulk price setter. */
+  selectedIds?: Set<string>;
+  onSelectChange?: (deal: any, checked: boolean) => void;
+  /** Selects / clears every row currently listed. */
+  onSelectAllChange?: (checked: boolean) => void;
 }
 
 const containerStyle = {
   maxHeight: "calc(100vh - 200px)",
 };
+
+type MarginTone = "high" | "mid" | "low";
+
+// Margin badge — healthy / thin / at risk, banded in the row helper.
+const MARGIN_TONE: Record<MarginTone, string> = {
+  high: "tw:bg-emerald-50 tw:text-emerald-700",
+  mid: "tw:bg-amber-50 tw:text-amber-700",
+  low: "tw:bg-red-50 tw:text-red-700",
+};
+
+// The group price a deal carries for one buyer group, from the deal's
+// `networkGroupPrices` (prepared by SellerCatalogService.formatProductResponse).
+const findGroupPrice = (
+  deal: SellerDeal,
+  groupId: string,
+): NetworkGroupPrice | undefined =>
+  (deal.networkGroupPrices || []).find((group) => group.id === groupId);
 
 // Renders a marketplace (Flipkart/Amazon) price. If the partner carries a
 // listing `url` the value becomes a button that opens it; otherwise it's plain.
@@ -87,18 +125,30 @@ const DesktopView: React.FC<DesktopViewProps> = ({
   loading = false,
   data,
   callback,
+  onPriceResult,
   sortKey = "",
   onSort = () => {},
   sortValue = "asc",
   type = "customer",
   showOnlinePrices = true,
+  priceGroups = [],
   showLoadMore = false,
   loadingMore = false,
   loadMore,
   totalCount = 0,
   loadedCount,
+  selectedIds,
+  onSelectChange,
+  onSelectAllChange,
 }) => {
   const { t } = useTranslation(["common"]);
+
+  // Bulk selection is opt-in: without a handler the table renders as before.
+  const selectable = !!onSelectChange;
+  const allSelected =
+    selectable &&
+    data.length > 0 &&
+    data.every((deal) => selectedIds?.has(deal._id || deal.id));
 
   // Competitor benchmark columns are driven by the "Show online prices" checkbox.
   const showCompetitorPrice = showOnlinePrices;
@@ -117,7 +167,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
           key: `competitor:${name}`,
           enableSort: false,
           isCentered: true,
-          width: "8%",
+          width: "6%",
         })),
         {
           label: (
@@ -129,40 +179,83 @@ const DesktopView: React.FC<DesktopViewProps> = ({
           key: "competitor:Other",
           enableSort: false,
           isCentered: true,
-          width: "8%",
+          width: "7%",
         },
       ]
     : [];
 
+  // One column per configured buyer group, next to the deal's own B2B price.
+  // Only B2B carries group prices, so the list arrives empty on B2C.
+  const groupColumns = priceGroups;
+
+  const groupHeaders: TableHeaderItem[] = groupColumns.map((group, index) => ({
+    label: (
+      <span className="tw:inline-flex tw:flex-col tw:items-center">
+        <span
+          className={clsx(
+            "tw:whitespace-nowrap tw:font-bold tw:uppercase tw:tracking-wide",
+            groupTone(group.toneIndex ?? index).header,
+          )}
+        >
+          {group.name}
+        </span>
+        {group.sellersCount > 0 && (
+          <span className="tw:text-[10px] tw:font-normal tw:text-gray-400">
+            {group.sellersCount}{" "}
+            {group.sellersCount === 1 ? "retailer" : "retailers"}
+          </span>
+        )}
+      </span>
+    ),
+    key: `priceGroup:${group.id}`,
+    enableSort: false,
+    isCentered: true,
+    width: "8%",
+  }));
+
   const tableHeaders: TableHeaderItem[] = [
-    { label: "#", key: "sl", width: "3%" },
-    { label: t("product"), key: "dealName", enableSort: true, width: "18%" },
+    ...(selectable
+      ? [
+          {
+            label: (
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={(checked: any) =>
+                  onSelectAllChange?.(checked === true)
+                }
+                aria-label="Select all listed products"
+                className="tw:border-gray-400"
+              />
+            ),
+            key: "select",
+            enableSort: false,
+            width: "3%",
+          },
+        ]
+      : []),
+    { label: "#", key: "sl", width: "2%" },
+    // Category now reads under the product name, so it has no column of its own.
+    { label: t("product"), key: "dealName", enableSort: true, width: "22%" },
     {
-      label: t("category"),
-      key: "applicableCategory.categoryName",
-      enableSort: false,
-      width: "8%",
+      label: t("purchasePrice"),
+      key: "purchasePrice",
+      enableSort: true,
+      isCentered: true,
+      width: "6%",
     },
     {
       label: t("mrp"),
       key: "mrp",
-      enableSort: false,
+      enableSort: true,
       isCentered: true,
-      width: "8%",
-    },
-    {
-      label: t("purchasePrice"),
-      key: "purchasePrice",
-      enableSort: false,
-      isCentered: true,
-      width: "8%",
+      width: "6%",
     },
     {
       label: type === "network" ? t("b2bPrice") : t("b2cPrice"),
       key: "price",
       enableSort: true,
       isCentered: true,
-      width: "12%",
+      width: "9%",
     },
     {
       label: type === "network" ? t("margin") : t("discount"),
@@ -171,6 +264,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
       isCentered: true,
       width: "6%",
     },
+    {
+      label: `Near By Retailers (${PRICE_COMPARISON_DISTANCE}km)`,
+      key: "peer",
+      enableSort: false,
+      isCentered: true,
+      width: "10%",
+    },
+    ...groupHeaders,
     ...competitorHeaders,
     {
       label: t("stock"),
@@ -184,14 +285,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
       key: "inventoryValue",
       enableSort: false,
       isCentered: true,
-      width: "9%",
+      width: "7%",
     },
     {
       label: t("stockVelocity"),
       key: "movementType",
       enableSort: false,
       isCentered: true,
-      width: "10%",
+      width: "8%",
     },
   ];
 
@@ -202,7 +303,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
   return (
     <AppTable
       container
-      minWidth="1600px"
+      minWidth={`${1400 + groupColumns.length * 110}px`}
       containerStyle={containerStyle}
       stickyHeader
     >
@@ -239,6 +340,26 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   : "",
               )}
             >
+              {selectable && (
+                <AppTable.Cell>
+                  {/* Row clicks open the detail — keep the checkbox its own hit area. */}
+                  <span
+                    onClick={(e) => e.stopPropagation()}
+                    className="tw:inline-flex"
+                  >
+                    <Checkbox
+                      checked={selectedIds?.has(
+                        deal._id || (deal.id as string),
+                      )}
+                      onCheckedChange={(checked) =>
+                        onSelectChange?.(deal, checked === true)
+                      }
+                      aria-label={`Select ${deal.name}`}
+                      className="tw:border-gray-400"
+                    />
+                  </span>
+                </AppTable.Cell>
+              )}
               <AppTable.Cell>{index + 1}</AppTable.Cell>
               <AppTable.Cell>
                 <div className="tw:flex tw:items-start tw:gap-2">
@@ -251,12 +372,19 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   ></div>
                   <AppLink
                     asLink
-                    href={`/dashboard/inventory/products/view/${deal._id}`}
+                    href={`/dashboard/inventory/products/view/${deal._id}/pricing`}
                     className="tw:font-medium tw:flex-1"
                   >
                     {deal.name}
                   </AppLink>
                 </div>
+                {/* Category reads right under the name — it no longer has a
+                    column of its own, which frees the width for group prices. */}
+                {deal.category?.name && (
+                  <div className="tw:mt-0.5 tw:pl-4 tw:text-xs tw:text-slate-500">
+                    {deal.category.name}
+                  </div>
+                )}
                 <div className="tw:text-xs tw:my-1.5 tw:flex tw:items-center tw:gap-2">
                   <code className="tw:bg-gray-100 tw:px-2 tw:py-1 tw:rounded-md tw:text-slate-600">
                     {deal.id}
@@ -267,8 +395,13 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   </span>
                 </div>
               </AppTable.Cell>
-              <AppTable.Cell className="tw:text-xs">
-                {deal.category?.name || "-"}
+              <AppTable.Cell className="tw:text-center">
+                <DisplayPrice
+                  price={deal.purchasePrice || 0}
+                  uom={(deal as any).selectedStockUom}
+                  decimalPlaces={2}
+                  className="tw:text-amber-600 tw:font-semibold tw:whitespace-nowrap"
+                />
               </AppTable.Cell>
               <AppTable.Cell className="tw:text-center">
                 <DisplayPrice
@@ -278,25 +411,26 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   className="tw:font-semibold tw:whitespace-nowrap"
                 />
               </AppTable.Cell>
-              <AppTable.Cell className="tw:text-center">
-                <DisplayPrice
-                  price={deal.purchasePrice || 0}
-                  uom={(deal as any).selectedStockUom}
-                  decimalPlaces={2}
-                  className="tw:text-amber-600 tw:font-semibold tw:whitespace-nowrap"
-                />
-              </AppTable.Cell>
               <AppTable.Cell className="tw:text-center tw:bg-blue-50">
                 <div className="tw:flex tw:flex-col tw:items-center tw:gap-2">
-                  <DisplayPrice
+                  {/* Price is edited where it is read — the field writes the
+                      fixed price itself; the Edit button below still opens the
+                      full config modal (margin mode, history, competitors). */}
+                  <InlinePriceEdit
+                    dealId={deal._id || (deal.id as string)}
+                    type={type === "network" ? "b2b" : "b2c"}
                     price={
                       type === "network"
                         ? deal.b2bPrice || 0
                         : deal.b2cPrice || 0
                     }
-                    uom={(deal as any).selectedStockUom}
-                    decimalPlaces={2}
-                    className="tw:font-bold tw:text-lg tw:text-slate-900 tw:whitespace-nowrap"
+                    callback={onPriceResult}
+                    onEdit={() => callback?.({ action: "edit", data: deal })}
+                    aria-label={`${
+                      type === "network" ? "B2B" : "B2C"
+                    } price for ${deal.name}`}
+                    className="tw:w-[130px]"
+                    inputClassName="tw:text-center"
                   />
                   {showCompetitorPrice && (
                     <MarketVerdict
@@ -353,33 +487,15 @@ const DesktopView: React.FC<DesktopViewProps> = ({
               <AppTable.Cell className="tw:text-center tw:font-semibold">
                 {(deal as any)._discountType === "Fixed" ? (
                   <AppBadge variant="warning">Fixed</AppBadge>
-                ) : type === "network" ? (
-                  <span
-                    className={clsx(
-                      deal.b2bDiscount > 0
-                        ? "tw:text-green-600"
-                        : "tw:text-red-600",
-                    )}
-                  >
-                    {CommonService.roundedByDecimalPlace(
-                      deal.b2bDiscount || 0,
-                      2,
-                    )}
-                    %
-                  </span>
                 ) : (
                   <span
                     className={clsx(
-                      deal.b2cDiscount > 0
-                        ? "tw:text-green-600"
-                        : "tw:text-red-600",
+                      "tw:inline-flex tw:rounded-md tw:px-2 tw:py-0.5 tw:text-sm tw:font-bold tw:tabular-nums",
+                      MARGIN_TONE[(deal as any)._marginTone as MarginTone] ||
+                        MARGIN_TONE.low,
                     )}
                   >
-                    {CommonService.roundedByDecimalPlace(
-                      deal.b2cDiscount || 0,
-                      2,
-                    )}
-                    %
+                    {(deal as any)._marginLabel}
                   </span>
                 )}
 
@@ -399,6 +515,46 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   </div>
                 )}
               </AppTable.Cell>
+              <AppTable.Cell className="tw:text-center">
+                <PeerRangeBar peer={(deal as any)._peer as PeerRange} />
+              </AppTable.Cell>
+              {groupColumns.map((group, groupIndex) => {
+                const groupPrice = findGroupPrice(deal, group.id);
+                return (
+                  <AppTable.Cell
+                    key={group.id}
+                    className={clsx(
+                      "tw:text-center",
+                      // One hairline separates the group block from the rest.
+                      groupIndex === 0 && "tw:border-l tw:border-slate-200",
+                    )}
+                  >
+                    <GroupPriceCell
+                      dealId={deal._id || (deal.id as string)}
+                      sellerDealObjId={(deal as any).sellerDealObjId || ""}
+                      group={group}
+                      onPriceResult={onPriceResult}
+                      price={groupPrice?.price || deal.b2bPrice || 0}
+                      configured={!!groupPrice?.price}
+                      discountLabel={
+                        groupPrice?.discountType === "Fixed"
+                          ? "Fixed"
+                          : `${CommonService.roundedByDecimalPlace(
+                              groupPrice?.discount || 0,
+                              2,
+                            )}% off`
+                      }
+                      toneIndex={group.toneIndex ?? groupIndex}
+                      onEdit={() =>
+                        callback?.({
+                          action: "editGroupPrice",
+                          data: { ...deal, _group: group } as any,
+                        })
+                      }
+                    />
+                  </AppTable.Cell>
+                );
+              })}
               {showCompetitorPrice && (
                 <>
                   <AppTable.Cell className="tw:text-center tw:bg-sky-50">

@@ -117,8 +117,12 @@ const AddStockTab = () => {
           {/* Bulk Upload Information */}
           <BulkUploadInfo
             title="Bulk Stock Upload"
-            icon={<Package className="tw:text-blue-600" size={20} />}
+            icon={
+              <Package className="app-accent-icon tw:text-blue-600" size={20} />
+            }
             requiredFormat="Your Excel file should contain the following columns: Deal Id, Quantity, Mrp, Purchase Price. Only 50 products can be updated at a time."
+            columns={["Deal Id", "Quantity", "Mrp", "Purchase Price"]}
+            limitNote="Up to 50 products per upload"
             onDownloadTemplate={handleDownloadTemplate}
             showDownloadInventory={true}
             description="Upload your stock data in bulk using our Excel template. This will help you update multiple product stock quantities at once."

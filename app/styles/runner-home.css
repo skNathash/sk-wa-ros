@@ -1,0 +1,319 @@
+/* Runner app home — the brand block at the top of the runner's day. Kept in
+   CSS rather than utilities because it is built from the app primary colour
+   (`--primary` / `--primary-2`), which re-resolves per theme.
+
+   The colour the masthead and the band's first stop share is
+   `--runner-brand-top`, declared on the shell (see runner-shell.css) so both
+   inherit the one value rather than each mixing their own. */
+
+.runner-hero {
+  /* Half the summary card's height — the band reserves it as bottom padding
+     and the card is pulled back up by the same amount, so the card straddles
+     the band's edge no matter what sits above it. */
+  --runner-strip-overlap: 2.9rem;
+  position: relative;
+}
+
+/* Offline-only ramp — the home hero falls back to the default primary-derived
+   gradient while the runner is available, and shifts to a muted gray brand
+   block the moment they pause for jobs. */
+.runner-hero--offline {
+  --runner-brand-top: #6b7280;
+  --runner-offline-ramp: #4b5563;
+  --runner-offline-deep: #374151;
+}
+
+.runner-hero--offline .runner-hero-band {
+  background-image:
+    linear-gradient(
+      160deg,
+      transparent 0%,
+      transparent 45%,
+      color-mix(in srgb, var(--primary-2) 45%, transparent) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      var(--runner-brand-top) 0%,
+      var(--runner-offline-ramp) 55%,
+      color-mix(in srgb, var(--runner-offline-deep) 85%, #000) 100%
+    );
+}
+
+/* The sticky greeting header sits directly above the band and is painted with
+   `--runner-brand-top`, so it must share the offline ramp's top colour too. */
+.runner-header:has(~ .runner-hero--offline) {
+  --runner-brand-top: #6b7280;
+  background: var(--runner-brand-top);
+}
+
+/* Gradient block. Clips its own wash, so the summary card has to live outside
+   it — hence the band/card split rather than one box.
+
+   Two layers, because the band has to meet the sticky header above it without
+   a seam and still not read as a flat wash:
+
+   - the base ramp runs straight down, so its whole top edge is the one colour
+     the header is painted in. An angled ramp is already past its first stop by
+     the right-hand corner, which is exactly where the join showed.
+   - the diagonal tint on top is what carries the angle, and it holds fully
+     transparent past the top edge before it starts, so it cannot reintroduce
+     the join no matter which way it leans.
+
+   The base lands deeper than it starts rather than lighter: the bottom of the
+   band survives only as the sliver either side of the summary card, and a
+   light sliver there reads as the gradient running out. */
+.runner-hero-band {
+  position: relative;
+  overflow: hidden;
+  padding-bottom: var(--runner-strip-overlap);
+  background-image:
+    linear-gradient(
+      160deg,
+      transparent 0%,
+      transparent 45%,
+      color-mix(in srgb, var(--primary-2) 45%, transparent) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      var(--runner-brand-top) 0%,
+      var(--primary) 55%,
+      color-mix(in srgb, var(--primary) 80%, #000) 100%
+    );
+}
+
+/* Soft light source behind the earnings figure — the same lift the screenshot
+   carries on its right shoulder. */
+.runner-hero-wash {
+  position: absolute;
+  top: -20%;
+  right: -25%;
+  width: 75%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, #fff 16%, transparent) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Greeting row — a sibling of the hero, not a child of it, so it holds the top
+   of the screen for the whole page. Carries the gradient's own top colour as a
+   solid fill: seamless with the band at rest, opaque over the feed once stuck. */
+.runner-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem;
+  background: var(--runner-brand-top);
+}
+
+/* Masthead eyebrow — the app's name, set small enough to sit under the title
+   rather than compete with it. */
+.runner-header-eyebrow {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #fff 65%, transparent);
+}
+
+/* Shift pill beside the eyebrow — the same translucent slab the hero switch
+   uses, shrunk to a status marker: it reports, it is not tapped. */
+.runner-header-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, #fff 16%, transparent);
+  padding: 0.125rem 0.4375rem;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.runner-header-online-dot {
+  height: 0.375rem;
+  width: 0.375rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: #4ade80;
+}
+
+.runner-hero-icon-btn {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  background-color: color-mix(in srgb, #fff 16%, transparent);
+  color: #fff;
+}
+.runner-hero-icon-btn:hover {
+  background-color: color-mix(in srgb, #fff 26%, transparent);
+}
+
+.runner-hero-avatar {
+  display: flex;
+  height: 3rem;
+  width: 3rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, #fff 55%, transparent);
+  background-color: color-mix(in srgb, #fff 22%, transparent);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Online switch — a translucent slab rather than a plain pill so it reads as
+   the tappable control on the row. */
+.runner-hero-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #fff 28%, transparent);
+  background-color: color-mix(in srgb, #fff 14%, transparent);
+  padding: 0.3125rem 0.625rem;
+}
+
+.runner-hero-status-dot {
+  height: 0.5rem;
+  width: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--primary-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-2) 35%, transparent);
+}
+
+.runner-hero-strip-wrap {
+  position: relative;
+  margin-top: calc(var(--runner-strip-overlap) * -1);
+  padding-inline: 1rem;
+}
+
+.runner-hero-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  min-height: calc(var(--runner-strip-overlap) * 2);
+  border-radius: 1.25rem;
+  background-color: #fff;
+  border: 1px solid var(--border);
+}
+
+.runner-hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.875rem 1rem;
+}
+.runner-hero-stat + .runner-hero-stat {
+  border-left: 1px solid var(--border);
+}
+
+/* Active-now feed — the jobs the runner is on right now. The card carries a
+   coloured left rail that names its stage at a glance, so the rail colour is a
+   per-card variable rather than a fixed border. The box itself is `AppCard` —
+   only the rail and the stage colour live here. */
+.runner-job-card {
+  position: relative;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 20px -14px rgb(15 23 42 / 0.4);
+}
+.runner-job-card::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 0.25rem;
+  background-color: var(--runner-job-accent);
+}
+
+/* Stage rail + stage badge share one colour per stage. */
+.runner-job-card--pickup {
+  --runner-job-accent: #f59e0b;
+}
+.runner-job-card--delivering {
+  --runner-job-accent: #3b82f6;
+}
+
+.runner-job-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  padding: 0.1875rem 0.4375rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.runner-job-badge--pickup {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+.runner-job-badge--delivering {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+.runner-job-badge--b2b {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+.runner-job-badge--b2c {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Money-on-collection chip — the one thing on the card the runner is
+   accountable for, so it gets a filled chip rather than plain text. */
+.runner-job-cod {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.5rem;
+  background-color: #dcfce7;
+  padding: 0.1875rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
+/* ETA reads in the stage's own colour so the eye pairs it with the rail. */
+.runner-job-eta {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--runner-job-accent);
+}
+
+/* Available-near-you feed — open jobs. The card is a plain `AppCard`: with
+   nothing claimed yet it carries no stage rail. */
+
+/* Order code reads as a tag here — it is the only handle on an unclaimed job. */
+.runner-nearby-code {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  background-color: var(--muted, #f1f5f9);
+  padding: 0.1875rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #475569;
+}
+
+/* Skip and Accept sit as a pair — same height, opposite weight, so the eye
+   lands on Accept without Skip disappearing. */

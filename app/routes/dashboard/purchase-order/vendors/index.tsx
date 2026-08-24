@@ -1,4 +1,4 @@
-import { Building2, Plus } from "lucide-react";
+import { Building2, ChevronRight, Plus, PlusCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import AppButton from "~/components/core/button/AppButton";
@@ -15,9 +15,15 @@ import { getCount, getData, prepareParams } from "./helper";
 import SkSellerAvailableNote from "~/shared/vendor/components/sk-seller-available/SkSellerAvailableNote";
 import { useTranslation } from "react-i18next";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import PageHeader from "~/shared/page-header/PageHeader";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
+import MobileItem from "./components/MobileItem";
+import { Skeleton } from "~/components/ui/skeleton";
+import useTheme from "~/hooks/useTheme";
+import clsx from "clsx";
 
 interface VendorData {
   _id: string;
@@ -72,6 +78,8 @@ const VendorSelection = () => {
   const appNav = useAppNav();
   const [searchParams] = useSearchParams();
   const from = searchParams.get("from");
+
+  const isTheme2 = useTheme() === "theme-2";
 
   const [breadcrumbs, setBreadcrumbs] =
     useState<BreadcrumbItem[]>(defaultBreadcrumbs);
@@ -239,12 +247,12 @@ const VendorSelection = () => {
       <div className="page-padding page-bg app-page">
         <div className="app-container">
           {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
-          <SectionTabs
+          {/* <SectionTabs
             sectionKey="supply"
             activeTab="purchase-orders"
             noShadow
             sticky
-          />
+          /> */}
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -259,77 +267,141 @@ const VendorSelection = () => {
             </aside>
 
             <div className="section-content">
-              <SkSellerAvailableNote />
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12 tw:space-y-0">
+                  <SkSellerAvailableNote />
 
-              {/* Page header and Create Vendor Button */}
-              <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4 tw:gap-3">
-                <PageHeader
-                  breadcrumbs={breadcrumbs}
-                  title={t("selectVendor")}
-                  description="purchaseOrder"
-                />
-                {!isMobile && (
-                  <AppButton
-                    onClick={handleCreateVendor}
-                    color="primary"
-                    size="small"
-                    className="tw:!px-4"
-                  >
-                    <Plus className="tw:w-4 tw:h-4 tw:mr-2" />
-                    {t("createVendor")}
-                  </AppButton>
-                )}
-              </div>
-
-              {from === "import" && <ImportSteps activeStep={0} />}
-              {from === "po" && (
-                <div className="tw:text-center tw:mb-6">
-                  <div className="tw:inline-flex">
-                    <PoSteps activeStep={0} />
-                  </div>
-                </div>
-              )}
-
-              <VendorsFilter callback={onFilterChange} />
-
-              <div className="tw:mb-2">
-                <PaginationSummary
-                  paginationConfig={paginationRef.current}
-                  loadingTotalRecords={loading}
-                  fwSize="sm"
-                  loadedCount={vendors.length}
-                />
-              </div>
-
-              {vendors.length === 0 && !loading && (
-                <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:py-12 tw:text-gray-500">
-                  <Building2 className="tw:w-12 tw:h-12 tw:text-gray-400 tw:mb-2" />
-                  <div>{t("noVendorsFound")}</div>
-                </div>
-              )}
-
-              {vendors.length > 0 && (
-                <>
-                  {vendors.map((vendor: any) => (
-                    <VendorItem
-                      key={vendor._id}
-                      vendor={vendor}
-                      callback={onVendorItemClick}
+                  {/* Page header and Create Vendor Button */}
+                  <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4 tw:gap-3">
+                    <PageHeader
+                      breadcrumbs={breadcrumbs}
+                      title={t("selectVendor")}
+                      description="purchaseOrder"
                     />
-                  ))}
+                    {!isMobile && (
+                      <AppButton
+                        onClick={handleCreateVendor}
+                        color="primary"
+                        size="small"
+                        className="tw:!px-4"
+                      >
+                        <Plus className="tw:w-4 tw:h-4 tw:mr-2" />
+                        {t("createVendor")}
+                      </AppButton>
+                    )}
+                  </div>
 
-                  {!loading && hasMoreData && (
-                    <div className="tw:flex tw:justify-center tw:py-8">
-                      <LoadMoreButton
-                        loadMore={loadMore}
-                        loading={loadingMore}
-                        totalCount={paginationRef.current.totalRecords}
-                        loadedCount={vendors.length}
+                  {from === "import" && <ImportSteps activeStep={0} />}
+                  {from === "po" && (
+                    <div className="tw:md:mb-6 tw:mb-0">
+                      <PoSteps
+                        activeStep={0}
+                        type={isMobile ? "mobile" : "desktop"}
+                        containerClassName="tw:-translate-y-8"
                       />
                     </div>
                   )}
-                </>
-              )}
+                  <div
+                    className={clsx(
+                      isTheme2 && isMobile ? "tw:-translate-y-8" : "",
+                    )}
+                  >
+                    <div
+                      className={clsx(
+                        isTheme2 && isMobile
+                          ? "tw:bg-white tw:p-4 app-bleed-x tw:mb-0 tw:border-b tw:border-gray-100"
+                          : "",
+                      )}
+                    >
+                      <VendorsFilter callback={onFilterChange} />
+                    </div>
+
+                    <div className="tw:mb-2 tw:hidden tw:lg:block">
+                      <PaginationSummary
+                        paginationConfig={paginationRef.current}
+                        loadingTotalRecords={loading}
+                        fwSize="sm"
+                        loadedCount={vendors.length}
+                      />
+                    </div>
+
+                    {vendors.length === 0 && !loading && (
+                      <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:py-12 tw:text-gray-500">
+                        <Building2 className="tw:w-12 tw:h-12 tw:text-gray-400 tw:mb-2" />
+                        <div>{t("noVendorsFound")}</div>
+                      </div>
+                    )}
+
+                    {/* add vendor button */}
+                    <div className="app-bleed-x tw:md:hidden">
+                      <button
+                        className="tw:w-full tw:flex tw:items-center tw:gap-2 tw:text-primary tw:cursor-pointer tw:bg-white tw:p-4 tw:mb-0"
+                        onClick={handleCreateVendor}
+                      >
+                        <PlusCircle className="tw:w-8 tw:h-8" />
+                        <div className="tw:flex-1 tw:text-left">
+                          <div className="tw:text-base tw:font-medium">
+                            Add Vendor
+                          </div>
+                          <div className="tw:text-xs tw:text-gray-500">
+                            Not in your list yet? Create a new vendor.
+                          </div>
+                        </div>
+                        <div>
+                          <ChevronRight />
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="tw:px-4 tw:py-2 tw:text-gray-500 tw:text-sm app-bleed-x tw:mb-0 tw:md:hidden">
+                      Your vendors {paginationRef.current.totalRecords}
+                    </div>
+
+                    {/* skeleton loading */}
+                    {loading && (
+                      <div className="tw:flex tw:justify-center tw:py-8">
+                        <Skeleton className="tw:w-full tw:h-10 tw:mb-2" />
+                        <Skeleton className="tw:w-full tw:h-10 tw:mb-2" />
+                      </div>
+                    )}
+
+                    {vendors.length > 0 && (
+                      <>
+                        {vendors.map((vendor: any) =>
+                          isMobile ? (
+                            <MobileItem
+                              key={vendor._id}
+                              vendor={vendor}
+                              callback={onVendorItemClick}
+                            />
+                          ) : (
+                            <VendorItem
+                              key={vendor._id}
+                              vendor={vendor}
+                              callback={onVendorItemClick}
+                            />
+                          ),
+                        )}
+
+                        {!loading && hasMoreData && (
+                          <div className="tw:flex tw:justify-center tw:py-8">
+                            <LoadMoreButton
+                              loadMore={loadMore}
+                              loading={loadingMore}
+                              totalCount={paginationRef.current.totalRecords}
+                              loadedCount={vendors.length}
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </AppPaneMain>
+
+                <AppPaneSide className="app-pane-only">
+                  <PurchaseOrderSidePane />
+                </AppPaneSide>
+              </div>
             </div>
           </div>
         </div>

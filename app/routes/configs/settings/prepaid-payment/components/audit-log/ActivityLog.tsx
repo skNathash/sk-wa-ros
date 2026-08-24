@@ -6,6 +6,7 @@ import { getData, getCount, prepareParams } from "./helper";
 import Filter from "./Filter";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import NoData from "~/components/core/no-data/NoData";
+import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 
 type PerformedBy = {
   name?: string;
@@ -90,7 +91,18 @@ const ActivityLog: React.FC = () => {
 
   return (
     <>
-      <Filter callback={handleFilterChange} />
+      {/* Toolbar: pagination summary left, date-range filter right. Stacks
+          full-width on mobile; sits on one row from md up. The inline gutter
+          (px-4 pt-3) matches theme-2's flush page, same as the old Filter. */}
+      <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:justify-between tw:gap-3 tw:mb-4 tw:px-4 tw:pt-3">
+        <PaginationSummary
+          paginationConfig={paginationRef.current}
+          loadingTotalRecords={loading}
+          loadedCount={logs.length}
+          fwSize="sm"
+        />
+        <Filter callback={handleFilterChange} className="tw:w-full tw:md:w-auto tw:md:min-w-72" />
+      </div>
 
       {loading ? (
         <div className="tw:flex tw:justify-center tw:items-center tw:py-8 tw:min-h-72">

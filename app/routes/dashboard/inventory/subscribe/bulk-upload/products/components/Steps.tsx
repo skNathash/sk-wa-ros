@@ -1,5 +1,6 @@
 import AppSteps from "~/components/core/steps/AppSteps";
 import type { StepData } from "~/components/core/steps/AppSteps";
+import useTheme from "~/hooks/useTheme";
 
 interface Props {
   activeKey?: string | number;
@@ -43,6 +44,21 @@ const Steps = ({
   mode = "detailed",
 }: Props) => {
   const steps = mode === "dealId" ? dealIdSteps : detailedSteps;
+  // theme-2's rail is a full-bleed band under the sticky sub-nav, so it skips
+  // the centering wrapper.
+  const isTheme2 = useTheme() === "theme-2";
+
+  if (isTheme2) {
+    return (
+      <AppSteps
+        steps={steps}
+        activeKey={activeKey}
+        isCompleted={isCompleted}
+        className={`app-steps-band ${className || ""}`}
+      />
+    );
+  }
+
   // Wrap AppSteps in a flex container so the stepper is centered horizontally
   return (
     <div className={`tw:md:flex tw:md:justify-center ${className || ""}`}>

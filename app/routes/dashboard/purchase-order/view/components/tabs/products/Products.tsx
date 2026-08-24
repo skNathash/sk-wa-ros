@@ -1,9 +1,8 @@
-import { InfoIcon, Search } from "lucide-react";
+import { InfoIcon, Package, Search } from "lucide-react";
 import { useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import Amount from "~/components/core/amount/Amount";
 import AppBadge from "~/components/core/badge/AppBadge";
-import AppCard from "~/components/core/card/AppCard";
 import { AppInput } from "~/components/core/form/AppInput";
 import AppSelect from "~/components/core/form/AppSelect";
 import KeyValue from "~/components/core/key-value/KeyValue";
@@ -12,7 +11,6 @@ import AppPopover from "~/components/core/popover/AppPopover";
 import RecentPurchasePopover from "~/shared/vendor/popovers/recent-purchase/RecentPurchasePopover";
 import ReceivedDetails from "./ReceivedDetails";
 import Summary from "./Summary";
-import Divider from "~/components/core/divider/Divider";
 
 interface ProductsTabProps {
   items: any[];
@@ -25,7 +23,7 @@ const statusOptions = [
   { value: "not_received", label: "Not Received" },
 ];
 
-const Products: React.FC<ProductsTabProps> = ({ items, callback }) => {
+const Products: React.FC<ProductsTabProps> = ({ items }) => {
   const { control, register } = useForm<{
     search: string;
     status: string;
@@ -70,24 +68,24 @@ const Products: React.FC<ProductsTabProps> = ({ items, callback }) => {
     const totalProducts = filteredItems.length;
     const totalUnits = filteredItems.reduce(
       (sum, it) => sum + Number(it.quantity || 0),
-      0
+      0,
     );
 
     const receivedItems = filteredItems.filter((it) => isReceived(it));
     const receivedProducts = receivedItems.length;
     const receivedUnits = receivedItems.reduce(
       (sum, it) => sum + Number(it.receivedQuantity || 0),
-      0
+      0,
     );
 
     const notReceivedItems = filteredItems.filter((it) =>
-      ["Partially Received", "Approved", "Pending"].includes(it.status)
+      ["Partially Received", "Approved", "Pending"].includes(it.status),
     );
     const notReceivedProducts = notReceivedItems.length;
     const notReceivedUnits = notReceivedItems.reduce(
       (sum, it) =>
         sum + (Number(it.quantity || 0) - Number(it.receivedQuantity || 0)),
-      0
+      0,
     );
 
     return {
@@ -98,15 +96,17 @@ const Products: React.FC<ProductsTabProps> = ({ items, callback }) => {
   }, [filteredItems]);
 
   return (
-    <>
-      <div className="tw:flex tw:flex-col tw:md:flex-row tw:items-end tw:gap-3 tw:mb-4">
+    <div className="tw:overflow-hidden tw:rounded-xl tw:bg-white">
+      {/* Search + status — `app-search-field` beats theme-2's forced white input bg */}
+      <div className="tw:flex tw:flex-col tw:sm:flex-row tw:items-stretch tw:gap-2 tw:border-b tw:border-slate-100 tw:px-3 tw:py-3 tw:sm:items-center tw:md:px-4">
         <AppInput
           name="search"
           placeholder="Search products by name or ID"
           register={register}
-          inputClassName="tw:w-full"
-          className="tw:w-full tw:md:flex-1"
-          leftIcon={<Search className="tw:w-4 tw:h-4 tw:text-gray-400" />}
+          size="sm"
+          inputClassName="tw:w-full tw:border-0 tw:shadow-none tw:bg-gray-100! tw:focus-visible:ring-0 tw:focus-visible:border-transparent"
+          className="tw:w-full tw:sm:flex-1"
+          leftIcon={<Search className="tw:h-4 tw:w-4 tw:text-slate-400" />}
         />
 
         <Controller
@@ -118,8 +118,9 @@ const Products: React.FC<ProductsTabProps> = ({ items, callback }) => {
               value={field.value}
               onChange={field.onChange}
               placeholder="Select status"
-              className="tw:w-full tw:md:w-64"
-              inputClassName="tw:w-full"
+              size="sm"
+              className="tw:w-full tw:sm:w-28 tw:shrink-0"
+              inputClassName="tw:w-full tw:border-slate-200 tw:bg-white tw:shadow-none tw:h-8 tw:text-sm"
             />
           )}
         />
@@ -134,60 +135,83 @@ const Products: React.FC<ProductsTabProps> = ({ items, callback }) => {
         notReceivedUnits={summary.notReceived.units}
       />
 
-      {filteredItems.map((item) => (
-        <AppCard key={item.dealId} noPadding className="tw:overflow-hidden">
-          <div className="tw:p-3 tw:w-full">
-            <div className="tw:flex tw:gap-4">
-              <div>
-                <div className="tw:w-14 tw:h-14 tw:bg-gray-200 tw:rounded-lg tw:flex tw:items-center tw:justify-center"></div>
-              </div>
-              <div className="tw:flex-1">
-                <h3 className="tw:md:text-lg tw:text-base tw:font-semibold tw:mb-1">
-                  <AppLink
-                    asLink={true}
-                    href={`/dashboard/inventory/products/view/${item.dealId}`}
-                    showLinkColor={true}
-                  >
-                    {item.dealName}
-                  </AppLink>
-                </h3>
-                <div className="tw:flex tw:justify-between tw:items-center-safe tw:gap-2">
-                  <div className="tw:text-xs tw:text-gray-500 tw:font-normal">
+      {/* Product rows — flat, separated by hairlines */}
+      {filteredItems.map((item, index) => (
+        <div
+          key={item.dealId}
+          className={
+            index < filteredItems.length - 1
+              ? "tw:border-b tw:border-slate-100"
+              : undefined
+          }
+        >
+          <div className="tw:flex tw:items-start tw:gap-2.5 tw:px-3 tw:py-3 tw:md:px-4">
+            <div className="tw:flex tw:h-8 tw:w-8 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-md tw:bg-slate-100 tw:text-slate-500">
+              <Package className="tw:h-4 tw:w-4" />
+            </div>
+
+            <div className="tw:min-w-0 tw:flex-1">
+              <div className="tw:flex tw:items-start tw:justify-between tw:gap-2">
+                <div className="tw:min-w-0">
+                  <h3 className="tw:truncate tw:text-sm tw:font-semibold tw:leading-snug">
+                    <AppLink
+                      asLink={true}
+                      href={`/dashboard/inventory/products/view/${item.dealId}`}
+                      showLinkColor={true}
+                      className="tw:no-underline"
+                    >
+                      {item.dealName}
+                    </AppLink>
+                  </h3>
+                  <p className="tw:mt-0.5 tw:text-[11px] tw:text-slate-500">
                     ID: {item.dealRefId}
-                  </div>
-                  <div>
-                    <AppBadge variant={item._statusColor}>
-                      {item._statusLabel}
-                    </AppBadge>
-                  </div>
+                  </p>
                 </div>
+
+                {item._statusLabel && (
+                  <AppBadge
+                    variant={item._statusColor}
+                    size="sm"
+                    className="tw:shrink-0 tw:uppercase"
+                  >
+                    {item._statusLabel}
+                  </AppBadge>
+                )}
               </div>
             </div>
           </div>
 
-          <Divider className="tw:my-0!" />
-
-          <div className="tw:grid tw:grid-cols-3 tw:md:grid-cols-6 tw:gap-4 tw:p-3">
-            <KeyValue label="Ordered" size="sm">
-              <span className="tw:font-medium">{item.quantity || 0} units</span>
-            </KeyValue>
-
-            <KeyValue label="Invoiced Qty" size="sm">
-              <span className="tw:font-medium">
-                {item.invoicedQuantity || item.invoiceQuantity} units
+          <div className="tw:grid tw:grid-cols-2 tw:sm:grid-cols-3 tw:md:grid-cols-5 tw:gap-x-4 tw:gap-y-2.5 tw:px-3 tw:pb-3 tw:md:px-4">
+            <KeyValue label="Ordered" size="xs">
+              <span className="tw:font-semibold">
+                {item.quantity || 0} units
               </span>
             </KeyValue>
 
-            <KeyValue label="MRP" size="sm">
-              <Amount value={item.mrp} decimalPlaces={2} />
+            <KeyValue label="Invoiced Qty" size="xs">
+              <span className="tw:font-semibold">
+                {item.invoicedQuantity || item.invoiceQuantity || 0} units
+              </span>
             </KeyValue>
 
-            <KeyValue label="Purchase Price" size="sm">
-              <div className="tw:flex tw:items-center tw:gap-2">
-                <Amount value={item.purchasePrice} decimalPlaces={2} />
+            <KeyValue label="MRP" size="xs">
+              <Amount
+                value={item.mrp}
+                decimalPlaces={0}
+                className="tw:font-semibold"
+              />
+            </KeyValue>
+
+            <KeyValue label="Purchase Price" size="xs">
+              <div className="tw:flex tw:items-center tw:gap-1.5">
+                <Amount
+                  value={item.purchasePrice}
+                  decimalPlaces={0}
+                  className="tw:font-semibold"
+                />
                 <AppPopover
                   triggerContent={
-                    <InfoIcon className="tw:text-blue-400 tw:w-4 tw:h-4" />
+                    <InfoIcon className="tw:h-3 tw:w-3 tw:text-sky-500" />
                   }
                 >
                   <RecentPurchasePopover
@@ -199,29 +223,29 @@ const Products: React.FC<ProductsTabProps> = ({ items, callback }) => {
             </KeyValue>
 
             {item.damagedQuantity > 0 && (
-              <KeyValue label="Damaged" size="sm">
-                <span className="tw:font-medium tw:text-red-500">
+              <KeyValue label="Damaged" size="xs">
+                <span className="tw:font-semibold tw:text-red-500">
                   {item.damagedQuantity} units
                 </span>
               </KeyValue>
             )}
 
-            <KeyValue label="Total Value" size="sm">
-              <Amount value={item._totalValue} decimalPlaces={2} />
+            <KeyValue label="Total Value" size="xs">
+              <Amount
+                value={item._totalValue}
+                decimalPlaces={0}
+                className="tw:font-semibold"
+              />
             </KeyValue>
           </div>
 
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:gap-4">
-            <div className="tw:md:flex-1">
-              {(item.status === "Completed" ||
-                item.status === "Partially Received") && (
-                <ReceivedDetails item={item} />
-              )}
-            </div>
-          </div>
-        </AppCard>
+          {(item.status === "Completed" ||
+            item.status === "Partially Received") && (
+            <ReceivedDetails item={item} />
+          )}
+        </div>
       ))}
-    </>
+    </div>
   );
 };
 

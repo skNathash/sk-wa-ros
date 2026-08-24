@@ -147,7 +147,10 @@ const SubscribeApprovalHistoryBulkList = () => {
   return (
     <>
       <div>
-        <Filter callback={handleFilterChange} className="tw:mb-4" />
+        <Filter
+          callback={handleFilterChange}
+          className="app-filter-band tw:mb-4"
+        />
 
         <div className="tw:mb-4 tw:flex tw:justify-between tw:items-center">
           <PaginationSummary

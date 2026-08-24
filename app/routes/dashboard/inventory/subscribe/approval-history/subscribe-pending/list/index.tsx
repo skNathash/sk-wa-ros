@@ -418,11 +418,14 @@ const SubscribePendingProductsList = () => {
   return (
     <>
       <div>
-        <div className="tw:text-gray-500 tw:text-sm tw:mb-4">
+        <div className="tw:text-gray-500 tw:text-sm tw:mb-4 theme-2-mobile-hide">
           {t("productsApprovedByAdminYouCanSubscribeToTheProduct")}
         </div>
 
-        <Filter callback={handleFilterChange} className="tw:mb-4" />
+        <Filter
+          callback={handleFilterChange}
+          className="app-filter-band tw:mb-4"
+        />
 
         <div className="tw:flex tw:justify-between tw:items-end tw:mb-4">
           <div>

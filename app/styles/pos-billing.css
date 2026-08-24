@@ -1,0 +1,1811 @@
+/* ==========================================================================
+   POS billing page
+   Everything here is scoped to `.pos-billing`, the wrapper on the POS billing
+   route (app/routes/pos/billing/index.tsx). Any styling written for that page —
+   products grid, cart pane, mobile cart bar — belongs in this file so it can
+   never leak into another screen that happens to share a class name.
+
+   Split out of theme-2.css; the rules stay keyed on [data-theme="theme-2"]
+   because they are that theme's reading of the page. Imported from app.css
+   after theme-2.css, so it keeps winning ties at equal specificity.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Scan block (products/Filter.tsx, theme-2 layout)
+   The billing entry point reads as a till terminal, not a search card: one wide
+   scan rail with a solid green camera tile welded to its left edge, a mono
+   status line beneath it, and a dashed "ready" panel standing in for the empty
+   product grid. All markup is theme-neutral `app-scan-*`; the theme-2 branch in
+   Filter.tsx / products-suggest SearchBlock choose this layout.
+   Styles also apply under `.po-products-suggest` so the PO manage page can
+   reuse the same scan rail without wrapping the whole route as POS billing.
+   -------------------------------------------------------------------------- */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest) .app-scan-block {
+  --scan-ring: color-mix(in srgb, var(--primary) 55%, transparent);
+}
+
+/* The rail owns the border so the green tile can sit flush inside it. The ring
+   is the page's loudest outline — this is where every bill starts. Flat by
+   design: the border alone carries the emphasis, no drop shadow. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest) .app-scan-rail {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  border: 2px solid var(--scan-ring);
+  border-radius: 0.875rem;
+  background-color: var(--card);
+  /* The rail is its own white surface — reset the inherited text colour so it
+     doesn't pick up the white the mobile dock sets on everything inside it
+     (which would make the typed text and the caret invisible). */
+  color: var(--foreground);
+  box-shadow: none;
+  transition: border-color 0.15s ease;
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-rail:focus-within {
+  border-color: var(--primary);
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest) .app-scan-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  flex: 0 0 auto;
+  width: 5rem;
+  padding: 0.75rem 0.5rem;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-tile:hover {
+  background-color: color-mix(in srgb, var(--primary) 88%, white);
+}
+
+/* Ripple: two rings expand out of the barcode glyph on a staggered loop, so the
+   tile reads as live and waiting for a read rather than a static button. The
+   rings are painted by the wrapper's pseudo-elements and never affect layout. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-tile-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-tile-icon::before,
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-tile-icon::after {
+  content: "";
+  position: absolute;
+  inset: -0.375rem;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  animation: app-scan-ripple 2.4s ease-out infinite;
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-tile-icon::after {
+  animation-delay: 1.2s;
+}
+
+@keyframes app-scan-ripple {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* Respect reduced-motion: the tile keeps its meaning without the pulse. */
+@media (prefers-reduced-motion: reduce) {
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    .app-scan-tile-icon::before,
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    .app-scan-tile-icon::after {
+    animation: none;
+  }
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-tile-label {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest) .app-scan-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-field
+  > div {
+  width: 100%;
+}
+
+/* The rail is the control; the input inside it is just text. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  [data-slot="input"].app-scan-input {
+  height: 4.75rem;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  padding-inline: 1rem;
+  font-size: 0.9375rem;
+  color: var(--foreground);
+  caret-color: var(--primary);
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  [data-slot="input"].app-scan-input::placeholder {
+  color: var(--muted-foreground);
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  [data-slot="input"].app-scan-input:focus-visible {
+  border: 0;
+  box-shadow: none;
+  outline: none;
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 0 0 auto;
+  padding-inline: 0.625rem;
+}
+
+/* Hardware scanners terminate a read with Enter — the chip says the rail is
+   already waiting for it. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest) .app-scan-enter {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-action:hover {
+  background-color: var(--muted);
+  color: var(--primary);
+}
+
+/* Above the unified desktop bar the switch has no reason to stretch the full
+   width — it sits at its natural size on the left, so the wide field below
+   stays the thing the eye lands on. */
+[data-theme="theme-2"] .pos-billing .app-scan-modes-rail-inline {
+  width: auto;
+  align-self: flex-start;
+  margin-right: auto;
+}
+[data-theme="theme-2"] .pos-billing .app-scan-modes-rail-inline .app-scan-mode {
+  flex: 0 0 auto;
+  padding-inline: 0.875rem;
+}
+
+/* The two chrome buttons on the unified desktop bar (keypad, voice) read as
+   controls rather than glyphs — a hairline pill keeps them findable against the
+   wide empty field without competing with the green tile. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-action-outline {
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+}
+
+/* Desktop unified bar: one field for scanning and typing. The faint green wash
+   running out of the tile ties the two halves into a single instrument instead
+   of a tile bolted onto a white box. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-rail-unified {
+  background-image: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--primary) 6%, var(--card)),
+    var(--card) 45%
+  );
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-rail-unified
+  [data-slot="input"].app-scan-input {
+  font-size: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Function keys (components/fn-keys/FnKeys.tsx)
+   The strip under the scan rail is the till's legend: what F2…F12 do, printed
+   where the operator's eye already is. Every chip is also a button, so a new
+   hand can click what a trained one presses. Set in mono at legend size — it
+   should read as machine chrome, not as a toolbar competing with the rail.
+   -------------------------------------------------------------------------- */
+[data-theme="theme-2"] .pos-billing .app-fnkeys {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding-inline: 0.125rem;
+}
+
+[data-theme="theme-2"] .pos-billing .app-fnkey {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.3125rem;
+  border-radius: 0.5rem;
+  background-color: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+[data-theme="theme-2"] .pos-billing .app-fnkey:hover:not(:disabled) {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+/* An unavailable key still prints — an operator learns the board faster when
+   the legend never moves. It just stops reading as pressable. */
+[data-theme="theme-2"] .pos-billing .app-fnkey:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* The cap: a keyboard key, drawn small enough to stay a label. */
+[data-theme="theme-2"] .pos-billing .app-fnkey-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  padding: 0.125rem 0.25rem;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 0.3125rem;
+  background-color: var(--card);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--foreground);
+}
+[data-theme="theme-2"] .pos-billing .app-fnkey:hover:not(:disabled) .app-fnkey-cap {
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  color: var(--primary);
+}
+
+[data-theme="theme-2"] .pos-billing .app-fnkey-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Row under the rail: a plain-language status on the left, the search-by switch
+   on the right. Both are set in the body face at readable sizes — the earlier
+   9px tracked-out mono read as decoration, so neither the state nor the control
+   registered. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest) .app-scan-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.75rem;
+  margin-top: 0.5rem;
+  padding-inline: 0.125rem;
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+/* A slow-breathing green dot carries "ready" better than a word can. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-status-dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  background-color: var(--primary);
+  animation: app-scan-breathe 2s ease-in-out infinite;
+}
+
+@keyframes app-scan-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Search-by switch: one segmented track, no caption. Compact but not cramped —
+   12px labels with an icon, on a 26px pill that still takes a thumb. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-modes-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border-radius: 999px;
+  background-color: var(--muted);
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest) .app-scan-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.625rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-mode:hover {
+  color: var(--foreground);
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-mode[aria-pressed="true"] {
+  background-color: var(--card);
+  color: var(--primary);
+}
+
+/* Narrow tills: the two options split the track evenly rather than squeezing
+   against the status text. */
+@media (max-width: 400px) {
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    .app-scan-modes-track {
+    flex: 1 1 auto;
+  }
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    .app-scan-mode {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    .app-scan-status-dot {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Input-method rail + scanner status card (theme-2 billing)
+   The rail is the segmented track above the field, widened to full width and
+   carrying a third momentary option (Voice). Under it the field takes one of
+   two shapes: the scanner status card while armed, or the plain search rail
+   once the operator is typing a name.
+   -------------------------------------------------------------------------- */
+[data-theme="theme-2"] .pos-billing .app-scan-modes-rail {
+  display: flex;
+  width: 100%;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+[data-theme="theme-2"] .pos-billing .app-scan-modes-rail .app-scan-mode {
+  flex: 1 1 0;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 2.25rem;
+  padding-inline: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+}
+[data-theme="theme-2"]
+  .pos-billing
+  .app-scan-modes-rail
+  .app-scan-mode[aria-pressed="true"] {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+/* The status card. A 2px ring, same as the search rail — this is still the
+   loudest outline on the page, only now it reports state instead of taking
+   visible input. The colour reset matches the rail's: the card is its own white
+   surface inside a green dock that paints everything white. */
+[data-theme="theme-2"] .pos-billing .app-scan-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 2px solid var(--scan-ring);
+  border-radius: 0.875rem;
+  background-color: var(--card);
+  color: var(--foreground);
+  /* The card is the field's hit area, so it carries the field's cursor — the
+     buttons inside it override back to a pointer. */
+  cursor: text;
+  transition: border-color 0.15s ease;
+}
+[data-theme="theme-2"] .pos-billing .app-scan-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 75%, transparent);
+}
+[data-theme="theme-2"] .pos-billing .app-scan-card:focus-within {
+  border-color: var(--primary);
+}
+/* Hovering anywhere on the card lights the pill, so the connection between the
+   two — click the card, type in the pill — is visible before the click. */
+[data-theme="theme-2"] .pos-billing .app-scan-card:hover .app-scan-wait {
+  background-color: color-mix(in srgb, var(--primary) 8%, var(--muted));
+}
+
+[data-theme="theme-2"] .pos-billing .app-scan-card-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: color-mix(in srgb, var(--primary) 10%, white);
+  color: var(--primary);
+}
+
+/* A reader's line sweeping down the barcode glyph — the one bit of motion that
+   says the beam is live rather than the card merely being green. */
+[data-theme="theme-2"] .pos-billing .app-scan-beam {
+  position: absolute;
+  left: 0.375rem;
+  right: 0.375rem;
+  height: 2px;
+  border-radius: 999px;
+  background-color: var(--primary-2);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--primary-2) 80%, transparent);
+  animation: app-scan-sweep 2.2s ease-in-out infinite;
+}
+
+@keyframes app-scan-sweep {
+  0%,
+  100% {
+    transform: translateY(-0.75rem);
+    opacity: 0.15;
+  }
+  50% {
+    transform: translateY(0.75rem);
+    opacity: 1;
+  }
+}
+
+[data-theme="theme-2"] .pos-billing .app-scan-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+[data-theme="theme-2"] .pos-billing .app-scan-card-title {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+/* The waiting pill. It looks like a caption and behaves like the field: the
+   real `search` input sits inside it, so a hardware scanner's keystrokes (and
+   the keypad's) land here and replace the placeholder as they arrive. */
+[data-theme="theme-2"] .pos-billing .app-scan-wait {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  margin-top: 0.1875rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  background-color: var(--muted);
+}
+
+[data-theme="theme-2"] .pos-billing .app-scan-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  flex: 0 0 auto;
+}
+[data-theme="theme-2"] .pos-billing .app-scan-dots i {
+  width: 0.3125rem;
+  height: 0.3125rem;
+  border-radius: 999px;
+  background-color: var(--primary);
+  animation: app-scan-dot 1.4s ease-in-out infinite;
+}
+[data-theme="theme-2"] .pos-billing .app-scan-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+[data-theme="theme-2"] .pos-billing .app-scan-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes app-scan-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+[data-theme="theme-2"] .pos-billing .app-scan-wait-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+[data-theme="theme-2"] .pos-billing .app-scan-wait-field > div {
+  width: 100%;
+}
+[data-theme="theme-2"] .pos-billing [data-slot="input"].app-scan-wait-input {
+  height: 1.375rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  font-size: 0.75rem;
+  color: var(--foreground);
+  caret-color: var(--primary);
+}
+[data-theme="theme-2"]
+  .pos-billing
+  [data-slot="input"].app-scan-wait-input::placeholder {
+  color: var(--muted-foreground);
+}
+[data-theme="theme-2"]
+  .pos-billing
+  [data-slot="input"].app-scan-wait-input:focus-visible {
+  border: 0;
+  box-shadow: none;
+  outline: none;
+}
+
+[data-theme="theme-2"] .pos-billing .app-scan-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+}
+
+/* Fires the device camera — the manual way in when the hardware reader can't
+   get at the code. Icon only: the card already says what it is, and a labelled
+   button here would compete with the status line for the same glance. */
+[data-theme="theme-2"] .pos-billing .app-scan-test {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+[data-theme="theme-2"] .pos-billing .app-scan-test:hover {
+  background-color: color-mix(in srgb, var(--primary) 88%, white);
+}
+
+/* Search mode: the rail loses the green camera tile (the card's Test button
+   owns that job now) and leads with a plain magnifier instead. */
+[data-theme="theme-2"] .pos-billing .app-scan-rail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding-left: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="theme-2"] .pos-billing .app-scan-beam,
+  [data-theme="theme-2"] .pos-billing .app-scan-dots i {
+    animation: none;
+  }
+  [data-theme="theme-2"] .pos-billing .app-scan-beam {
+    opacity: 0.8;
+    transform: none;
+  }
+  [data-theme="theme-2"] .pos-billing .app-scan-dots i {
+    opacity: 1;
+  }
+}
+
+/* Idle panel — occupies the space the product grid will fill, so the column
+   never reads as broken while the till waits for a scan. */
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest) .app-scan-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 2.5rem 1.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-idle:hover {
+  border-color: var(--scan-ring);
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-idle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 1rem;
+  background-color: var(--secondary);
+  color: var(--wa-bubble-text);
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-idle-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+:is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+  .app-scan-idle-sub {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+/* Desktop has the room for the Enter hint and a taller rail; on mobile the
+   tile shrinks so the placeholder keeps a usable line. */
+@media (max-width: 767px) {
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    .app-scan-tile {
+    width: 3.5rem;
+    padding-inline: 0.375rem;
+  }
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    [data-slot="input"].app-scan-input {
+    height: 2.875rem;
+    padding-inline: 0.75rem;
+  }
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    .app-scan-idle {
+    padding-block: 1.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  :is([data-theme="theme-2"] .pos-billing, .po-products-suggest)
+    .app-scan-enter {
+    display: inline-flex;
+  }
+}
+
+/* Product tile marker for an item already in the cart. */
+[data-theme="theme-2"] .pos-billing .wa-incart {
+  background-color: var(--wa-bubble);
+  color: var(--wa-bubble-text);
+}
+
+/* Floating elements clear the mobile tab bar / cart summary bar. */
+[data-theme="theme-2"] .pos-billing .wa-above-tabbar {
+  bottom: calc(4rem + env(safe-area-inset-bottom) + 0.5rem);
+}
+
+[data-theme="theme-2"] .pos-billing .wa-above-cartbar {
+  bottom: calc(4rem + env(safe-area-inset-bottom) + 4rem);
+}
+
+[data-theme="theme-2"] .pos-billing .wa-recent-fab {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .pos-billing .wa-cart-scroll {
+    height: auto;
+    max-height: calc(100vh - 330px - 5rem - env(safe-area-inset-bottom));
+  }
+
+  [data-theme="theme-2"] .pos-billing .wa-cart-view {
+    margin-top: 0.75rem;
+    margin-bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Billing top bar — window chips + customer switch row (index.tsx)
+   The wrapper is layout-transparent by default so desktop and the other themes
+   keep the existing stacked-cards look. Theme-2 mobile is the exception: the
+   two blocks lose their card chrome and share one white, full-bleed surface
+   welded under the sticky section tabs.
+   -------------------------------------------------------------------------- */
+.pos-billing .app-billing-topbar {
+  display: contents;
+}
+
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .pos-billing .app-billing-topbar {
+    display: block;
+    /* Cancel the page's 1rem gutter so the bar runs edge to edge, and sit
+       flush under the sticky tab bar so it reads as part of the header. */
+    margin: 0 -1rem 0.75rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--card);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Chips row: no card of its own, just the first line of the bar, closed by
+     a hairline that separates it from the customer row below. */
+  [data-theme="theme-2"] .pos-billing .app-billing-topbar-tabs {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
+  [data-theme="theme-2"] .pos-billing .app-billing-topbar-tabs > div {
+    margin-bottom: 0;
+  }
+
+  /* Window chips read as till tabs: mono, uppercase, tight. The active one is
+     the only filled element on the line. */
+  [data-theme="theme-2"] .pos-billing .app-billing-topbar-tabs button {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-block: 0.3125rem;
+  }
+
+  /* Switch row flattens into the shared surface — the wrapper owns the
+     background, padding and the bottom rule. */
+  [data-theme="theme-2"] .pos-billing .app-billing-topbar .app-switch-block {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: transparent;
+  }
+
+  /* Customer avatar: a quiet marker, not a second button. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-topbar
+    .app-switch-block
+    > div:first-child {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.5rem;
+    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
+  /* Type badge sits beside the name, so it drops the solid fill and becomes a
+     mono outline tag — the name stays the loudest thing on the line. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-topbar
+    .app-switch-block
+    [data-slot="badge"] {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.1em;
+    padding-inline: 0.375rem;
+    border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+    background-color: transparent;
+    color: var(--primary);
+  }
+
+  /* Switch is a secondary action next to the scan rail (the page's loudest
+     element), so it steps down from a solid green pill to an outline one. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-topbar
+    .app-switch-block
+    [data-slot="button"] {
+    height: 1.875rem;
+    padding-inline: 0.625rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+    background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+    color: var(--primary);
+    font-size: 0.75rem;
+    box-shadow: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Theme-2 mobile "docked" layout (index.tsx)
+   The till reads as a chat screen: one sticky green dock carrying every control
+   (window chips, customer switch, scan rail), and underneath it either the
+   search results or the cart — never both. The cart drops its header and its
+   rows become right-aligned bubbles, so adding an item reads as sending one.
+
+   Structure note: the dock is rendered deep inside Filter, so the wrappers
+   between it and the page column collapse to `display: contents`. That makes
+   `.app-billing-stage` the sticky containing block — it holds the products and
+   the inline cart, which is exactly the range the dock should stay pinned over.
+   -------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .pos-billing .app-billing-products.is-docked,
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-products.is-docked
+    > .app-scan-block {
+    display: contents;
+  }
+
+  /* The stage runs from under the header down to the bottom tab bar, so
+     whatever fills it — the cream chat wallpaper especially — reaches the
+     bottom of the screen instead of stopping at its content. The column's own
+     bottom padding shrinks to just the tab-bar clearance so the stage isn't
+     followed by a strip of empty scroll. */
+  [data-theme="theme-2"] .pos-billing .app-products-col {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-billing-stage {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 3.75rem - 4rem - env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 3.75rem - 4rem - env(safe-area-inset-bottom));
+  }
+
+  /* The dock spans the page gutter via `app-bleed-x`; this restores the inner
+     padding and pins it under the sticky app header (3.75rem). */
+  [data-theme="theme-2"] .pos-billing .app-billing-dock {
+    position: sticky;
+    top: 3.75rem;
+    z-index: 30;
+    /* Cancels the `space-y-6` the collapsed Products wrapper still applies,
+       and the page's 1rem top gutter, so the dock is welded to the underside
+       of the app header with no band of page background between them. */
+    margin-top: -1rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 1rem 0.625rem;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 8px 20px -16px rgb(0 0 0 / 0.65);
+  }
+
+  /* Chips + switch row: no card of its own inside the dock — the dock owns the
+     surface, and a hairline in white keeps the two lines apart. */
+  [data-theme="theme-2"] .pos-billing .app-billing-dock .app-billing-topbar {
+    display: block;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    background-color: transparent;
+    border: 0;
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-billing-topbar-tabs {
+    margin-top: 0;
+    border-bottom-color: rgb(255 255 255 / 0.2);
+  }
+
+  /* Window chips invert on the green: the active one is the only filled
+     element, now in white; the rest are translucent outlines. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-billing-topbar-tabs
+    button[class*="tw:bg-primary"] {
+    background-color: var(--primary-foreground);
+    border-color: var(--primary-foreground);
+    color: var(--primary);
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-billing-topbar-tabs
+    button:not([class*="tw:bg-primary"]) {
+    background-color: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.35);
+    color: var(--primary-foreground);
+  }
+
+  /* Switch row on the green: text and glyphs go white, the avatar and the
+     Switch button become translucent white rather than primary-tinted. */
+  [data-theme="theme-2"] .pos-billing .app-billing-dock .app-switch-block {
+    margin: 0;
+    padding: 0;
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-switch-block
+    [class*="tw:text-foreground"],
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-switch-block
+    [class*="tw:text-muted-foreground"] {
+    color: var(--primary-foreground);
+  }
+  /* On the dock the customer is the header of the screen, not a line of meta,
+     so the avatar goes back to a full round token at a size that anchors the
+     two-line block beside it. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-switch-block
+    > div:first-child {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    background-color: rgb(255 255 255 / 0.16);
+    color: var(--primary-foreground);
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-switch-block
+    [class*="tw:text-foreground"] {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  /* Beats the dock's blanket "muted text goes white" rule above — the subtitle
+     has to stay a step under the name, not match it. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-switch-block
+    .app-switch-sub {
+    color: rgb(255 255 255 / 0.72);
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-switch-block
+    [data-slot="badge"] {
+    border-color: rgb(255 255 255 / 0.4);
+    background-color: transparent;
+    color: var(--primary-foreground);
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-switch-block
+    [data-slot="button"] {
+    border-color: rgb(255 255 255 / 0.45);
+    background-color: rgb(255 255 255 / 0.14);
+    color: var(--primary-foreground);
+  }
+
+  /* A primary-tinted border is invisible against a primary dock, so the ring
+     goes white; the status card lifts off the green as the one lit surface. */
+  [data-theme="theme-2"] .pos-billing .app-billing-dock {
+    --scan-ring: rgb(255 255 255 / 0.5);
+  }
+  [data-theme="theme-2"] .pos-billing .app-billing-dock .app-scan-card {
+    border-color: color-mix(in srgb, var(--primary-2) 75%, transparent);
+    box-shadow: 0 2px 10px -6px rgb(0 0 0 / 0.5);
+  }
+  /* The base focus ring is `--primary`, which is the dock's own colour — on the
+     green it would read as the border vanishing. Brighten instead. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-scan-card:focus-within {
+    border-color: var(--primary-2);
+  }
+
+  /* Search mode's leading magnifier sits on the white rail, so it keeps the
+     muted grey rather than picking up the dock's white text colour. */
+  [data-theme="theme-2"] .pos-billing .app-billing-dock .app-scan-rail-icon {
+    color: var(--muted-foreground);
+  }
+
+  /* Method rail on the green: translucent track, white labels, and the active
+     option as the only filled pill. Voice never latches, so it stays an
+     outline the whole time. */
+  [data-theme="theme-2"] .pos-billing .app-billing-dock .app-scan-modes-track {
+    background-color: rgb(255 255 255 / 0.16);
+  }
+  [data-theme="theme-2"] .pos-billing .app-billing-dock .app-scan-mode {
+    color: rgb(255 255 255 / 0.85);
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-dock
+    .app-scan-mode[aria-pressed="true"] {
+    background-color: var(--card);
+    color: var(--primary);
+  }
+
+  /* ---- Search results inside the dock --------------------------------- */
+
+  /* The matches hang off the field as one white sheet on the green, so the
+     query and what it found stay a single block — the operator never looks
+     away from the dock between typing and picking. The sheet scrolls inside
+     itself: the dock is sticky, and a long result list must not push the cart
+     thread off the screen. */
+  [data-theme="theme-2"] .pos-billing .app-billing-dock .app-billing-results {
+    margin-top: 0.5rem;
+    border-radius: 0.875rem;
+    background-color: var(--card);
+    color: var(--foreground);
+    box-shadow: 0 10px 24px -14px rgb(0 0 0 / 0.7);
+  }
+
+  /* The cap lives on the scroll viewport, not its root: the root is
+     content-sized, so a max-height there would clip the list without ever
+     handing it a scroll. Short result sets keep the sheet short. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-results
+    > [data-slot="scroll-area-viewport"] {
+    max-height: 42vh;
+    overscroll-behavior: contain;
+  }
+  /* Radix wraps viewport content in an inline `display: table` div, which sizes
+     the list at max-content and lets long names push rows past the right edge.
+     Direct-child chain only, same as the cart's. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-results
+    > [data-slot="scroll-area-viewport"]
+    > div {
+    display: block !important;
+    width: 100%;
+  }
+
+  /* The list carries its own card chrome for the standalone layout; inside the
+     sheet the sheet owns it. */
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-list {
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-row {
+    gap: 0.625rem;
+    padding: 0.5rem 0.625rem;
+  }
+
+  /* The pack shot comes back on mobile here — at this row height it is the
+     fastest way to confirm the right item, faster than reading the name. A
+     rounded square rather than the desktop avatar circle: pack art is
+     rectangular and a circle crops the label off it. */
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-thumb {
+    display: flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-name {
+    font-size: 0.8125rem;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+
+  /* Meta drops to what a till operator checks before tapping — stock on hand
+     and the tax slab. The barcode is what they searched by, not what they
+     verify with, so it goes; a middot divides the two that stay. */
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-meta {
+    margin-top: 0.0625rem;
+    font-size: 0.6875rem;
+  }
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-code,
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-dot,
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-results
+    .app-prod-stock-suffix {
+    display: none;
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-results
+    .app-prod-stock-label {
+    display: inline;
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-results
+    .app-prod-stock
+    + .app-prod-gst::before {
+    content: "·";
+    margin-right: 0.375rem;
+  }
+
+  /* Price is the row's answer, so it takes the brand colour — the only weight
+     on the line besides the name. The struck MRP keeps its muted grey. */
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-price,
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-results
+    .app-prod-price
+    [class*="tw:text-foreground"] {
+    color: var(--primary);
+  }
+
+  /* The right rail stacks: the price is what the row is asked for, the action
+     is what happens next, and stacking them keeps the name a full line wide
+     instead of squeezing it between two right-hand blocks. */
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-side {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1875rem;
+  }
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-action {
+    min-width: 0;
+  }
+  /* Add-to-cart is a plus and nothing else at this size — the row already says
+     what it would be adding. Subscribe and Add stock keep their labels: they
+     are the exceptions, and an unlabelled glyph would not carry them. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-results
+    .app-prod-action
+    button {
+    height: 1.625rem;
+    min-width: 1.625rem;
+    font-size: 0.6875rem;
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-billing-results
+    .app-prod-action
+    button
+    svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  /* Both stand alone in the standalone layout and need their own card; inside
+     the sheet they are its content. */
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-empty {
+    border: 0;
+    padding-block: 2rem;
+  }
+  [data-theme="theme-2"] .pos-billing .app-billing-results .app-prod-more {
+    margin-top: 0;
+    padding: 0.5rem 0.625rem 0.75rem;
+  }
+
+  /* ---- Inline cart: the chat thread ---------------------------------- */
+
+  /* The thread claims whatever the dock and the results leave of the stage, so
+     the wallpaper runs to the bottom of the screen behind the fixed footer. */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    /* Cancels the dock's 0.75rem bottom margin (it separates the dock from
+       search results, which the thread replaces): the wallpaper welds to the
+       underside of the green dock instead of showing a band of page
+       background above it. */
+    margin-top: -0.75rem;
+  }
+
+  /* Full-bleed cream wallpaper, no card chrome and no header — the dock above
+     is the header. */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-pane {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: var(--wa-cream);
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-pane-head {
+    display: none;
+  }
+
+  /* The thread scrolls with the page, not inside its own box, so the dock is
+     the only thing that stays put. */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-scroll {
+    height: auto;
+    max-height: none;
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 0.75rem 1rem;
+    background-color: var(--wa-cream);
+  }
+
+  /* Outgoing-message alignment: every row hugs the right edge at a width that
+     leaves the wallpaper visible on the left, so the column reads as a thread
+     of things you sent to the bill. */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-list > * {
+    width: 92%;
+    margin-left: auto;
+  }
+
+  /* The bubble itself — squared-off top-right corner for the tail, and the
+     same soft green the rest of theme-2 uses for outgoing messages. */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-item {
+    padding: 0.5rem 0.625rem;
+    border: 0;
+    border-radius: 0.875rem 0.25rem 0.875rem 0.875rem;
+    background-color: var(--wa-bubble);
+    box-shadow: 0 1px 1.5px rgb(0 0 0 / 0.14);
+  }
+
+  /* The per-line total strip sits on the bubble, so it needs a lighter well
+     than the slate one written for the white card. */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-item-total {
+    background-color: rgb(255 255 255 / 0.6);
+    border-color: rgb(255 255 255 / 0.9);
+  }
+
+  /* Empty thread: no bubbles to align, so the placeholder stays centred. */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-empty {
+    width: 100%;
+    margin: 0;
+    padding-block: 2.5rem;
+  }
+
+  /* Totals + checkout are pinned to the screen above the mobile tab bar, so
+     the bill is always one tap from done. `fixed` rather than `sticky`: a short
+     thread doesn't overflow, and a sticky footer would just sit wherever the
+     last bubble left it (see the half-page gap it left below the total). */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-foot {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(4rem + env(safe-area-inset-bottom));
+    z-index: 40;
+    margin: 0;
+    background-color: var(--card);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 20px -16px rgb(0 0 0 / 0.5);
+  }
+
+  /* …which takes it out of flow, so the thread reserves its own clearance —
+     the column's `pb-24` alone would let the last bubble slide underneath. */
+  [data-theme="theme-2"] .pos-billing .app-cart-inline .app-cart-pane {
+    padding-bottom: 6rem;
+  }
+
+  /* ---- Chat-bubble line item (CartItemBubble) ------------------------- */
+
+  /* The Radix scroll-area viewport wraps its content in an inline-styled
+     `display: table` div, so the track is sized at max-content: the bubbles'
+     wrapping rows never wrap, the widest one sets the width, and every bubble
+     runs past the right edge of the screen (its total and remove icon land
+     off-screen). Pin the wrapper to the track width so the percentage-width
+     bubbles resolve against the screen instead. Direct-child chain only —
+     scroll areas nested inside a bubble must not be touched. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-scroll
+    > [data-slot="scroll-area-viewport"]
+    > div {
+    display: block !important;
+    width: 100%;
+  }
+
+  /* The bubble carries its own chrome, so any list holding one becomes a
+     thread: bubbles stacked with a gap and hugging the right edge, the way an
+     outgoing message does. Covers the full-screen cart too, not just the
+     inline thread (which already lays itself out this way). */
+  [data-theme="theme-2"] .pos-billing .app-cart-list:has(.app-cart-bubble) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+  /* Narrower than the thread's own 92%: the bubble reads as a message someone
+     sent, and the wallpaper showing down its left is what sells that. The max
+     width stops it stretching on a wide phone. */
+  [data-theme="theme-2"] .pos-billing .app-cart-list:has(.app-cart-bubble) > * {
+    width: 72%;
+    max-width: 24rem;
+    margin-left: auto;
+  }
+
+  /* Squared top-right corner for the tail, on the same soft green the rest of
+     theme-2 gives an outgoing message. */
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble {
+    border-radius: 0.75rem 0.1875rem 0.75rem 0.75rem;
+    background-color: var(--wa-bubble);
+    box-shadow: 0 1px 1.5px rgb(0 0 0 / 0.14);
+  }
+
+  /* Message text is near-black; everything that qualifies it (unit price, tax,
+     stock, the sent-at stamp) drops to WhatsApp's meta grey, so the name and
+     the line total are the only two things carrying weight. */
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-name {
+    color: #111b21;
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-meta {
+    color: color-mix(in srgb, var(--wa-bubble-text) 60%, #667781);
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-dim,
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-stamp,
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-remove {
+    color: #667781;
+  }
+  /* Editable unit price: a dotted rule under it is the whole affordance — the
+     bubble has no room for a labelled link, and the dotted (not solid) line
+     keeps it from reading as a navigation link. */
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-price {
+    border-bottom: 1px dotted currentColor;
+    line-height: 1.2;
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-price:hover {
+    color: var(--wa-bubble-text);
+    border-bottom-style: solid;
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-remove:hover {
+    background-color: rgb(255 255 255 / 0.7);
+    color: var(--destructive);
+  }
+
+  /* The line total is the message's payload — the deepest green in the bubble
+     and the largest type in it. */
+  [data-theme="theme-2"] .pos-billing .app-cart-bubble-total {
+    color: var(--wa-bubble-text);
+  }
+
+  /* The stepper is the shared PosAddToCart/PosB2bAddToCart control, written as
+     a grey tray for the white cart card. On the bubble it becomes WhatsApp's
+     round white buttons: the tray goes transparent and the ± caps lift off the
+     green as circles. Matched on the utility classes the two controls share,
+     since their markup nests differently (the B2B one sits in a popover). */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-bubble-qty
+    [class*="tw:bg-slate-100"] {
+    height: auto;
+    padding: 0;
+    gap: 0.375rem;
+    background-color: transparent;
+    border-color: transparent;
+  }
+
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-bubble-qty
+    button[class*="tw:h-5"]:not([class*="tw:bg-white"]) {
+    width: 1.625rem;
+    height: 1.625rem;
+    border-radius: 9999px;
+    background-color: #fff;
+    color: #3b4a54;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-bubble-qty
+    button[class*="tw:h-5"]:not([class*="tw:bg-white"])
+    svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  /* The quantity between them reads as plain text. It stays the tap target for
+     the batch chooser (B2C), but the pencil hint goes — the bubble already
+     carries an explicit Edit Price link below. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-bubble-qty
+    button[class*="tw:bg-white"] {
+    height: auto;
+    margin: 0;
+    padding: 0 0.125rem;
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-bubble-qty
+    button[class*="tw:bg-white"]
+    svg {
+    display: none;
+  }
+  /* B2C renders the quantity in a button, B2B in a plain div — both wear the
+     same small bold utility pair. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-bubble-qty
+    [class*="tw:text-xs"][class*="tw:font-bold"] {
+    font-size: 0.875rem;
+    /* Steps down from the control's 700: between two white caps the number
+       needs presence, not shouting — the line total is the heavier one. */
+    font-weight: 500;
+    color: #111b21;
+  }
+}
+
+/* POS cart side pane — desktop only (md+, where the cart sits beside the
+   product grid as its own column; the mobile full-screen cart keeps the base
+   styling above). Theme-2 reads it as a chat panel: green title bar, cream
+   wallpaper behind the items, and each line item as a white message bubble. */
+@media (min-width: 768px) {
+  /* The cart column spans the viewport: pinned directly under the sticky app
+     header (3.75rem) and running to the bottom edge, so the pane reads as a
+     full-height chat panel rather than a card floating in the page gutter.
+     The negative margins cancel the page's 1rem top/bottom padding. */
+  [data-theme="theme-2"] .pos-billing .app-cart-col {
+    top: 3.75rem;
+    height: calc(100vh - 3.75rem);
+    height: calc(100dvh - 3.75rem);
+    margin-top: -1rem;
+    margin-bottom: -1rem;
+    /* Cancel the page's 1rem right gutter so the pane meets the page edge. */
+    margin-right: -1rem;
+  }
+
+  /* Flush against the viewport's right edge, square-cornered: the pane is a
+     wall of the app shell, not a card sitting in the page gutter. It reads as
+     a dark receipt terminal — near-black with a green cast, mono meta type and
+     one green action at the bottom. */
+  [data-theme="theme-2"] .pos-billing .app-cart-pane {
+    --cart-bg: #0b1210;
+    --cart-surface: #111b18;
+    --cart-line: rgb(255 255 255 / 0.08);
+    --cart-line-strong: rgb(255 255 255 / 0.16);
+    --cart-text: #eef4f1;
+    --cart-muted: #7f948c;
+    --cart-accent: #10b981;
+
+    height: 100%;
+    margin-bottom: 0;
+    border-radius: 0;
+    border-color: var(--cart-line);
+    border-right: 0;
+    overflow: hidden;
+    background-color: var(--cart-bg);
+    color: var(--cart-text);
+    box-shadow: -8px 0 24px -20px rgb(0 0 0 / 0.8);
+  }
+
+  /* AppCard nests its children in a card-content wrapper, so the flex column
+     that pins the footer to the bottom has to run through it. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-pane
+    > [data-slot="card-content"] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background-color: var(--cart-bg);
+  }
+
+  /* The pane's own colour scheme: the cart markup is written for a white card,
+     so the light slate/gray utilities inside it are remapped wholesale rather
+     than unpicked class by class. */
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-slate-7"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-slate-8"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-slate-9"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-gray-7"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-gray-8"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-gray-9"] {
+    color: var(--cart-text);
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-slate-3"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-slate-4"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-slate-5"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-slate-6"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-gray-3"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-gray-4"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-gray-5"],
+  [data-theme="theme-2"] .pos-billing .app-cart-pane [class*="tw:text-gray-6"] {
+    color: var(--cart-muted);
+  }
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-pane
+    [class*="tw:border-slate-"],
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-pane
+    [class*="tw:border-gray-"] {
+    border-color: var(--cart-line);
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-pane-head {
+    background-color: var(--cart-bg);
+    border-bottom: 1px dashed var(--cart-line-strong);
+    color: var(--cart-text);
+    padding-block: 1rem;
+  }
+  /* Only the title block goes light — the quick-checkout badge beside it keeps
+     its own warning colours. */
+  [data-theme="theme-2"] .pos-billing .app-cart-pane-head > div:first-child,
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-pane-head
+    > div:first-child
+    :is(span, svg) {
+    color: var(--cart-text);
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  /* Item count is receipt meta, not a chip: mono, muted, no fill. */
+  [data-theme="theme-2"] .pos-billing .app-cart-count {
+    background-color: transparent;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cart-muted);
+  }
+
+  /* The base cart sizes its scroll box off the viewport
+     (`h-[calc(100vh-370px)]`); here the pane owns the full height, so the track
+     just takes whatever is left between head and footer. */
+  [data-theme="theme-2"] .pos-billing .app-cart-scroll {
+    background-color: var(--cart-bg);
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-list {
+    padding: 0.75rem 0.875rem 1rem;
+  }
+
+  /* Line items sit on a barely-lifted surface, kept apart by gap so each one
+     reads as its own printed line. */
+  [data-theme="theme-2"] .pos-billing .app-cart-item {
+    background-color: var(--cart-surface);
+    border: 1px solid var(--cart-line);
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    margin-bottom: 0.5rem;
+    box-shadow: none;
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  /* Each item is rendered inside its own wrapper div, so :last-child on the
+     item itself would match every row — scope the reset to the last wrapper. */
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-list
+    > *:last-child
+    .app-cart-item,
+  [data-theme="theme-2"]
+    .pos-billing
+    .app-cart-list
+    > .app-cart-item:last-child {
+    margin-bottom: 0;
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-item:hover {
+    background-color: #16221e;
+    border-color: color-mix(in srgb, var(--cart-accent) 35%, transparent);
+  }
+
+  /* Light fills inside a row (image tile, qty stepper, meta strips) would glow
+     as white blocks on the dark track. */
+  [data-theme="theme-2"] .pos-billing .app-cart-item [class*="tw:bg-white"],
+  [data-theme="theme-2"] .pos-billing .app-cart-item [class*="tw:bg-slate-5"],
+  [data-theme="theme-2"] .pos-billing .app-cart-item [class*="tw:bg-slate-1"],
+  [data-theme="theme-2"] .pos-billing .app-cart-item [class*="tw:bg-gray-5"],
+  [data-theme="theme-2"] .pos-billing .app-cart-item [class*="tw:bg-gray-1"] {
+    background-color: rgb(255 255 255 / 0.05);
+  }
+
+  /* qty × price = total strip: the per-line money is what the eye lands on, so
+     it wears the accent on a tinted well. */
+  [data-theme="theme-2"] .pos-billing .app-cart-item-total {
+    background-color: color-mix(in srgb, var(--cart-accent) 12%, transparent);
+    border-color: color-mix(in srgb, var(--cart-accent) 22%, transparent);
+    color: var(--cart-accent);
+    font-family: var(--font-mono);
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-item-total :is(span, div) {
+    color: var(--cart-accent);
+  }
+
+  /* Empty state on the dark track: no panel at all — just an outlined scanner
+     tile with a greeting under it, so the pane reads as "waiting to scan"
+     rather than as a broken/empty box. */
+  [data-theme="theme-2"] .pos-billing .app-cart-empty {
+    background-color: transparent;
+    border: 0;
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-empty-icon {
+    border-color: var(--cart-line-strong);
+    color: var(--cart-muted);
+    background-color: color-mix(in srgb, var(--cart-surface) 60%, transparent);
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-empty-title {
+    color: var(--cart-text);
+    letter-spacing: -0.01em;
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-empty-subtitle {
+    font-family: var(--font-mono);
+    color: var(--cart-muted);
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-foot {
+    background-color: var(--cart-bg);
+    border-top: 1px dashed var(--cart-line-strong);
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-foot-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    color: var(--cart-muted);
+  }
+
+  /* Total due is the loudest thing in the pane. */
+  [data-theme="theme-2"] .pos-billing .app-cart-total-value {
+    font-size: 1.75rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--cart-text);
+  }
+
+  /* Inline controls (cart-discount input) inherit the dark surface. */
+  [data-theme="theme-2"] .pos-billing .app-cart-foot :is(input, select) {
+    background-color: rgb(255 255 255 / 0.05);
+    border-color: var(--cart-line);
+    color: var(--cart-text);
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-cart-checkout {
+    border-radius: 0.875rem;
+    background-color: var(--cart-accent);
+    color: #04120d;
+    letter-spacing: 0.1em;
+    box-shadow: 0 8px 24px -12px
+      color-mix(in srgb, var(--cart-accent) 70%, transparent);
+  }
+  [data-theme="theme-2"] .pos-billing .app-cart-checkout:hover {
+    background-color: color-mix(in srgb, var(--cart-accent) 88%, white);
+  }
+
+  /* Products column runs the full viewport height so the window-chip footer
+     can drop to the bottom edge even when the grid is short. 4.75rem = the
+     sticky app header (3.75rem) plus the section's 1rem top gutter; the
+     section has no bottom padding on md+, so nothing else to subtract. */
+  [data-theme="theme-2"] .pos-billing .app-products-col {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 4.75rem);
+    min-height: calc(100dvh - 4.75rem);
+  }
+
+  /* Customer switch bar (components/SwitchBlock.tsx) — the first thing in the
+     products column. On desktop it stops being a card: no radius, no shadow,
+     no side or top borders, just a flat strip welded to the underside of the
+     app header. The negative margins cancel the section's 1rem left gutter and
+     the 1rem column gap, so it runs from the page edge to the cart pane, and
+     the negative top margin closes the gap under the header. The bottom rule
+     divides it from the scan block, with a small gap so the two don't fuse. */
+  [data-theme="theme-2"] .pos-billing .app-switch-block {
+    margin: -1rem -1rem 0.75rem;
+    padding: 0.625rem 1rem;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+    background-color: var(--card);
+  }
+
+  /* Window (guest cart) chips footer — `margin-top: auto` drops it to the
+     bottom of the column and `sticky` keeps it there while the product grid
+     scrolls past. The negative margins cancel the section's 1rem gutter on the
+     left and the 1rem column gap on the right, so the bar runs from the page
+     edge right up to the cart pane. */
+  [data-theme="theme-2"] .pos-billing .app-billing-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin-top: auto;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    border-top: 1px solid var(--border);
+    background-color: color-mix(in srgb, var(--card) 92%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-billing-footer-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+
+  [data-theme="theme-2"] .pos-billing .app-billing-footer-tabs {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* CartTabs carries a bottom margin for its inline placement — not wanted
+     inside the footer bar. */
+  [data-theme="theme-2"] .pos-billing .app-billing-footer-tabs > div {
+    margin-bottom: 0;
+  }
+}
+
+/* At lg+ the section menu becomes a fixed 4.5rem rail and the layout adds a
+   1.5rem rail-to-content gap. Pull the full-bleed bars across that gap and far
+   enough further that they run under the opaque rail (z-index 30, above them)
+   with no sliver of page background left between the two. The extra left
+   padding keeps their contents clear of the rail edge. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .pos-billing .app-billing-footer,
+  [data-theme="theme-2"] .pos-billing .app-switch-block {
+    margin-left: -2rem;
+    padding-left: 2.25rem;
+  }
+}

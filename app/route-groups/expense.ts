@@ -11,10 +11,6 @@ export default [
       "routes/dashboard/expenses/statement-of-accounts/index.tsx"
     ),
     route(
-      "dashboard/expenses/analytics",
-      "routes/dashboard/expenses/analytics/index.tsx"
-    ),
-    route(
       "dashboard/expenses/categories",
       "routes/dashboard/expenses/categories/index.tsx"
     ),

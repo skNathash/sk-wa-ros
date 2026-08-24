@@ -19,11 +19,11 @@ type Props = {
 
 const swiperOptions: SwiperOptions = {
   slidesPerView: 6,
-  spaceBetween: 10,
+  spaceBetween: 12,
   pagination: false,
   navigation: false,
-  slidesOffsetAfter: 10,
-  slidesOffsetBefore: 10,
+  slidesOffsetAfter: 4,
+  slidesOffsetBefore: 4,
   breakpoints: {
     768: { slidesPerView: 6 },
     1024: { slidesPerView: 7 },
@@ -47,13 +47,16 @@ const Menus = ({ menus = [], loading = false }: Props) => {
 
   if (loading) {
     return (
-      <div className="tw:py-2 tw:mb-2 tw:bg-white tw:rounded-lg">
-        <div className="tw:px-3 tw:mb-1.5">
-          <Skeleton className="tw:h-3.5 tw:w-24" />
+      <div className="tw:mb-6">
+        <div className="tw:mb-3 tw:flex tw:items-center tw:gap-2">
+          <Skeleton className="tw:h-3 tw:w-28" />
         </div>
-        <div className="tw:grid tw:grid-cols-4 tw:gap-2 tw:px-3 tw:pb-2">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="tw:h-20 tw:rounded-lg" />
+        <div className="tw:grid tw:grid-cols-4 tw:gap-3 tw:sm:grid-cols-6 tw:lg:grid-cols-8">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="tw:flex tw:flex-col tw:items-center tw:gap-2">
+              <Skeleton className="tw:aspect-square tw:w-full tw:rounded-2xl" />
+              <Skeleton className="tw:h-2.5 tw:w-3/4" />
+            </div>
           ))}
         </div>
       </div>
@@ -62,16 +65,28 @@ const Menus = ({ menus = [], loading = false }: Props) => {
 
   if (!menus || menus.length === 0) return null;
 
-  return (
-    <div className="tw:py-2 tw:mb-2 tw:bg-white tw:rounded-lg">
-      <h2 className="tw:text-lg tw:font-bold tw:text-slate-900 tw:mb-2">
-        Shop by Menus
-      </h2>
+  // Mobile shows at most 8 menus, desktop at most 16; the rest are reachable via "See all".
+  const visibleMenus = isMobile ? menus.slice(0, 8) : menus.slice(0, 16);
 
-      {/* Mobile: grid view; Desktop: slider */}
+  return (
+    <div className="tw:mb-6">
+      <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-2">
+        <h2 className="app-label tw:text-[0.8125rem]! tw:font-semibold tw:uppercase tw:tracking-[0.12em] tw:text-primary/70">
+          Shop by Menus
+        </h2>
+        <button
+          type="button"
+          onClick={() => appNav.to("/products/sk/category")}
+          className="tw:inline-flex tw:items-center tw:gap-0.5 tw:cursor-pointer tw:text-[13px] tw:font-semibold tw:text-primary"
+        >
+          See all <span aria-hidden>→</span>
+        </button>
+      </div>
+
+      {/* Mobile: wrapping grid; Desktop: horizontal slider */}
       {isMobile ? (
-        <div className="tw:grid tw:grid-cols-4 tw:gap-2 tw:px-3 tw:pb-2">
-          {menus.map((menu) => (
+        <div className="tw:grid tw:grid-cols-4 tw:gap-3">
+          {visibleMenus.map((menu) => (
             <MenuItem
               key={menu._id}
               id={menu._id}
@@ -84,22 +99,20 @@ const Menus = ({ menus = [], loading = false }: Props) => {
           ))}
         </div>
       ) : (
-        <div className="tw:px-1">
-          <AppSwiper config={swiperOptions}>
-            {menus.map((menu) => (
-              <AppSwiper.Slide key={menu._id}>
-                <MenuItem
-                  id={menu._id}
-                  name={menu.name}
-                  displayImg={menu.displayImg}
-                  displayName={menu._displayName}
-                  onClick={() => handleMenuClick(menu)}
-                  variant="slide"
-                />
-              </AppSwiper.Slide>
-            ))}
-          </AppSwiper>
-        </div>
+        <AppSwiper config={swiperOptions}>
+          {visibleMenus.map((menu) => (
+            <AppSwiper.Slide key={menu._id}>
+              <MenuItem
+                id={menu._id}
+                name={menu.name}
+                displayImg={menu.displayImg}
+                displayName={menu._displayName}
+                onClick={() => handleMenuClick(menu)}
+                variant="slide"
+              />
+            </AppSwiper.Slide>
+          ))}
+        </AppSwiper>
       )}
     </div>
   );

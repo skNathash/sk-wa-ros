@@ -52,7 +52,7 @@ const DeliveryCharge = () => {
   const [busyloader, setBusyloader] = useState(false);
   const [data, setData] = useState<DeliverySlab[]>([]);
   const [manageModal, setManageModal] = useState<{ show: boolean; data?: any }>(
-    { show: false }
+    { show: false },
   );
   const { confirm } = useAppAlert();
 
@@ -85,7 +85,7 @@ const DeliveryCharge = () => {
           const slabs = orderBy(
             configData?.shippingChargesConfig?.slab || [],
             ["fromOrderValue"],
-            ["asc"]
+            ["asc"],
           );
           setData(slabs);
         } else {
@@ -123,8 +123,8 @@ const DeliveryCharge = () => {
               orderBy(
                 configData?.shippingChargesConfig?.slab || [],
                 ["fromOrderValue"],
-                ["asc"]
-              )
+                ["asc"],
+              ),
             );
           } else {
             setExistingConfig(null);
@@ -168,7 +168,7 @@ const DeliveryCharge = () => {
       show: true,
       title: t("deliveryCharge.removeDeliveryCharge"),
       description: t(
-        "deliveryCharge.areYouSureYouWantToRemoveThisDeliveryCharge"
+        "deliveryCharge.areYouSureYouWantToRemoveThisDeliveryCharge",
       ),
       successCb: async () => {
         setAppAlertDialog((prev) => ({ ...prev, show: false }));
@@ -181,7 +181,7 @@ const DeliveryCharge = () => {
           const res = await FranchiseService.getConfigs({});
           const slabs = res?.data?.data?.[0]?.shippingChargesConfig?.slab || [];
           const newSlabs = slabs.filter(
-            (slab: any, index: number) => index !== mainSlabIndex
+            (slab: any, index: number) => index !== mainSlabIndex,
           );
           const updateRes = await FranchiseService.updateConfigs(
             res?.data?.data?.[0]._id,
@@ -189,7 +189,7 @@ const DeliveryCharge = () => {
               shippingChargesConfig: {
                 slab: newSlabs,
               },
-            }
+            },
           );
 
           if (updateRes.statusCode == 200 || updateRes.statusCode == 201) {
@@ -233,7 +233,12 @@ const DeliveryCharge = () => {
 
   return (
     <>
-      <AppHeader title={t("deliveryCharge.title")} />
+      <AppHeader
+        title={t("deliveryCharge.title")}
+        sectionKey="profile"
+        activeTab="settings"
+        mobileLead="menu"
+      />
       <div className="app-page tw:p-4 page-bg">
         <div className="app-container ">
           <div className="tw:md:max-w-4xl tw:mx-auto">
@@ -302,7 +307,7 @@ export function meta() {
   return [
     {
       title: CommonService.prepareAppDocumentTitle(
-        "Delivery Charge Configuration"
+        "Delivery Charge Configuration",
       ),
     },
   ];

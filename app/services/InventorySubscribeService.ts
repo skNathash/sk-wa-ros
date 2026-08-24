@@ -5,6 +5,7 @@ import MiscService from "./MiscService";
 import CommonService from "./CommonService";
 import UomPriceService from "./UomPriceService";
 import type { AxiosRequestConfig } from "axios";
+import { merge } from "lodash";
 
 class InventorySubscribeService {
   static getUomOptions() {
@@ -171,6 +172,9 @@ class InventorySubscribeService {
         groupDeals: groupDealData,
         companyName: deal.companyName || "",
         totalSubscribed: deal.totalSubscribed || 0,
+        // Sellers already carrying this deal — name, status and the date they
+        // subscribed (feeds the detail page's "Retailers" tab).
+        subscribedSellers: deal.subscribedSellers || [],
         shelfLife: deal.shelfLife || "",
       };
     });
@@ -273,6 +277,35 @@ class InventorySubscribeService {
         isCloned: product.isCloned,
       };
     });
+  }
+
+  /**
+   * Base params every subscribable-deal query must send — the browse grids
+   * (menu / category / brand) and the subscribe search list alike.
+   *
+   * The grids show a deal count per tile and the search list shows the deals
+   * themselves; unless both sides narrow the deal set identically the tile
+   * count reads higher than the list it opens (inactive, local, or brandless
+   * deals, and grouped variants counted separately). Keep this the single
+   * source of that filter — mirrored by `subscribe/search/helper`'s
+   * `prepareParams`.
+   *
+   * @param extraParams Query-specific payload (page, count, sort, and a
+   *   `filter` of menu id / category id / alpha regex …), deep-merged over the
+   *   defaults.
+   */
+  static getSubscribableDealParams(extraParams: Record<string, any> = {}) {
+    const defaultParams = {
+      filter: {
+        status: "Active",
+        "applicableBrand.brandName": { $ne: "" },
+        isLocalDeal: false,
+      },
+      dealSubscribeType: "NOTSUBSCRIBED",
+      groupGroupedDeals: true,
+    };
+
+    return merge({}, defaultParams, extraParams);
   }
 
   static getMenus(params: any, config?: AxiosRequestConfig) {
@@ -533,7 +566,9 @@ class InventorySubscribeService {
         : {}),
       ...(hsnNumber ? { hsnNumber } : {}),
       ...(product?.aiCacheId ? { aiCacheId: product.aiCacheId } : {}),
-      ...(opts.invalidBarcodeId ? { invalidBarcodeId: opts.invalidBarcodeId } : {}),
+      ...(opts.invalidBarcodeId
+        ? { invalidBarcodeId: opts.invalidBarcodeId }
+        : {}),
       ...(opts.scanItemId ? { scanItemId: opts.scanItemId } : {}),
     };
 
@@ -576,6 +611,39 @@ class InventorySubscribeService {
       "GET",
       params,
     );
+  }
+
+  /**
+   * How many of the seller's submitted products are still awaiting approval —
+   * the same "Approval Pending" bucket the approval-history list filters on
+   * (see {@link getStatuses}), counted server-side.
+   *
+   * Never throws: callers use this for ambient badges, so a failed count reads
+   * as "nothing pending" rather than breaking the surface that shows it.
+   */
+  static async getApprovalPendingCount(config?: AxiosRequestConfig) {
+    const pending = this.getStatuses().find(
+      (s) => s.value === "approval_pending",
+    );
+
+    try {
+      const response = await AjaxService.request(
+        `${API}purchase/catalog-subscriptions/seller-import-products`,
+        "GET",
+        {
+          filter: {
+            isNewProduct: true,
+            status: { $in: pending?.statuses || [] },
+          },
+          outputType: "count",
+        },
+        config,
+      );
+      return response.data?.data?.totalProducts || 0;
+    } catch (error) {
+      console.error("Error fetching approval pending count:", error);
+      return 0;
+    }
   }
 
   static formatSellerImportProducts(data: any) {
@@ -878,11 +946,24 @@ class InventorySubscribeService {
   static async getCartAndPendingCount(config?: AxiosRequestConfig) {
     let cartCount = 0;
     let pendingCount = 0;
+    // Value of the cart lines themselves — the pending AI items carry no price,
+    // so they only add to the count.
+    let cartValue = 0;
 
     try {
       const response = await this.getCart();
       if (response.statusCode === 200) {
-        cartCount = response.data?.data?.products?.length || 0;
+        const products = response.data?.data?.products || [];
+        cartCount = products.length;
+        cartValue = products.reduce((sum: number, item: any) => {
+          // `unit` is the raw API field the cart page maps to `unitType`; the
+          // display price is what a gm/ml line is actually priced at per kg/l.
+          const price = UomPriceService.toDisplayPrice(
+            Number(item.price) || 0,
+            item.unit,
+          );
+          return sum + price * (Number(item.quantity) || 0);
+        }, 0);
       } else {
         cartCount = this.getLocalCart()?.length || 0;
       }
@@ -913,6 +994,7 @@ class InventorySubscribeService {
 
     return {
       cartCount,
+      cartValue,
       pendingCount,
       totalCount: cartCount + pendingCount,
     };

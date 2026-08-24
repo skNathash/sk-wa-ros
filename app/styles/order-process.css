@@ -1,0 +1,470 @@
+/* ============================================================================
+   ORDER PROCESS (pick → pack → invoice → handover → deliver)
+   Visual system for /dashboard/orders/process. Theme-neutral (`op-*`): each
+   fulfilment stage carries its own accent, set once on a wrapper via an
+   `op-stage-*` class and consumed by the banner, stepper, rows and CTAs.
+   ========================================================================= */
+
+.op-stage-placed {
+  --op-accent: #475569;
+  --op-accent-strong: #334155;
+  --op-tint: #f8fafc;
+  --op-tint-border: #e2e8f0;
+}
+.op-stage-pick {
+  --op-accent: #7c3aed;
+  --op-accent-strong: #6d28d9;
+  --op-tint: #f5f3ff;
+  --op-tint-border: #ddd6fe;
+}
+.op-stage-pack {
+  --op-accent: #c2410c;
+  --op-accent-strong: #9a3412;
+  --op-tint: #fff7ed;
+  --op-tint-border: #fed7aa;
+}
+.op-stage-invoice {
+  --op-accent: #0f766e;
+  --op-accent-strong: #115e59;
+  --op-tint: #ecfdf5;
+  --op-tint-border: #a7f3d0;
+}
+.op-stage-handover {
+  --op-accent: #0369a1;
+  --op-accent-strong: #075985;
+  --op-tint: #f0f9ff;
+  --op-tint-border: #bae6fd;
+}
+.op-stage-delivered {
+  --op-accent: #16a34a;
+  --op-accent-strong: #15803d;
+  --op-tint: #f0fdf4;
+  --op-tint-border: #bbf7d0;
+}
+
+/* ── Eyebrow label ─────────────────────────────────────────────────────── */
+
+.op-eyebrow {
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+  color: var(--op-accent, #64748b);
+}
+
+/* ── Stage banner ──────────────────────────────────────────────────────── */
+
+.op-banner {
+  background-color: var(--op-tint, #f8fafc);
+  border: 1px solid var(--op-tint-border, #e2e8f0);
+  border-radius: 1rem;
+  padding: 0.875rem 1rem;
+}
+.op-banner-amount {
+  color: var(--op-accent-strong, #334155);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.op-banner-meta {
+  color: var(--op-accent, #64748b);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.op-progress-track {
+  height: 0.375rem;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--op-accent) 18%, #fff);
+  overflow: hidden;
+  margin-top: 0.625rem;
+}
+.op-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background-color: var(--op-accent);
+}
+.op-progress-note {
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--op-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Step tracker ──────────────────────────────────────────────────────── */
+
+.op-steps {
+  display: flex;
+  align-items: flex-start;
+  background-color: #fff;
+  border: 1px solid var(--color-gray-200, #e5e7eb);
+  border-radius: 1rem;
+  padding: 0.75rem 0.625rem 0.625rem;
+}
+
+/* On phones the tracker is the first block on the page — pull it over the
+   page gutter (`.page-padding`, 1rem top and sides) so it sits flush under
+   the sticky header and runs edge to edge as a full-bleed band instead of a
+   floating card. */
+@media (max-width: 767px) {
+  [data-theme="theme-2"] .op-steps {
+    margin-top: -1rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+.op-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 3rem;
+}
+.op-step-dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+.op-step-label {
+  text-transform: uppercase;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.op-step-line {
+  flex: 1;
+  height: 2px;
+  border-radius: 9999px;
+  background-color: #e2e8f0;
+  margin-top: 1rem;
+  min-width: 0.5rem;
+}
+.op-step.is-done .op-step-dot {
+  background-color: var(--op-tint);
+  border-color: var(--op-accent);
+  color: var(--op-accent);
+}
+.op-step.is-done .op-step-label {
+  color: var(--op-accent);
+}
+.op-step.is-active .op-step-dot {
+  background-color: var(--op-tint);
+  border: 2px solid var(--op-accent);
+  color: var(--op-accent-strong);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--op-accent) 15%, transparent);
+}
+.op-step.is-active .op-step-label {
+  color: var(--op-accent-strong);
+}
+.op-step-line.is-done {
+  background-color: var(--op-accent, #cbd5e1);
+}
+
+/* ── Customer card ─────────────────────────────────────────────────────── */
+
+.op-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #7c2d12;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.op-wa-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #dcfce7;
+  color: #16a34a;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+.op-wa-btn:hover {
+  background-color: #bbf7d0;
+}
+
+/* Round call button — the WhatsApp button's blue sibling (page header). */
+.op-call-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0f2fe;
+  color: #0284c7;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+.op-call-btn:hover {
+  background-color: #bae6fd;
+  color: #0284c7;
+}
+
+/* On the teal theme-2 mobile header the generic header-button reset wipes the
+   chips' tinted backgrounds (white glyph on teal, invisible circle). Restyle
+   both as frosted white circles so they read as header actions there. */
+@media (max-width: 1023.98px) {
+  [data-theme="theme-2"] .app-header .op-wa-btn,
+  [data-theme="theme-2"] .app-header .op-call-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    background-color: color-mix(
+      in srgb,
+      var(--primary-foreground) 18%,
+      transparent
+    );
+    color: var(--primary-foreground);
+  }
+  [data-theme="theme-2"] .app-header .op-wa-btn:hover,
+  [data-theme="theme-2"] .app-header .op-call-btn:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--primary-foreground) 28%,
+      transparent
+    );
+  }
+}
+
+/* Small square info chips on the deliver-to row (distance, area, …). */
+.op-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  font-variant-numeric: tabular-nums;
+}
+.op-chip-neutral {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* ── List rows (pick list) ─────────────────────────────────────────────── */
+
+.op-check {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: 2px solid #cbd5e1;
+  background-color: #fff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+}
+.op-row.is-picked {
+  background-color: #f0fdf4;
+  box-shadow: inset 3px 0 0 0 #22c55e;
+}
+.op-row.is-picked .op-check {
+  background-color: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+.op-row.is-picked .op-row-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: #4b5563;
+}
+.op-row.is-partial .op-check {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+/* Pick-list rows (manual entry + barcode scan) live as one flat list inside
+   the stage card: the container cancels the card's inner gutter so the
+   hairline dividers run wall to wall. */
+.op-pick-rows {
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+}
+.op-pick-row {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+}
+.op-pick-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* Row price, right-aligned (billed/override price, else MRP). */
+.op-pick-price {
+  color: #0f766e;
+  font-weight: 700;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Theme-2 phones: the pick stage card sheds the page gutter and its side
+   chrome (same full-bleed treatment as .op-steps) so the rows above touch
+   both screen edges. */
+@media (max-width: 767.98px) {
+  [data-theme="theme-2"] .op-pick-card {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+}
+
+/* Product tile initials block (pick rows, invoice lines). */
+.op-tile {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+/* ── Stage CTA (bottom action) ─────────────────────────────────────────── */
+
+.op-cta {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 20;
+}
+.op-cta-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.875rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #fff;
+  background-color: var(--op-accent, #334155);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-variant-numeric: tabular-nums;
+}
+.op-cta-btn:hover {
+  background-color: var(--op-accent-strong, #1e293b);
+}
+.op-cta-btn:disabled {
+  background-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+.op-cta-note {
+  text-align: center;
+  font-size: 0.6875rem;
+  color: #92700c;
+  margin-top: 0.375rem;
+}
+
+/* Theme-2 mobile keeps a 4rem bottom tab bar — park the sticky CTA above it. */
+@media (max-width: 1023.98px) {
+  [data-theme="theme-2"] .op-cta {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Box label card (packing stage) ────────────────────────────────────── */
+
+/* Each box rendered as a shipping-label preview: dashed sticker outline on a
+   faint ground, box code as the label headline, barcode glyph on the right. */
+.op-box-label {
+  background-color: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+}
+
+/* Compact packed-boxes strip: same dashed sticker language as the box label,
+   one pill per closed box. Tapping opens the full packed-boxes modal. */
+.op-boxes-strip {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background-color: color-mix(in srgb, var(--op-tint, #f8fafc) 55%, #fff);
+  border: 1.5px dashed color-mix(in srgb, var(--op-accent, #94a3b8) 45%, #fff);
+  border-radius: 0.875rem;
+  padding: 0.625rem 0.875rem;
+}
+.op-boxes-strip-chip {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background-color: #fff;
+  border: 1px solid color-mix(in srgb, var(--op-accent, #94a3b8) 55%, #fff);
+  border-radius: 0.625rem;
+  padding: 0.1875rem 0.625rem;
+  color: var(--op-accent-strong, #334155);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Section card ──────────────────────────────────────────────────────── */
+
+.op-card {
+  background-color: #fff;
+  border: 1px solid var(--color-gray-200, #e5e7eb);
+  border-radius: 1rem;
+  /* clip (not hidden): hidden turns the card into the sticky containing
+     block and the op-cta buttons inside never stick to the viewport */
+  overflow: clip;
+}
+.op-card-pad {
+  padding: 0.875rem 1rem;
+}
+
+/* Desktop: two-column workspace — identity/summary rail on the left, the
+   active stage's workspace on the right. */
+@media (min-width: 1024px) {
+  .op-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+}

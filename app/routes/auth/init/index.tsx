@@ -28,6 +28,12 @@ const AuthInit = () => {
       // JWT is valid, proceed with existing logic
       const userId = AuthService.getLoggedInUserId();
       if (userId) {
+        // Runner login does not need franchise/profile setup
+        if (AuthService.isRunnerLoggedIn()) {
+          appNav.replace("/runner/home");
+          return;
+        }
+
         const franchise = await AuthService.getLoggedInFranchiseDetails();
         if (franchise.data?.data?._id) {
           StorageService.set("_f", franchise.data?.data);
@@ -56,12 +62,12 @@ const AuthInit = () => {
     if (tok?.loginPlatform === "GuestUser") {
       appNav.replace("/auth/login");
     } else {
-      appNav.replace("/dashboard/inventory/products/list");
+      appNav.replace("/dashboard/main");
     }
   };
 
   return (
-    <div className="tw:h-full tw:flex tw:items-center tw:justify-center tw:bg-white">
+    <div className="tw:min-h-dvh tw:flex tw:items-center tw:justify-center tw:bg-white">
       <ImgRender src="/ai/loader.gif" alt="StoreKing" className="tw:h-20" />
     </div>
   );

@@ -451,6 +451,22 @@ export class ReportService {
     }
   }
 
+  /**
+   * GST Dashboard - Party wise (customer tax) lane data.
+   * API: sales/dashboard/customertax?type=b2b|b2c&outputType=count|list
+   */
+  public static async getCustomerTax(params: Record<string, any> = {}) {
+    const url = `${this.BASE_URL}sales/dashboard/customertax`;
+
+    try {
+      const response = await AjaxService.request(url, "GET", params);
+      return response;
+    } catch (error) {
+      console.error("Error fetching customer tax data:", error);
+      return { statusCode: 500, data: null } as any;
+    }
+  }
+
   public static async getGstDashboardCardSummary(
     franchiseId: string,
     params: Record<string, any> = {},

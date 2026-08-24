@@ -130,7 +130,7 @@ const PoListTabs: React.FC<PoListTabsProps> = ({ activeTab, className }) => {
       tabs={tabItems}
       activeTab={activeTab}
       onTabChange={handleTabChange}
-      className={`theme-2-edge-tabs ${className ?? ""}`}
+      className={`edge-tabs ${className ?? ""}`}
     />
   );
 };

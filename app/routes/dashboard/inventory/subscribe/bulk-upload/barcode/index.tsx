@@ -1,7 +1,11 @@
 import { produce } from "immer";
-import { ChevronRight, ShoppingCart, XCircle } from "lucide-react";
+import { ChevronRight, Plus, ShoppingCart, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import Rbac from "~/components/core/rbac/Rbac";
+import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
+import AuthService from "~/services/AuthService";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
@@ -11,6 +15,10 @@ import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
 import CommonService from "~/services/CommonService";
 import PageAccessService from "~/services/PageAccessService";
+import SubscribeSidePane from "~/shared/inventory/components/subscribe-side-pane/SubscribeSidePane";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import SuccessModal from "../../modals/SuccessModal";
 import BulkUploadMainTab from "../components/BulkUploadMainTab";
@@ -47,6 +55,8 @@ const BulkUploadBarcode = () => {
   const { t } = useTranslation();
   const appToast = useAppToast();
   const appNav = useAppNav();
+  const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
 
   const [display, setDisplay] = useState<"upload" | "preview">("upload");
 
@@ -360,139 +370,198 @@ const BulkUploadBarcode = () => {
 
   return (
     <>
-      <AppHeader title="Catalog Bulk Upload Barcode" />
-      <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4">
-            <AppBreadcrumbs data={breadcrumbs} />
-            <div>
+      <AppHeader
+        title="Catalog Bulk Upload Barcode"
+        renderActions={
+          isTheme2 && !isMobile ? (
+            <Rbac
+              roles={["CATALOG.ADD-PRODUCTS"]}
+              forceDisplay={AuthService.isMasterLogin()}
+            >
               <AppButton
                 onClick={() =>
-                  appNav.to(
-                    "/dashboard/inventory/subscribe/approval-history/products",
-                  )
+                  appNav.to("/dashboard/inventory/subscribe/add-product")
                 }
-                color="light"
+                color="primary"
                 size="small"
-                fill="outline"
+                className="tw:flex tw:items-center tw:gap-1"
               >
-                Subscription History
-                <ChevronRight />
+                <Plus />
+                {t("inventorySubscribe:actions.addProduct")}
               </AppButton>
+            </Rbac>
+          ) : undefined
+        }
+      />
+      <div className="page-bg app-page tw:p-4">
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs sectionKey="catalog" activeTab="library" noShadow sticky />
+
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title="Manage Catalog"
+              />
+            </div>
+          </aside>
+
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                {/* Whole row is hidden in theme-2 (breadcrumbs are off and the
+                    side pane owns the secondary navigation) — otherwise its
+                    bottom margin leaves a page-bg strip above the sticky tab
+                    band. */}
+                <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4 hide-in-theme-2">
+                  <AppBreadcrumbs data={breadcrumbs} />
+                  <div>
+                    <AppButton
+                      onClick={() =>
+                        appNav.to(
+                          "/dashboard/inventory/subscribe/approval-history/products",
+                        )
+                      }
+                      color="light"
+                      size="small"
+                      fill="outline"
+                    >
+                      Subscription History
+                      <ChevronRight />
+                    </AppButton>
+                  </div>
+                </div>
+
+                <BulkUploadMainTab activeTab="barcode" className="tw:mb-4" />
+
+                {/* <BulkUploadSubTab activeTab="barcode" className="tw:mb-4" /> */}
+
+                {/* Conditional content blocks */}
+                <div className="tw:space-y-6">
+                  {display === "preview" ? (
+                    <>
+                      <Steps activeKey="preview" />
+
+                      {summary.invalid > 0 && (
+                        <div>
+                          <p className="tw:text-xs tw:text-gray-600 tw:mb-2 tw:-mt-1">
+                            Some barcodes (
+                            <span className="tw:font-semibold">
+                              {summary.invalid}
+                            </span>
+                            ) were not found. Create products for them on the{" "}
+                            <button
+                              className="tw:text-blue-800 tw:font-semibold tw:underline"
+                              onClick={handleInvalidBarcodesNavigate}
+                            >
+                              Invalid Barcodes
+                            </button>
+                            .
+                          </p>
+                        </div>
+                      )}
+
+                      <Preview
+                        products={products}
+                        fileName={uploadedFile?.fileName || ""}
+                        onRemoveProduct={handleRemoveProduct}
+                        onSubscribeProduct={handleSubscribeProduct}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Steps activeKey="upload" />
+
+                      <BarcodeTextArea callback={handleTextAreaUpload} />
+
+                      {/* Card 1: Bulk Barcode List Upload Information */}
+
+                      {/* Card 2: Upload Barcode List File */}
+                      <div className="tw:space-y-4">
+                        <BarcodeFileUpload
+                          onFileUpload={handleFileUpload}
+                          uploadedFile={uploadedFile}
+                          handleDownloadTemplate={handleDownloadTemplate}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Sticky bottom action block: Subscribe All + View Cart */}
+                {display === "preview" &&
+                  products.length > 0 &&
+                  summary.valid > 0 && (
+                    <>
+                      <div className="tw:h-24"></div>
+                      <div className="tw:sticky tw:bottom-0 tw:left-0 tw:right-0 tw:z-50 tw:p-4 tw:bg-white tw:rounded-lg tw:shadow-md">
+                        <div className="tw:flex tw:flex-row tw:justify-between tw:items-center">
+                          <div className="tw:text-xs tw:text-blue-800 tw:font-semibold">
+                            {!summary.pendingSubscribe
+                              ? "To complete the subscription, please click on the 'View' button."
+                              : null}
+                          </div>
+
+                          <div className="tw:flex tw:flex-row tw:gap-x-4">
+                            {summary.pendingSubscribe > 0 && (
+                              <AppButton
+                                onClick={handleSubscribeAll}
+                                isLoading={isSubscribingAll}
+                                color="primary"
+                                className="tw:rounded-full tw:px-6 tw:py-3 tw:mr-2"
+                              >
+                                Subscribe all ({summary.pendingSubscribe})
+                              </AppButton>
+                            )}
+
+                            {cartCount > 0 && (
+                              <AppButton
+                                onClick={() =>
+                                  appNav.to(
+                                    "/dashboard/inventory/subscribe/cart",
+                                    {
+                                      from: "bulk-upload",
+                                    },
+                                  )
+                                }
+                                color="success"
+                                className="tw:rounded-full tw:px-4 tw:py-3 animate__animated animate__pulse animate__infinite"
+                              >
+                                <ShoppingCart size={16} />
+                                View ({cartCount})
+                              </AppButton>
+                            )}
+
+                            <AppButton
+                              onClick={handleBackToUpload}
+                              color="danger"
+                              fill="outline"
+                              className="tw:rounded-full tw:px-4 tw:py-3"
+                            >
+                              <XCircle size={16} />
+                              Cancel
+                            </AppButton>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeSidePane scopeLabel="Bulk Barcode" />
+              </AppPaneSide>
             </div>
           </div>
-
-          <BulkUploadMainTab activeTab="barcode" className="tw:mb-4" />
-
-          {/* <BulkUploadSubTab activeTab="barcode" className="tw:mb-4" /> */}
-
-          {/* Conditional content blocks */}
-          <div className="tw:space-y-6">
-            {display === "preview" ? (
-              <>
-                <Steps activeKey="preview" />
-
-                {summary.invalid > 0 && (
-                  <div>
-                    <p className="tw:text-xs tw:text-gray-600 tw:mb-2 tw:-mt-1">
-                      Some barcodes (
-                      <span className="tw:font-semibold">
-                        {summary.invalid}
-                      </span>
-                      ) were not found. Create products for them on the{" "}
-                      <button
-                        className="tw:text-blue-800 tw:font-semibold tw:underline"
-                        onClick={handleInvalidBarcodesNavigate}
-                      >
-                        Invalid Barcodes
-                      </button>
-                      .
-                    </p>
-                  </div>
-                )}
-
-                <Preview
-                  products={products}
-                  fileName={uploadedFile?.fileName || ""}
-                  onRemoveProduct={handleRemoveProduct}
-                  onSubscribeProduct={handleSubscribeProduct}
-                />
-              </>
-            ) : (
-              <>
-                <Steps activeKey="upload" />
-
-                <BarcodeTextArea callback={handleTextAreaUpload} />
-
-                {/* Card 1: Bulk Barcode List Upload Information */}
-
-                {/* Card 2: Upload Barcode List File */}
-                <div className="tw:space-y-4">
-                  <BarcodeFileUpload
-                    onFileUpload={handleFileUpload}
-                    uploadedFile={uploadedFile}
-                    handleDownloadTemplate={handleDownloadTemplate}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Sticky bottom action block: Subscribe All + View Cart */}
-          {display === "preview" &&
-            products.length > 0 &&
-            summary.valid > 0 && (
-              <>
-                <div className="tw:h-24"></div>
-                <div className="tw:sticky tw:bottom-0 tw:left-0 tw:right-0 tw:z-50 tw:p-4 tw:bg-white tw:rounded-lg tw:shadow-md">
-                  <div className="tw:flex tw:flex-row tw:justify-between tw:items-center">
-                    <div className="tw:text-xs tw:text-blue-800 tw:font-semibold">
-                      {!summary.pendingSubscribe
-                        ? "To complete the subscription, please click on the 'View' button."
-                        : null}
-                    </div>
-
-                    <div className="tw:flex tw:flex-row tw:gap-x-4">
-                      {summary.pendingSubscribe > 0 && (
-                        <AppButton
-                          onClick={handleSubscribeAll}
-                          isLoading={isSubscribingAll}
-                          color="primary"
-                          className="tw:rounded-full tw:px-6 tw:py-3 tw:mr-2"
-                        >
-                          Subscribe all ({summary.pendingSubscribe})
-                        </AppButton>
-                      )}
-
-                      {cartCount > 0 && (
-                        <AppButton
-                          onClick={() =>
-                            appNav.to("/dashboard/inventory/subscribe/cart", {
-                              from: "bulk-upload",
-                            })
-                          }
-                          color="success"
-                          className="tw:rounded-full tw:px-4 tw:py-3 animate__animated animate__pulse animate__infinite"
-                        >
-                          <ShoppingCart size={16} />
-                          View ({cartCount})
-                        </AppButton>
-                      )}
-
-                      <AppButton
-                        onClick={handleBackToUpload}
-                        color="danger"
-                        fill="outline"
-                        className="tw:rounded-full tw:px-4 tw:py-3"
-                      >
-                        <XCircle size={16} />
-                        Cancel
-                      </AppButton>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
         </div>
       </div>
 

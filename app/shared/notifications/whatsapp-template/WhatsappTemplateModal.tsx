@@ -1,5 +1,7 @@
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, ChevronRight, Clock, FilePlus2, Plus, Send } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import useAppNav from "~/hooks/useAppNav";
+import useTheme from "~/hooks/useTheme";
 import AppButton from "~/components/core/button/AppButton";
 import ImgRender from "~/components/core/img/ImgRender";
 import AppModal from "~/components/core/modal/AppModal";
@@ -9,6 +11,7 @@ import AppTab from "~/components/core/tab/AppTab";
 import CommonService from "~/services/CommonService";
 import ShareService from "~/services/ShareService";
 import WhatsappTemplateService from "~/services/WhatsappTemplateService";
+import WhatsappTemplateRequestService from "~/services/WhatsappTemplateRequestService";
 import { getCount, getData, prepareParams, getCategories } from "./helper";
 import { AppSelect } from "~/components/core/form";
 import WhatsappTemplateList from "./WhatsappTemplateList";
@@ -57,7 +60,11 @@ const WhatsappTemplateModal: React.FC<Props> = ({
   showTemplateForSelect = false,
   showCategoryDropdown = true,
 }) => {
+  const appNav = useAppNav();
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
   const [loading, setLoading] = useState(false);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const [templates, setTemplates] = useState<any[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -96,6 +103,32 @@ const WhatsappTemplateModal: React.FC<Props> = ({
     ignoreCategories,
     templateFor,
   });
+
+  // Fetch pending template-request count when modal opens
+  useEffect(() => {
+    if (!show) return;
+    let active = true;
+    WhatsappTemplateRequestService.getPendingCount().then((count) => {
+      if (active) setPendingRequestCount(count);
+    });
+    return () => {
+      active = false;
+    };
+  }, [show]);
+
+  const goToTemplateRequests = (opts?: {
+    tab?: string;
+    openRequest?: boolean;
+  }) => {
+    const params: Record<string, string> = {};
+    if (opts?.tab) params.tab = opts.tab;
+    if (opts?.openRequest) params.openRequest = "1";
+    callback({ action: "close" });
+    appNav.to(
+      "/configs/whatsapp-template-request",
+      Object.keys(params).length ? params : undefined,
+    );
+  };
 
   // Reset UI state when modal opens
   useEffect(() => {
@@ -329,6 +362,46 @@ const WhatsappTemplateModal: React.FC<Props> = ({
 
       <AppModal.Content className="tw:h-[90vh]">
         <div className="tw:space-y-3">
+          {/* Request-a-template card (hidden in preview) */}
+          {view === "list" && (
+            <div className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-gray-200 dark:tw:border-neutral-800 tw:bg-gradient-to-r tw:from-green-50/80 tw:to-transparent dark:tw:from-green-950/30 dark:tw:to-transparent tw:px-3 tw:py-2.5">
+              <div className="tw:shrink-0 tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-lg tw:bg-green-100 dark:tw:bg-green-900/40 tw:text-green-600 dark:tw:text-green-400">
+                <FilePlus2 size={18} />
+              </div>
+
+              <div className="tw:min-w-0 tw:flex-1">
+                <div className="tw:text-xs tw:font-semibold tw:text-gray-900 dark:tw:text-gray-100 tw:truncate">
+                  Need a custom template?
+                </div>
+                {pendingRequestCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => goToTemplateRequests({ tab: "Pending" })}
+                    className="tw:group tw:flex tw:items-center tw:gap-1 tw:text-[11px] tw:font-medium tw:text-amber-600 dark:tw:text-amber-400 tw:mt-0.5 hover:tw:underline"
+                    aria-label={`${pendingRequestCount} pending template requests`}
+                  >
+                    <Clock size={11} />
+                    <span>{pendingRequestCount} pending</span>
+                    <ChevronRight size={11} className="tw:opacity-70" />
+                  </button>
+                ) : (
+                  <div className="tw:text-[11px] tw:text-gray-500 dark:tw:text-gray-400 tw:mt-0.5 tw:truncate">
+                    Tell us what you need, we'll design it for you
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => goToTemplateRequests({ openRequest: true })}
+                className="tw:shrink-0 tw:flex tw:items-center tw:gap-1 tw:rounded-lg tw:bg-green-600 tw:text-white tw:text-xs tw:font-medium tw:px-3 tw:py-1.5 tw:shadow-sm tw:transition-colors hover:tw:bg-green-700 tw:whitespace-nowrap"
+              >
+                <Plus size={14} />
+                Request
+              </button>
+            </div>
+          )}
+
           {/* Compact Users Section */}
           {users && users.length > 0 && (
             <div>
@@ -397,6 +470,7 @@ const WhatsappTemplateModal: React.FC<Props> = ({
               <AppTab
                 tabs={languages}
                 activeTab={activeLangTab}
+                variant={isTheme2 ? "pills" : "tabs"}
                 onTabChange={(tab) => setActiveLangTab(tab.key)}
               />
             </div>

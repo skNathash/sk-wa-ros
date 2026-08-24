@@ -1,42 +1,65 @@
+import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppHeader from "~/components/core/header/AppHeader";
 import AppTab from "~/components/core/tab/AppTab";
+import FilterChip from "~/components/core/filter-chip/FilterChip";
+import FilterChipGroup from "~/components/core/filter-chip/FilterChipGroup";
 import type { TabItem } from "~/types/CommonTypes";
 import CommonService from "~/services/CommonService";
 import InventoryDashboardService from "~/services/InventoryDashboardService";
 import PageAccessService from "~/services/PageAccessService";
-// import BottomDeadStockProducts from "./components/bottom-dead-stock-products/BottomDeadStockProducts";
 import CategoryWiseProducts from "./components/category-wise-products/CategoryWiseProducts";
-import InventoryAgingAnalysis from "./components/InventoryAgingAnalysis";
-import InventoryHealthScore from "./components/InventoryHealthScore";
-import InventoryValueByCategory from "./components/InventoryValueByCategory";
-import ReorderRiskInsights from "./components/ReorderRiskInsights";
+import BrandWiseProducts from "./components/brand-wise-products/BrandWiseProducts";
+import Overview from "./components/Overview";
+import ShopToday from "./components/shop-today/ShopToday";
 
 import {
+  Package,
   Zap,
   TrendingDown,
   PauseCircle,
   RefreshCw,
   CalendarClock,
-  // Archive,
   LayoutGrid,
+  Gauge,
+  Tags,
   Lock,
+  PackageX,
+  Ban,
 } from "lucide-react";
 import AppButton from "~/components/core/button/AppButton";
 import { useSidebar } from "~/components/ui/sidebar";
 import useAppNav from "~/hooks/useAppNav";
-import SummaryCards from "./components/SummaryCards";
+import useTheme from "~/hooks/useTheme";
+import { useIsMobile } from "~/hooks/use-mobile";
+import CatalogJourney from "~/shared/inventory/components/catalog-journey/CatalogJourney";
+import type { JourneyStep } from "~/shared/inventory/components/catalog-journey/helper";
+import CatalogSidePane from "~/shared/inventory/components/catalog-side-pane/CatalogSidePane";
+import NeedsAttention from "~/shared/inventory/components/needs-attention/NeedsAttention";
+import type { AttentionTask } from "~/shared/inventory/components/needs-attention/helper";
+import InventoryStats, {
+  type InventoryStatKey,
+} from "~/shared/inventory/components/inventory-stats/InventoryStats";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import SkuMovementProducts from "./components/sku-movement-products/SkuMovementProducts";
 import ReorderProducts from "./components/reorder-products/ReorderProducts";
+import InStockProducts from "./components/in-stock-products/InStockProducts";
 import {
   defaultSummary,
+  getInStockCount,
   type CategoryValue,
   type HealthScore,
   type InventorySummary,
   type RiskInsights,
 } from "./helper";
+import InventoryAgingAnalysis from "./components/InventoryAgingAnalysis";
+import StockOverview from "./components/theme2/StockOverview";
+import MovementBuckets from "./components/theme2/MovementBuckets";
+import SellerCatalogService from "~/services/SellerCatalogService";
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage([]);
@@ -47,8 +70,20 @@ const breadcrumbs = [
   { label: "Inventory Analytics Dashboard" },
 ];
 
-const productTabs: TabItem[] = [
-  { name: "Fast Moving Products", key: "fast_moving", icon: <Zap size={16} /> },
+const mainTabs: TabItem[] = [
+  { name: "Overview", key: "overview", icon: <Gauge size={16} /> },
+  { name: "Products", key: "products", icon: <Package size={16} /> },
+  {
+    name: "Category",
+    key: "category_wise",
+    icon: <LayoutGrid size={16} />,
+  },
+  { name: "Brand", key: "brand_wise", icon: <Tags size={16} /> },
+];
+
+const productViews: TabItem[] = [
+  { name: "In Stock", key: "in_stock", icon: <Package size={16} /> },
+  { name: "Fast Moving", key: "fast_moving", icon: <Zap size={16} /> },
   { name: "Slow Moving", key: "slow_moving", icon: <TrendingDown size={16} /> },
   { name: "Non Moving", key: "non_moving", icon: <PauseCircle size={16} /> },
   { name: "Reorder", key: "reorder", icon: <RefreshCw size={16} /> },
@@ -57,38 +92,41 @@ const productTabs: TabItem[] = [
     key: "near_expiry",
     icon: <CalendarClock size={16} />,
   },
-  // { name: "Dead Stock", key: "dead_stock", icon: <Archive size={16} /> },
   { name: "Reserve", key: "reserve", icon: <Lock size={16} /> },
-  {
-    name: "Category Wise",
-    key: "category_wise",
-    icon: <LayoutGrid size={16} />,
-  },
+  { name: "Out of Stock", key: "out_of_stock", icon: <PackageX size={16} /> },
+  { name: "Non Sellable", key: "non_sellable", icon: <Ban size={16} /> },
 ];
 
 const tabDescriptions: Record<string, string> = {
+  in_stock: "Items that currently have stock on hand.",
   fast_moving: "Items that sold in the last 30 days. These sell fast.",
-  slow_moving:
-    "Items that sold in the last 90 days but not in the last 30 days. These sell slowly.",
+  // slow_moving:
+  //   "Items that sold in the last 90 days but not in the last 30 days. These sell slowly.",
   non_moving: "Items that have not sold at all for a long time.",
+  out_of_stock: "Items that currently have no stock on hand.",
+  non_sellable: "Items that are not available for sale.",
   reorder: "Items that are selling but low in stock. Buy them again soon.",
   near_expiry: "Items that will expire in the next 30 days. Sell them quickly.",
   reserve:
     "Reserve Mode allows customers to place orders for items that are currently out of stock, but have been made available for future fulfillment.",
-  // dead_stock: "Items lying in stock with no sales for a long time",
   category_wise: "Your stock split by product category.",
+  brand_wise: "Your stock split by product brand.",
 };
 
 const InventoryDashboard = () => {
-  const appNav = useAppNav();
   const { setOpen } = useSidebar();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "fast_moving";
+  const activeTab = searchParams.get("tab") || "overview";
+  const productView = searchParams.get("view") || "in_stock";
+  const effectiveTab = activeTab === "products" ? productView : activeTab;
+  const appNav = useAppNav();
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
+  const isMobile = useIsMobile();
+  // Theme-2 desktop keeps the underline tabs; theme-2 mobile uses pills.
+  // Everywhere else the default segmented `tabs` variant.
+  const mainTabVariant = !isTheme2 ? "tabs" : isMobile ? "pills" : "underline";
 
-  // Collapse the side menu when landing on the dashboard to give the wide
-  // analytics tables more room. Run only on mount — `setOpen`'s identity
-  // changes whenever the sidebar opens, so depending on it would re-collapse
-  // the sidebar every time the user tries to expand it.
   useEffect(() => {
     setOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,11 +155,85 @@ const InventoryDashboard = () => {
   const [agingLoading, setAgingLoading] = useState(true);
 
   const abortRef = useRef<AbortController | null>(null);
+  const productsSectionRef = useRef<HTMLDivElement>(null);
+
+  const goToProductTab = (tab: string, view?: string) => {
+    setSearchParams(view ? { tab, view } : { tab }, {
+      preventScrollReset: true,
+    });
+    productsSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  const openProductsTab = (tabKey: string) => {
+    const isProductView = productViews.some((t) => t.key === tabKey);
+    if (isProductView) goToProductTab("products", tabKey);
+    else goToProductTab(tabKey);
+  };
+
+  const handleViewMovementBuckets = (view: string) => {
+    const m = SellerCatalogService.getMovementTypes();
+    const v = m.find((m) => m.key === view?.replace("_", "-"));
+    if (v) {
+      appNav.to(`/dashboard/inventory/products/list?velocity=${v.value}`);
+    }
+  };
+
+  const STOCK_ALERT_VIEWS: Record<string, string> = {
+    "out-of-stock": "out_of_stock",
+    "slow-moving": "slow_moving",
+    "non-moving": "non_moving",
+    "near-expiry": "near_expiry",
+  };
+
+  const activeStockAlertKey =
+    activeTab === "products"
+      ? Object.keys(STOCK_ALERT_VIEWS).find(
+          (key) => STOCK_ALERT_VIEWS[key] === productView,
+        )
+      : undefined;
+
+  // The headline stat tiles drop into the product views that back them; the
+  // pre-owned pool has no view of its own yet, so that tile stays inert.
+  const handleStatSelect = (key: InventoryStatKey) => {
+    if (key === "slow-movers") goToProductTab("products", "slow_moving");
+    else if (key !== "pre-owned") goToProductTab("products", "in_stock");
+  };
+
+  const handlePaneValueSelect = (key: "totalItems" | "inventoryValue") => {
+    if (key === "totalItems") goToProductTab("products", "in_stock");
+    else goToProductTab("overview");
+  };
+
+  // The journey strip's last step lands on the in-stock products view, which
+  // lives on this very page — the other two leave for pricing / stock entry.
+  const handleJourneyStep = (step: JourneyStep) => {
+    if (step.key === "stocked") {
+      goToProductTab("products", "in_stock");
+      return;
+    }
+    appNav.to(step.nextPath);
+  };
+
+  // Three of the attention cards (near expiry / slow movers / out of stock)
+  // land on product views that live on this very page, so they switch tabs
+  // instead of navigating; pricing and stock entry leave for their own screens.
+  const handleAttentionTask = (task: AttentionTask) => {
+    const view = task.query?.view;
+    if (task.query?.tab === "products" && view) {
+      goToProductTab("products", view);
+      return;
+    }
+    appNav.to(task.path, task.query);
+  };
 
   const loadSummaryData = async () => {
     try {
       const [
         totalDealsRes,
+        inStockCountRes,
         inventoryValueRes,
         skuMovementRes,
         outOfStockRes,
@@ -131,6 +243,7 @@ const InventoryDashboard = () => {
           {},
           { signal: abortRef.current?.signal },
         ),
+        getInStockCount({}),
         InventoryDashboardService.getInventoryValue(
           {},
           { signal: abortRef.current?.signal },
@@ -150,6 +263,7 @@ const InventoryDashboard = () => {
       ]);
 
       const totalDeals = totalDealsRes?.data?.data || 0;
+      const inStockSKUs = inStockCountRes || 0;
       const inventoryValue = inventoryValueRes?.data?.data || 0;
       const skuMovement = skuMovementRes?.data?.data || {};
       const outOfStock = outOfStockRes?.data?.data || 0;
@@ -168,6 +282,9 @@ const InventoryDashboard = () => {
       const slowPercentage =
         skuMovement.slow?.percentage ??
         (total > 0 ? Number(((slow / total) * 100).toFixed(2)) : 0);
+      const nonMovingPercentage =
+        skuMovement.nonMoving?.percentage ??
+        (total > 0 ? Number(((nonMoving / total) * 100).toFixed(2)) : 0);
 
       setAgingData([
         { name: "Fast Moving", value: fast, color: "#22c55e" },
@@ -178,6 +295,7 @@ const InventoryDashboard = () => {
 
       setSummary({
         totalSKUs: totalDeals,
+        inStockSKUs: inStockSKUs,
         inventoryValue: inventoryValue,
         inventoryValueChange: 0,
         fastMovingSKUs: total > 0 ? fast : 0,
@@ -187,6 +305,7 @@ const InventoryDashboard = () => {
         slowMovingSKUsChange: 0,
         slowMovingPercentage: slowPercentage,
         slowMovingValue: 0,
+        nonMovingPercentage: total > 0 ? nonMovingPercentage : 0,
         outOfStockSKUs: outOfStock,
         inventoryValueLocked: 0,
         inventoryTurnover: inventoryTurnover,
@@ -209,8 +328,8 @@ const InventoryDashboard = () => {
         {},
         { signal: abortRef.current?.signal },
       );
+
       const d = r?.data?.data || [];
-      console.log(d);
       const mapped = Array.isArray(d)
         ? d.map((item: any) => ({
             category: item.categoryName || "",
@@ -263,9 +382,7 @@ const InventoryDashboard = () => {
         expiryRisk: expiryRes?.data?.count || 0,
         zeroSales30Days: 0,
       });
-    } catch {
-      // ignore
-    }
+    } catch {}
     setRiskLoading(false);
   };
 
@@ -281,9 +398,7 @@ const InventoryDashboard = () => {
         score: d.healthScore || 0,
         status: d.status || "",
       });
-    } catch {
-      // ignore
-    }
+    } catch {}
     setHealthLoading(false);
   };
 
@@ -301,70 +416,182 @@ const InventoryDashboard = () => {
 
   return (
     <>
-      <AppHeader title="Inventory Analytics Dashboard" />
-      <div className="tw:p-4 app-page page-bg">
-        <div className="app-container !tw:lg:max-w-[1600px]">
-          <div className="tw:flex tw:items-center tw:justify-between tw:mb-2">
-            <div>
-              <AppBreadcrumbs data={breadcrumbs} className="!tw:mb-0" />
-              <p className="tw:text-sm tw:text-gray-500">
-                See your stock health, what is selling, and your stock by
-                category.
-              </p>
-            </div>
-            <AppButton
-              size="small"
-              fill="outline"
-              onClick={() => appNav.to("/dashboard/inventory/products/list")}
-            >
-              View All Items
-            </AppButton>
-          </div>
-
-          {/* Summary Cards Row */}
-          <SummaryCards data={summary} />
-
-          {/* Category Chart Row */}
-          <div className="tw:grid tw:grid-cols-1 tw:lg:grid-cols-2 tw:gap-4">
-            <InventoryValueByCategory
-              data={categoryData}
-              loading={categoryLoading}
-            />
-            <InventoryAgingAnalysis data={agingData} loading={agingLoading} />
-          </div>
-
-          {/* Reorder Risk + Health Score Row */}
-          <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:lg:grid-cols-4 tw:gap-4 tw:mb-4">
-            <ReorderRiskInsights data={riskInsights} loading={riskLoading} />
-            <InventoryHealthScore data={healthScore} loading={healthLoading} />
-          </div>
-
-          {/* Tabbed Products Section */}
-          <AppTab
-            tabs={productTabs}
-            activeTab={activeTab}
-            onTabChange={(tab) => {
-              setSearchParams({ tab: tab.key }, { preventScrollReset: true });
-            }}
+      <AppHeader
+        title="Dashboard"
+        sectionKey="catalog"
+        activeTab="inventory-dashboard"
+        mobileLead="menu"
+      />
+      <div className="page-padding app-page page-bg">
+        {/* Section tab strip is hidden on this page — the switcher inside the
+            header handles section navigation instead. */}
+        {/* {!isMobile && (
+          <SectionTabs
+            sectionKey="catalog"
+            activeTab="inventory-dashboard"
+            noShadow
+            sticky
           />
-          {tabDescriptions[activeTab] && (
-            <p className="tw:text-sm tw:text-gray-500 tw:mt-2">
-              {tabDescriptions[activeTab]}
-            </p>
-          )}
-          <div className="tw:mt-4">
-            {activeTab === "fast_moving" && <SkuMovementProducts type="FAST" />}
-            {activeTab === "slow_moving" && <SkuMovementProducts type="SLOW" />}
-            {activeTab === "non_moving" && (
-              <SkuMovementProducts type="NON_MOVING" />
-            )}
-            {activeTab === "reorder" && <ReorderProducts />}
-            {activeTab === "near_expiry" && (
-              <ReorderProducts type="expiryRisk" />
-            )}
-            {activeTab === "reserve" && <ReorderProducts type="reserve" />}
-            {/* {activeTab === "dead_stock" && <BottomDeadStockProducts />} */}
-            {activeTab === "category_wise" && <CategoryWiseProducts />}
+        )} */}
+
+        <div className="section-layout section-layout--tight">
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="inventory-dashboard"
+                title="Dashboard"
+              />
+            </div>
+          </aside>
+
+          <div className="section-content app-container no-padding">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+              <AppPaneMain className="tw:lg:col-span-12">
+                <AppTab
+                  tabs={mainTabs}
+                  activeTab={activeTab}
+                  onTabChange={(tab) => {
+                    setSearchParams(
+                      { tab: tab.key },
+                      { preventScrollReset: true },
+                    );
+                  }}
+                  className={clsx(
+                    // Hide the tab bar on mobile screens, and everywhere in
+                    // theme-2 — the header switcher handles navigation there.
+                    (isMobile || isTheme2) && "tw:hidden",
+                    isTheme2 && "edge-tabs app-tabs-sticky app-tabs-solid",
+                    // No section tab bar above on mobile, so pin under the
+                    // header rather than below a bar that isn't there.
+                    isTheme2 && isMobile && "app-tabs-sticky-header",
+                    // Flush bottom only in theme-2 on desktop.
+                    isTheme2 && !isMobile && "app-tabs-flush-bottom",
+                  )}
+                  variant={mainTabVariant}
+                />
+
+                <div className="section-content-inner">
+                  {activeTab === "overview" && (
+                    <>
+                      <ShopToday className="tw:mt-3 tw:mb-4" />
+
+                      <MovementBuckets
+                        data={summary}
+                        onOpenTab={handleViewMovementBuckets}
+                        className="tw:mb-4"
+                      />
+                    </>
+                  )}
+
+                  {activeTab === "products" && (
+                    <FilterChipGroup className="tw:mt-3">
+                      {productViews.map((view) => (
+                        <FilterChip
+                          key={view.key}
+                          active={productView === view.key}
+                          leadingIcon={view.icon}
+                          onClick={() =>
+                            setSearchParams(
+                              { tab: "products", view: view.key },
+                              { preventScrollReset: true },
+                            )
+                          }
+                        >
+                          {view.name}
+                        </FilterChip>
+                      ))}
+                    </FilterChipGroup>
+                  )}
+
+                  {/* {tabDescriptions[effectiveTab] && (
+                    <p className="tw:text-sm tw:text-gray-500 tw:mt-2 tw:mb-3">
+                      {tabDescriptions[effectiveTab]}
+                    </p>
+                  )} */}
+
+                  {activeTab === "overview" && (
+                    <CatalogJourney
+                      className="tw:mt-3"
+                      onStepClick={handleJourneyStep}
+                    />
+                  )}
+
+                  {activeTab === "overview" && (
+                    <NeedsAttention
+                      className="tw:mt-3"
+                      onTaskClick={handleAttentionTask}
+                    />
+                  )}
+
+                  {activeTab === "overview" && (
+                    <InventoryStats
+                      className="tw:mt-3 tw:mb-4"
+                      onSelect={handleStatSelect}
+                    />
+                  )}
+
+                  {activeTab === "overview" && (
+                    <Overview
+                      summary={summary}
+                      categoryData={categoryData}
+                      categoryLoading={categoryLoading}
+                      agingData={agingData}
+                      agingLoading={agingLoading}
+                      riskInsights={riskInsights}
+                      riskLoading={riskLoading}
+                      healthScore={healthScore}
+                      healthLoading={healthLoading}
+                      onNavigate={goToProductTab}
+                      onOpenTab={openProductsTab}
+                    />
+                  )}
+
+                  {activeTab === "products" && (
+                    <div className="tw:mt-1">
+                      {productView === "in_stock" && <InStockProducts />}
+                      {productView === "fast_moving" && (
+                        <SkuMovementProducts type="FAST" />
+                      )}
+                      {productView === "slow_moving" && (
+                        <SkuMovementProducts type="SLOW" />
+                      )}
+                      {productView === "non_moving" && (
+                        <SkuMovementProducts type="NON_MOVING" />
+                      )}
+                      {productView === "out_of_stock" && (
+                        <SkuMovementProducts type="OUT_OF_STOCK" />
+                      )}
+                      {productView === "non_sellable" && (
+                        <SkuMovementProducts type="NON_SELLABLE" />
+                      )}
+                      {productView === "reorder" && <ReorderProducts />}
+                      {productView === "near_expiry" && (
+                        <ReorderProducts type="expiryRisk" />
+                      )}
+                      {productView === "reserve" && (
+                        <ReorderProducts type="reserve" />
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === "category_wise" && <CategoryWiseProducts />}
+                  {activeTab === "brand_wise" && <BrandWiseProducts />}
+                </div>
+              </AppPaneMain>
+
+              <AppPaneSide className="app-pane-only">
+                <CatalogSidePane
+                  activeTab="inventory-dashboard"
+                  scopeLabel="Analytics"
+                  onValueSelect={handlePaneValueSelect}
+                  activeStockAlertKey={activeStockAlertKey}
+                  showInventoryValue={false}
+                  showMenuList={false}
+                  showActivityLog
+                />
+              </AppPaneSide>
+            </div>
           </div>
         </div>
       </div>

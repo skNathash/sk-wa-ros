@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider, useWatch } from "react-hook-form";
@@ -13,6 +14,7 @@ import DesktopView from "./DesktopView";
 import MobileView from "./MobileView";
 import AuthService from "~/services/AuthService";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
+import InfoBlock from "~/components/core/info-blk/InfoBlock";
 import { AlertTriangle, ArrowLeft, FileText, Send } from "lucide-react";
 import { BulkFileUpload } from "../../../components";
 
@@ -35,7 +37,13 @@ export interface MrpFormValues {
   records: MrpRecord[];
 }
 
-const UpdateMrp = () => {
+interface UpdateMrpProps {
+  /** Info card rendered above the upload box (owned by the page, so it hides
+      with the upload view once records are in preview). */
+  info?: ReactNode;
+}
+
+const UpdateMrp = ({ info }: UpdateMrpProps) => {
   const { t } = useTranslation(["common"]);
   const appToast = useAppToast();
   const { isMobile } = useScreenView();
@@ -256,15 +264,19 @@ const UpdateMrp = () => {
       <FormProvider {...methods}>
         <Summary valid={computedSummary.valid} invalid={computedSummary.invalid} total={computedSummary.total} />
 
-        <div className="tw:bg-amber-50 tw:border tw:border-amber-200 tw:rounded-lg tw:p-3 tw:mb-4 tw:flex tw:items-start tw:gap-2">
-          <AlertTriangle size={18} className="tw:text-amber-600 tw:mt-0.5 tw:shrink-0" />
-          <p className="tw:text-sm tw:text-amber-800">
-            New MRP cannot be less than the Purchase Price. Please ensure the values are correct before submitting.
-          </p>
-        </div>
+        <InfoBlock size="sm" variant="warning" bordered className="tw:mb-4">
+          <div className="tw:flex tw:items-start tw:gap-2">
+            <AlertTriangle size={18} className="tw:mt-0.5 tw:shrink-0" />
+            <p>
+              New MRP cannot be less than the Purchase Price. Please ensure the
+              values are correct before submitting.
+            </p>
+          </div>
+        </InfoBlock>
 
         <AppCard
           noContentPadding
+          className="app-flat-sheet"
           title="Preview Uploaded Data"
           icon={<FileText />}
           subtitle="Review the records below."
@@ -272,23 +284,33 @@ const UpdateMrp = () => {
           {isMobile ? <MobileView /> : <DesktopView />}
         </AppCard>
 
-        <div className="tw:sticky tw:bottom-0 tw:bg-white tw:py-4">
-          <div className="tw:flex tw:justify-between tw:mt-4">
+        {/* Action bar: full-width thumb targets on mobile, right-aligned pair
+            on desktop. */}
+        <div className="app-bleed-x app-action-bar tw:sticky tw:bottom-0 tw:z-10 tw:border-t tw:border-gray-200 tw:bg-white tw:p-3 tw:sm:border-0 tw:sm:p-4">
+          <div className="tw:flex tw:gap-2 tw:sm:justify-end">
             <AppButton
               color="light"
               size="small"
               fill="outline"
               onClick={handleBackToUpload}
+              className="tw:flex-1 tw:justify-center tw:sm:flex-none"
             >
               <ArrowLeft size={16} />
               Back to Upload
             </AppButton>
-            <AppButton color="primary" size="small" onClick={handleSubmitClick}>
+            <AppButton
+              color="primary"
+              size="small"
+              onClick={handleSubmitClick}
+              className="tw:flex-1 tw:justify-center tw:sm:flex-none"
+            >
               <Send size={16} />
               Submit
             </AppButton>
           </div>
         </div>
+        {/* Height for the pinned bar on mobile; collapses on desktop. */}
+        <div className="app-action-bar-spacer" aria-hidden="true" />
 
         <BusyLoader show={busyLoader.show} message={busyLoader.message} />
 
@@ -309,6 +331,7 @@ const UpdateMrp = () => {
   return (
     <>
       <div className="tw:space-y-6">
+        {info}
         <BulkFileUpload
           title="Upload Excel File"
           description="Select your Excel file containing the MRP data to upload."

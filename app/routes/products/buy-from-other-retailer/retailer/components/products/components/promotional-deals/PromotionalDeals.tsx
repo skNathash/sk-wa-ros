@@ -46,6 +46,7 @@ const PromotionalDeals: React.FC<PromotionalDealsProps> = ({ sellerId }) => {
         setProducts(
           SellerCatalogService.formatProductResponse(data, {
             view: "buyer",
+            sellerId,
           }),
         );
       } catch (error) {

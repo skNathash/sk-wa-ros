@@ -8,7 +8,7 @@ import useAppNav from "~/hooks/useAppNav";
 import useTheme from "~/hooks/useTheme";
 import type { Deal } from "~/types/CommonTypes";
 import ProductCard from "../../../components/ProductCard";
-import SellerListModal from "../../../modals/seller-list/SellerListModal";
+import SellerListModal from "~/shared/catalog/modals/seller-list/SellerListModal";
 import CommonService from "~/services/CommonService";
 
 interface ProductsProps {

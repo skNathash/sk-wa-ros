@@ -3,49 +3,42 @@ import type { SwiperOptions } from "swiper/types";
 import ImgRender from "~/components/core/img/ImgRender";
 import AppSwiper from "~/components/core/swiper";
 
+/* Brand identity is carried by the logo itself. The logos are wide wordmarks of
+   varying aspect ratios: each gets a fixed-height, full-width strip with the
+   image contained inside it, so every button lines up and labels never wrap.
+   Each strip carries the background the logo was drawn for — the card color is
+   theme-dependent (white in theme-2, dark elsewhere), so relying on it makes
+   the logos vanish. Tally/Zoho are dark-on-light artwork → a white chip; the
+   QuickBooks wordmark is white → its brand-green chip. */
+const LIGHT_STRIP = "tw:bg-white tw:rounded-md tw:px-2 tw:ring-1 tw:ring-black/5";
 const options = [
   {
     label: "Tally",
     description: "Export for Tally ERP",
     icon: "logo/others/tally.svg",
     value: "tally",
-    containerClassName: "tw:bg-orange-500/10 tw:border-orange-200",
-    iconClassName: "tw:h-8",
-    swiper: {
-      iconClassName: "tw:h-6",
-    },
+    stripClassName: LIGHT_STRIP,
   },
   {
     label: "Zoho Books",
     description: "Export for Zoho",
     icon: "logo/others/zoho.svg",
     value: "zoho",
-    containerClassName: "tw:bg-blue-500/10 tw:border-blue-200",
-    iconClassName: "tw:h-8",
-    swiper: {
-      iconClassName: "tw:h-6",
-    },
+    stripClassName: LIGHT_STRIP,
   },
   {
     label: "QuickBooks",
     description: "Export for QB",
     icon: "logo/others/qb.svg",
     value: "quickbooks",
-    containerClassName: "tw:bg-green-500/30 tw:border-green-200",
-    iconClassName: "tw:h-8",
-    swiper: {
-      iconClassName: "tw:h-6",
-    },
+    /* The QB wordmark is white on transparent — it needs its solid brand-green
+       chip behind it or the text vanishes on a white button. */
+    stripClassName: "tw:bg-[#2ca01c] tw:rounded-md tw:px-2",
   },
   {
     label: "Excel",
     description: "Export as .xlsx file",
-    icon: <FileSpreadsheet />,
     value: "excel",
-    containerClassName: "tw:bg-emerald-500/10 tw:border-emerald-200",
-    swiper: {
-      iconClassName: "tw:h-6",
-    },
   },
 ];
 
@@ -72,31 +65,35 @@ const swiperConfig: SwiperOptions = {
 };
 
 const ReportDownloadOption = ({ view, callback, className }: Props) => {
-  const renderBlock = (
-    option: (typeof options)[number],
-    iconClassName?: string,
-    hideLabel?: boolean,
-  ) => {
+  const renderOption = (option: (typeof options)[number]) => {
     return (
-      <div
-        className={`tw:flex tw:flex-col tw:items-center tw:gap-2 tw:rounded-md tw:p-4 tw:cursor-pointer ${option.containerClassName}`}
+      <button
+        key={option.value}
+        type="button"
+        title={option.description}
         onClick={() => callback({ action: "download", option: option.value })}
+        className="tw:flex tw:h-full tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-lg tw:border tw:border-border tw:bg-card tw:px-2 tw:py-2.5 tw:cursor-pointer tw:transition-colors tw:hover:border-primary/50 tw:hover:bg-primary/5 tw:focus-visible:outline-none tw:focus-visible:ring-2 tw:focus-visible:ring-ring"
       >
-        <div className="tw:flex tw:flex-col tw:items-center tw:gap-2">
+        <span
+          className={`tw:flex tw:h-6 tw:max-w-full tw:items-center tw:justify-center ${(option as any).stripClassName ?? ""}`}
+        >
           {option.value === "excel" ? (
-            <FileSpreadsheet size={32} className={iconClassName} />
+            <FileSpreadsheet size={20} className="tw:text-emerald-600" />
           ) : (
             <ImgRender
               src={option.icon as string}
               alt={option.label}
-              className={iconClassName}
+              /* zoho.svg / qb.svg have no width/height attributes (viewBox
+                 only), so max-* constraints alone size them to 0 — an
+                 explicit height is required, max-w only caps wide logos. */
+              className="tw:h-5 tw:w-auto tw:max-w-16 tw:object-contain"
             />
           )}
-          {!hideLabel && (
-            <div className="tw:text-xs tw:font-semibold">{option.label}</div>
-          )}
-        </div>
-      </div>
+        </span>
+        <span className="tw:max-w-full tw:truncate tw:text-xs tw:font-semibold">
+          {option.label}
+        </span>
+      </button>
     );
   };
 
@@ -106,16 +103,14 @@ const ReportDownloadOption = ({ view, callback, className }: Props) => {
         <AppSwiper config={swiperConfig}>
           {options.map((option) => (
             <AppSwiper.Slide key={option.value}>
-              {renderBlock(option, option.swiper?.iconClassName, false)}
+              {renderOption(option)}
             </AppSwiper.Slide>
           ))}
         </AppSwiper>
       )}
       {view === "grid" && (
-        <div className={`tw:grid tw:grid-cols-2 tw:gap-2 ${className}`}>
-          {options.map((option) =>
-            renderBlock(option, option.iconClassName, false),
-          )}
+        <div className={`tw:grid tw:grid-cols-2 tw:gap-2 ${className ?? ""}`}>
+          {options.map((option) => renderOption(option))}
         </div>
       )}
     </>

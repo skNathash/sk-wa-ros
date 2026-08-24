@@ -3,12 +3,12 @@ import { useState } from "react";
 import type { SwiperOptions } from "swiper/types";
 import AppSwiper from "~/components/core/swiper";
 import useAppToast from "~/hooks/useAppToast";
-import useAppNav from "~/hooks/useAppNav";
 import PaylaterStatusModal from "../modals/PaylaterStatusModal";
+import PaylaterRequestModal from "~/shared/accounts/paylater/modals/paylater-request/PaylaterRequestModal";
 import Amount from "~/components/core/amount/Amount";
 import type { SelectedPaymentType } from "../types";
 import PrepaidInfoModal from "~/shared/configs/modals/PrepaidInfoModal";
-import { Pencil } from "lucide-react";
+import { Check, CheckCheck, Pencil } from "lucide-react";
 
 const swiperConfig: SwiperOptions = {
   slidesPerView: "auto",
@@ -31,7 +31,6 @@ const PaymentMode = ({
   sellerFid?: string | null;
 }) => {
   const appToast = useAppToast();
-  const appNav = useAppNav();
   const [prepaidModal, setPrepaidModal] = useState({ show: false, data: [] });
   const [paylaterModal, setPaylaterModal] = useState({
     show: false,
@@ -40,6 +39,10 @@ const PaymentMode = ({
     availableBalance: null as number | null,
     fid: null as string | null,
   });
+  const [paylaterRequest, setPaylaterRequest] = useState<{
+    show: boolean;
+    fid: string | null;
+  }>({ show: false, fid: null });
 
   const prepaidConfig = (payments || []).find(
     (p) => (p?.type || "").toString().toLowerCase() === "prepaid",
@@ -191,32 +194,36 @@ const PaymentMode = ({
 
   return (
     <>
-      <div className="tw:text-xs tw:font-medium tw:mb-2">
-        Choose Payment Mode
-      </div>
+      {/* No heading of its own — the seller card renders the "Payment" section
+          label directly above this, and a second "Choose payment mode" line
+          only pushed the chips down. */}
       <AppSwiper config={swiperConfig}>
-        {payments?.map((payment) => (
-          <AppSwiper.Slide key={payment._id} isAutoWidth={true}>
-            <div
-              className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:cursor-pointer"
-              onClick={() => handlePaymentModeChange(payment.type)}
-            >
-              <div
+        {payments?.map((payment) => {
+          const isActive =
+            Boolean(selectedPayment) &&
+            (selectedPayment!.paymentType || "").toLowerCase() ===
+              (payment.type || "").toLowerCase();
+
+          return (
+            <AppSwiper.Slide key={payment._id} isAutoWidth={true}>
+              <button
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => handlePaymentModeChange(payment.type)}
                 className={clsx(
-                  "tw:text-xs tw:font-medium tw:border tw:border-gray-200 tw:rounded-lg tw:px-2 tw:py-1",
-                  // active if passed selectedPayment matches this payment
-                  selectedPayment &&
-                    (selectedPayment.paymentType || "").toLowerCase() ===
-                      (payment.type || "").toLowerCase()
-                    ? "tw:bg-primary tw:text-white"
-                    : "tw:bg-white tw:text-gray-500",
+                  // `app-choice-chip` is the seam theme-2 turns into a capsule.
+                  "app-choice-chip tw:inline-flex tw:items-center tw:gap-1 tw:cursor-pointer tw:text-xs tw:font-medium tw:border tw:rounded-lg tw:px-2 tw:py-1 tw:transition-colors",
+                  isActive
+                    ? "app-choice-chip-active tw:border-primary tw:bg-primary tw:text-white"
+                    : "tw:border-gray-200 tw:bg-white tw:text-gray-600 tw:hover:border-primary/40 tw:hover:text-primary",
                 )}
               >
+                {isActive && <Check size={12} strokeWidth={3} />}
                 {payment.type.toUpperCase()}
-              </div>
-            </div>
-          </AppSwiper.Slide>
-        ))}
+              </button>
+            </AppSwiper.Slide>
+          );
+        })}
       </AppSwiper>
 
       {selectedPayment &&
@@ -224,7 +231,12 @@ const PaymentMode = ({
           (selectedPayment.paymentType || "").toUpperCase(),
         ) &&
         selectedPayment.paymentMode && (
-          <div className="tw:mt-2 tw:p-1.5 tw:bg-primary/5 tw:border tw:border-primary/20 tw:rounded-md tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
+          <div className="tw:mt-2 tw:p-2 tw:bg-primary/5 tw:border tw:border-primary/20 tw:rounded-lg tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
+            <CheckCheck
+              size={14}
+              strokeWidth={2.25}
+              className="app-tick tw:shrink-0 tw:text-primary"
+            />
             <div className="tw:text-xs tw:font-semibold tw:text-primary tw:bg-primary/10 tw:px-1.5 tw:py-0.5 tw:rounded">
               {(selectedPayment.paymentMode.type as string) ||
                 selectedPayment.paymentMethod ||
@@ -321,7 +333,8 @@ const PaymentMode = ({
           }
 
           if (a.action === "request") {
-            // navigate to paylater request page with fid in query
+            // Open the inline request sheet for this seller instead of
+            // navigating away to the full request page.
             const fid = paylaterModal.fid || null;
             setPaylaterModal({
               show: false,
@@ -330,12 +343,7 @@ const PaymentMode = ({
               availableBalance: null,
               fid: null,
             });
-            if (fid) {
-              appNav.to("/dashboard/paylater/request", { fid });
-            } else {
-              // fallback: open request page without fid
-              appNav.to("/dashboard/paylater/request");
-            }
+            setPaylaterRequest({ show: true, fid });
             return;
           }
           // propagate topup action upstream
@@ -348,6 +356,22 @@ const PaymentMode = ({
               fid: null,
             });
             callback({ action: "topup", data: {} });
+          }
+        }}
+      />
+
+      <PaylaterRequestModal
+        show={paylaterRequest.show}
+        fid={paylaterRequest.fid || undefined}
+        callback={(a) => {
+          if (a.action === "close") {
+            setPaylaterRequest({ show: false, fid: null });
+            return;
+          }
+          if (a.action === "success") {
+            // Seller's paylater status moved to Pending — let the cart
+            // refetch so the payment chip reflects it.
+            callback({ action: "paylaterRequested", data: a.data || {} });
           }
         }}
       />

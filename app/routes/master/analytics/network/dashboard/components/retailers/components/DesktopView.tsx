@@ -1,9 +1,8 @@
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, ExternalLink, MapPin, MessageSquare } from "lucide-react";
 import React from "react";
 import Amount from "~/components/core/amount/Amount";
 import AppButton from "~/components/core/button/AppButton";
 import DateFormat from "~/components/core/date/DateFormat";
-import KeyValue from "~/components/core/key-value/KeyValue";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import NoData from "~/components/core/no-data/NoData";
 import {
@@ -103,9 +102,46 @@ interface DesktopViewProps {
   hasMoreData: boolean;
 }
 
+// Column-group tint system: the band row is strongest, the sub-header row a
+// step lighter, body cells lightest; a hue-matched left border marks where
+// each group starts so the bands stay crisp instead of smearing together.
+const groupTints = {
+  plan: {
+    band: "tw:bg-violet-100 tw:text-violet-800",
+    head: "tw:bg-violet-50 tw:border-l tw:border-violet-200",
+    cell: "tw:bg-violet-50/60 tw:border-l tw:border-violet-200/70",
+  },
+  sales: {
+    band: "tw:bg-blue-100 tw:text-blue-800",
+    head: "tw:bg-blue-50 tw:border-l tw:border-blue-200",
+    headInner: "tw:bg-blue-50",
+    cell: "tw:bg-blue-50/60 tw:border-l tw:border-blue-200/70",
+    cellInner: "tw:bg-blue-50/60",
+  },
+  customers: {
+    band: "tw:bg-emerald-100 tw:text-emerald-800",
+    head: "tw:bg-emerald-50 tw:border-l tw:border-emerald-200",
+    headInner: "tw:bg-emerald-50",
+    cell: "tw:bg-emerald-50/60 tw:border-l tw:border-emerald-200/70",
+    cellInner: "tw:bg-emerald-50/60",
+  },
+  orders: {
+    band: "tw:bg-amber-100 tw:text-amber-800",
+    head: "tw:bg-amber-50 tw:border-l tw:border-amber-200",
+    headInner: "tw:bg-amber-50",
+    cell: "tw:bg-amber-50/60 tw:border-l tw:border-amber-200/70",
+    cellInner: "tw:bg-amber-50/60",
+  },
+  stock: {
+    band: "tw:bg-rose-100 tw:text-rose-800",
+    head: "tw:bg-rose-50 tw:border-l tw:border-r tw:border-rose-200",
+    cell: "tw:bg-rose-50/60 tw:border-l tw:border-r tw:border-rose-200/70",
+  },
+} as const;
+
 const headers: TableHeaderItem[] = [
-  { label: "S.No", key: "sno", enableSort: false, width: "3%" },
-  { label: "Retailer", key: "franchiseName", width: "14%", enableSort: true },
+  { label: "S.No", key: "sno", enableSort: false, width: "2%" },
+  { label: "Retailer", key: "franchiseName", width: "12%", enableSort: true },
   {
     label: "Registered On",
     key: "registeredOn",
@@ -115,8 +151,9 @@ const headers: TableHeaderItem[] = [
   {
     label: "Active Plan",
     key: "activePlan",
-    width: "15%",
+    width: "13%",
     enableSort: false,
+    className: groupTints.plan.head,
   },
   {
     label: "Total",
@@ -124,6 +161,7 @@ const headers: TableHeaderItem[] = [
     width: "7%",
     enableSort: true,
     isRightAligned: true,
+    className: groupTints.sales.head,
   },
   {
     label: "B2B",
@@ -131,6 +169,7 @@ const headers: TableHeaderItem[] = [
     width: "6%",
     enableSort: true,
     isRightAligned: true,
+    className: groupTints.sales.headInner,
   },
   {
     label: "B2C",
@@ -138,6 +177,7 @@ const headers: TableHeaderItem[] = [
     width: "6%",
     enableSort: true,
     isRightAligned: true,
+    className: groupTints.sales.headInner,
   },
   {
     label: "SK Buyers",
@@ -145,6 +185,7 @@ const headers: TableHeaderItem[] = [
     width: "5%",
     enableSort: true,
     isCentered: true,
+    className: groupTints.customers.head,
   },
   {
     label: "Cust.",
@@ -152,6 +193,7 @@ const headers: TableHeaderItem[] = [
     width: "5%",
     enableSort: true,
     isCentered: true,
+    className: groupTints.customers.headInner,
   },
   {
     label: "Today",
@@ -159,6 +201,7 @@ const headers: TableHeaderItem[] = [
     width: "5%",
     enableSort: true,
     isCentered: true,
+    className: groupTints.customers.headInner,
   },
   {
     label: "POS",
@@ -166,6 +209,7 @@ const headers: TableHeaderItem[] = [
     width: "6%",
     enableSort: true,
     isCentered: true,
+    className: groupTints.orders.head,
   },
   {
     label: "Club",
@@ -173,28 +217,83 @@ const headers: TableHeaderItem[] = [
     width: "5%",
     enableSort: true,
     isCentered: true,
+    className: groupTints.orders.headInner,
+  },
+  {
+    label: "B2B",
+    key: "rosOrders",
+    width: "5%",
+    enableSort: true,
+    isCentered: true,
+    className: groupTints.orders.headInner,
   },
   {
     label: "Inventory Status",
     key: "inventory.inStock",
-    width: "11%",
+    width: "12%",
     enableSort: true,
+    className: groupTints.stock.head,
   },
-  { label: "Access Store", key: "action", width: "5%", enableSort: false },
+  { label: "", key: "action", width: "4%", enableSort: false },
 ];
+
+const bandLabelClass =
+  "tw:text-[11px] tw:uppercase tw:tracking-wider tw:py-1.5";
 
 const headerGroups = [
   { label: "", span: 3 },
-  { label: "Plan", span: 1, className: "tw:bg-violet-50" },
-  { label: "Sales", span: 3, className: "tw:bg-blue-50" },
-  { label: "Customers", span: 3, className: "tw:bg-emerald-50" },
-  { label: "Orders", span: 2, className: "tw:bg-amber-50" },
-  { label: "Stock", span: 1, className: "tw:bg-rose-50" },
+  {
+    label: "Plan",
+    span: 1,
+    className: `${groupTints.plan.band} ${bandLabelClass}`,
+  },
+  {
+    label: "Sales",
+    span: 3,
+    className: `${groupTints.sales.band} ${bandLabelClass}`,
+  },
+  {
+    label: "Customers",
+    span: 3,
+    className: `${groupTints.customers.band} ${bandLabelClass}`,
+  },
+  {
+    label: "Orders",
+    span: 3,
+    className: `${groupTints.orders.band} ${bandLabelClass}`,
+  },
+  {
+    label: "Stock",
+    span: 1,
+    className: `${groupTints.stock.band} ${bandLabelClass}`,
+  },
   { label: "", span: 1 },
 ];
 
 const containerStyle = {
-  maxHeight: "calc(100vh - 200px)",
+  maxHeight: "calc(100vh - 150px)",
+};
+
+// Plan validity pill: color only appears when action is needed so the
+// column stays quiet for healthy plans.
+const planValidityStatus = (endAt?: string) => {
+  if (!endAt) return null;
+  const end = new Date(endAt);
+  if (isNaN(end.getTime())) return null;
+  const days = Math.ceil((end.getTime() - Date.now()) / 86400000);
+  if (days < 0)
+    return { label: "Expired", className: "tw:bg-red-100 tw:text-red-700" };
+  if (days === 0)
+    return {
+      label: "Expires today",
+      className: "tw:bg-amber-100 tw:text-amber-700",
+    };
+  if (days <= 30)
+    return {
+      label: `${days}d left`,
+      className: "tw:bg-amber-100 tw:text-amber-700",
+    };
+  return null;
 };
 
 // Empty/zero metrics should recede so active stores stand out for quick scanning.
@@ -301,6 +400,19 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                           {row.pincode ? ` - ${row.pincode}` : ""}
                         </span>
                       </div>
+
+                      {/* CRM Follow-up entry point */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          callback?.({ action: "followUp", data: row })
+                        }
+                        className="tw:mt-1.5 tw:inline-flex tw:items-center tw:gap-1.5 tw:w-fit tw:rounded-md tw:border tw:border-emerald-500/40 tw:px-2 tw:py-0.5 tw:text-xs tw:font-medium tw:text-emerald-600 tw:cursor-pointer tw:transition-colors hover:tw:bg-emerald-50"
+                      >
+                        <MessageSquare className="tw:w-3 tw:h-3" />
+                        <span>Follow-ups</span>
+                        <ExternalLink className="tw:w-2.5 tw:h-2.5 tw:opacity-70" />
+                      </button>
                     </div>
                   </AppTable.Cell>
 
@@ -310,112 +422,129 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                       formatStr="dd MMM yyyy"
                     />
                     <div className="tw:mt-1 tw:flex tw:flex-col tw:whitespace-nowrap">
-                      <span className="tw:text-[10px] tw:text-gray-400">
-                        Last Login
-                      </span>
-                      <span className="tw:text-[10px] tw:text-gray-500">
-                        {row.lastLoginOn ? (
-                          <DateFormat
-                            value={row.lastLoginOn || null}
-                            formatStr="dd MMM yyyy"
-                          />
-                        ) : (
-                          "-"
-                        )}
-                      </span>
+                      {row.lastLoginOn ? (
+                        <>
+                          <span className="tw:text-[10px] tw:text-gray-400">
+                            Last Login
+                          </span>
+                          <span className="tw:text-[10px] tw:text-gray-500">
+                            <DateFormat
+                              value={row.lastLoginOn}
+                              formatStr="dd MMM yyyy"
+                            />
+                          </span>
+                        </>
+                      ) : (
+                        <span className="tw:text-[10px] tw:text-gray-400 tw:italic">
+                          Never logged in
+                        </span>
+                      )}
                     </div>
                   </AppTable.Cell>
 
                   {/* Active Plan Column */}
-                  <AppTable.Cell className="tw:bg-violet-50/50">
+                  {/* Inline style: the base TableCell's align-middle wins over
+                      the align-top utility in Tailwind's output order. */}
+                  <AppTable.Cell
+                    className={groupTints.plan.cell}
+                    style={{ verticalAlign: "top" }}
+                  >
                     {row.subscriptionPlan?.planInfo?.type ? (
                       <div className="tw:flex tw:flex-col tw:gap-1">
-                        <div className="tw:flex tw:items-center tw:gap-2">
-                          <div className="tw:text-xs tw:font-bold tw:text-purple-800 tw:uppercase">
-                            {row.subscriptionPlan.planInfo.typeOfPlan ===
-                            "Hybrid"
-                              ? `Hybrid Plan${row.subscriptionPlan.planInfo.planName ? ` - ${row.subscriptionPlan.planInfo.planName}` : ""}`
-                              : row.subscriptionPlan.planInfo.type === "Value"
-                                ? "Fixed Plan"
-                                : row.subscriptionPlan.planInfo.type ===
-                                    "Percentage"
-                                  ? "Percentage Plan"
-                                  : row.subscriptionPlan.planInfo.type}
-                          </div>
+                        <div className="tw:text-xs tw:font-bold tw:text-purple-800 tw:uppercase">
+                          {row.subscriptionPlan.planInfo.typeOfPlan === "Hybrid"
+                            ? `Hybrid Plan${row.subscriptionPlan.planInfo.planName ? ` - ${row.subscriptionPlan.planInfo.planName}` : ""}`
+                            : row.subscriptionPlan.planInfo.type === "Value"
+                              ? "Fixed Plan"
+                              : row.subscriptionPlan.planInfo.type ===
+                                  "Percentage"
+                                ? "Percentage Plan"
+                                : row.subscriptionPlan.planInfo.type}
                         </div>
-                        {row.subscriptionPlan.planInfo.operationalFeeInfo && (
-                          <KeyValue
-                            label="Operational Fee"
-                            size="xs"
-                            horizontal
-                            labelClassName="tw:w-24"
-                            valueClassName="tw:text-gray-700 tw:font-semibold"
-                          >
-                            :{" "}
-                            {
-                              row.subscriptionPlan.planInfo.operationalFeeInfo
-                                .value
-                            }{" "}
-                            <span className="tw:text-[10px] tw:text-gray-500 tw:ml-1 tw:font-medium">
-                              {
-                                row.subscriptionPlan.planInfo.operationalFeeInfo
-                                  .type
-                              }
-                            </span>
-                          </KeyValue>
-                        )}
-                        <KeyValue label="Validity" size="xs" horizontal>
-                          <div className="tw:flex tw:items-center tw:gap-1 tw:text-gray-600">
+
+                        {/* Validity: date range + status pill, outside the
+                            label grid so the money rows align as one unit. */}
+                        <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:text-xs">
+                          <span className="tw:whitespace-nowrap tw:text-gray-600">
                             <DateFormat
                               value={row.subscriptionPlan.planStartAt || null}
-                              formatStr="dd MMM yyyy"
+                              formatStr="dd MMM yy"
                             />
-                            <span className="tw:text-gray-600"> - </span>
+                            {" → "}
                             <DateFormat
                               value={row.subscriptionPlan.planEndAt || null}
-                              formatStr="dd MMM yyyy"
+                              formatStr="dd MMM yy"
                             />
-                          </div>
-                        </KeyValue>
+                          </span>
+                          {(() => {
+                            const status = planValidityStatus(
+                              row.subscriptionPlan.planEndAt,
+                            );
+                            return status ? (
+                              <span
+                                className={`tw:rounded tw:px-1.5 tw:py-px tw:text-[10px] tw:font-semibold tw:whitespace-nowrap ${status.className}`}
+                              >
+                                {status.label}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
+                        {/* Grid keeps labels, colons and values on the same
+                            axis regardless of label/value length. */}
+                        <div className="tw:grid tw:grid-cols-[auto_auto_1fr] tw:items-baseline tw:gap-x-1 tw:gap-y-0.5 tw:text-xs">
+                          {row.subscriptionPlan.planInfo.operationalFeeInfo && (
+                            <>
+                              <span className="tw:whitespace-nowrap tw:text-gray-500">
+                                Operational Fee
+                              </span>
+                              <span className="tw:text-gray-400">:</span>
+                              <span className="tw:font-semibold tw:text-gray-700">
+                                {
+                                  row.subscriptionPlan.planInfo
+                                    .operationalFeeInfo.value
+                                }
+                                <span className="tw:ml-1 tw:text-[10px] tw:font-medium tw:text-gray-500">
+                                  {
+                                    row.subscriptionPlan.planInfo
+                                      .operationalFeeInfo.type
+                                  }
+                                </span>
+                              </span>
+                            </>
+                          )}
 
-                        <KeyValue
-                          label="Purchase Limit"
-                          size="xs"
-                          horizontal
-                          labelClassName="tw:w-24"
-                          valueClassName="tw:text-blue-600 tw:font-semibold"
-                        >
-                          :{" "}
-                          <Amount
-                            value={row.subscriptionPlan.planInfo?.amountTo ?? 0}
-                          />
-                        </KeyValue>
+                          <span className="tw:whitespace-nowrap tw:text-gray-500">
+                            Purchase Limit
+                          </span>
+                          <span className="tw:text-gray-400">:</span>
+                          <span className="tw:font-semibold tw:whitespace-nowrap tw:text-blue-600">
+                            <Amount
+                              value={
+                                row.subscriptionPlan.planInfo?.amountTo ?? 0
+                              }
+                            />
+                          </span>
 
-                        <KeyValue
-                          label="Used"
-                          size="xs"
-                          horizontal
-                          labelClassName="tw:w-24"
-                          valueClassName="tw:text-red-600 tw:font-semibold"
-                        >
-                          :{" "}
-                          <Amount
-                            value={row.subscriptionPlan.usedAmount ?? 0}
-                          />
-                        </KeyValue>
+                          <span className="tw:whitespace-nowrap tw:text-gray-500">
+                            Used
+                          </span>
+                          <span className="tw:text-gray-400">:</span>
+                          <span className="tw:font-semibold tw:whitespace-nowrap tw:text-red-600">
+                            <Amount
+                              value={row.subscriptionPlan.usedAmount ?? 0}
+                            />
+                          </span>
 
-                        <KeyValue
-                          label="Available"
-                          size="xs"
-                          horizontal
-                          labelClassName="tw:w-24"
-                          valueClassName="tw:text-green-600 tw:font-semibold"
-                        >
-                          :{" "}
-                          <Amount
-                            value={row.subscriptionPlan.availableAmount ?? 0}
-                          />
-                        </KeyValue>
+                          <span className="tw:whitespace-nowrap tw:text-gray-500">
+                            Available
+                          </span>
+                          <span className="tw:text-gray-400">:</span>
+                          <span className="tw:font-semibold tw:whitespace-nowrap tw:text-green-600">
+                            <Amount
+                              value={row.subscriptionPlan.availableAmount ?? 0}
+                            />
+                          </span>
+                        </div>
                       </div>
                     ) : (
                       <div className="tw:text-xs tw:text-gray-400">
@@ -425,54 +554,54 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   </AppTable.Cell>
 
                   {/* Total Value Column */}
-                  <AppTable.Cell className="tw:text-right tw:bg-blue-50/50">
+                  <AppTable.Cell
+                    className={`tw:text-right ${groupTints.sales.cell}`}
+                  >
                     <div
-                      className={
-                        mutedIfEmpty(
-                          row.totalSales,
-                          "tw:font-bold tw:text-primary",
-                        )
-                      }
+                      className={mutedIfEmpty(
+                        row.totalSales,
+                        "tw:font-bold tw:text-primary",
+                      )}
                     >
                       <Amount value={row.totalSales ?? 0} decimalPlaces={0} />
                     </div>
                   </AppTable.Cell>
 
-                  <AppTable.Cell className="tw:text-right tw:bg-blue-50/50">
+                  <AppTable.Cell
+                    className={`tw:text-right ${groupTints.sales.cellInner}`}
+                  >
                     <div
-                      className={
-                        mutedIfEmpty(
-                          row.b2bSales,
-                          "tw:font-semibold tw:text-gray-800",
-                        )
-                      }
+                      className={mutedIfEmpty(
+                        row.b2bSales,
+                        "tw:font-semibold tw:text-gray-800",
+                      )}
                     >
                       <Amount value={row.b2bSales ?? 0} decimalPlaces={0} />
                     </div>
                   </AppTable.Cell>
 
-                  <AppTable.Cell className="tw:text-right tw:bg-blue-50/50">
+                  <AppTable.Cell
+                    className={`tw:text-right ${groupTints.sales.cellInner}`}
+                  >
                     <div
-                      className={
-                        mutedIfEmpty(
-                          row.b2cSales,
-                          "tw:font-semibold tw:text-gray-800",
-                        )
-                      }
+                      className={mutedIfEmpty(
+                        row.b2cSales,
+                        "tw:font-semibold tw:text-gray-800",
+                      )}
                     >
                       <Amount value={row.b2cSales ?? 0} decimalPlaces={0} />
                     </div>
                   </AppTable.Cell>
 
                   {/* Buyers Column */}
-                  <AppTable.Cell className="tw:text-center tw:bg-emerald-50/50">
+                  <AppTable.Cell
+                    className={`tw:text-center ${groupTints.customers.cell}`}
+                  >
                     <div
-                      className={
-                        mutedIfEmpty(
-                          row.buyersCount,
-                          "tw:font-medium tw:text-gray-700",
-                        )
-                      }
+                      className={mutedIfEmpty(
+                        row.buyersCount,
+                        "tw:font-medium tw:text-gray-700",
+                      )}
                     >
                       {row.buyersCount != null
                         ? CommonService.commaSeparated(Number(row.buyersCount))
@@ -481,14 +610,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   </AppTable.Cell>
 
                   {/* Customers Column */}
-                  <AppTable.Cell className="tw:text-center tw:bg-emerald-50/50">
+                  <AppTable.Cell
+                    className={`tw:text-center ${groupTints.customers.cellInner}`}
+                  >
                     <div
-                      className={
-                        mutedIfEmpty(
-                          row.customersCount,
-                          "tw:font-medium tw:text-gray-700",
-                        )
-                      }
+                      className={mutedIfEmpty(
+                        row.customersCount,
+                        "tw:font-medium tw:text-gray-700",
+                      )}
                     >
                       {row.customersCount != null
                         ? CommonService.commaSeparated(
@@ -499,14 +628,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   </AppTable.Cell>
 
                   {/* New Customers Today Column */}
-                  <AppTable.Cell className="tw:text-center tw:bg-emerald-50/50">
+                  <AppTable.Cell
+                    className={`tw:text-center ${groupTints.customers.cellInner}`}
+                  >
                     <div
-                      className={
-                        mutedIfEmpty(
-                          row.customerCreatedtoday,
-                          "tw:font-medium tw:text-gray-700",
-                        )
-                      }
+                      className={mutedIfEmpty(
+                        row.customerCreatedtoday,
+                        "tw:font-medium tw:text-gray-700",
+                      )}
                     >
                       {row.customerCreatedtoday != null
                         ? CommonService.commaSeparated(
@@ -517,14 +646,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   </AppTable.Cell>
 
                   {/* POS Orders Column */}
-                  <AppTable.Cell className="tw:text-center tw:bg-amber-50/50">
+                  <AppTable.Cell
+                    className={`tw:text-center ${groupTints.orders.cell}`}
+                  >
                     <div
-                      className={
-                        mutedIfEmpty(
-                          row.posOrders,
-                          "tw:font-medium tw:text-gray-700",
-                        )
-                      }
+                      className={mutedIfEmpty(
+                        row.posOrders,
+                        "tw:font-medium tw:text-gray-700",
+                      )}
                     >
                       {row.posOrders != null
                         ? CommonService.commaSeparated(Number(row.posOrders))
@@ -551,14 +680,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   </AppTable.Cell>
 
                   {/* Club Orders Column */}
-                  <AppTable.Cell className="tw:text-center tw:bg-amber-50/50">
+                  <AppTable.Cell
+                    className={`tw:text-center ${groupTints.orders.cellInner}`}
+                  >
                     <div
-                      className={
-                        mutedIfEmpty(
-                          row.clubOrders,
-                          "tw:font-medium tw:text-gray-700",
-                        )
-                      }
+                      className={mutedIfEmpty(
+                        row.clubOrders,
+                        "tw:font-medium tw:text-gray-700",
+                      )}
                     >
                       {row.clubOrders != null
                         ? CommonService.commaSeparated(Number(row.clubOrders))
@@ -566,61 +695,66 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                     </div>
                   </AppTable.Cell>
 
-                  {/* Stock Overview Column */}
-                  <AppTable.Cell className="tw:bg-rose-50/50">
-                    <div className="tw:flex tw:flex-col tw:text-xs">
-                      <KeyValue
-                        label="In Stock"
-                        size="xs"
-                        horizontal
-                        labelClassName="tw:w-20"
-                        valueClassName="tw:text-green-600 tw:font-semibold"
-                        className="tw:mb-1"
-                      >
-                        : {CommonService.commaSeparated(Number(inStock))}{" "}
-                        <span className="tw:text-[10px] tw:text-gray-500 tw:ml-1 tw:font-medium">
-                          units
-                        </span>
-                      </KeyValue>
-                      <KeyValue
-                        label="Low Stock"
-                        size="xs"
-                        horizontal
-                        labelClassName="tw:w-20"
-                        valueClassName="tw:text-orange-600 tw:font-semibold"
-                        className="tw:mb-1"
-                      >
-                        : {CommonService.commaSeparated(Number(lowStock))}
-                        <span className="tw:text-[10px] tw:text-gray-500 tw:ml-1 tw:font-medium">
-                          units
-                        </span>
-                      </KeyValue>
-                      <KeyValue
-                        label="Out of Stock"
-                        size="xs"
-                        horizontal
-                        labelClassName="tw:w-20"
-                        valueClassName="tw:text-red-600 tw:font-semibold"
-                        className="tw:mb-1"
-                      >
-                        : {CommonService.commaSeparated(Number(outOfStock))}
-                        <span className="tw:text-[10px] tw:text-gray-500 tw:ml-1 tw:font-medium">
-                          units
-                        </span>
-                      </KeyValue>
+                  {/* B2B (ROS) Orders Column */}
+                  <AppTable.Cell
+                    className={`tw:text-center ${groupTints.orders.cellInner}`}
+                  >
+                    <div
+                      className={mutedIfEmpty(
+                        row.rosOrders,
+                        "tw:font-medium tw:text-gray-700",
+                      )}
+                    >
+                      {row.rosOrders != null
+                        ? CommonService.commaSeparated(Number(row.rosOrders))
+                        : "-"}
+                    </div>
+                  </AppTable.Cell>
 
-                      <KeyValue
-                        label="Total Items"
-                        size="xs"
-                        horizontal
-                        labelClassName="tw:w-20"
-                        valueClassName="tw:text-blue-600 tw:font-semibold"
-                      >
-                        : {CommonService.commaSeparated(Number(totalDeals))}
-                        <span className="tw:text-[10px] tw:text-gray-500 tw:ml-1 tw:font-medium">
-                          items
-                        </span>
-                      </KeyValue>
+                  {/* Stock Overview Column */}
+                  <AppTable.Cell className={groupTints.stock.cell}>
+                    <div className="tw:grid tw:grid-cols-[auto_auto_1fr] tw:items-baseline tw:gap-x-1 tw:gap-y-0.5 tw:text-xs">
+                      {[
+                        {
+                          label: "In Stock",
+                          value: inStock,
+                          unit: "units",
+                          className: "tw:text-green-600",
+                        },
+                        {
+                          label: "Low Stock",
+                          value: lowStock,
+                          unit: "units",
+                          className: "tw:text-orange-600",
+                        },
+                        {
+                          label: "Out of Stock",
+                          value: outOfStock,
+                          unit: "units",
+                          className: "tw:text-red-600",
+                        },
+                        {
+                          label: "Total Items",
+                          value: totalDeals,
+                          unit: "items",
+                          className: "tw:text-blue-600",
+                        },
+                      ].map((item) => (
+                        <React.Fragment key={item.label}>
+                          <span className="tw:whitespace-nowrap tw:text-gray-500">
+                            {item.label}
+                          </span>
+                          <span className="tw:text-gray-400">:</span>
+                          <span
+                            className={`tw:whitespace-nowrap tw:font-semibold ${item.className}`}
+                          >
+                            {CommonService.commaSeparated(Number(item.value))}
+                            <span className="tw:ml-1 tw:text-[10px] tw:font-medium tw:text-gray-500">
+                              {item.unit}
+                            </span>
+                          </span>
+                        </React.Fragment>
+                      ))}
                     </div>
                   </AppTable.Cell>
 

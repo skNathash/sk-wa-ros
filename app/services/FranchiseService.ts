@@ -1,14 +1,38 @@
 import { format, differenceInDays, differenceInHours, isToday } from "date-fns";
 import { get, merge } from "lodash";
+import { tileDecor } from "~/components/core/tint/tints";
 import { API, API_VERSION, OLD_API } from "~/constants";
+import type { VariantColor } from "~/types/CommonTypes";
 import AjaxService from "./AjaxService";
 import AuthService from "./AuthService";
 import StorageService from "./StorageService";
 import CommonService from "./CommonService";
 
+/** Count + starting price of one plan shape, derived from the plan list API. */
+export interface PlanShapeSummary {
+  /** How many approved, active plans (tiers) the shape has. */
+  count: number;
+  /** Display value beside the eyebrow, e.g. "5 tiers". */
+  countDisplay: string;
+  /** Lowest monthly subscription amount across the shape's plans. */
+  startingAmount: number;
+  /** Display value for the card, e.g. "₹499". */
+  startingDisplay: string;
+}
+
+export interface PlanShapeSummaries {
+  stock: PlanShapeSummary;
+  shop: PlanShapeSummary;
+  /** Tiers across both shapes — "Compare all 8 tiers". */
+  totalCount: number;
+}
+
 class FranchiseService {
   // Temporary storage for signup flow data
   private static _signupTemp: Record<string, any> = {};
+
+  // Field used to rank "top sellers" — most orders placed in the last 30 days.
+  static readonly TOP_SELLERS_SORT_KEY = "salesAnalytics.last30Days.orders";
 
   /**
    * Replace the entire signup temp object
@@ -63,11 +87,16 @@ class FranchiseService {
     const networkType = franchise?.networkType || "";
     const displayType = this.getDisplaySubType(subType, networkType);
 
-    const approvedShopPhotos = franchise?.shopPhotosDetails?.filter(
+    // Photos removed by the store are kept by the backend with `isDeleted`
+    // set — drop them so nothing downstream renders or counts them.
+    const shopImages = (get(franchise, "shopPhotosDetails", []) || []).filter(
+      (e: Record<string, any>) => e?.isDeleted !== true,
+    );
+
+    const approvedShopPhotos = shopImages.filter(
       (e: Record<string, any>) => e.status === "Approved",
     );
     const shopImg = approvedShopPhotos?.[0]?.fileUrl || "";
-    const shopImages = get(franchise, "shopPhotosDetails", []);
 
     const approvedImg = shopImages.find(
       (img: any) => img.status === "Approved",
@@ -92,6 +121,7 @@ class FranchiseService {
 
     return {
       ...franchise,
+      shopPhotosDetails: shopImages,
       displayType: displayType,
       lat,
       lng,
@@ -99,6 +129,65 @@ class FranchiseService {
       shopImg,
       approvedShopImage: approvedImg ? approvedImg.fileUrl : "",
       addressLogs,
+    };
+  }
+
+  // Membership badge — label plus the AppBadge variant it wears, resolved once
+  // here rather than in every view.
+  private static NETWORK_BADGES: Record<
+    string,
+    { label: string; color: VariantColor }
+  > = {
+    SKSELLER: { label: "SK Seller", color: "primary" },
+    SKRETAILER: { label: "SK Retailer", color: "success" },
+    SKBUYER: { label: "SK Buyer", color: "warning" },
+    SFSELLER: { label: "SF Seller", color: "light" },
+    SKMASTER: { label: "SK Master", color: "secondary" },
+    SKVENDOR: { label: "SK Vendor", color: "light" },
+  };
+
+  // Enrich a retailer's paylaterInfo with display-ready values so views can
+  // render it without recomputing.
+  static formatPaylater(item: any) {
+    const paylater = item.paylaterInfo;
+    if (!paylater) return item;
+
+    const creditLimit = paylater.creditLimit || 0;
+    const usedPct = creditLimit
+      ? Math.min(
+          100,
+          Math.round(((paylater.totalAmountUsed || 0) / creditLimit) * 100),
+        )
+      : 0;
+
+    return { ...item, paylaterInfo: { ...paylater, usedPct } };
+  }
+
+  // Decorate a seller with everything the cards print: paylater usage, the tint
+  // slot behind the avatar and the network badge's label / colour.
+  static formatSeller(item: any) {
+    const network = this.NETWORK_BADGES[(item.networkType || "").toUpperCase()];
+
+    // Fulfilment / volume figures the response carries at the top level on the
+    // nearby-sellers API and under `analytics` elsewhere. Normalised to numbers
+    // here so the cards can just check `> 0`.
+    const minOrder =
+      Number(item.minOrder ?? item.analytics?.minOrder ?? 0) || 0;
+    const orderCount =
+      Number(
+        item.orderCount ??
+          item.analytics?.orderCount ??
+          item.analytics?.totalOrders ??
+          0,
+      ) || 0;
+
+    return {
+      ...this.formatPaylater(item),
+      ...tileDecor(item.name),
+      _networkLbl: network?.label ?? "",
+      _networkColor: (network?.color ?? "light") as VariantColor,
+      _minOrder: minOrder,
+      _orderCount: orderCount,
     };
   }
 
@@ -120,7 +209,7 @@ class FranchiseService {
   }
 
   static async getFranchisesCount(params?: Record<string, any>) {
-    return AjaxService.request(`${API}franchise`, "GET", {
+    return AjaxService.request(`${API}franchise/list`, "GET", {
       ...params,
       outputType: "count",
     });
@@ -509,6 +598,15 @@ class FranchiseService {
     return AjaxService.request(`${API}franchise/network`, "GET", params);
   }
 
+  /**
+   * Sort spec for the "top sellers" ordering (busiest sellers first).
+   * Shared by the Top Sellers rail and the retailers list page so both stay
+   * in sync.
+   */
+  static getTopSellersSort(): Record<string, number> {
+    return { [this.TOP_SELLERS_SORT_KEY]: -1 };
+  }
+
   static async getRetailersNearby(params: Record<string, any>) {
     const response = await AjaxService.request(
       `${API}franchise/boundary/retailers/nearby`,
@@ -519,7 +617,7 @@ class FranchiseService {
     try {
       if (response && Array.isArray(response?.data?.data)) {
         response.data.data = response.data.data.map((item: any) =>
-          this.formatFranchise(item),
+          this.formatSeller(this.formatFranchise(item)),
         );
       }
     } catch {}
@@ -529,6 +627,19 @@ class FranchiseService {
 
   static async getFranchiseNetworkCount(params?: Record<string, any>) {
     return AjaxService.request(`${API}franchise/network/count`, "GET", params);
+  }
+
+  /**
+   * Linked-franchise dashboard list (B2B network).
+   * Endpoint: GET {{BASE_URL}}franchise/dashboard/franchises
+   * Supports outputType=list | count | loyaltySummary.
+   */
+  static async getFranchiseDashboardList(params?: Record<string, any>) {
+    return AjaxService.request(
+      `${API}franchise/dashboard/franchises`,
+      "GET",
+      params,
+    );
   }
 
   static createConfigs(params: any) {
@@ -762,6 +873,108 @@ class FranchiseService {
   static async fetchServiceFeePlan(params?: Record<string, any>) {
     return AjaxService.request(
       `${API}franchise/service-fee-plan`,
+      "GET",
+      params || {},
+    );
+  }
+
+  /**
+   * Plans of one shape for a given billing duration, with that duration's
+   * operational fee already applied.
+   * Endpoint: GET franchise/service-fee-plan/operational-fees
+   */
+  static async fetchServiceFeePlanOperationalFees(
+    params?: Record<string, any>,
+  ) {
+    return AjaxService.request(
+      `${API}franchise/service-fee-plan/operational-fees`,
+      "GET",
+      params || {},
+    );
+  }
+
+  /** Plan shapes on the benefits screens map onto these plan types. */
+  static readonly PLAN_SHAPE_TYPE = {
+    stock: "Hybrid",
+    shop: "FeatureLimit",
+  } as const;
+
+  /**
+   * Tier count and "starting at" price of one plan shape, off a single read of
+   * the plan list so both numbers always come from the same set of plans.
+   * Endpoint: GET franchise/service-fee-plan
+   */
+  static async getPlanShapeSummary(
+    typeOfPlan: string,
+  ): Promise<PlanShapeSummary> {
+    const fallback: PlanShapeSummary = {
+      count: 0,
+      countDisplay: "—",
+      startingAmount: 0,
+      startingDisplay: "—",
+    };
+
+    try {
+      const response = await FranchiseService.fetchServiceFeePlan({
+        filter: {
+          isActive: true,
+          status: "Approved",
+          typeOfPlan,
+        },
+      });
+
+      const plans = response?.data?.data || [];
+      const count = plans.length;
+
+      if (!count) return fallback;
+
+      const amounts = plans
+        .map((plan: any) => Number(plan.subscriptionAmount) || 0)
+        .filter((amount: number) => amount > 0);
+      const startingAmount = amounts.length ? Math.min(...amounts) : 0;
+
+      return {
+        count,
+        countDisplay: `${count} ${count === 1 ? "tier" : "tiers"}`,
+        startingAmount,
+        startingDisplay: startingAmount
+          ? `₹${CommonService.formattedAmount(startingAmount, 0)}`
+          : "—",
+      };
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  /** Summary of both plan shapes, fetched in parallel. */
+  static async getPlanShapeSummaries(): Promise<PlanShapeSummaries> {
+    const [stock, shop] = await Promise.all([
+      FranchiseService.getPlanShapeSummary(
+        FranchiseService.PLAN_SHAPE_TYPE.stock,
+      ),
+      FranchiseService.getPlanShapeSummary(
+        FranchiseService.PLAN_SHAPE_TYPE.shop,
+      ),
+    ]);
+
+    return { stock, shop, totalCount: stock.count + shop.count };
+  }
+
+  static async fetchServiceFeePlanPerks(params?: Record<string, any>) {
+    return AjaxService.request(
+      `${API}franchise/service-fee-plan/perks`,
+      "GET",
+      params || {},
+    );
+  }
+
+  /**
+   * Plan features bundled with the service fee plans.
+   * Endpoint: GET franchise/service-fee-plan/plan-features
+   */
+  static async fetchServiceFeePlanFeatures(params?: Record<string, any>) {
+    return AjaxService.request(
+      `${API}franchise/service-fee-plan/plan-features`,
       "GET",
       params || {},
     );
@@ -1123,25 +1336,28 @@ class FranchiseService {
 
   static isActivePlanAvailable(): boolean {
     const activePlan = this.getActivePlanFromLocal();
-    if (!activePlan) {
+    // Require positive proof of a real subscription — an empty/stub
+    // serviceFeeSubscriptionInfo object must not count as an active plan.
+    if (!activePlan?.planId) {
       return false;
+    }
+    if (activePlan?.isActive === false) {
+      return false;
+    }
+    if (activePlan?.status === "Expired") {
+      return false;
+    }
+    // Expired by date even if the backend hasn't flipped status yet.
+    if (activePlan?.planEndAt) {
+      const endAt = new Date(activePlan.planEndAt);
+      if (!isNaN(endAt.getTime()) && endAt.getTime() < Date.now()) {
+        return false;
+      }
     }
     if (activePlan?.usedAmount >= activePlan?.limitAmount) {
       return false;
     }
     return true;
-  }
-
-  /**
-   * Landing link for the Account Summary section.
-   * With an active plan, land on Payables/Receivables; otherwise land on
-   * the Platform Fee tab so the user can purchase a plan.
-   */
-  static getAccountSummaryLink(): string {
-    if (this.isActivePlanAvailable()) {
-      return "/dashboard/accounts/payables?tab=payables";
-    }
-    return "/dashboard/accounts/platform-fee?tab=commission-invoices";
   }
 
   static getPlanId(): string | null {
@@ -1273,6 +1489,27 @@ class FranchiseService {
   }
 
   /**
+   * Submit a franchise review from the order success screen.
+   * Endpoint: POST franchise/franchise-reviews
+   * Payload fields are all optional except the identifiers/rating sent by the caller.
+   */
+  static async submitFranchiseReview(params: {
+    franchiseId?: string;
+    orderId?: string;
+    orderNumber?: string;
+    rating?: number;
+    title?: string;
+    comment?: string;
+    images?: Array<{ url: string; caption?: string }>;
+  }) {
+    return AjaxService.request(
+      `${API}franchise/franchise-reviews`,
+      "POST",
+      params,
+    );
+  }
+
+  /**
    * Calculate the total payable amount for a platform fee plan.
    */
   static calculatePlanPayable(params: {
@@ -1297,6 +1534,39 @@ class FranchiseService {
 
     return { totalSubscription, gst, baseAmount, total };
   }
+
+  /**
+   * Link the logged-in franchise (buyer) with another franchise (seller).
+   */
+  static async linkFranchises(franchiseId2: string, franchiseId1?: string) {
+    const currentUser = AuthService.getLoggedInUser();
+    const buyerId = franchiseId1 || currentUser?._id;
+
+    if (!buyerId) {
+      throw new Error("Logged-in franchise not found");
+    }
+
+    const res = await AjaxService.request(
+      "https://upg.storeking.in/apigw/api/franchise/transactions/link",
+      "POST",
+      { franchiseId1: buyerId, franchiseId2 },
+    );
+
+    if (res.statusCode >= 400) {
+      // The gateway is inconsistent about where the reason lives — take the
+      // first readable one so the caller can toast it as-is.
+      const apiMessage =
+        res.data?.message ||
+        res.data?.msg ||
+        res.data?.error?.message ||
+        (typeof res.data?.error === "string" ? res.data.error : "");
+
+      throw new Error(apiMessage || "Failed to connect");
+    }
+
+    return res.data;
+  }
+
 }
 
 export default FranchiseService;

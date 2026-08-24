@@ -4,27 +4,47 @@ export default [
   layout("routes/dashboard/delivery/layout/layout.tsx", [
     route(
       "dashboard/delivery/dispatch",
-      "routes/dashboard/delivery/dispatch/index.tsx"
+      "routes/dashboard/delivery/dispatch/index.tsx",
     ),
     route(
       "dashboard/delivery/in-transit",
-      "routes/dashboard/delivery/in-transit/index.tsx"
+      "routes/dashboard/delivery/in-transit/index.tsx",
     ),
     route(
       "dashboard/delivery/cod-reconciliation",
-      "routes/dashboard/delivery/cod-reconciliation/index.tsx"
+      "routes/dashboard/delivery/cod-reconciliation/index.tsx",
     ),
     route(
       "dashboard/delivery/analytics",
-      "routes/dashboard/delivery/analytics/index.tsx"
+      "routes/dashboard/delivery/analytics/index.tsx",
     ),
     route(
       "dashboard/delivery/personnel",
-      "routes/dashboard/delivery/personnel/index.tsx"
+      "routes/dashboard/delivery/personnel/index.tsx",
     ),
     route(
       "dashboard/delivery/agencies",
-      "routes/dashboard/delivery/agencies/index.tsx"
+      "routes/dashboard/delivery/agencies/index.tsx",
     ),
   ]),
+  route(
+    "dashboard/delivery/hand-off",
+    "routes/dashboard/delivery/hand-off/index.tsx",
+  ),
+  route(
+    "dashboard/delivery/marketplace-runners",
+    "routes/dashboard/delivery/marketplace-runners/list/index.tsx",
+  ),
+  route(
+    "dashboard/delivery/marketplace-runners/register",
+    "routes/dashboard/delivery/marketplace-runners/register/index.tsx",
+  ),
+  route(
+    "dashboard/delivery/assign-runner",
+    "routes/dashboard/delivery/assign-runner/index.tsx",
+  ),
+  route(
+    "dashboard/delivery/tracker",
+    "routes/dashboard/delivery/tracker/index.tsx",
+  ),
 ];

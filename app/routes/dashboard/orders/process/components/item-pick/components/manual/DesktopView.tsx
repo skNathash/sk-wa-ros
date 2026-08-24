@@ -1,4 +1,4 @@
-import { Trash2 as Trash2Icon } from "lucide-react";
+import { Check as CheckIcon, Trash2 as Trash2Icon } from "lucide-react";
 import React from "react";
 import AppLink from "~/components/core/link/AppLink";
 import AppTable from "~/components/core/table/AppTable";
@@ -67,19 +67,33 @@ const DesktopView: React.FC<{
         </AppTable.Header>
         <AppTable.Body>
           {products && products.length > 0 ? (
-            products.map((product, idx) => (
+            products.map((product, idx) => {
+              const fullyPicked = (product.percentage || 0) >= 100;
+              return (
               <AppTable.Row
                 key={idx}
-                className="tw:cursor-pointer hover:tw:bg-gray-50"
+                className={`tw:cursor-pointer hover:tw:bg-gray-50 op-row ${
+                  fullyPicked ? "is-picked" : ""
+                }`}
               >
                 <AppTable.Cell className="tw:text-center">
-                  {idx + 1}
+                  {fullyPicked ? (
+                    <span className="op-check tw:mx-auto">
+                      <CheckIcon size={14} />
+                    </span>
+                  ) : (
+                    idx + 1
+                  )}
                 </AppTable.Cell>
-                <AppTable.Cell className="tw:sticky tw:left-0 tw:bg-white tw:z-10">
+                <AppTable.Cell
+                  className={`tw:sticky tw:left-0 tw:z-10 ${
+                    fullyPicked ? "tw:bg-green-50" : "tw:bg-white"
+                  }`}
+                >
                   <AppLink
                     asLink
                     href={`/dashboard/inventory/products/view/${product.dealId}`}
-                    className="tw:font-medium"
+                    className="tw:font-medium op-row-title"
                   >
                     {product.dealName || product.name || "--"}
                   </AppLink>
@@ -153,7 +167,8 @@ const DesktopView: React.FC<{
                   </div>
                 </AppTable.Cell>
               </AppTable.Row>
-            ))
+              );
+            })
           ) : (
             <AppTable.Row>
               <AppTable.Cell

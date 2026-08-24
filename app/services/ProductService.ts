@@ -64,7 +64,7 @@ export class ProductService {
       name: data.name,
       selectedSeller: selectedSeller,
       maxQty: adjustedStock, // Updated maxQty value
-      incrQty: data.incrementQty || 1,
+      incrQty: data.sellers?.[0]?.incrementQuantity || 1,
       minQty: data.sellers?.[0]?.b2bMinQuantity || 1,
       mrp: mrp,
       price: price,

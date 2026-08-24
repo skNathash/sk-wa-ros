@@ -1,36 +1,39 @@
-import Collect from "./components/collect/Collect";
-import Overdue from "./components/Overdue";
-import Summary from "./components/Summary";
-import TopCreditLimit from "./components/TopCreditLimit";
-import TopOutStandingBalance from "./components/TopOutStandingBalance";
+import useScreenView from "~/hooks/useScreenView";
+import HighExposure from "./components/high-exposure/HighExposure";
+import Insights from "./components/insights/Insights";
+import LiveWallets from "./components/live-wallets/LiveWallets";
+import OverduePanel from "./components/overdue-panel/OverduePanel";
+import PortfolioHero from "./components/portfolio-hero/PortfolioHero";
+import SummaryStats from "./components/summary-stats/SummaryStats";
+import UnlockQueue from "./components/unlock-queue/UnlockQueue";
 
+/**
+ * PayLater analytics — the book read top to bottom: portfolio banner, the four
+ * headline numbers, what's overdue and needs chasing, then the live wallets
+ * beside the customers queued for a wallet.
+ */
 const Analytics = () => {
+  const { isMobile } = useScreenView();
+
   return (
-    <>
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-4">
-        <Overdue type="today" />
-        <Overdue type="tomorrow" />
-      </div>
+    <div className="tw:flex tw:flex-col tw:gap-4">
+      <PortfolioHero />
 
-      <Summary />
+      <SummaryStats />
 
-      <Collect />
+      <OverduePanel />
 
-      <div className="tw:hidden">
-        <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-4 tw:gap-4">
-          <TopCreditLimit title="Top B2C Credit Limit" type="b2c" />
-          <TopCreditLimit title="Top B2B Credit Limit" type="b2b" />
-          <TopOutStandingBalance
-            title="Top B2C Outstanding Balance"
-            type="b2c"
-          />
-          <TopOutStandingBalance
-            title="Top B2B Outstanding Balance"
-            type="b2b"
-          />
+      <Insights />
+
+      {isMobile ? null : <HighExposure />}
+
+      <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-3 tw:items-start">
+        <div className="tw:lg:col-span-2">
+          <LiveWallets />
         </div>
+        <UnlockQueue />
       </div>
-    </>
+    </div>
   );
 };
 

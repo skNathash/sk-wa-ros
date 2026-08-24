@@ -1,7 +1,9 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
+import useTheme from "~/hooks/useTheme";
 import ProductMobileItem from "~/shared/inventory/components/mobile-item/ProductMobileItem";
+import ProductMobileItemTheme2 from "~/shared/inventory/components/mobile-item/ProductMobileItemTheme2";
 import ProductMobileListItem from "~/shared/inventory/components/mobile-item/ProductMobileListItem";
 import type { SellerDeal, ViewToggleType } from "~/types/CommonTypes";
 
@@ -67,6 +69,8 @@ const MobileView: React.FC<MobileViewProps> = ({
   viewType = "card",
 }) => {
   const { t } = useTranslation(["common"]);
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
 
   if (loading) {
     if (viewType === "list") {
@@ -133,6 +137,30 @@ const MobileView: React.FC<MobileViewProps> = ({
       <div className="tw:text-center tw:py-8">
         <div className="tw:text-gray-500">{t("noProductsFound")}</div>
       </div>
+    );
+  }
+
+  // theme-2 uses a distinct row card for both card and list views (the
+  // WhatsApp-style catalog list). Single column on mobile; the card view
+  // splits into two columns on desktop, list view stays full-width rows.
+  if (isTheme2) {
+    return (
+      <>
+        {data.map((item, index) => (
+          <div key={`${item._id}-${index}`} className="tw:relative app-bleed-x">
+            <ProductMobileItemTheme2 data={item} callback={callback} />
+          </div>
+        ))}
+        {renderLoadMore({
+          showLoadMore,
+          loading,
+          dataLength: data.length,
+          loadMore,
+          loadingMore,
+          totalCount,
+          loadedCount,
+        })}
+      </>
     );
   }
 

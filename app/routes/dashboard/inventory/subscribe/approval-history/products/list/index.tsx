@@ -291,11 +291,14 @@ const SubscribeApprovalHistoryProductsList = () => {
 
   return (
     <>
-      <div className="tw:text-gray-500 tw:text-xs tw:mb-4">
+      <div className="tw:text-gray-500 tw:text-xs tw:mb-4 theme-2-mobile-hide">
         {t("reviewAndManageProductSubscription")}
       </div>
 
-      <Filter callback={handleFilterChange} className="tw:mb-4" />
+      <Filter
+        callback={handleFilterChange}
+        className="app-filter-band tw:mb-4"
+      />
 
       <div className="tw:flex tw:justify-between tw:items-end tw:mb-4">
         <div>

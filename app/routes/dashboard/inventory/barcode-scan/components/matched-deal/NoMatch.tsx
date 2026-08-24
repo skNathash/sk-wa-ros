@@ -9,7 +9,7 @@ interface Props {
 }
 
 /**
- * Shown when neither the StoreKing catalog nor the AI search found anything.
+ * Shown when neither the SK Library nor the AI search found anything.
  * Big friendly actions: add it yourself (you'd be the first!) or scan another.
  */
 const NoMatch: React.FC<Props> = ({ barcode, onCreate, onScanNext }) => (
@@ -18,7 +18,7 @@ const NoMatch: React.FC<Props> = ({ barcode, onCreate, onScanNext }) => (
       <PackageSearch className="tw:w-7 tw:h-7 tw:text-amber-600" />
     </div>
     <div className="tw:flex tw:items-center tw:gap-1 tw:text-sm tw:font-bold tw:text-gray-900">
-      Not in SK Catalog or StoreKing AI — create it!
+      Not in SK Library or StoreKing AI — create it!
       <Sparkles className="tw:w-3.5 tw:h-3.5 tw:text-amber-500" />
     </div>
     <div className="tw:text-xs tw:text-gray-600 tw:mt-1 tw:max-w-xl">
@@ -26,8 +26,8 @@ const NoMatch: React.FC<Props> = ({ barcode, onCreate, onScanNext }) => (
       <span className="tw:font-mono tw:font-semibold tw:text-gray-800">
         {barcode}
       </span>{" "}
-      isn't in SK Catalog and StoreKing AI couldn't find its details. Create it
-      to add it to the catalog and your store.
+      isn't in SK Library and StoreKing AI couldn't find its details. Create it
+      to add it to the library and your store.
     </div>
 
     <div className="tw:flex tw:flex-col tw:sm:flex-row tw:gap-2 tw:mt-5 tw:w-full tw:sm:w-auto">

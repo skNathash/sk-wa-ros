@@ -1,18 +1,10 @@
-import {
-  addMonths,
-  endOfMonth,
-  isAfter,
-  set,
-  startOfMonth,
-  sub,
-} from "date-fns";
+import { addMonths, endOfMonth, isAfter, startOfMonth, sub } from "date-fns";
 import {
   BarChart,
   Box,
   Building2,
   Coins,
   CreditCard,
-  Download,
   Eye,
   FilePlus,
   FileText,
@@ -26,6 +18,7 @@ import {
 import { useState } from "react";
 import type { DayPickerProps } from "react-day-picker";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AppButton from "~/components/core/button/AppButton";
@@ -42,6 +35,12 @@ import { downloadReport, prepareParams } from "./helper";
 import ReportDownloadOption from "~/shared/others/components/ReportDownloadOption";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import AccountsNavChips from "~/shared/accounts/components/accounts-nav-chips/AccountsNavChips";
+import PayablesReceivablesSummary from "~/shared/accounts/components/payables-receivables-summary/PayablesReceivablesSummary";
+import RecentEvents from "~/shared/insights/components/recent-events/RecentEvents";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import PaneTitle from "~/shared/layout/app-pane/PaneTitle";
+import AccountsSidePane from "~/shared/accounts/components/accounts-side-pane/AccountsSidePane";
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage([]);
@@ -60,7 +59,7 @@ const Reports = () => {
 
   const appNav = useAppNav();
 
-  const [reports, setReports] = useState<any[]>(getReports(t));
+  const reports = getReports();
 
   const appToast = useAppToast();
 
@@ -68,10 +67,29 @@ const Reports = () => {
     show: false,
   });
 
-  const [dateRange, setDateRange] = useState<Date[]>([
-    startOfMonth(new Date()),
-    endOfMonth(new Date()),
-  ]);
+  // Hydrate the shared date range from `month`/`year` query params (written
+  // by the expense summary's month/year selects) when present; otherwise
+  // default to the current month.
+  const [searchParams] = useSearchParams();
+  const [dateRange, setDateRange] = useState<Date[]>(() => {
+    const monthParam = searchParams.get("month");
+    const yearParam = searchParams.get("year");
+    const month = Number(monthParam);
+    const year = Number(yearParam);
+    if (
+      monthParam !== null &&
+      yearParam !== null &&
+      Number.isInteger(month) &&
+      month >= 0 &&
+      month <= 11 &&
+      Number.isInteger(year) &&
+      year > 0
+    ) {
+      const base = new Date(year, month, 1);
+      return [startOfMonth(base), endOfMonth(base)];
+    }
+    return [startOfMonth(new Date()), endOfMonth(new Date())];
+  });
 
   const onDownload = (data: any, fileType: string) => {
     const params = prepareParams({
@@ -152,112 +170,117 @@ const Reports = () => {
             </aside>
 
             <div className="section-content">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-end tw:mb-4">
-            <div className="tw:md:flex-1">
-              <AppBreadcrumbs data={breadcrumbs} />
-              <PageDescription description="reports" className="tw:mb-4" />
-            </div>
-          </div>
-          {/* <AppCard>
-            <div className="tw:flex tw:gap-2">
-              <AppSelect name="year" options={years} register={register} />
-              <AppSelect name="month" options={months} register={register} />
-            </div>
-          </AppCard> */}
-
-          <AppCard className="tw:border-l-4 tw:border-l-blue-600">
-            <div className="tw:flex tw:justify-between tw:items-center">
-              <div>
-                <div className="tw:text-lg tw:font-bold tw:flex tw:items-center tw:gap-2">
-                  <Building2 className="tw:text-blue-600" />
-                  GST Dashboard
-                </div>
-                <div className="tw:text-xs tw:text-gray-500">
-                  Analyze GST inward, collected, and net tax obligations.
-                </div>
-              </div>
-              <div>
-                <AppButton
-                  size="small"
-                  color="primary"
-                  onClick={() =>
-                    appNav.to("/dashboard/reports/gst-dashboard/products-level")
-                  }
-                >
-                  <Eye />
-                  View
-                </AppButton>
-              </div>
-            </div>
-          </AppCard>
-
-          <AppDateInput
-            callback={handleDateChange}
-            value={dateRange}
-            dateConfig={dateConfig}
-            placeholder="Select date range"
-            hideClose={true}
-            label="Select date range"
-          />
-
-          {reports.map((report) => (
-            <div key={report.titleKey}>
-              <div>
-                <h2 className="tw:text-lg tw:font-bold tw:mb-4 tw:mt-8">
-                  {t(report.titleKey)}
-                </h2>
-              </div>
-              <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
-                {report.children.map((child: any) => (
-                  <AppCard key={child.titleKey} className="tw:mb-0">
-                    <div className="tw:text-sm tw:font-bold tw:flex tw:items-center tw:mb-2">
-                      <child.icon className="tw:mr-2 tw:text-lg" />
-                      {t(child.titleKey)}
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-end tw:mb-4">
+                    <div className="tw:md:flex-1">
+                      <AppBreadcrumbs data={breadcrumbs} />
+                      <PageDescription
+                        description="reports"
+                        className="tw:mb-4"
+                      />
                     </div>
-                    <div className="tw:text-xs tw:text-gray-500 tw:mb-4">
-                      {t(child.descriptionKey)}
-                    </div>
-                    <div>
-                      {child.isCommingSoon ? (
-                        <div className="tw:text-xs tw:text-slate-700 tw-font-medium tw:text-end tw:py-2">
-                          Coming soon
+                  </div>
+
+                  {/* GST dashboard shortcut — the only report with an interactive view. */}
+                  <AppCard className="theme-2-mobile-gap-top">
+                    <div className="tw:flex tw:items-center tw:gap-3">
+                      <div className="tw:shrink-0 tw:rounded-lg tw:bg-primary/10 tw:p-2.5 tw:text-primary">
+                        <Building2 size={20} />
+                      </div>
+                      <div className="tw:min-w-0 tw:flex-1">
+                        <div className="tw:text-sm tw:font-semibold">
+                          GST Dashboard
                         </div>
-                      ) : (
-                        <>
-                          <ReportDownloadOption
-                            view="grid"
-                            callback={() => {
-                              onDownload(child, "xlsx");
-                            }}
-                          />
-                          <div className="tw:flex tw:flex-wrap tw:gap-2 tw:items-center tw:justify-end">
-                            {/* <AppButton
-                              size="small"
-                              color="primary"
-                              fill="outline"
-                              onClick={() => onDownload(child, "xlsx")}
-                            >
-                              <Download className="tw:mr-2" />
-                              {t("download")}
-                            </AppButton> */}
-                            {/* <AppButton
-                              size="small"
-                              color="primary"
-                              fill="outline"
-                              onClick={() => onDownload(child, "xlsx")}
-                            >
-                              <Download className="tw:mr-2" />
-                              {t("downloadAsExcel")}
-                            </AppButton> */}
-                          </div>
-                        </>
-                      )}
+                        <div className="tw:text-xs tw:text-muted-foreground tw:mt-0.5">
+                          Analyze GST inward, collected, and net tax
+                          obligations.
+                        </div>
+                      </div>
+                      <AppButton
+                        size="small"
+                        color="primary"
+                        fill="outline"
+                        className="tw:shrink-0"
+                        onClick={() =>
+                          appNav.to(
+                            "/dashboard/reports/gst-dashboard/products-level",
+                          )
+                        }
+                      >
+                        <Eye />
+                        View
+                      </AppButton>
                     </div>
                   </AppCard>
-                ))}
+
+                  {/* Date range shared by every report download below. */}
+                  <AppCard>
+                    <div className="tw:text-sm tw:font-semibold tw:mb-1">
+                      {t("dateRange")}
+                    </div>
+                    <div className="tw:text-xs tw:text-muted-foreground tw:mb-3">
+                      Downloads include data within the selected range (up to 3
+                      months).
+                    </div>
+                    <AppDateInput
+                      callback={handleDateChange}
+                      value={dateRange}
+                      dateConfig={dateConfig}
+                      placeholder="Select date range"
+                      hideClose={true}
+                      label="Select date range"
+                    />
+                  </AppCard>
+
+                  {reports.map((report) => (
+                    <section key={report.titleKey} className="tw:mt-8">
+                      <h2 className="tw:text-base tw:font-semibold tw:mb-3">
+                        {t(report.titleKey)}
+                      </h2>
+                      <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:lg:grid-cols-3 tw:gap-4">
+                        {report.children.map((child: any) => (
+                          <AppCard key={child.titleKey} className="tw:mb-0">
+                            <div className="tw:flex tw:items-start tw:gap-3">
+                              <div className="tw:shrink-0 tw:rounded-lg tw:bg-primary/10 tw:p-2 tw:text-primary">
+                                <child.icon size={18} />
+                              </div>
+                              <div className="tw:min-w-0 tw:flex-1">
+                                <div className="tw:text-sm tw:font-semibold">
+                                  {t(child.titleKey)}
+                                </div>
+                                <div className="tw:text-xs tw:text-muted-foreground tw:mt-0.5 tw:line-clamp-2">
+                                  {t(child.descriptionKey)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="tw:mt-3">
+                              {child.isCommingSoon ? (
+                                <div className="tw:flex tw:justify-end">
+                                  <span className="tw:rounded-full tw:bg-muted tw:px-2.5 tw:py-1 tw:text-xs tw:font-medium tw:text-muted-foreground">
+                                    Coming soon
+                                  </span>
+                                </div>
+                              ) : (
+                                <ReportDownloadOption
+                                  view="grid"
+                                  callback={() => {
+                                    onDownload(child, "xlsx");
+                                  }}
+                                />
+                              )}
+                            </div>
+                          </AppCard>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </AppPaneMain>
+                {/* Shared accounts side pane — reports is reached from the
+                    business section, so it carries the same chip nav and
+                    at-a-glance blocks as the accounts pages. */}
+                <AccountsSidePane />
               </div>
-            </div>
-          ))}
             </div>
           </div>
         </div>
@@ -279,7 +302,7 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-const getReports = (t: any) => {
+const getReports = () => {
   return [
     {
       titleKey: "purchaseReports",
@@ -411,16 +434,6 @@ const getReports = (t: any) => {
       ],
     },
   ];
-};
-
-const getDateFilter = (month: number, year: number) => {
-  const startDate = startOfMonth(new Date(year, month - 1));
-  const endDate = endOfMonth(new Date(year, month - 1));
-
-  return {
-    $gte: set(startDate, { hours: 0, minutes: 0, seconds: 0 }),
-    $lte: set(endDate, { hours: 23, minutes: 59, seconds: 59 }),
-  };
 };
 
 export default Reports;

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import AppSwiper from "~/components/core/swiper";
 import { CART_ITEM_ADDED, DEFAULT_BROWSE_DISTANCE } from "~/constants";
 import SellerCatalogService from "~/services/SellerCatalogService";
-import SellerListModal from "../../../modals/seller-list/SellerListModal";
+import SellerListModal from "~/shared/catalog/modals/seller-list/SellerListModal";
 import ProductCard from "../../../components/ProductCard";
 import useAppNav from "~/hooks/useAppNav";
 import type { SwiperOptions } from "swiper/types";

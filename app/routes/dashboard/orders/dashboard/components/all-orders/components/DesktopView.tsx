@@ -13,11 +13,13 @@ import AppLink from "~/components/core/link/AppLink";
 import type { SortValue, TableHeaderItem } from "~/types/CommonTypes";
 
 const headers: TableHeaderItem[] = [
-  { label: "Order ID", key: "orderId", width: "14%" },
-  { label: "Ordered On", key: "orderedDate", width: "16%", enableSort: true },
-  { label: "Customer", key: "customer", width: "18%" },
+  { label: "Order ID", key: "orderId", width: "13%" },
+  { label: "Ordered On", key: "orderedDate", width: "15%", enableSort: true },
+  { label: "Customer", key: "customer", width: "16%" },
   { label: "Type", key: "type", width: "8%" },
-  { label: "Status", key: "status", width: "11%" },
+  // Wide enough for the longest status badge ("Approval Pending") on one line —
+  // the table is fixed-layout, so a narrow column clips the pill.
+  { label: "Status", key: "status", width: "15%" },
   { label: "Items", key: "items", width: "8%", isCentered: true },
   {
     label: "Sales Value",

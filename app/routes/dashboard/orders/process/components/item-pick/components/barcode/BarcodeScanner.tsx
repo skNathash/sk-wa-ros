@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { Barcode, XCircle } from "lucide-react";
+import { Barcode, Check, XCircle } from "lucide-react";
 import { AppInput } from "~/components/core/form/AppInput";
 import useDebounce from "~/hooks/useDebounce";
 import SellerCatalogService from "~/services/SellerCatalogService";
@@ -13,8 +13,7 @@ import { debounce } from "lodash";
 import AppButton from "~/components/core/button/AppButton";
 import PickedSanpshotsInfo from "../snapshots-info/PickedSanpshotsInfo";
 import BarcodeScan from "~/components/core/barcode-scan/BarcodeScan";
-import AppCard from "~/components/core/card/AppCard";
-import Divider from "~/components/core/divider/Divider";
+import Amount from "~/components/core/amount/Amount";
 import { useTranslation } from "react-i18next";
 import LocationsBlock from "~/components/feature/inventory/location-block/LocationsBlock";
 import PriceLockedNote from "../PriceLockedNote";
@@ -190,7 +189,11 @@ const BarcodeScanner: React.FC<{
       if (matchedProduct) {
         // Clear the barcode input after a successful match so the field is ready for the next scan
         setValue("barcode", "");
-        await fetchMasterData(matchedProduct.dealId, matchedProduct, scannedQty);
+        await fetchMasterData(
+          matchedProduct.dealId,
+          matchedProduct,
+          scannedQty,
+        );
       } else {
         setValue("barcode", "");
         toast.show({
@@ -248,83 +251,84 @@ const BarcodeScanner: React.FC<{
         </div>
 
         {products.length > 0 && (
-          <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:md:grid-cols-3">
+          <div className="op-pick-rows">
             {products.map((product, idx) => {
               const key = product.dealId || `idx-${idx}`;
+              const fullyPicked =
+                (product.orderedQty || 0) > 0 &&
+                (product.pickedQty || 0) >= (product.orderedQty || 0);
+              const partiallyPicked =
+                !fullyPicked && (product.pickedQty || 0) > 0;
               return (
-                <AppCard key={key} noPadding={true}>
-                  <div className="tw:p-3">
-                    <div className="tw:font-medium tw:text-sm tw:mb-2">
-                      <AppLink
-                        asLink
-                        href={`/dashboard/inventory/products/view/${product.dealId}`}
-                        className="tw:font-medium tw:text-gray-700 hover:tw:text-blue-600"
-                      >
-                        {product.dealName || "--"}
-                      </AppLink>
+                <div
+                  key={key}
+                  className={`op-row op-pick-row ${fullyPicked ? "is-picked" : ""} ${
+                    partiallyPicked ? "is-partial" : ""
+                  }`}
+                >
+                  {/* Identity line — check, monogram tile, name + bin/qty
+                      meta, price on the right. */}
+                  <div className="tw:flex tw:items-center tw:gap-2.5">
+                    <div className="op-check">
+                      {fullyPicked && <Check size={14} />}
                     </div>
-
-                    <div className="tw:flex tw:gap-2 tw:items-center tw:flex-wrap tw:mb-2">
-                      {product.dealRefId && (
-                        <div className="tw:text-xs tw:text-gray-500">
-                          ID: {product.dealRefId}
-                        </div>
-                      )}
-                      <div className="tw:flex tw:gap-2">
-                        <LocationsBlock locations={product.locations} />
+                    <div
+                      className="op-tile"
+                      style={{ backgroundColor: product._tile?.color }}
+                    >
+                      {product._tile?.code}
+                    </div>
+                    <div className="tw:flex-1 tw:min-w-0">
+                      <div className="op-row-title tw:font-medium tw:text-sm tw:truncate">
+                        <AppLink
+                          asLink
+                          href={`/dashboard/inventory/products/view/${product.dealId}`}
+                          className="tw:text-gray-900 hover:tw:text-blue-600"
+                        >
+                          {product.dealName || "--"}
+                        </AppLink>
                       </div>
+                      <div className="tw:flex tw:items-center tw:gap-1.5 tw:mt-0.5 tw:text-xs tw:text-gray-500 tw:flex-wrap">
+                        <LocationsBlock
+                          locations={product.locations}
+                          small
+                          hideIcon
+                        />
+                        <span>
+                          · {t("ordered").toLowerCase()}{" "}
+                          <span className="tw:font-semibold tw:text-gray-800">
+                            {product.orderedQty || 0}
+                          </span>
+                        </span>
+                        <span>
+                          · {t("picked").toLowerCase()}{" "}
+                          <span className="tw:font-semibold tw:text-gray-800">
+                            {product.pickedQty || 0}/{product.orderedQty || 0}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                    {(product.overridePrice ?? product.mrp) != null && (
+                      <div className="op-pick-price">
+                        <Amount
+                          value={product.overridePrice ?? product.mrp}
+                          decimalPlaces={2}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reference code + price-lock note. */}
+                  {product.dealRefId && (
+                    <div className="tw:flex tw:gap-2 tw:items-center tw:flex-wrap tw:mt-1.5 tw:text-[11px] tw:text-gray-400">
+                      <span>ID: {product.dealRefId}</span>
                       <PriceLockedNote product={product} />
                     </div>
+                  )}
 
-                    <Divider />
-
-                    <div className="tw:grid tw:gap-2 tw:grid-cols-3 tw:items-center">
-                      <div className="tw:flex tw:gap-1 tw:text-xs tw:items-center">
-                        <span className="tw:text-gray-500">
-                          {t("ordered")}:{" "}
-                        </span>
-                        <span className="tw:font-semibold">
-                          {product.orderedQty || 0}
-                        </span>
-                      </div>
-
-                      <div className="tw:flex tw:text-xs tw:items-center tw:gap-1">
-                        <span className="tw:text-gray-500">
-                          {t("picked")}:{" "}
-                        </span>
-                        <span className="tw:font-semibold">
-                          {product.pickedQty || 0}/{product.orderedQty || 0}
-                        </span>
-                      </div>
-
-                      <div className="tw:flex tw:flex-col tw:items-end">
-                        {product.snapshots?.length > 0 && (
-                          <PickedSanpshotsInfo
-                            pickedSanpshots={product.snapshots}
-                          />
-                        )}
-
-                        {(product.pickedQty || 0) > 0 && (
-                          <AppButton
-                            onClick={() =>
-                              callback({
-                                action: "remove",
-                                data: { dealId: product.dealId },
-                              })
-                            }
-                            size="small"
-                            fill="clear"
-                            className="tw:text-red-500 tw:px-0!"
-                          >
-                            {t("cancelPick")}
-                            <XCircle size={14} />
-                          </AppButton>
-                        )}
-                      </div>
-                    </div>
-
-                    {product._pendingQty > 0 && (
-                      <div className="tw:flex tw:gap-5 tw:mt-2 tw:text-xs">
+                  <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:mt-1.5">
+                    {product._pendingQty > 0 ? (
+                      <div className="tw:flex tw:gap-5 tw:text-xs">
                         <div
                           className={`tw:flex tw:gap-1 ${
                             (product._pendingQty || 0) > 0
@@ -346,9 +350,36 @@ const BarcodeScanner: React.FC<{
                           </span>
                         </div>
                       </div>
+                    ) : (
+                      <span />
                     )}
+
+                    <div className="tw:flex tw:items-center tw:gap-2">
+                      {product.snapshots?.length > 0 && (
+                        <PickedSanpshotsInfo
+                          pickedSanpshots={product.snapshots}
+                        />
+                      )}
+
+                      {(product.pickedQty || 0) > 0 && (
+                        <AppButton
+                          onClick={() =>
+                            callback({
+                              action: "remove",
+                              data: { dealId: product.dealId },
+                            })
+                          }
+                          size="small"
+                          fill="clear"
+                          className="tw:text-red-500 tw:px-0!"
+                        >
+                          {t("cancelPick")}
+                          <XCircle size={14} />
+                        </AppButton>
+                      )}
+                    </div>
                   </div>
-                </AppCard>
+                </div>
               );
             })}
           </div>

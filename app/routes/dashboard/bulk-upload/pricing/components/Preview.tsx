@@ -193,12 +193,13 @@ const Preview = ({
       </InfoBlock>
       <AppCard
         noContentPadding
+        className="app-flat-sheet"
         title="Preview Overall Uploaded Data"
         icon={<FileText />}
         subtitle="Review the data below before submitting."
       >
-        {/* Summary Stats Cards */}
-        <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-3 tw:mb-4 tw:mx-4">
+        {/* Summary Stats Cards: paired on mobile, one row of three from sm up. */}
+        <div className="tw:grid tw:grid-cols-2 tw:sm:grid-cols-3 tw:gap-2 tw:sm:gap-3 tw:mb-4 tw:mx-3 tw:sm:mx-4">
           <AppStatsCard
             label="Valid Deals"
             icon={<CheckCircle />}
@@ -223,17 +224,22 @@ const Preview = ({
             <div className="tw:text-xs tw:text-gray-500">Need attention</div>
           </AppStatsCard>
 
-          <AppStatsCard
-            label="Total Deals"
-            icon={<Package />}
-            color="info"
-            template={2}
-          >
-            <div className="tw:text-xl tw:font-bold tw:text-blue-600">
-              {products.length}
-            </div>
-            <div className="tw:text-xs tw:text-gray-500">In this batch</div>
-          </AppStatsCard>
+          {/* Odd card out on the two-up mobile grid, so it takes the full row.
+              The span lives on a wrapper — AppStatsCard's own `className` goes
+              to its inner div, not to the grid item. */}
+          <div className="tw:col-span-2 tw:sm:col-span-1">
+            <AppStatsCard
+              label="Total Deals"
+              icon={<Package />}
+              color="info"
+              template={2}
+            >
+              <div className="tw:text-xl tw:font-bold tw:text-blue-600">
+                {products.length}
+              </div>
+              <div className="tw:text-xs tw:text-gray-500">In this batch</div>
+            </AppStatsCard>
+          </div>
         </div>
 
         {isMobile ? (
@@ -242,13 +248,16 @@ const Preview = ({
           <DesktopView products={products} callback={handleItemCallback} />
         )}
       </AppCard>
-      <div className="tw:sticky tw:bottom-0 tw:bg-white tw:p-4">
-        <div className="tw:flex tw:justify-end tw:mt-4 tw:gap-2">
+      {/* Action bar: full-width thumb targets on mobile, right-aligned pair on
+          desktop. */}
+      <div className="app-bleed-x app-action-bar tw:sticky tw:bottom-0 tw:z-10 tw:border-t tw:border-gray-200 tw:bg-white tw:p-3 tw:sm:border-0 tw:sm:p-4">
+        <div className="tw:flex tw:gap-2 tw:sm:justify-end">
           <AppButton
             color="light"
             size="small"
             fill="outline"
             onClick={handleBackToUpload}
+            className="tw:flex-1 tw:justify-center tw:sm:flex-none"
           >
             <ArrowLeft size={16} />
             Back to Upload
@@ -259,12 +268,15 @@ const Preview = ({
             size="small"
             fill="solid"
             onClick={handleSubmit}
+            className="tw:flex-1 tw:justify-center tw:sm:flex-none"
           >
             <Check size={16} />
             Submit
           </AppButton>
         </div>
       </div>
+      {/* Height for the pinned bar on mobile; collapses on desktop. */}
+      <div className="app-action-bar-spacer" aria-hidden="true" />
 
       <AppAlertDialog
         show={showSubmitDialog}

@@ -7,13 +7,20 @@ interface LocationsBlockProps {
   locations?: any[] | null;
   className?: string;
   dealId?: string;
+  /** Hide the leading map-pin icon (e.g. in compact rows). */
+  hideIcon?: boolean;
+  /** Render with a smaller font (e.g. in compact rows). */
+  small?: boolean;
 }
 
 const LocationsBlock: React.FC<LocationsBlockProps> = ({
   locations = [],
   className = "",
   dealId,
+  hideIcon = false,
+  small = false,
 }) => {
+  const textSize = small ? "tw:text-[10px]" : "tw:text-xs";
   if (!locations || locations.length === 0) {
     return <span className={className}>--</span>;
   }
@@ -29,10 +36,21 @@ const LocationsBlock: React.FC<LocationsBlockProps> = ({
     return baseUrl;
   };
 
+  // In compact rows the location reads as plain inline text (no chunky pill),
+  // so it sits on the same visual footing as the surrounding meta.
+  const inner = small
+    ? `${textSize} tw:inline-flex tw:items-center tw:gap-1`
+    : `${textSize} tw:bg-gray-100 tw:px-2 tw:py-1 tw:rounded-md tw:inline-block`;
+
   return (
-    <div className={`tw:flex tw:items-center tw:gap-2 ${className}`}>
-      <MapPin size={12} className="tw:text-gray-500" />
-      <div className="tw:text-xs tw:bg-gray-100 tw:px-2 tw:py-1 tw:rounded-md tw:inline-block">
+    <div className={`tw:flex tw:items-center tw:gap-1 ${className}`}>
+      {!hideIcon && (
+        <MapPin
+          size={small ? 11 : 12}
+          className="tw:shrink-0 tw:text-gray-500"
+        />
+      )}
+      <div className={inner}>
         {locations.length > 0 ? (
           <>
             <AppLink
@@ -46,7 +64,13 @@ const LocationsBlock: React.FC<LocationsBlockProps> = ({
             {locations.length > 1 && (
               <AppPopover
                 triggerContent={
-                  <span className="tw:text-gray-500 tw:block">
+                  <span
+                    className={
+                      small
+                        ? "tw:text-gray-400"
+                        : "tw:text-gray-500 tw:block"
+                    }
+                  >
                     (+{locations.length - 1} more)
                   </span>
                 }

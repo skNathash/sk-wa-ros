@@ -342,23 +342,17 @@ const BulkApprovalDetailView = () => {
                     </div>
                   </div>
 
-                  {/* Processed By */}
-                  <div className="tw:col-span-1">
-                    <div className="tw:text-xs tw:text-gray-500">
-                      {t("processedBy")}
-                    </div>
-                    <div className="tw:font-semibold tw:break-all">
-                      {detail.updatedBy || "--"}
-                    </div>
-                  </div>
                   {/* Processing Date */}
                   <div className="tw:col-span-1">
                     <div className="tw:text-xs tw:text-gray-500">
                       {t("processingDate")}
                     </div>
-                    {detail.updatedBy ? (
+                    {detail.updatedBy && detail.updatedAt ? (
                       <div className="tw:font-semibold">
-                        <DateFormat value={detail.updatedAt || "-"} />
+                        <DateFormat
+                          value={detail.updatedAt}
+                          formatStr="dd MMM yyyy"
+                        />
                       </div>
                     ) : (
                       "--"

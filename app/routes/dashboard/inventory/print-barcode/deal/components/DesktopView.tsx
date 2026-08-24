@@ -16,6 +16,8 @@ export type GroupedRow = {
   expiringSoon: boolean;
   lowStock: boolean;
   outOfStock: boolean;
+  /** master = from stock master data, deal = only on the catalog deal */
+  source: "master" | "deal";
 };
 
 interface DesktopViewProps {
@@ -52,6 +54,11 @@ const DesktopView: React.FC<DesktopViewProps> = ({ rows, onPrint }) => {
                     <span className="tw:font-mono tw:text-[13px] tw:font-medium tw:text-slate-800 tw:tracking-tight">
                       {row.barcode}
                     </span>
+                    {row.source === "deal" && (
+                      <span className="tw:rounded tw:bg-slate-100 tw:px-1.5 tw:py-0.5 tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wider tw:text-slate-600">
+                        Catalog
+                      </span>
+                    )}
                   </span>
                 ) : (
                   <span className="tw:text-gray-400 tw:italic">no barcode</span>

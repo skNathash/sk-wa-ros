@@ -3,6 +3,23 @@ import AjaxService from "./AjaxService";
 import { merge } from "lodash";
 import AuthService from "./AuthService";
 
+/** The tabs of the King Coins sub-nav — see {@link LoyaltyPointService.getSectionTabs}. */
+export type CoinSectionTabKey =
+  | "dashboard"
+  | "config"
+  | "transactions"
+  | "products";
+
+/** One tab of the King Coins sub-nav, with where it navigates. */
+export interface CoinSectionTab {
+  key: CoinSectionTabKey;
+  name: string;
+  langKey?: string;
+  /** Icon name the tab strip resolves to a component. */
+  icon?: string;
+  redirect: { url: string; params?: Record<string, any> };
+}
+
 class LoyaltyPointService {
   private static readonly BASE_URL = API;
   private static readonly API_VERSION = API_VERSION;
@@ -29,6 +46,51 @@ class LoyaltyPointService {
       "POST",
       params
     );
+  }
+
+  /**
+   * The King Coins section tabs — the sub-nav shared by every coins page.
+   *
+   * Two of the four tabs are the same route under a different `tab` query
+   * (config / transactions), the other two are their own routes, so each entry
+   * carries its redirect and the caller only has to hand it to a nav helper.
+   * `icon` is a name rather than an element so this stays a plain data service;
+   * the tab strip resolves it to the icon component.
+   */
+  static getSectionTabs(): CoinSectionTab[] {
+    return [
+      {
+        key: "dashboard",
+        name: "Dashboard",
+        langKey: "dashboard",
+        icon: "chart",
+        redirect: { url: "/products/coin-economy" },
+      },
+      {
+        key: "config",
+        name: "Config",
+        langKey: "config",
+        icon: "settings",
+        redirect: { url: "/dashboard/points/list", params: { tab: "config" } },
+      },
+      {
+        key: "transactions",
+        name: "Transactions",
+        langKey: "transactions",
+        icon: "list",
+        redirect: {
+          url: "/dashboard/points/list",
+          params: { tab: "transactions" },
+        },
+      },
+      {
+        key: "products",
+        name: "KingCoins Store",
+        langKey: "kingCoinStore",
+        icon: "sparkles",
+        redirect: { url: "/products/coin-store-deals" },
+      },
+    ];
   }
 
   static getTransactionRedirectionUrl(type: string, id: string) {
@@ -140,6 +202,19 @@ class LoyaltyPointService {
       params
     );
     return r;
+  }
+
+  /**
+   * King Coins economy summary. One endpoint, four shapes, picked with `type`:
+   * omitted for the circulation snapshot, `coinBands` for the reward funnel,
+   * `trend` for the weekly velocity and `customerList` for the paged holders.
+   */
+  static async getKingCoinsSummary(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}loyaltypoints/king-coins/summary`,
+      "GET",
+      params
+    );
   }
 
   public static prepareRechargeRedeemParams(

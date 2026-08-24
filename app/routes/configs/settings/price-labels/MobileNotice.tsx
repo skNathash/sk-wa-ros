@@ -16,7 +16,12 @@ const breadcrumbs = [
 const MobileNotice: React.FC = () => {
   return (
     <>
-      <AppHeader title="Price Labels" />
+      <AppHeader
+        title="Price Labels"
+        sectionKey="profile"
+        activeTab="settings"
+        mobileLead="menu"
+      />
 
       <div className="app-page tw:p-4">
         <div className="app-container">

@@ -1,7 +1,11 @@
 import { format } from "date-fns";
 import { get } from "lodash";
 import { API, API_VERSION, ASSET, GOOGLE_MAP_KEY, OLD_API } from "~/constants";
-import type { AppliedFilterLabel, SellerDeal } from "~/types/CommonTypes";
+import type {
+  AppliedFilterLabel,
+  SectionTab,
+  SellerDeal,
+} from "~/types/CommonTypes";
 import AjaxService from "./AjaxService";
 import AuthService from "./AuthService";
 import MiscService from "./MiscService";
@@ -15,6 +19,16 @@ export default class CommonService {
   }
 
   static getAppSupportedLanguages() {
+    return [
+      { value: "en", label: "English" },
+      { value: "hi", label: "हिन्दी" },
+      { value: "ta", label: "தமிழ்" },
+      { value: "te", label: "తెలుగు" },
+      { value: "kn", label: "ಕನ್ನಡ" },
+    ];
+  }
+
+  static getMessageLanguages() {
     return [
       { value: "en", label: "English" },
       { value: "hi", label: "हिन्दी" },
@@ -154,6 +168,59 @@ export default class CommonService {
 
   static commaSeparated(number: number) {
     return (number || 0).toLocaleString("en-IN");
+  }
+
+  /**
+   * Compact figure for tight UI — chips, bar rows, sub-lines — where the full
+   * comma-separated amount would wrap or crowd the label beside it.
+   *
+   * `indian` (default) keeps two significant decimals on the big units:
+   * 22400 -> "₹22.4K", 142000 -> "₹1.42L", 35000000 -> "₹3.5Cr".
+   * `short` drops the decimal once the figure is large enough not to need it,
+   * in lowercase: 8300 -> "₹8.3k", 42900 -> "₹43k", 165000 -> "₹1.7L".
+   *
+   * Pass `prefix: ""` for plain counts (SKUs, units) and `fallback` for the
+   * placeholder a zero should render as.
+   */
+  static formatCompact(
+    value: number,
+    options: {
+      /** Prepended to every formatted result. Defaults to the rupee sign. */
+      prefix?: string;
+      /** Rounding ladder — see above. Defaults to `indian`. */
+      style?: "indian" | "short";
+      /** Rendered instead of a formatted zero, e.g. "—". */
+      fallback?: string;
+    } = {},
+  ) {
+    const { prefix = "₹", style = "indian", fallback } = options;
+    const n = Number(value) || 0;
+    const sign = n < 0 ? "-" : "";
+    const abs = Math.abs(n);
+
+    if (!abs && fallback !== undefined) {
+      return fallback;
+    }
+
+    // Only strip zeros behind a decimal point — a blind trim would turn the
+    // whole-number "40" into "4".
+    const trim = (num: string) =>
+      num.includes(".") ? num.replace(/\.?0+$/, "") : num;
+
+    if (style === "short") {
+      if (abs >= 1e5) {
+        return `${sign}${prefix}${trim((abs / 1e5).toFixed(abs >= 1e6 ? 0 : 1))}L`;
+      }
+      if (abs >= 1e3) {
+        return `${sign}${prefix}${trim((abs / 1e3).toFixed(abs >= 1e4 ? 0 : 1))}k`;
+      }
+      return `${sign}${prefix}${abs.toLocaleString("en-IN")}`;
+    }
+
+    if (abs >= 1e7) return `${sign}${prefix}${trim((abs / 1e7).toFixed(2))}Cr`;
+    if (abs >= 1e5) return `${sign}${prefix}${trim((abs / 1e5).toFixed(2))}L`;
+    if (abs >= 1e3) return `${sign}${prefix}${trim((abs / 1e3).toFixed(1))}K`;
+    return `${sign}${prefix}${Math.round(abs)}`;
   }
 
   /**
@@ -800,6 +867,23 @@ export default class CommonService {
     };
   }
 
+  /**
+   * Initials for avatar/chip displays — first letter of each word, capped at
+   * `length` characters. Falls back to "#" when there is nothing to take.
+   * e.g. ("Sri Balaji Traders", 3) -> "SBT", ("Sri Balaji Traders") -> "SB".
+   */
+  static prepareInitials(name: string = "", length: number = 2) {
+    return (
+      String(name)
+        .split(" ")
+        .filter(Boolean)
+        .map((word) => word[0])
+        .join("")
+        .slice(0, length)
+        .toUpperCase() || "#"
+    );
+  }
+
   static prepareAppDocumentTitle(title: string) {
     return `${title} - StoreKing - Transforming Small Town Kiranas into Digital SuperMarkets`;
   }
@@ -1253,10 +1337,11 @@ export default class CommonService {
 
   /**
    * Desktop (>=1024px) slides-per-view for the product carousels on the
-   * buy-from-SK / buy-from-network pages. Theme-aware so theme-2 shows wider
-   * cards (fewer per view) while other themes keep the denser layout.
+   * buy-from-SK / buy-from-network pages. Theme-aware so theme-2 shows more
+   * cards per view because its left/right rails are hidden, giving the main
+   * content more width.
    */
   static getDesktopPerView(theme: string): number {
-    return theme === "theme-2" ? 4.2 : 5.5;
+    return theme === "theme-2" ? 6 : 5.5;
   }
 }

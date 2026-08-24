@@ -5,6 +5,7 @@ import {
   Hash,
   Package,
   Phone,
+  RotateCcw,
   Tag,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -184,6 +185,18 @@ const Item = ({ item, callback }: ItemProps) => {
           <ChevronRight size={16} />
         </span>
       </button>
+
+      {/* Kept outside the card button — nesting buttons is invalid markup. */}
+      <div className="tw:border-t tw:border-slate-100 tw:px-3 tw:py-2 tw:flex tw:justify-end">
+        <button
+          type="button"
+          onClick={() => callback?.({ action: "reorder", data: item })}
+          className="tw:cursor-pointer tw:flex tw:items-center tw:gap-1.5 tw:rounded-full tw:border tw:border-primary/30 tw:bg-primary/5 tw:px-3 tw:py-1 tw:text-[12px] tw:font-semibold tw:text-primary tw:transition-colors hover:tw:bg-primary/10"
+        >
+          <RotateCcw size={13} />
+          Reorder
+        </button>
+      </div>
     </AppCard>
   );
 };

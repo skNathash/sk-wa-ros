@@ -1,4 +1,5 @@
 import { Mic } from "lucide-react";
+import { cn } from "~/lib/utils";
 import VoiceSearch from "./VoiceSearch";
 
 type Props = {
@@ -16,10 +17,14 @@ type Props = {
  */
 const VoiceMic = ({ callback, size = 16, className }: Props) => {
   return (
-    <VoiceSearch callback={callback} className={className}>
+    <VoiceSearch callback={callback}>
       <span className="tw:relative tw:inline-flex tw:items-center tw:justify-center">
-        <span className="tw:absolute tw:inline-flex tw:h-full tw:w-full tw:rounded-full tw:bg-primary/40 tw:animate-ping" />
-        <span className="tw:relative tw:inline-flex tw:items-center tw:justify-center tw:h-8 tw:w-8 tw:rounded-full tw:bg-primary tw:text-primary-foreground tw:shadow-md tw:shadow-primary/30 tw:transition-transform tw:hover:scale-105 tw:active:scale-95">
+        <span
+          className={cn(
+            "tw:relative tw:inline-flex tw:items-center tw:justify-center tw:h-8 tw:w-8 tw:rounded-full tw:bg-primary/10 tw:text-primary tw:transition-transform tw:hover:scale-105 tw:active:scale-95",
+            className,
+          )}
+        >
           <Mic size={size} />
         </span>
       </span>

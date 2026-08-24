@@ -55,23 +55,32 @@ const ExpenseSubCategorySearch = ({
   useEffect(() => {
     if (!isInitialLoad.current) {
       isInitialLoad.current = true;
-      getData("", 1, parentCategoryId, filters).then((response) =>
-        setInitialData(response)
-      );
+      if (parentCategoryId) {
+        getData("", 1, parentCategoryId, filters).then((response) =>
+          setInitialData(response)
+        );
+      }
     }
   }, []);
 
   // Refetch when parent or filters change
   useEffect(() => {
     if (isInitialLoad.current) {
-      getData("", 1, parentCategoryId, filters).then((response) =>
-        setInitialData(response)
-      );
+      if (parentCategoryId) {
+        getData("", 1, parentCategoryId, filters).then((response) =>
+          setInitialData(response)
+        );
+      } else {
+        setInitialData([]);
+      }
     }
   }, [parentCategoryId, filters]);
 
   const searchCallback = useCallback(
     async (query: string, isLoadingMore?: boolean) => {
+      if (!parentCategoryId) {
+        return [];
+      }
       if (isLoadingMore) {
         pageRef.current++;
       } else {

@@ -36,9 +36,20 @@ export interface TabItem {
   countColor?: string;
   badge?: string;
   badgeColor?: string;
+  /**
+   * Extra classes on the tab button itself — for per-tab accent styling (e.g.
+   * the AI tab's violet fill) that shouldn't apply to the rest of the bar.
+   */
+  className?: string;
 }
 
-export type SectionTabKey = "bill" | "business" | "supply" | "catalog";
+export type SectionTabKey =
+  | "home"
+  | "bill"
+  | "business"
+  | "supply"
+  | "catalog"
+  | "profile";
 
 export interface SectionTabRedirect {
   url: string;
@@ -49,20 +60,68 @@ export interface SectionTab {
   label: string;
   key: string;
   langKey?: string;
+  /**
+   * One-line explanation of the destination, shown under the label in the
+   * theme-2 header section switcher (e.g. "Buy stock · marketplace").
+   */
+  description?: string;
   icon?: string | React.ReactNode;
   rbac?: string[];
+  /**
+   * Optional group heading the tab sits under (e.g. "Customers"). Tabs sharing
+   * a group must be listed consecutively — the desktop rail
+   * ({@link SectionMenu}) and the mobile switch sheet
+   * ({@link SectionSwitchSheet}) print the heading once above the run. Tabs
+   * without a group render with no heading. The mobile tab scroller
+   * ({@link SectionTabs}) ignores groups.
+   */
+  group?: string;
   /**
    * When true the tab is shown only in the desktop side rail
    * ({@link SectionMenu}) and omitted from the mobile horizontal tab scroller
    * ({@link SectionTabs}). Use for entries that only make sense on desktop.
    */
   desktopOnly?: boolean;
-  redirect: SectionTabRedirect;
+  /**
+   * Optional notification count shown as a red badge on the tab's icon in the
+   * desktop side rail ({@link SectionMenu}). Hidden when 0/undefined.
+   */
+  badge?: number | string;
+  /** Extra classes on the tab button — see {@link TabItem.className}. */
+  className?: string;
+  redirect?: SectionTabRedirect;
 }
 
 export interface SoldInfo {
   lastOrder: string;
   qty: number;
+}
+
+/**
+ * A B2B price configured for one buyer group on a deal — the group-scoped
+ * counterpart of the deal's own network price.
+ */
+export interface NetworkGroupPrice {
+  id: string;
+  /** Group type from the seller-group config, e.g. "SKRETAILER". */
+  type: string;
+  name: string;
+  /** Retailers mapped to the group. */
+  sellersCount: number;
+  price: number;
+  discount: number;
+  /** "Normal" (on MRP) or "Fixed". */
+  discountType: string;
+  isActive: boolean;
+  /** Raw sync state from the API, e.g. "Synced" / "Notsynced". */
+  status: string;
+  isSynced: boolean;
+}
+
+/** Roll-up returned alongside the per-group prices. */
+export interface NetworkGroupPriceInfo {
+  totalGroups: number;
+  totalSellers: number;
 }
 
 export interface SellersArrayItem {
@@ -71,6 +130,13 @@ export interface SellersArrayItem {
   actualMaxQty: number;
   price: any;
   qty: number;
+  /**
+   * Order quantity rules for this seller's deal. SK deals carry them on the
+   * network `sellers` array as `b2bMinQuantity` / `incrementQuantity`; other
+   * sellers default to 1.
+   */
+  minQty: number;
+  incrQty: number;
   name: string;
   id: string;
   refId: string;
@@ -80,10 +146,20 @@ export interface SellersArrayItem {
   isSkSeller: boolean;
   isServiceable?: boolean;
   discountPercentage: number;
+  /** Raw discount percentage returned by the network API for this seller. */
+  discount?: number;
   cartQuantity: number;
   cartId: string;
   itemId: string;
   isConnectedSeller?: boolean;
+  /** Seller ratings from the API (absent when the seller has none). */
+  ratingsSummary?: {
+    avgRating?: number;
+    totalRatings?: number;
+  };
+  // Recommendation tags from the network reorder API
+  // ("cheap" | "previously-purchased" | "fast-delivery")
+  tags?: string[];
   city?: string;
   district?: string;
   pincode?: string;
@@ -158,6 +234,7 @@ export interface Deal {
   netWeight?: string;
   _ignoreGroupDeals?: boolean;
   sellers?: any[];
+  totalSellers?: number;
   isKCStoreEnabled?: boolean;
   kcStoreInfo?: any;
   sellingType?: SellingType;
@@ -196,8 +273,12 @@ export type ButtonColor =
 
 export interface SellerDeal extends Deal {
   locations: any[];
+  /** Seller-deal document id — the key APIs scoped to the seller's own deal take. */
+  sellerDealObjId?: string;
   subscribedBy?: { id?: string; name?: string; type?: string } | any;
   inventoryValue: number;
+  /** Period-over-period change in stock-on-hand value; omitted when unknown. */
+  inventoryValueChange?: number;
   poStatus?: string;
   status?: string;
   movementType?: string;
@@ -247,6 +328,17 @@ export interface SellerDeal extends Deal {
     quantity: number;
   };
   totalStock: number;
+  // Logged-in retailer's own stock of this deal (network reorder APIs)
+  loggedInUserStock?: number;
+  loggedInUserStockUom?: string;
+  // Seller the logged-in retailer last purchased this product from
+  lastPurchaseFrom?: string;
+  // Logged-in retailer's own sales analytics
+  loggedInUserSalesAnalytics?: {
+    last7Days: { quantity: number; value: number };
+  };
+  // Sales velocity — units the logged-in retailer sold in the last 7 days
+  vsl?: number;
   basePrice?: number;
   consumerOffer?: {
     enabled?: boolean;
@@ -266,6 +358,9 @@ export interface SellerDeal extends Deal {
     isTaxInclusive?: boolean;
   };
   isB2bMarginConfigured?: boolean;
+  /** B2B prices configured per buyer group (`networkGroupSellingPrice`). */
+  networkGroupPrices?: NetworkGroupPrice[];
+  networkGroupPriceInfo?: NetworkGroupPriceInfo;
   isReserve?: boolean;
   isPromotionalDeal?: boolean;
   isLocalDeal?: boolean;
@@ -299,6 +394,7 @@ export interface SellerDeal extends Deal {
     other: { price: number; isLowest: boolean; url?: string } | null;
     others: { name: string; price: number; isLowest: boolean; url?: string }[];
   };
+  hideUnitConfigEdit?: boolean;
 }
 
 export interface CartAction {
@@ -348,6 +444,8 @@ export interface TableHeaderItem {
   key?: string;
   isSticky?: boolean;
   info?: React.ReactNode;
+  /** Optional background/utility classes for this header cell (e.g. group tint). */
+  className?: string;
 }
 
 export interface MenuItem {
@@ -452,3 +550,19 @@ export type UserType =
   | "SFBUYER"
   | "SKSELLER"
   | "SKBUYER";
+
+/**
+ * Normalized seller inventory activity log entry consumed by the activity log UI
+ */
+export interface InventoryActivityLog {
+  id: string;
+  activityType: string;
+  action: string;
+  status: string;
+  loggedAt: string;
+  title: string;
+  subtitle: string;
+  code: string;
+  badgeVariant: "primary" | "secondary" | "success" | "warning" | "danger";
+  valueLabel: string;
+}

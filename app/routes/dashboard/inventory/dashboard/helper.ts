@@ -1,4 +1,5 @@
 import CommonService from "~/services/CommonService";
+import InventoryDashboardService from "~/services/InventoryDashboardService";
 
 // Loose UOMs (gm/ml) are stored in base units, so DisplayQty converts them
 // for display. Everything else is unit based.
@@ -25,6 +26,7 @@ export const formatReserveQty = (
 
 export type InventorySummary = {
   totalSKUs: number;
+  inStockSKUs: number;
   inventoryValue: number;
   inventoryValueChange: number;
   fastMovingSKUs: number;
@@ -34,6 +36,7 @@ export type InventorySummary = {
   slowMovingSKUsChange: number;
   slowMovingPercentage: number;
   slowMovingValue: number;
+  nonMovingPercentage: number;
   outOfStockSKUs: number;
   inventoryValueLocked: number;
   inventoryTurnover: number;
@@ -46,6 +49,7 @@ export type InventorySummary = {
 
 export const defaultSummary: InventorySummary = {
   totalSKUs: 0,
+  inStockSKUs: 0,
   inventoryValue: 0,
   inventoryValueChange: 0,
   fastMovingSKUs: 0,
@@ -55,6 +59,7 @@ export const defaultSummary: InventorySummary = {
   slowMovingSKUsChange: 0,
   slowMovingPercentage: 0,
   slowMovingValue: 0,
+  nonMovingPercentage: 0,
   outOfStockSKUs: 0,
   inventoryValueLocked: 0,
   inventoryTurnover: 0,
@@ -65,16 +70,57 @@ export const defaultSummary: InventorySummary = {
   loading: true,
 };
 
+export const getInStockCount = async (
+  params: Record<string, any> = {},
+): Promise<number> => {
+  try {
+    const response = await InventoryDashboardService.getSkuMovementBreakdown({
+      ...params,
+      outputType: "count",
+      matchFilter: {
+        ...(params.matchFilter || {}),
+        availableQuantity: { $gt: 0 },
+      },
+    });
+
+    return Number(response?.data?.data?.total || 0);
+  } catch (error) {
+    console.error("Error fetching in stock count:", error);
+    return 0;
+  }
+};
+
 export type CategoryValue = {
   category: string;
-  value: number;
   categoryName: string;
   categoryId: string;
   categoryRefId: string;
+  value?: number;
+  inventoryValue?: number;
+  totalProducts?: number;
+  fast?: number;
+  slow?: number;
+  nonMoving?: number;
+  fastCount?: number;
+  slowCount?: number;
+  nonMovingCount?: number;
+  avgAge?: number;
+  margin?: number;
+};
+
+export type BrandValue = {
+  brand: string;
+  value: number;
+  brandName: string;
+  brandId: string;
+  brandRefId: string;
   totalProducts: number;
   fast: number;
   slow: number;
   nonMoving: number;
+  fastCount: number;
+  slowCount: number;
+  nonMovingCount: number;
 };
 
 export type AgingData = {

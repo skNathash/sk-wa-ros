@@ -62,7 +62,7 @@ const SuccessModal = ({ show, callback, orders }: Props) => {
                     <AppLink
                       href={`/dashboard/orders/view/${order.orderId}`}
                       asLink
-                      className="tw:text-sm tw:font-bold tw:text-blue-600 hover:tw:underline"
+                      className="tw:text-sm tw:font-bold tw:text-primary hover:tw:underline"
                     >
                       #{order.orderRefNo}
                     </AppLink>
@@ -94,7 +94,7 @@ const SuccessModal = ({ show, callback, orders }: Props) => {
                       Payment Mode
                     </span>
                     <div className="tw:flex tw:items-center tw:justify-end tw:mt-0.5">
-                      <span className="tw:px-1.5 tw:py-0.5 tw:bg-blue-50 tw:text-blue-700 tw:text-[10px] tw:font-bold tw:rounded">
+                      <span className="tw:px-1.5 tw:py-0.5 tw:bg-primary/10 tw:text-primary tw:text-[10px] tw:font-bold tw:rounded">
                         {order.paymentMethod}
                       </span>
                     </div>

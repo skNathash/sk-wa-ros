@@ -2,11 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import AppCard from "~/components/core/card/AppCard";
-import AppButton from "~/components/core/button/AppButton";
-import { ChevronUp, ChevronDown } from "lucide-react";
 import AppHeader from "~/components/core/header/AppHeader";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
-import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
 import { useSearchParams } from "react-router";
 import { FormProvider, useForm } from "react-hook-form";
@@ -17,8 +14,10 @@ import type {
   SortValue,
   ViewToggleType,
 } from "~/types/CommonTypes";
+import useTheme from "~/hooks/useTheme";
 import PoListTabs from "../components/tabs/PoListTabs";
 import Filter from "./components/Filter";
+import FilterChips from "./components/FilterChips";
 import ProductMobileView from "./components/product/ProductMobileView";
 import ProductTable from "./components/product/ProductTable";
 // import Summary from "./components/Summary";
@@ -38,9 +37,11 @@ import BoxDesktopView from "./components/box/BoxDesktopView.";
 import PageHeader from "~/shared/page-header/PageHeader";
 import ViewBoxItemsModal from "~/shared/orders/receive-box/modals/view-box-items/ViewBoxItems";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import PoSectionTabs from "~/shared/purchase-order/components/PoSectionTabs";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 import CreatePoFab from "~/shared/purchase-order/components/CreatePoFab";
 import PoActionButtons from "~/shared/purchase-order/components/PoActionButtons";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
 import { AuthService } from "~/services/AuthService";
 
 const tabItems: TabItem[] = [
@@ -72,6 +73,7 @@ const RecentlyReceivedPage = () => {
   const { t } = useTranslation(["common", "menu"]);
 
   const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
   const appNav = useAppNav();
   const [searchParams] = useSearchParams();
 
@@ -86,13 +88,6 @@ const RecentlyReceivedPage = () => {
   const methods = useForm({ defaultValues: { ...(defaultFilterData as any) } });
 
   const [view, setView] = useState<ViewToggleType>("list");
-  // in mobile view, filters are hidden by default; on desktop they are visible
-  const [showFilters, setShowFilters] = useState<boolean>(() => !isMobile);
-
-  useEffect(() => {
-    // reset visibility when screen size changes
-    setShowFilters(!isMobile);
-  }, [isMobile]);
 
   const [activeTab, setActiveTab] = useState<string>("by-box");
   const [orders, setOrders] = useState<any[]>([]);
@@ -289,18 +284,11 @@ const RecentlyReceivedPage = () => {
 
   return (
     <>
-      <AppHeader title={t("purchaseOrders")} />
+      <AppHeader title={t("recentlyReceived")} />
       <div className="page-padding page-bg app-page">
         <div className="app-container">
-          {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css).
-              `sticky` pins them under the header and breaks out of the page
-              padding so the underline runs edge to edge. */}
-          <SectionTabs
-            sectionKey="supply"
-            activeTab="purchase-orders"
-            noShadow
-            sticky
-          />
+          {/* PO tab bar — theme-2 mobile only (see theme-2.css). */}
+          <PoSectionTabs outerClassName="tw:mb-3" />
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -315,145 +303,137 @@ const RecentlyReceivedPage = () => {
             </aside>
 
             <div className="section-content">
-          <div className="theme-2-mobile-hide tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2 tw:mb-4">
-            <PageHeader
-              breadcrumbs={breadcrumbs}
-              title={t("recentlyReceived")}
-              description="purchaseOrder"
-            />
-            <PoActionButtons />
-          </div>
-          <PoListTabs activeTab="recently-received" className="tw:mb-4" />
-          {/* <Summary summary={summary} /> */}
-          <AppTab
-            tabs={tabItems}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            className="tw:mb-4"
-          />
-
-          <div>
-            <FormProvider {...methods}>
-              <Filter
-                onFilterChange={handleFilterChange}
-                showFilters={showFilters}
-                activeTab={activeTab}
-              />
-            </FormProvider>
-
-            <div className="tw:flex tw:justify-between tw:items-center tw:mb-2">
-              <div>
-                <PaginationSummary
-                  paginationConfig={paginationRef.current}
-                  loadingTotalRecords={loading}
-                  loadedCount={orders.length}
-                  fwSize="sm"
-                />
-              </div>
-
-              <div className="tw:flex tw:items-center tw:gap-2">
-                {isMobile && (
-                  <AppButton
-                    size="small"
-                    fill="clear"
-                    onClick={() => setShowFilters((s) => !s)}
-                  >
-                    {showFilters ? (
-                      <>
-                        {t("hideFilters")} <ChevronUp size={12} />
-                      </>
-                    ) : (
-                      <>
-                        {t("showFilters")} <ChevronDown size={12} />
-                      </>
-                    )}
-                  </AppButton>
-                )}
-
-                <ViewToggle viewType={view} callback={setView} />
-              </div>
-            </div>
-          </div>
-
-          {isMobile || view == "card" ? (
-            <>
-              {activeTab === "by-product" ? (
-                <ProductMobileView
-                  data={orders}
-                  callback={productItemCallback}
-                  loading={loading}
-                />
-              ) : activeTab === "by-vendor" ? (
-                <VendorMobileView
-                  data={orders}
-                  callback={vendorItemCallback}
-                  loading={loading}
-                />
-              ) : (
-                <BoxMobileView
-                  data={orders}
-                  loading={loading}
-                  callback={boxItemCallback}
-                />
-              )}
-              {hasMoreData && !loading && (
-                <div className="tw:flex tw:justify-center tw:mt-4">
-                  <LoadMoreButton
-                    loadMore={loadMore}
-                    loading={loadingMore}
-                    totalCount={paginationRef.current.totalRecords}
-                    loadedCount={orders.length}
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="theme-2-mobile-hide tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2 tw:mb-4">
+                    <PageHeader
+                      breadcrumbs={breadcrumbs}
+                      title={t("recentlyReceived")}
+                      description="purchaseOrder"
+                    />
+                    <PoActionButtons />
+                  </div>
+                  {!isTheme2 && (
+                    <PoListTabs
+                      activeTab="recently-received"
+                      className="tw:mb-4"
+                    />
+                  )}
+                  {/* <Summary summary={summary} /> */}
+                  <FilterChips
+                    tabs={tabItems}
+                    activeTab={activeTab}
+                    onChange={handleTabChange}
+                    className="tw:mb-4"
                   />
-                </div>
-              )}
-            </>
-          ) : (
-            <AppCard noPadding>
-              {activeTab === "by-product" ? (
-                <ProductTable
-                  data={orders}
-                  callback={productItemCallback}
-                  sortKey={sortRef.current.key}
-                  sortValue={sortRef.current.value}
-                  onSort={handleSort}
-                  loading={loading}
-                  hasMoreData={hasMoreData}
-                  loadMore={loadMore}
-                  loadingMore={loadingMore}
-                  totalCount={paginationRef.current.totalRecords}
-                  loadedCount={orders.length}
-                />
-              ) : activeTab === "by-vendor" ? (
-                <VendorTable
-                  data={orders}
-                  callback={vendorItemCallback}
-                  sortKey={sortRef.current.key}
-                  sortValue={sortRef.current.value}
-                  onSort={handleSort}
-                  loading={loading}
-                  hasMoreData={hasMoreData}
-                  loadMore={loadMore}
-                  loadingMore={loadingMore}
-                  totalCount={paginationRef.current.totalRecords}
-                  loadedCount={orders.length}
-                />
-              ) : (
-                <BoxDesktopView
-                  data={orders}
-                  sortKey={sortRef.current.key}
-                  sortValue={sortRef.current.value}
-                  onSort={handleSort}
-                  loading={loading}
-                  hasMoreData={hasMoreData}
-                  loadMore={loadMore}
-                  loadingMore={loadingMore}
-                  totalCount={paginationRef.current.totalRecords}
-                  loadedCount={orders.length}
-                  callback={boxItemCallback}
-                />
-              )}
-            </AppCard>
-          )}
+
+                  <div>
+                    <FormProvider {...methods}>
+                      <Filter
+                        onFilterChange={handleFilterChange}
+                        activeTab={activeTab}
+                      />
+                    </FormProvider>
+
+                    <div className="tw:flex tw:justify-between tw:items-center tw:mb-2">
+                      <div>
+                        <PaginationSummary
+                          paginationConfig={paginationRef.current}
+                          loadingTotalRecords={loading}
+                          loadedCount={orders.length}
+                          fwSize="sm"
+                        />
+                      </div>
+
+                      <ViewToggle viewType={view} callback={setView} />
+                    </div>
+                  </div>
+
+                  {isMobile || view == "card" ? (
+                    <>
+                      {activeTab === "by-product" ? (
+                        <ProductMobileView
+                          data={orders}
+                          callback={productItemCallback}
+                          loading={loading}
+                        />
+                      ) : activeTab === "by-vendor" ? (
+                        <VendorMobileView
+                          data={orders}
+                          callback={vendorItemCallback}
+                          loading={loading}
+                        />
+                      ) : (
+                        <BoxMobileView
+                          data={orders}
+                          loading={loading}
+                          callback={boxItemCallback}
+                        />
+                      )}
+                      {hasMoreData && !loading && (
+                        <div className="tw:flex tw:justify-center tw:mt-4">
+                          <LoadMoreButton
+                            loadMore={loadMore}
+                            loading={loadingMore}
+                            totalCount={paginationRef.current.totalRecords}
+                            loadedCount={orders.length}
+                          />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <AppCard noPadding>
+                      {activeTab === "by-product" ? (
+                        <ProductTable
+                          data={orders}
+                          callback={productItemCallback}
+                          sortKey={sortRef.current.key}
+                          sortValue={sortRef.current.value}
+                          onSort={handleSort}
+                          loading={loading}
+                          hasMoreData={hasMoreData}
+                          loadMore={loadMore}
+                          loadingMore={loadingMore}
+                          totalCount={paginationRef.current.totalRecords}
+                          loadedCount={orders.length}
+                        />
+                      ) : activeTab === "by-vendor" ? (
+                        <VendorTable
+                          data={orders}
+                          callback={vendorItemCallback}
+                          sortKey={sortRef.current.key}
+                          sortValue={sortRef.current.value}
+                          onSort={handleSort}
+                          loading={loading}
+                          hasMoreData={hasMoreData}
+                          loadMore={loadMore}
+                          loadingMore={loadingMore}
+                          totalCount={paginationRef.current.totalRecords}
+                          loadedCount={orders.length}
+                        />
+                      ) : (
+                        <BoxDesktopView
+                          data={orders}
+                          sortKey={sortRef.current.key}
+                          sortValue={sortRef.current.value}
+                          onSort={handleSort}
+                          loading={loading}
+                          hasMoreData={hasMoreData}
+                          loadMore={loadMore}
+                          loadingMore={loadingMore}
+                          totalCount={paginationRef.current.totalRecords}
+                          loadedCount={orders.length}
+                          callback={boxItemCallback}
+                        />
+                      )}
+                    </AppCard>
+                  )}
+                </AppPaneMain>
+
+                <AppPaneSide className="app-pane-only">
+                  <PurchaseOrderSidePane />
+                </AppPaneSide>
+              </div>
             </div>
           </div>
         </div>

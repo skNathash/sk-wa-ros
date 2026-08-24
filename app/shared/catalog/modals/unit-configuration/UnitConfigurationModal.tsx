@@ -107,7 +107,7 @@ const UnitConfigurationModal = ({ show, dealId, callback }: Props) => {
       const matched = sellingTypeMap.find(
         (s) => s.value === deal.sellingType,
       );
-      const sType = matched?.packType || "Unit";
+      const sType = matched?.apiValue || "Unit";
 
       setValue("sellingType", sType);
       setValue("remarks", "");
@@ -242,7 +242,7 @@ const UnitConfigurationModal = ({ show, dealId, callback }: Props) => {
               icon={<ShoppingCart className="tw:text-gray-500 tw:w-4 tw:h-4" />}
               subtitle={
                 <span className="tw:text-xs tw:text-gray-500">
-                  Select one sell in for this product
+                  Choose how you sell this product
                 </span>
               }
               className="!tw:p-3"
@@ -267,8 +267,8 @@ const UnitConfigurationModal = ({ show, dealId, callback }: Props) => {
                             }
                           }}
                           size="sm"
-                          placeholder="Select Sell In"
-                          label="Sell In"
+                          placeholder="Select Sell As"
+                          label="Sell As"
                           isRequired
                           inputClassName="tw:w-full"
                         />

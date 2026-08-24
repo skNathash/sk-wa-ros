@@ -52,9 +52,17 @@ export const removeCartItem = async ({
         msg: response.data?.message || "Failed to remove item from cart",
       };
     }
-    CartService.removeFromCart(deal.id);
+    // Local cart is keyed per seller, so the removal has to be scoped too.
+    const sellerId =
+      cartType === "buyer" || cartType === "buy-from-other-retailer"
+        ? deal?.buyFromOtherRetailer?.retailerId
+        : undefined;
+    CartService.removeFromCart(deal.id, sellerId);
     try {
-      MiscService.createEvent(EVENTS.CART_ITEM_REMOVED, { dealId: deal.id });
+      MiscService.createEvent(EVENTS.CART_ITEM_REMOVED, {
+        dealId: deal.id,
+        sellerId,
+      });
     } catch (e) {
       // ignore
     }

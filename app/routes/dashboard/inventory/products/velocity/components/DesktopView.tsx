@@ -11,11 +11,17 @@ import AppTable from "~/components/core/table/AppTable";
 import TableHeader from "~/components/core/table/TableHeader";
 import TableSkeletonLoader from "~/components/core/table/TableSkeletonLoader";
 import DealSummaryPopover from "~/components/feature/inventory/popover/deal-sales-summary/DealSummaryPopover";
+import Rbac from "~/components/core/rbac/Rbac";
+import AuthService from "~/services/AuthService";
 import type {
   SellerDeal,
   TableHeaderItem,
   SortValue,
 } from "~/types/CommonTypes";
+
+const rbacRoles = {
+  addStock: ["INVENTORY.ADD-STOCK"],
+};
 
 interface DesktopViewProps {
   data: SellerDeal[];
@@ -235,17 +241,22 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                       <ShoppingCart className="tw:w-3 tw:h-3" />
                       Basket
                     </AppButton> */}
-                    <AppButton
-                      size="small"
-                      fill="outline"
-                      color="light"
-                      onClick={() =>
-                        callback({ action: "add-stock", data: item })
-                      }
+                    <Rbac
+                      roles={rbacRoles.addStock}
+                      forceDisplay={AuthService.isMasterLogin()}
                     >
-                      <Plus className="tw:w-3 tw:h-3" />
-                      Add Stock
-                    </AppButton>
+                      <AppButton
+                        size="small"
+                        fill="outline"
+                        color="light"
+                        onClick={() =>
+                          callback({ action: "add-stock", data: item })
+                        }
+                      >
+                        <Plus className="tw:w-3 tw:h-3" />
+                        Add Stock
+                      </AppButton>
+                    </Rbac>
                     <AppButton
                       size="small"
                       fill="outline"

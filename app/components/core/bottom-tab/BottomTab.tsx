@@ -19,9 +19,16 @@ type TabItem = {
   primary?: boolean;
 };
 
-const TABS: TabItem[] = [
+/** Top-level app sections. Shared with the desktop header nav chips
+ *  ({@link HeaderNavChips}) so both navs stay in sync. */
+export const TABS: TabItem[] = [
   { key: "home", label: "Home", path: "/dashboard/main", icon: House },
-  { key: "catalog", label: "Catalog", path: "/products", icon: LayoutGrid },
+  {
+    key: "catalog",
+    label: "Catalog",
+    path: "/dashboard/inventory/dashboard",
+    icon: LayoutGrid,
+  },
   {
     key: "bill",
     label: "Bill",
@@ -38,20 +45,22 @@ const TABS: TabItem[] = [
   {
     key: "supply",
     label: "Supply",
-    path: "/dashboard/purchase-order/main",
+    path: "/dashboard/insight",
     icon: Truck,
   },
 ];
 
-const isTabActive = (pathname: string, path: string) =>
+export const isTabActive = (pathname: string, path: string) =>
   pathname === path || pathname.startsWith(`${path}/`);
 
 const BottomTab = () => {
   const { t } = useTranslation();
   const location = useLocation();
 
+  // z-40, not z-50: dialogs/sheets render their overlay at z-50, and an equal
+  // z-index would leave this opaque bar sitting undimmed on top of it.
   return (
-    <nav className="bottom-tab tw:sticky tw:bottom-0 tw:left-0 tw:right-0 tw:z-50 tw:bg-white tw:border-t tw:border-gray-200 tw:pb-[env(safe-area-inset-bottom)]">
+    <nav className="bottom-tab tw:sticky tw:bottom-0 tw:left-0 tw:right-0 tw:z-40 tw:bg-white tw:border-t tw:border-gray-200 tw:pb-[env(safe-area-inset-bottom)]">
       <ul className="tw:flex tw:items-end tw:justify-between tw:px-2 tw:h-16">
         {TABS.map((tab) => {
           const active = isTabActive(location.pathname, tab.path);

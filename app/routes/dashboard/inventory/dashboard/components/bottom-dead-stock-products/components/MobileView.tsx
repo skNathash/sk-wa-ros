@@ -4,10 +4,10 @@ import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import NoData from "~/components/core/no-data/NoData";
 import { Skeleton } from "~/components/ui/skeleton";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
-import { isLooseStockUom, type DeadStockProduct } from "../../../helper";
+import type { DeadStockRow } from "../helper";
 
 type Props = {
-  data: DeadStockProduct[];
+  data: DeadStockRow[];
   loading: boolean;
   loadMore: () => void;
   loadingMore: boolean;
@@ -53,11 +53,13 @@ const MobileView = ({
     <>
       <div className="tw:grid tw:grid-cols-1 tw:lg:grid-cols-3 tw:gap-2">
         {data.map((p, idx) => (
-          <AppCard key={idx} noPadding>
+          <AppCard key={p._key} noPadding>
             {/* Header */}
             <div className="tw:px-4 tw:py-3">
               <div className="tw:flex tw:items-start tw:gap-2">
-                <span className="tw:text-xs tw:text-gray-400 tw:mt-0.5">#{idx + 1}</span>
+                <span className="tw:text-xs tw:text-gray-400 tw:mt-0.5">
+                  #{idx + 1}
+                </span>
                 <div className="tw:flex-1 tw:min-w-0">
                   <AppLink
                     asLink
@@ -83,10 +85,7 @@ const MobileView = ({
               <div className="tw:flex tw:justify-between tw:items-center">
                 <span className="tw:text-xs tw:text-gray-500">Stock Qty</span>
                 <span className="tw:text-sm tw:font-medium">
-                  <DisplayQty
-                    qty={p.stockQty ?? 0}
-                    isLooseQty={isLooseStockUom(p.selectedStockUom)}
-                  />
+                  <DisplayQty qty={p._stockQty} isLooseQty={p._isLooseQty} />
                 </span>
               </div>
               <div className="tw:flex tw:justify-between tw:items-center">

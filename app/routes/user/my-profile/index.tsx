@@ -4,11 +4,13 @@ import {
   FileText,
   HelpCircle,
   KeyRound,
+  Languages,
+  ScrollText,
   Settings,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { redirect, useSearchParams } from "react-router";
+import { redirect } from "react-router";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
@@ -23,8 +25,13 @@ import {
 } from "~/constants";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
+import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import TermsModal from "~/modals/core/terms-modal/TermsModal";
 import AuthService from "~/services/AuthService";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import ProfileSidePane from "~/shared/profile/components/ProfileSidePane";
 import CommonService from "~/services/CommonService";
 import FranchiseService from "~/services/FranchiseService";
 import MiscService from "~/services/MiscService";
@@ -46,8 +53,9 @@ import StoreBranding from "./components/StoreBranding";
 import StoreInformation from "./components/StoreInformation";
 import StoreLocation from "./components/StoreLocation";
 import StorePhoto from "./components/StorePhoto";
+import ProfileOverview from "./components/theme2/ProfileOverview";
 import UpgradeToSKSeller from "./components/UpgradeToSKSeller";
-import NotesModal from "./modals/notes/NotesModal";
+import NotificationLanguageModal from "./modals/NotificationLanguageModal";
 import PersonalInfoEditModal from "./modals/PersonalInfoEditModal";
 import SKSellerSuccessModal from "./modals/SKSellerSuccessModal";
 import StoreInfoEditModal from "./modals/StoreInfoEditModal";
@@ -79,6 +87,11 @@ const breadcrumbsBase: BreadcrumbItem[] = [
 
 const ProfilePage: React.FC = () => {
   const appNav = useAppNav();
+  const { isMobile } = useScreenView();
+
+  // theme-2 replaces the stack of per-field cards with the overview layout —
+  // identity, KYC checklist and trust column.
+  const isTheme2 = useTheme() === "theme-2";
 
   const { t } = useTranslation(["common"]);
 
@@ -87,8 +100,6 @@ const ProfilePage: React.FC = () => {
     label: typeof b.label === "string" ? t(b.label as string) : b.label,
   }));
   const toast = useAppToast();
-
-  const [searchParams] = useSearchParams();
 
   const [profileData, setProfileData] = useState<any>(null);
 
@@ -129,9 +140,9 @@ const ProfilePage: React.FC = () => {
     show: boolean;
   }>({ show: false });
 
-  const [notesModal, setNotesModal] = useState<{ show: boolean; data?: any }>({
-    show: false,
-  });
+  const [notificationLangModal, setNotificationLangModal] = useState<{
+    show: boolean;
+  }>({ show: false });
 
   const [termsModal, setTermsModal] = useState<{
     show: boolean;
@@ -142,8 +153,11 @@ const ProfilePage: React.FC = () => {
 
   const documentsRef = React.useRef<HTMLDivElement | null>(null);
 
-  const fetchProfile = async () => {
-    setLoading(true);
+  // `silent` refetches in the background without swapping the page for the
+  // loader — used when the UI has already been updated optimistically.
+  const fetchProfile = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
+    if (!silent) setLoading(true);
     try {
       const userId = AuthService.getLoggedInUserId();
 
@@ -173,8 +187,10 @@ const ProfilePage: React.FC = () => {
         const photos = Array.isArray(profileData.shopPhotosDetails)
           ? profileData.shopPhotosDetails
           : [];
+        // Only an approved shop photo may be shown as the profile picture —
+        // pending/rejected uploads must not surface anywhere.
         const approved = photos.find((p: any) => p.status === "Approved");
-        profileData.approvedStoreImage = approved?.id || photos?.[0]?.id;
+        profileData.approvedStoreImage = approved?.id || "";
 
         profileData._canShowDeclarationForm =
           shouldShowDeclarationFor(profileData);
@@ -229,23 +245,30 @@ const ProfilePage: React.FC = () => {
         setProfileData(null);
       }
     } catch (e) {
-      setProfileData(null);
+      // A failed background refresh must not blank out what's already rendered
+      if (!silent) setProfileData(null);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   useEffect(() => {
     fetchProfile();
   }, []);
 
+  // Auto-scroll to the declaration form only once per visit — otherwise every
+  // profile update (photo reorder, upload, ...) yanks the page back down.
+  const didScrollToDocuments = React.useRef(false);
+
   useEffect(() => {
     if (
+      !didScrollToDocuments.current &&
       !loading &&
       profileData &&
       !declarationVerified &&
       profileData._canShowDeclarationForm &&
       documentsRef.current
     ) {
+      didScrollToDocuments.current = true;
       const t = setTimeout(() => {
         CommonService.scrollToView(documentsRef.current);
       }, 1000);
@@ -273,6 +296,36 @@ const ProfilePage: React.FC = () => {
   }) => {
     const { action, data } = params;
     if (action === "refresh") {
+      // When the child already knows the resulting photo list (upload, remove,
+      // reorder), apply it in place and revalidate in the background so the
+      // page doesn't collapse into the full-page loader.
+      if (Array.isArray(data?.shopPhotosDetails)) {
+        setProfileData((prev: any) => {
+          if (!prev) return prev;
+          const prevPhotos: any[] = Array.isArray(prev.shopPhotosDetails)
+            ? prev.shopPhotosDetails
+            : [];
+          // Removed photos are still present in the payload (flagged
+          // `isDeleted`) — they must not show up in the rendered list.
+          const photos = data.shopPhotosDetails
+            .filter((photo: any) => photo.isDeleted !== true)
+            .map((photo: any) => ({
+              id: photo.fileUrl,
+              status: photo.status,
+              comment:
+                prevPhotos.find((p) => p.id === photo.fileUrl)?.comment || "",
+            }));
+          const approved = photos.find((p: any) => p.status === "Approved");
+          return {
+            ...prev,
+            shopPhotosDetails: photos,
+            approvedStoreImage: approved?.id || "",
+          };
+        });
+        fetchProfile({ silent: true });
+        return;
+      }
+
       // Refresh profile data when child component requests it
       fetchProfile();
     }
@@ -421,157 +474,221 @@ const ProfilePage: React.FC = () => {
     <>
       <AppHeader
         title={t("myProfile")}
+        sectionKey="profile"
+        activeTab="my-profile"
+        mobileLead="menu"
         showAudioNote={true}
         audioNoteTitle={t("myProfile")}
         audioFeature="myProfile"
       />
       <div className="app-page page-bg tw:p-4">
         <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:mb-4 tw:gap-4">
-            <div>
-              <AppBreadcrumbs data={breadcrumbs} />
-              <PageDescription description="profile" />
-            </div>
-            <div className="tw:self-end tw:flex tw:items-center tw:gap-2">
-              <button
-                className="tw:inline-flex tw:items-center tw:gap-1 tw:px-3 tw:py-1.5 tw:text-sm tw:border tw:border-gray-300 tw:rounded-md tw:bg-white tw:hover:bg-gray-50 tw:cursor-pointer"
-                onClick={() => setNotesModal({ show: true })}
-              >
-                <FileText className="tw:w-4 tw:h-4" />
-                <span>Store Notes</span>
-              </button>
-              <AppPopover
-                align="end"
-                side="bottom"
-                triggerContent={
-                  <button className="tw:inline-flex tw:items-center tw:gap-1 tw:px-3 tw:py-1.5 tw:text-sm tw:border tw:border-gray-300 tw:rounded-md tw:bg-white tw:hover:bg-gray-50 tw:cursor-pointer">
-                    <Settings className="tw:w-4 tw:h-4" />
-                    <span>Settings</span>
-                  </button>
-                }
-              >
-                <div className="tw:flex tw:flex-col tw:min-w-[180px]">
-                  <button
-                    className="tw:flex tw:items-center tw:gap-2 tw:px-3 tw:py-2 tw:text-sm tw:hover:bg-gray-100 tw:rounded-md tw:text-left"
-                    onClick={changePassword}
-                  >
-                    <KeyRound className="tw:w-4 tw:h-4" />
-                    Change Password
-                  </button>
-                  <button
-                    className="tw:flex tw:items-center tw:gap-2 tw:px-3 tw:py-2 tw:text-sm tw:hover:bg-gray-100 tw:rounded-md tw:text-left"
-                    onClick={() => appNav.to("/user/notification-logs")}
-                  >
-                    <Bell className="tw:w-4 tw:h-4" />
-                    Notification Logs
-                  </button>
-                </div>
-              </AppPopover>
-            </div>
-          </div>
-          {missingFields.length > 0 ? (
-            <InfoBlock
-              variant="warning"
-              size="sm"
-              bordered
-              shadow
-              className="tw:mb-3"
-            >
-              <div className="tw:flex tw:items-start tw:gap-2">
-                <AlertTriangle className="tw:w-4 tw:h-4 tw:mt-[2px]" />
-                <div className="tw:flex-1">
-                  <div>
-                    <span className="tw:font-semibold">
-                      {t("weNoticedThatYourProfileIsIncomplete")}.{" "}
-                    </span>
-                    <span className="tw:me-1">
-                      {t("pleaseTakeAMomentToCompleteItToAccessAllFeatures")}
-                    </span>
-                    <div className="tw:mt-1">
-                      <ul className="tw:list-disc tw:pl-5 tw:text-sm">
-                        {missingFields.map((field, idx) => (
-                          <li key={idx}>{field.msg || field.name}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+          <div className="section-layout">
+            {/* Desktop-only left rail — profile section menu. */}
+            <aside className="section-menu-aside">
+              <div className="tw:sticky tw:top-20">
+                <SectionMenu
+                  sectionKey="profile"
+                  activeTab="my-profile"
+                  title="Manage profile"
+                />
               </div>
-            </InfoBlock>
-          ) : null}
-          {AuthService.isSfSeller() &&
-          missingFields.length === 0 &&
-          !AuthService.isSkBuyer() ? (
-            <UpgradeToSKSeller
-              onUpgradeClick={() => {}}
-              onSuccess={handleSKSellerSuccess}
-            />
-          ) : null}
+            </aside>
 
-          {loading ? (
-            <div className="tw:flex tw:justify-center tw:items-center tw:h-64">
-              <div className="tw:w-10 tw:h-10 tw:border-t-2 tw:border-b-2 tw:border-gray-900 tw:rounded-full tw:animate-spin"></div>
-            </div>
-          ) : profileData ? (
-            <>
-              <BasicInfo
-                name={profileData.name || ""}
-                contactPerson={profileData?.name || ""}
-                phone={profileData.mobile || ""}
-                email={profileData.email || ""}
-                createdAt={profileData.createdAt}
-                ownerImage={profileData.ownerDetails?.photoUrl}
-                storeImage={profileData.approvedStoreImage}
-                callback={handlePhotoCallback}
-                isVerified={declarationVerified}
-                franchiseId={profileData.franchiseId}
-                isEmailVerified={profileData.isEmailVerified}
-              />
-              {profileData?.linkedFranchise?._id ? (
-                <div className="tw:mt-4">
-                  <ConnectedSellerDetails
-                    fid={profileData?.linkedFranchise?._id}
-                  />
-                </div>
-              ) : null}
+            <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  {/* theme-2 hides breadcrumbs and the page description, and
+                      moves Store Notes and the settings actions into the
+                      profile side pane — so the whole row goes with them and
+                      the identity hero can lead the page. */}
+                  {!isTheme2 ? (
+                    <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:mb-4 tw:gap-4">
+                      <div>
+                        <AppBreadcrumbs data={breadcrumbs} />
+                        <PageDescription description="profile" />
+                      </div>
+                      <div className="tw:self-end tw:flex tw:items-center tw:gap-2">
+                        <button
+                          className="tw:inline-flex tw:items-center tw:gap-1 tw:px-3 tw:py-1.5 tw:text-sm tw:border tw:border-gray-300 tw:rounded-md tw:bg-white tw:hover:bg-gray-50 tw:cursor-pointer"
+                          onClick={() => appNav.to("/user/store-notes")}
+                        >
+                          <FileText className="tw:w-4 tw:h-4" />
+                          <span>Store Notes</span>
+                        </button>
+                        <AppPopover
+                          align="end"
+                          side="bottom"
+                          triggerContent={
+                            <button className="tw:inline-flex tw:items-center tw:gap-1 tw:px-3 tw:py-1.5 tw:text-sm tw:border tw:border-gray-300 tw:rounded-md tw:bg-white tw:hover:bg-gray-50 tw:cursor-pointer">
+                              <Settings className="tw:w-4 tw:h-4" />
+                              <span>Settings</span>
+                            </button>
+                          }
+                        >
+                          <div className="tw:flex tw:flex-col tw:min-w-[180px]">
+                            <button
+                              className="tw:flex tw:items-center tw:gap-2 tw:px-3 tw:py-2 tw:text-sm tw:hover:bg-gray-100 tw:rounded-md tw:text-left"
+                              onClick={changePassword}
+                            >
+                              <KeyRound className="tw:w-4 tw:h-4" />
+                              Change Password
+                            </button>
+                            <button
+                              className="tw:flex tw:items-center tw:gap-2 tw:px-3 tw:py-2 tw:text-sm tw:hover:bg-gray-100 tw:rounded-md tw:text-left"
+                              onClick={() =>
+                                appNav.to("/user/notification-logs")
+                              }
+                            >
+                              <Bell className="tw:w-4 tw:h-4" />
+                              Notification Logs
+                            </button>
+                            <button
+                              className="tw:flex tw:items-center tw:gap-2 tw:px-3 tw:py-2 tw:text-sm tw:hover:bg-gray-100 tw:rounded-md tw:text-left"
+                              onClick={() =>
+                                setNotificationLangModal({ show: true })
+                              }
+                            >
+                              <Languages className="tw:w-4 tw:h-4" />
+                              Notification Language
+                            </button>
+                          </div>
+                        </AppPopover>
+                      </div>
+                    </div>
+                  ) : null}
+                  {/* theme-2 says the same thing better — the trust score and
+                      the KYC checklist both name what is still missing — so
+                      the banner stays out of the hero's way there. */}
+                  {missingFields.length > 0 ? (
+                    <InfoBlock
+                      variant="warning"
+                      size="sm"
+                      bordered
+                      shadow
+                      className="tw:mb-3"
+                    >
+                      <div className="tw:flex tw:items-start tw:gap-2">
+                        <AlertTriangle className="tw:w-4 tw:h-4 tw:mt-[2px]" />
+                        <div className="tw:flex-1">
+                          <div>
+                            <span className="tw:font-semibold">
+                              {t("weNoticedThatYourProfileIsIncomplete")}.{" "}
+                            </span>
+                            <span className="tw:me-1">
+                              {t(
+                                "pleaseTakeAMomentToCompleteItToAccessAllFeatures",
+                              )}
+                            </span>
+                            <div className="tw:mt-1">
+                              <ul className="tw:list-disc tw:pl-5 tw:text-sm">
+                                {missingFields.map((field, idx) => (
+                                  <li key={idx}>{field.msg || field.name}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </InfoBlock>
+                  ) : null}
+                  {!isTheme2 &&
+                  AuthService.isSfSeller() &&
+                  missingFields.length === 0 &&
+                  !AuthService.isSkBuyer() ? (
+                    <UpgradeToSKSeller
+                      onUpgradeClick={() => {}}
+                      onSuccess={handleSKSellerSuccess}
+                    />
+                  ) : null}
 
-              {/* Owner Information Section */}
-              <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mt-4">
-                <StoreBranding
-                  storeLogo={profileData.storeLogo}
-                  storeCaption={profileData.storeCaption}
-                  socialMediaLinks={profileData.socialMediaLinks}
-                  callback={fetchProfile}
-                />
+                  {loading ? (
+                    <div className="tw:flex tw:justify-center tw:items-center tw:h-64">
+                      <div className="tw:w-10 tw:h-10 tw:border-t-2 tw:border-b-2 tw:border-gray-900 tw:rounded-full tw:animate-spin"></div>
+                    </div>
+                  ) : profileData ? (
+                    <>
+                      {isTheme2 ? (
+                        <ProfileOverview
+                          profileData={profileData}
+                          onRefresh={fetchProfile}
+                          onSellerUpgrade={handleSKSellerSuccess}
+                        />
+                      ) : null}
+                      {isTheme2 ? null : (
+                        <>
+                          <BasicInfo
+                            name={profileData.name || ""}
+                            contactPerson={profileData?.name || ""}
+                            phone={profileData.mobile || ""}
+                            email={profileData.email || ""}
+                            createdAt={profileData.createdAt}
+                            ownerImage={profileData.ownerDetails?.photoUrl}
+                            storeImage={profileData.approvedStoreImage}
+                            callback={handlePhotoCallback}
+                            isVerified={declarationVerified}
+                            franchiseId={profileData.franchiseId}
+                            isEmailVerified={profileData.isEmailVerified}
+                          />
+                          {profileData?.linkedFranchise?._id ? (
+                            <div className="tw:mt-4">
+                              <ConnectedSellerDetails
+                                fid={profileData?.linkedFranchise?._id}
+                              />
+                            </div>
+                          ) : null}
 
-                <StoreInformation
-                  storeName={profileData.name}
-                  fssaiLicense={profileData.fssaiLicense}
-                  storeSize={profileData.storeSize}
-                  storeOpenTime={profileData.operatingHours?.openTime}
-                  storeCloseTime={profileData.operatingHours?.closeTime}
-                  primaryBusiness={profileData.primaryBusiness}
-                  secondaryBusiness={profileData.secondaryBusiness}
-                  primaryBusinessId={profileData.primaryBusinessId}
-                  secondaryBusinessId={profileData.secondaryBusinessId}
-                  deliveryRadius={profileData.deliveryRadius}
-                  latitude={profileData.geoLocation?.coordinates?.[1]}
-                  longitude={profileData.geoLocation?.coordinates?.[0]}
-                  monthlyTurnover={profileData.monthlyTurnOver}
-                  yearsOfExperience={profileData.yearsOfExperience}
-                  callback={fetchProfile}
-                  profileRequestLogs={profileData.profileUpdateRequest}
-                />
+                          {/* Owner Information Section */}
+                          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mt-4">
+                            <StoreBranding
+                              storeLogo={profileData.storeLogo}
+                              storeCaption={profileData.storeCaption}
+                              socialMediaLinks={profileData.socialMediaLinks}
+                              callback={fetchProfile}
+                            />
 
-                <div className="tw:md:col-span-2">
-                  <GstTypeSetting
-                    gstNumber={profileData.gstNumber}
-                    profileRequestLogs={profileData.profileUpdateRequest}
-                    callback={fetchProfile}
-                  />
-                </div>
+                            <StoreInformation
+                              storeName={profileData.name}
+                              fssaiLicense={profileData.fssaiLicense}
+                              storeSize={profileData.storeSize}
+                              storeOpenTime={
+                                profileData.operatingHours?.openTime
+                              }
+                              storeCloseTime={
+                                profileData.operatingHours?.closeTime
+                              }
+                              primaryBusiness={profileData.primaryBusiness}
+                              secondaryBusiness={profileData.secondaryBusiness}
+                              primaryBusinessId={profileData.primaryBusinessId}
+                              secondaryBusinessId={
+                                profileData.secondaryBusinessId
+                              }
+                              deliveryRadius={profileData.deliveryRadius}
+                              latitude={
+                                profileData.geoLocation?.coordinates?.[1]
+                              }
+                              longitude={
+                                profileData.geoLocation?.coordinates?.[0]
+                              }
+                              monthlyTurnover={profileData.monthlyTurnOver}
+                              yearsOfExperience={profileData.yearsOfExperience}
+                              callback={fetchProfile}
+                              profileRequestLogs={
+                                profileData.profileUpdateRequest
+                              }
+                            />
 
-                {/* <OwnerInformation
+                            <div className="tw:md:col-span-2">
+                              <GstTypeSetting
+                                gstNumber={profileData.gstNumber}
+                                profileRequestLogs={
+                                  profileData.profileUpdateRequest
+                                }
+                                callback={fetchProfile}
+                              />
+                            </div>
+
+                            {/* <OwnerInformation
                   title={t("secondaryOwnerInformation")}
                   type="secondary"
                   name={profileData.secondaryOwnerDetails?.name}
@@ -589,131 +706,170 @@ const ProfilePage: React.FC = () => {
                   onUpdate={fetchProfile}
                 /> */}
 
-                <StoreLocation
-                  addressLine1={profileData.addressLine1}
-                  addressLine2={profileData.addressLine2}
-                  latitude={profileData.geoLocation?.coordinates?.[1]}
-                  longitude={profileData.geoLocation?.coordinates?.[0]}
-                  pincode={profileData.pincode}
-                  state={profileData.state}
-                  district={profileData.district}
-                  city={profileData.city}
-                  addressLogs={profileData.addressLogs || []}
-                  onLocationUpdate={handleLocationUpdate}
-                />
+                            <StoreLocation
+                              addressLine1={profileData.addressLine1}
+                              addressLine2={profileData.addressLine2}
+                              latitude={
+                                profileData.geoLocation?.coordinates?.[1]
+                              }
+                              longitude={
+                                profileData.geoLocation?.coordinates?.[0]
+                              }
+                              pincode={profileData.pincode}
+                              state={profileData.state}
+                              district={profileData.district}
+                              city={profileData.city}
+                              addressLogs={profileData.addressLogs || []}
+                              onLocationUpdate={handleLocationUpdate}
+                            />
 
-                <StorePhoto
-                  photos={profileData.shopPhotosDetails}
-                  callback={handlePhotoCallback}
-                />
+                            <StorePhoto
+                              photos={profileData.shopPhotosDetails}
+                              callback={handlePhotoCallback}
+                            />
 
-                <OwnerInformation
-                  title={t("mainOwnerInformation")}
-                  type="main"
-                  name={profileData.ownerDetails?.name}
-                  phone={profileData.ownerDetails?.phone}
-                  email={profileData.ownerDetails?.email}
-                  alternateMobile={profileData.ownerDetails?.alternateMobile}
-                  addressLine1={profileData.ownerDetails?.addressLine1}
-                  addressLine2={profileData.ownerDetails?.addressLine2}
-                  city={profileData.ownerDetails?.city}
-                  district={profileData.ownerDetails?.district}
-                  state={profileData.ownerDetails?.state}
-                  pincode={profileData.ownerDetails?.pincode}
-                  onUpdate={fetchProfile}
-                />
+                            <OwnerInformation
+                              title={t("mainOwnerInformation")}
+                              type="main"
+                              name={profileData.ownerDetails?.name}
+                              phone={profileData.ownerDetails?.phone}
+                              email={profileData.ownerDetails?.email}
+                              alternateMobile={
+                                profileData.ownerDetails?.alternateMobile
+                              }
+                              addressLine1={
+                                profileData.ownerDetails?.addressLine1
+                              }
+                              addressLine2={
+                                profileData.ownerDetails?.addressLine2
+                              }
+                              city={profileData.ownerDetails?.city}
+                              district={profileData.ownerDetails?.district}
+                              state={profileData.ownerDetails?.state}
+                              pincode={profileData.ownerDetails?.pincode}
+                              onUpdate={fetchProfile}
+                            />
 
-                <FssaiLicense
-                  profileRequestLogs={profileData.profileUpdateRequest}
-                  callback={fetchProfile}
-                />
+                            <FssaiLicense
+                              profileRequestLogs={
+                                profileData.profileUpdateRequest
+                              }
+                              callback={fetchProfile}
+                            />
 
-                <div className="tw:md:col-span-2">
-                  <BankDetails
-                    bankName={profileData.bankList?.[0]?.bank_name}
-                    accountHolderName={
-                      profileData.bankList?.[0]?.accountHolderName
-                    }
-                    accountNumber={profileData.bankList?.[0]?.accountNumber}
-                    ifsc={profileData.bankList?.[0]?.ifsc}
-                    onUpdate={fetchProfile}
-                  />
-                </div>
-              </div>
+                            <div className="tw:md:col-span-2">
+                              <BankDetails
+                                bankName={profileData.bankList?.[0]?.bank_name}
+                                accountHolderName={
+                                  profileData.bankList?.[0]?.accountHolderName
+                                }
+                                accountNumber={
+                                  profileData.bankList?.[0]?.accountNumber
+                                }
+                                ifsc={profileData.bankList?.[0]?.ifsc}
+                                onUpdate={fetchProfile}
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
 
-              {/* Documents Section */}
-              <div className="tw:mt-4" ref={documentsRef}>
-                <AppCard>
-                  {declarationVerified ? (
-                    <div className="tw:mb-4">
-                      <DeclarationSignedBlock
-                        name={profileData.ownerDetails?.name}
-                        date={profileData.declaration?.acceptedAt}
-                        showViewDeclaration={true}
-                        callback={handleViewDeclaration}
-                      />
+                      {/* Documents Section — theme-2 shows it only while the
+                          store still has to sign the declaration; everything
+                          else moved to the checklist and /user/documents. */}
+                      {!isTheme2 ||
+                      (!declarationVerified &&
+                        profileData?._canShowDeclarationForm) ? (
+                        <div className="tw:mt-4" ref={documentsRef}>
+                          <AppCard>
+                            {declarationVerified ? (
+                              <div className="tw:mb-4">
+                                <DeclarationSignedBlock
+                                  name={profileData.ownerDetails?.name}
+                                  date={profileData.declaration?.acceptedAt}
+                                  showViewDeclaration={true}
+                                  callback={handleViewDeclaration}
+                                />
+                              </div>
+                            ) : null}
+                            {!declarationVerified &&
+                            profileData?._canShowDeclarationForm ? (
+                              <InfoBlock
+                                bordered
+                                variant="info"
+                                size="sm"
+                                className="tw:mb-4"
+                              >
+                                <span className="tw:font-semibold tw:flex tw:items-center tw:gap-2 tw:mb-2">
+                                  <HelpCircle size={16} /> Please note:
+                                </span>
+                                <div className="tw:text-sm">
+                                  You can upload documents or just submit the
+                                  declaration form.{" "}
+                                  <span className="tw:font-semibold">
+                                    &quot;Submitting the declaration form will
+                                    complete your profile verification.&quot;
+                                  </span>
+                                </div>
+                              </InfoBlock>
+                            ) : null}
+                            <Documents
+                              documents={profileData.documents}
+                              onRefresh={fetchProfile}
+                            />
+                            {!declarationVerified &&
+                            profileData?._canShowDeclarationForm ? (
+                              <div className="tw:flex tw:items-center tw:gap-2 tw:my-6">
+                                <div className="tw:flex-1 tw:border-t tw:border-gray-400"></div>
+                                <div className="tw:text-gray-900 tw:text-sm">
+                                  <span className="tw:font-medium tw:border tw:border-gray-900 tw:px-2 tw:py-1 tw:rounded-md">
+                                    OR
+                                  </span>
+                                </div>
+                                <div className="tw:flex-1 tw:border-t tw:border-gray-400"></div>
+                              </div>
+                            ) : null}
+                            {/* Declaration form for agreeing to signup declaration */}
+                            <div className="tw:mt-4">
+                              {!declarationVerified &&
+                              profileData?._canShowDeclarationForm ? (
+                                <DeclarationForm
+                                  mobile={profileData.mobile}
+                                  onVerified={onDeclarationVerified}
+                                  acceptedAt={
+                                    profileData.declaration?.acceptedAt
+                                  }
+                                />
+                              ) : null}
+                            </div>
+                          </AppCard>
+                          {/* Agreed terms (from signup) */}
+                          <div className="tw:mt-4">
+                            <AgreedTerms
+                              terms={profileData.termAndConditions}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className="tw:text-center tw:py-8">
+                      {t("noProfileDataFound")}
                     </div>
-                  ) : null}
-                  {!declarationVerified &&
-                  profileData?._canShowDeclarationForm ? (
-                    <InfoBlock
-                      bordered
-                      variant="info"
-                      size="sm"
-                      className="tw:mb-4"
-                    >
-                      <span className="tw:font-semibold tw:flex tw:items-center tw:gap-2 tw:mb-2">
-                        <HelpCircle size={16} /> Please note:
-                      </span>
-                      <div className="tw:text-sm">
-                        You can upload documents or just submit the declaration
-                        form.{" "}
-                        <span className="tw:font-semibold">
-                          &quot;Submitting the declaration form will complete
-                          your profile verification.&quot;
-                        </span>
-                      </div>
-                    </InfoBlock>
-                  ) : null}
-                  <Documents
-                    documents={profileData.documents}
-                    onRefresh={fetchProfile}
-                  />
-                  {!declarationVerified &&
-                  profileData?._canShowDeclarationForm ? (
-                    <div className="tw:flex tw:items-center tw:gap-2 tw:my-6">
-                      <div className="tw:flex-1 tw:border-t tw:border-gray-400"></div>
-                      <div className="tw:text-gray-900 tw:text-sm">
-                        <span className="tw:font-medium tw:border tw:border-gray-900 tw:px-2 tw:py-1 tw:rounded-md">
-                          OR
-                        </span>
-                      </div>
-                      <div className="tw:flex-1 tw:border-t tw:border-gray-400"></div>
-                    </div>
-                  ) : null}
-                  {/* Declaration form for agreeing to signup declaration */}
-                  <div className="tw:mt-4">
-                    {!declarationVerified &&
-                    profileData?._canShowDeclarationForm ? (
-                      <DeclarationForm
-                        mobile={profileData.mobile}
-                        onVerified={onDeclarationVerified}
-                        acceptedAt={profileData.declaration?.acceptedAt}
-                      />
-                    ) : null}
-                  </div>
-                </AppCard>
-                {/* Agreed terms (from signup) */}
-                <div className="tw:mt-4">
-                  <AgreedTerms terms={profileData.termAndConditions} />
-                </div>
+                  )}
+                </AppPaneMain>
+
+                {/* The pane is CSS-hidden below lg, but mounting it there
+                    would still run its fetches — and its identity hero now
+                    leads the page on mobile, so keep it off entirely. */}
+                {!isMobile ? (
+                  <AppPaneSide className="app-pane-only">
+                    <ProfileSidePane profileData={profileData} />
+                  </AppPaneSide>
+                ) : null}
               </div>
-            </>
-          ) : (
-            <div className="tw:text-center tw:py-8">
-              {t("noProfileDataFound")}
             </div>
-          )}
+          </div>
         </div>
       </div>
       <StoreInfoEditModal
@@ -752,10 +908,11 @@ const ProfilePage: React.FC = () => {
         canUpdate={true}
         noCancelButton={true}
       />
-      <NotesModal
-        show={notesModal.show}
-        callback={(r: { action: string; data?: any }) => {
-          setNotesModal({ show: false });
+      <NotificationLanguageModal
+        show={notificationLangModal.show}
+        data={profileData}
+        callback={(r: { action: string }) => {
+          setNotificationLangModal({ show: false });
           if (r.action === "submit") {
             fetchProfile();
           }

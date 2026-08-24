@@ -9,6 +9,7 @@ import AppButton from "~/components/core/button/AppButton";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import PaylaterService from "~/services/PaylaterService";
 import AuthService from "~/services/AuthService";
 import PaylaterManageWalletModal from "~/shared/accounts/modals/paylater/manage-wallet/PaylaterManageWalletModal";
@@ -18,16 +19,24 @@ import type { PaginationState, ViewToggleType } from "~/types/CommonTypes";
 import DesktopView from "./components/DesktopView";
 import Filter from "./components/Filter";
 import MobileView from "./components/MobileView";
+import WalletTabs, { type WalletTabKey } from "./components/WalletTabs";
 import { getCount, getData, prepareParams } from "./helper";
 import CommonService from "~/services/CommonService";
 
 const Wallets = () => {
   const { isMobile } = useScreenView();
+  // theme-2 drops the assign entry point from this list.
+  const isTheme2 = useTheme() === "theme-2";
   const { type } = useParams();
   const nav = useAppNav();
 
   const [searchParams] = useSearchParams();
   const urlStatus = searchParams.get("status") || "All";
+
+  // The route param drives the list; anything unrecognised reads as B2C, which
+  // is what the rest of the page already falls back to.
+  const activeWalletTab: WalletTabKey =
+    type === "b2b" || type === "all" ? type : "b2c";
 
   const methods = useForm({
     defaultValues: {
@@ -56,7 +65,11 @@ const Wallets = () => {
   }>({ show: false, data: {} });
 
   const handleAssignPaylater = () => {
-    nav.to("/dashboard/paylater/assign", { type: type || "b2b" });
+    // The assign flow is per user type; the combined list has none, so it
+    // starts on B2C there.
+    nav.to("/dashboard/paylater/assign", {
+      type: type === "b2b" ? "b2b" : "b2c",
+    });
   };
 
   // Refs
@@ -69,67 +82,71 @@ const Wallets = () => {
   });
   const filterRef = useRef<any>({});
 
-  const handleAction = useCallback((payload: { action: string; data: any }) => {
-    if (payload.action === "manage") {
-      setManageModal({ show: true, data: payload.data });
-    } else if (payload.action === "view") {
-    } else if (payload.action === "send-reminder") {
-      const item = payload.data;
-      const user = AuthService.getLoggedInUser() || {};
+  const handleAction = useCallback(
+    (payload: { action: string; data: any }) => {
+      if (payload.action === "manage") {
+        setManageModal({ show: true, data: payload.data });
+      } else if (payload.action === "view") {
+      } else if (payload.action === "send-reminder") {
+        const item = payload.data;
+        const user = AuthService.getLoggedInUser() || {};
 
-      // Get franchise name
-      const franchiseName = user?.name;
+        // Get franchise name
+        const franchiseName = user?.name;
 
-      // Format due date - check for validityEndDate or similar field
-      let formattedDueDate = "";
-      if (item.validityEndDate) {
-        try {
-          const dateValue =
-            typeof item.validityEndDate === "string"
-              ? parseISO(item.validityEndDate)
-              : item.validityEndDate;
-          if (isValid(dateValue)) {
-            formattedDueDate = format(dateValue, "dd MMM yyyy");
+        // Format due date - check for validityEndDate or similar field
+        let formattedDueDate = "";
+        if (item.validityEndDate) {
+          try {
+            const dateValue =
+              typeof item.validityEndDate === "string"
+                ? parseISO(item.validityEndDate)
+                : item.validityEndDate;
+            if (isValid(dateValue)) {
+              formattedDueDate = format(dateValue, "dd MMM yyyy");
+            }
+          } catch (e) {
+            formattedDueDate = String(item.validityEndDate || "");
           }
-        } catch (e) {
-          formattedDueDate = String(item.validityEndDate || "");
         }
-      }
 
-      // Prepare template data according to PaylaterNotificationTemplate interface
-      const templateData = {
-        customerName: item.userInfo?.name || "",
-        franchiseName: franchiseName,
-        amount: CommonService.formattedAmount(item.outstandingBalance || 0),
-        dueDate: formattedDueDate,
-        franchiseId: AuthService.getLoggedInUserId(),
-        customerId: item.userInfo?._id,
-      };
+        // Prepare template data according to PaylaterNotificationTemplate interface
+        const templateData = {
+          customerName: item.userInfo?.name || "",
+          franchiseName: franchiseName,
+          amount: CommonService.formattedAmount(item.outstandingBalance || 0),
+          dueDate: formattedDueDate,
+          franchiseId: AuthService.getLoggedInUserId(),
+          customerId: item.userInfo?._id,
+        };
 
-      // Prepare modal data
-      const modalData = {
-        data: {
-          dynamicData: templateData,
-        },
-        users: [
-          {
-            name: item.userInfo?.name || "",
-            mobile: item.userInfo?.mobile || "",
-            type: "Customer",
+        // Prepare modal data
+        const modalData = {
+          data: {
+            dynamicData: templateData,
           },
-          ...(item.NomineeDetails || []).map((nominee: any) => ({
-            name: nominee.name || "",
-            mobile: nominee.mobile || "",
-            type: "Nominee",
-          })),
-        ],
-        categories: ["payLater"],
-        templateFor: [type === "b2b" ? "B2B" : "B2C"],
-      };
+          users: [
+            {
+              name: item.userInfo?.name || "",
+              mobile: item.userInfo?.mobile || "",
+              type: "Customer",
+            },
+            ...(item.NomineeDetails || []).map((nominee: any) => ({
+              name: nominee.name || "",
+              mobile: nominee.mobile || "",
+              type: "Nominee",
+            })),
+          ],
+          categories: ["payLater"],
+          // The combined list mixes both, so the row decides its own template.
+          templateFor: [item.userCategory || (type === "b2b" ? "B2B" : "B2C")],
+        };
 
-      setReminderModal({ show: true, data: modalData });
-    }
-  }, []);
+        setReminderModal({ show: true, data: modalData });
+      }
+    },
+    [type],
+  );
 
   // Apply filter (initial load or filter change)
   const applyFilter = useCallback(async () => {
@@ -248,6 +265,9 @@ const Wallets = () => {
     if (type == "b2b") {
       return `B2B Customer Wallets (${data.length})`;
     }
+    if (type == "all") {
+      return `All Customer Wallets (${data.length})`;
+    }
     return `B2C Customer Wallets (${data.length})`;
   };
 
@@ -257,7 +277,9 @@ const Wallets = () => {
     const updated = payload?.data;
     if (!updated?._id) return;
 
-    const [formatted] = PaylaterService.formatPaylaterRequest([updated]) as any[];
+    const [formatted] = PaylaterService.formatPaylaterRequest([
+      updated,
+    ]) as any[];
 
     setData(
       produce((draft) => {
@@ -295,6 +317,8 @@ const Wallets = () => {
 
   return (
     <>
+      <WalletTabs activeTab={activeWalletTab} />
+
       <div className="tw:md:py-4">
         <FormProvider {...methods}>
           <Filter callback={onFilterChange} />
@@ -310,17 +334,19 @@ const Wallets = () => {
             />
           </div>
           <div className="tw:flex tw:items-center tw:gap-2">
-            <AppButton
-              size="small"
-              color="success"
-              fill="solid"
-              onClick={handleAssignPaylater}
-            >
-              <Zap size={14} />
-              {AuthService.isManpowerLoggedIn()
-                ? "Create PayLater Request"
-                : "Assign PayLater"}
-            </AppButton>
+            {!isTheme2 && (
+              <AppButton
+                size="small"
+                color="success"
+                fill="solid"
+                onClick={handleAssignPaylater}
+              >
+                <Zap size={14} />
+                {AuthService.isManpowerLoggedIn()
+                  ? "Create PayLater Request"
+                  : "Assign PayLater"}
+              </AppButton>
+            )}
             <ViewToggle viewType={viewType} callback={setViewType} />
           </div>
         </div>
@@ -345,7 +371,15 @@ const Wallets = () => {
         show={manageModal.show}
         callback={handleModalCallback}
         userId={manageModal.data?.userInfo?.id}
-        routeType={type}
+        // On the combined list the row, not the route, says which side of the
+        // book the wallet belongs to.
+        routeType={
+          type === "all"
+            ? manageModal.data?.userCategory === "B2B"
+              ? "b2b"
+              : "b2c"
+            : type
+        }
       />
 
       <WhatsappTemplateModal

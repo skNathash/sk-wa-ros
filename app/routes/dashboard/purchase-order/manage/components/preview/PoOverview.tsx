@@ -11,6 +11,8 @@ import { useTranslation } from "react-i18next";
 interface PoOverviewProps {
   vendor: Record<string, any>;
   products: Record<string, any>[];
+  /** `cartSummary` from the purchase-cart API — displayed as-is. */
+  summary?: Record<string, any>;
   expectedDate?: Date;
 }
 
@@ -27,18 +29,18 @@ const dateConfig: DayPickerProps = {
   endMonth: endDate,
 };
 
-const PoOverview = ({ vendor, products, expectedDate }: PoOverviewProps) => {
+const PoOverview = ({
+  vendor,
+  products,
+  summary = {},
+}: PoOverviewProps) => {
   const { t } = useTranslation(["common"]);
-  const { control, register, formState } = useFormContext();
-  // Calculate totals
-  const totalItems = products.reduce(
-    (sum, product) => sum + (Number(product.quantity) || 0),
-    0
-  );
-  const orderValue = products.reduce(
-    (sum, product) => sum + (product.total || 0),
-    0
-  );
+  const { control, register } = useFormContext();
+
+  // Totals come straight from the cart summary — no FE calculation.
+  const productCount = summary.totalItems ?? products.length;
+  const totalItems = summary.totalQuantity ?? 0;
+  const orderValue = Number(summary.totalPurchaseValue) || 0;
 
   return (
     <AppCard title={t("purchaseOrderOverview")}>
@@ -92,7 +94,7 @@ const PoOverview = ({ vendor, products, expectedDate }: PoOverviewProps) => {
               <span className="tw:font-medium tw:w-1/2 tw:md:w-1/3">
                 {t("products")}
               </span>
-              <span>: {products.length}</span>
+              <span>: {productCount}</span>
             </div>
             <div className="tw:flex tw:items-center tw:gap-4">
               <span className="tw:font-medium tw:w-1/2 tw:md:w-1/3">

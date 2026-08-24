@@ -10,6 +10,23 @@ class WhatsappTemplateService {
     );
   }
 
+  // Fetch a single template by its id and format it (adds isAssetFeatureImage).
+  // Returns null if not found.
+  static async getById(
+    templateId: string | number,
+  ): Promise<Record<string, any> | null> {
+    if (!templateId) return null;
+    try {
+      const resp = await this.getList({ filter: { _id: templateId } });
+      const list = resp?.data?.data || [];
+      const template = Array.isArray(list) ? list[0] : list;
+      return template ? this.formatTemplate(template) : null;
+    } catch (err) {
+      console.error("WhatsappTemplateService.getById", err);
+      return null;
+    }
+  }
+
   // Render a template body by replacing placeholders like {{name}} with values from data.
   // Supports nested keys with dot notation, e.g. {{user.name}} and array indexes like {{items.0.title}}.
   static renderTemplate(body: string, data: Record<string, any> = {}): string {

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import AppCard from "~/components/core/card/AppCard";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import type { PaginationState, SortProps } from "~/types/CommonTypes";
+import ChatView from "./components/ChatView";
 import DesktopView from "./components/DesktopView";
 import MobileView from "./components/MobileView";
 import Filter from "./components/Filter";
@@ -24,6 +26,8 @@ const defaultSort: SortProps = {
 const SKStatement = () => {
   const { t } = useTranslation(["common"]);
   const { isMobile } = useScreenView();
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
   const formMethods = useForm<FilterFormData>({
     defaultValues: defaultFilter,
   });
@@ -133,23 +137,31 @@ const SKStatement = () => {
       {/* Wallet Balance Component */}
       <WalletBalance />
 
-      {/* Filter, AppliedFilters, and PaginationSummary - Common for both views */}
+      {/* Filter and AppliedFilters - Common for both views */}
       <FormProvider {...formMethods}>
         <Filter />
         <AppliedFilters />
       </FormProvider>
-      <PaginationSummary
-        paginationConfig={paginationRef.current}
-        loadingTotalRecords={loading}
-        loadedCount={data.length}
-        fwSize="sm"
-        className="tw:mb-4"
-      />
+
+      {/* Pagination Summary - Desktop only */}
+      {!isMobile && (
+        <PaginationSummary
+          paginationConfig={paginationRef.current}
+          loadingTotalRecords={loading}
+          loadedCount={data.length}
+          fwSize="sm"
+          className="tw:mb-4"
+        />
+      )}
 
       {/* Mobile View */}
       {isMobile ? (
         <>
-          <MobileView data={data} loading={loading} />
+          {isTheme2 ? (
+            <ChatView data={data} loading={loading} />
+          ) : (
+            <MobileView data={data} loading={loading} />
+          )}
           {hasMoreData && !loading && (
             <LoadMoreButton
               loadMore={loadMore}

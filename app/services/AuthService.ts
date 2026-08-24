@@ -25,6 +25,7 @@ export class AuthService {
   private static readonly USER_KEY = "_u";
   private static readonly SELLER_KEY = "_s";
   private static readonly MANPOWER_KEY = "_m";
+  private static readonly RUNNER_KEY = "_runner";
 
   // Holds the last used mobile number in-memory during the SPA lifecycle
   private static lastMobileNumber: string | null = null;
@@ -51,6 +52,10 @@ export class AuthService {
 
   public static doLogin(params: any) {
     return AjaxService.request(`${API}user/auth/login`, "POST", params);
+  }
+
+  public static otpLogin(params: any) {
+    return AjaxService.request(`${API}user/auth/otp/login`, "POST", params);
   }
 
   public static verifyOtpLogin(params: any) {
@@ -95,6 +100,10 @@ export class AuthService {
   }
 
   static getLoggedInUserId(useFid?: boolean) {
+    if (this.isRunnerLoggedIn()) {
+      return this.getRunner()?._id || this.getLoggedInUserTokenId();
+    }
+
     if (this.isManpowerLoggedIn()) {
       return this.getManpower()?.franchiseInfo?.id;
     }
@@ -229,6 +238,57 @@ export class AuthService {
   }
 
   /**
+   * Returns true if the currently logged in user is a Runner.
+   */
+  static isRunnerLoggedIn(): boolean {
+    try {
+      const u = StorageService.get<{ type?: string; userType?: string }>(
+        this.USER_KEY,
+      ) || {};
+      return u.type === "Runner" || u.userType === "Runner";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Returns the runner details stored under `_runner` in storage, or null.
+   */
+  static getRunner<T = any>(): T | null {
+    try {
+      return StorageService.get<T>(this.RUNNER_KEY) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Persist the runner's online/offline state (`isAvailable`) onto the runner
+   * record stored under `_runner` in storage.
+   */
+  static updateRunnerIsOnline(online: boolean): void {
+    try {
+      const runner = this.getRunner<Record<string, any>>() || {};
+      StorageService.set(this.RUNNER_KEY, { ...runner, isAvailable: online });
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  /**
+   * Returns true when the stored runner is online, false otherwise. Offline is
+   * assumed when the flag is missing (new sessions) or not a boolean.
+   */
+  static isRunnerOnline(): boolean {
+    try {
+      const runner = this.getRunner<{ isAvailable?: boolean }>();
+      return runner?.isAvailable === true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Returns the manpower details stored under `_m` in storage, or null if not present.
    */
   static getManpower<T = any>(): T | null {
@@ -335,6 +395,7 @@ export class AuthService {
     StorageService.remove("_s");
     StorageService.remove("fid");
     StorageService.remove("subscart");
+    StorageService.remove("_runner");
   }
 
   static doLogout(id: string, params?: any) {
@@ -424,11 +485,11 @@ export class AuthService {
     let notFound = false;
 
     const resp = await AjaxService.request(
-      `${API}user/users/franchise/validate-mobile/${mobileNo}?userTypes=Franchise,Manpower`,
+      `${API}user/users/franchise/validate-mobile/${mobileNo}?userTypes=Franchise,Manpower,Runner`,
       "GET",
     );
     const type = resp?.data?.data?.type || "";
-    if (type === "Manpower") {
+    if (type === "Manpower" || type === "Runner") {
       isManpower = true;
     } else if (type === "Franchise") {
       isFranchise = true;
@@ -443,6 +504,7 @@ export class AuthService {
       data: {
         isManpower,
         isFranchise,
+        type,
         hasAccount:
           typeof data?.hasAccount === "boolean" ? data?.hasAccount : null,
         notFound,
@@ -624,6 +686,16 @@ export class AuthService {
   }
 
   /**
+   * Deals the franchise has subscribed to so far. Kept on the logged-in user
+   * as `analytics.totalSubscribedDeals` and bumped locally by the subscribe
+   * flows, so a first-time user (never subscribed anything) reads 0.
+   */
+  static getTotalSubscribedDeals(): number {
+    const user = this.getLoggedInUser();
+    return Number(user?.analytics?.totalSubscribedDeals) || 0;
+  }
+
+  /**
    * Returns true if the logged in user's networkType is SKSELLER
    */
   static isSkSeller(): boolean {
@@ -704,6 +776,16 @@ export class AuthService {
     } catch (e) {
       return null;
     }
+  }
+
+  /**
+   * Return the logged-in master employee's own id (`userId` on the decoded
+   * master token). This matches the `employee.refId` scoping used by the CRM
+   * employee follow-ups page, so it can be used to link a master user to their
+   * own follow-ups. Empty string when not in a master login session.
+   */
+  static getMasterEmployeeId(): string {
+    return this.getLoggedMasterEmployee()?.userId || "";
   }
 
   /**

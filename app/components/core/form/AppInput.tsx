@@ -17,6 +17,7 @@ interface AppInputProps {
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
   onClick?: (event: React.MouseEvent<HTMLInputElement>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   disabled?: boolean;
   isRequired?: boolean;
   maxLength?: number;
@@ -46,6 +47,7 @@ export const AppInput = ({
   onBlur,
   onFocus,
   onClick,
+  onKeyDown,
   disabled = false,
   isRequired,
   maxLength,
@@ -128,6 +130,7 @@ export const AppInput = ({
           onBlur={handleBlur}
           onFocus={handleFocus}
           onClick={onClick}
+          onKeyDown={onKeyDown}
           readOnly={readOnly}
           disabled={disabled}
           autoComplete={autoComplete}
@@ -137,11 +140,10 @@ export const AppInput = ({
           min={min}
           {...registerRest}
           className={clsx(
-            size === "sm" && "tw:h-9 tw:text-sm",
+            size === "sm" && "tw:lg:h-8 tw:text-sm",
             leftIcon && "tw:pl-10",
             rightIcon && "tw:pr-10",
             inputClassName,
-            size === "sm" && "tw:h-8",
             size === "lg" && "tw:h-10",
           )}
         />

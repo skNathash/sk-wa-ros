@@ -305,6 +305,7 @@ const FilterModal = ({ show, callback, data, activeTab = "" }: Props) => {
             />
 
             <div className="tw:flex tw:flex-row tw:items-center tw:gap-4 tw:flex-wrap">
+              {/* Consumer offer filter — hidden for now
               <Controller
                 control={control}
                 name="onlyOffers"
@@ -317,6 +318,7 @@ const FilterModal = ({ show, callback, data, activeTab = "" }: Props) => {
                   />
                 )}
               />
+              */}
 
               <Controller
                 control={control}

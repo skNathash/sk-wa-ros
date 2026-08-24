@@ -325,6 +325,7 @@ const StoreLocationPage = () => {
       registrationFrom: "CLUB",
       monthlyTurnOver: formData.monthlyTurnOver || "",
       yearsOfExperience: formData.yearsOfExperience || "",
+      notificationMessageLang: formData.notificationMessageLang || "en",
     };
 
     return payload;

@@ -228,8 +228,76 @@ class AccountService {
     return AjaxService.request(`${API}accounts/fetchAccounts`, "GET", params);
   }
 
+  static getPnlReport(params: Record<string, any> = {}) {
+    return AjaxService.request(`${API}accounts/reports/pnl`, "GET", params);
+  }
+
+  static getProfitLossThisMonthSummary(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/dashboard/profitLoss/thisMonth`,
+      "GET",
+      params,
+    );
+  }
+
+  static getProfitLossFyViewSummary(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/dashboard/profitLoss/fyView`,
+      "GET",
+      params,
+    );
+  }
+
+  static getProfitLossFy(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/dashboard/profitLoss/fy`,
+      "GET",
+      params,
+    );
+  }
+
+  static getProfitLossQuarter(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/dashboard/profitLoss/quarter`,
+      "GET",
+      params,
+    );
+  }
+
+  static getDashboardOverview(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/dashboard/overview`,
+      "GET",
+      params
+    );
+  }
+
+  static getMoneyInDashboard(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/dashboard/moneyInDashboard`,
+      "GET",
+      params
+    );
+  }
+
+  static getMoneyOutDashboard(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/dashboard/moneyOutDashboard`,
+      "GET",
+      params
+    );
+  }
+
   static getStatements(params: Record<string, any> = {}) {
     return AjaxService.request(`${API}accounts/statements`, "GET", params);
+  }
+
+  static getVendorStatement(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/vendor-statement`,
+      "GET",
+      params
+    );
   }
 
   static formatTransactionResponse(data: any) {
@@ -282,6 +350,7 @@ class AccountService {
       }
 
       e._sourceTypeLbl = this.getSourceTypeLabel(e.sourceType);
+      e._sourceTypeShortLbl = this.getSourceTypeShortLabel(e.sourceType);
 
       // if (e.paymentType === "credit") {
       //   e.balanceBefore = (e.outstandingAmount || 0) - (e.amount || 0);
@@ -467,6 +536,54 @@ class AccountService {
     }
   }
 
+  // Compact 2-4 letter code for tight UI chips (theme-2 mobile ledger cards).
+  static getSourceTypeShortLabel(type: string): string {
+    switch (type) {
+      case "PO":
+        return "PO";
+      case "PO_CHARGE":
+        return "CHG";
+      case "PLATFORM_FEE":
+        return "FEE";
+      case "INVOICE":
+        return "INV";
+      case "PAYMENT":
+        return "PAY";
+      case "ADJUSTMENT":
+        return "ADJ";
+      case "SHIPMENT":
+        return "SHIP";
+      case "POS_SALES":
+        return "POS";
+      case "B2B_SALES":
+        return "B2B";
+      case "CLUB_SALES":
+        return "CLUB";
+      case "SALES":
+        return "SALE";
+      case "LOCAL_PURCHASE":
+        return "LP";
+      case "OWN_PURCHASE":
+        return "OP";
+      case "SK_PURCHASE":
+        return "SKP";
+      case "EXPENSE":
+        return "EXP";
+      case "REFUND":
+        return "REF";
+      case "DEPOSIT":
+        return "DEP";
+      case "WITHDRAWAL":
+        return "WD";
+      case "CREDIT_NOTE":
+        return "CN";
+      case "GRN":
+        return "IN";
+      default:
+        return (type || "-").slice(0, 4);
+    }
+  }
+
   static formatStatementResponse(data: any[]) {
     return data.map((item: any) => {
       // Add redirection URL based on sourceType and sourceReference
@@ -482,6 +599,7 @@ class AccountService {
 
       // Add formatted sourceType label
       item._sourceTypeLbl = this.getSourceTypeLabel(item.sourceType);
+      item._sourceTypeShortLbl = this.getSourceTypeShortLabel(item.sourceType);
 
       item._vendorInfo = {};
       if (item.toParty?.type === "vendor" && item.sourceType === "PO") {

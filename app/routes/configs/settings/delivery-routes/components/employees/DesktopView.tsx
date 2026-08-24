@@ -86,7 +86,9 @@ const DesktopView = ({
               </AppTable.Cell>
               <AppTable.Cell>{d.mobile || "-"}</AppTable.Cell>
               <AppTable.Cell>
-                <AppBadge variant={d._positionBadgeColor}>{d.digitalRole}</AppBadge>
+                <AppBadge variant={d._positionBadgeColor}>
+                  {d.digitalRole}
+                </AppBadge>
               </AppTable.Cell>
               <AppTable.Cell>
                 {d.linkedRoutes?.length > 0 ? (
@@ -94,7 +96,7 @@ const DesktopView = ({
                     {d.linkedRoutes.map((route: any) => (
                       <div
                         key={route.routeId}
-                        className="tw:inline-flex tw:items-center tw:gap-1 tw:px-2 tw:py-0.5 tw:rounded tw:bg-blue-50 tw:border tw:border-blue-200 tw:text-xs tw:font-medium tw:text-blue-700"
+                        className="tw:inline-flex tw:items-center tw:gap-1 tw:px-2 tw:py-0.5 tw:rounded tw:bg-primary-50 tw:border tw:border-primary-200 tw:text-xs tw:font-medium tw:text-primary-700"
                       >
                         <span>{route.routeName}</span>
                         <Rbac roles={rbacRoles.assignRoute}>
@@ -103,7 +105,11 @@ const DesktopView = ({
                             onClick={() =>
                               callback?.({
                                 action: "remove",
-                                data: { ...d, routeId: route.routeId, routeName: route.routeName },
+                                data: {
+                                  ...d,
+                                  routeId: route.routeId,
+                                  routeName: route.routeName,
+                                },
                               })
                             }
                             className="tw:ml-0.5 tw:text-red-400 hover:tw:text-red-600 tw:transition-colors"

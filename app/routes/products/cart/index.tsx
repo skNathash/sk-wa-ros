@@ -34,7 +34,6 @@ import PaymentOptionModal from "./modals/PaymentOptionModal";
 import CartTermsModal from "./overview/modals/CartTermsModal";
 import { useTranslation } from "react-i18next";
 import CartTab from "~/shared/catalog/components/cart-tab/CartTab";
-import KeyValue from "~/components/core/key-value/KeyValue";
 import DateFormat from "~/components/core/date/DateFormat";
 
 export async function clientLoader() {
@@ -52,7 +51,7 @@ const Cart = () => {
 
   // Buying from another retailer (retailer param present) belongs to the
   // "Buy from Network" tab; otherwise this is the StoreKing cart.
-  const sectionActiveTab = retailerId ? "buy-from-network" : "buy-from-sk";
+  const sectionActiveTab = retailerId ? "sellers" : "buy-from-sk";
 
   const showTab = searchParams.get("tab") === "1";
 
@@ -600,7 +599,7 @@ const Cart = () => {
 
               <div className="tw:mb-4">
                 {showTab ? (
-                  <CartTab activeTab="sk" className="tw:mb-2" />
+                  <CartTab activeTab="sk" className="edge-tabs tw:mb-2" />
                 ) : null}
 
                 <div className="tw:text-xs tw:text-gray-500">
@@ -637,32 +636,27 @@ const Cart = () => {
 
                       {/* Cart Items */}
                       <AppCard noPadding>
-                        <div className="tw:bg-blue-50 tw:p-4">
-                          <div className="tw:flex tw:items-center tw:justify-between tw:gap-4">
-                            <div className="tw:flex-1">
-                              <KeyValue
-                                label="Seller Name"
-                                size="sm"
-                                valueClassName="tw:font-semibold"
-                              >
-                                StoreKing
-                              </KeyValue>
+                        <div className="app-seller-header tw:bg-primary/5 tw:p-3 tw:border-b tw:border-primary/15">
+                          <div className="tw:flex tw:items-center tw:gap-3">
+                            {/* Avatar */}
+                            <div className="tw:shrink-0 tw:w-10 tw:h-10 tw:rounded-full tw:bg-primary tw:text-white tw:flex tw:items-center tw:justify-center tw:text-sm tw:font-bold">
+                              S
                             </div>
 
-                            <div className="tw:shrink-0 tw:flex tw:flex-col tw:items-end tw:justify-center tw:gap-1">
-                              {/* <span className="tw:inline-flex tw:items-center tw:text-xs tw:text-gray-600">
-                            <MapPin size={12} /> 20km
-                          </span> */}
+                            <div className="tw:min-w-0 tw:flex-1">
+                              <div className="tw:font-semibold tw:text-gray-900 tw:truncate tw:leading-tight">
+                                StoreKing
+                              </div>
 
                               {pdpDate ? (
-                                <span className="tw:inline-flex tw:items-center tw:text-[11px] tw:text-gray-600">
-                                  Delivery By{" "}
+                                <div className="tw:mt-0.5 tw:inline-flex tw:items-center tw:text-[11px] tw:text-gray-500">
+                                  Delivery by
                                   <DateFormat
                                     value={pdpDate}
                                     formatStr="dd MMM yyyy"
                                     className="tw:ms-1"
                                   />
-                                </span>
+                                </div>
                               ) : null}
                             </div>
                           </div>
@@ -722,7 +716,7 @@ const Cart = () => {
                             product price increases during order processing.{" "}
                             <button
                               type="button"
-                              className="tw:outline-none tw:text-blue-700 tw:underline tw:cursor-pointer tw:font-semibold tw:text-xs"
+                              className="tw:outline-none tw:text-primary tw:underline tw:cursor-pointer tw:font-semibold tw:text-xs"
                               onClick={() => setTermsModal({ show: true })}
                             >
                               Read More

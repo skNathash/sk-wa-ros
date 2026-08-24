@@ -5,7 +5,7 @@ import AppSwiper from "~/components/core/swiper";
 import ProductCard from "../../../components/ProductCard";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import { Skeleton } from "~/components/ui/skeleton";
-import SellerListModal from "../../../modals/seller-list/SellerListModal";
+import SellerListModal from "~/shared/catalog/modals/seller-list/SellerListModal";
 import useAppNav from "~/hooks/useAppNav";
 import useTheme from "~/hooks/useTheme";
 import CommonService from "~/services/CommonService";

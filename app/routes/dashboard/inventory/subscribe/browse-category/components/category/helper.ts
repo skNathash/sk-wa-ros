@@ -33,14 +33,12 @@ export const prepareParams = (
   params: Record<string, any>,
   pagination: PaginationState
 ) => {
+  // Shared deal filter, so each tile's count matches the list it opens.
   let p: Record<string, any> = {
+    ...InventorySubscribeService.getSubscribableDealParams(),
     page: pagination.activePage,
     count: pagination.rowsPerPage,
-    filter: {},
-    dealSubscribeType: "NOTSUBSCRIBED",
-    sort: {
-      "_id.categoryName": 1,
-    },
+    sort: { sortType: "popular" },
   };
 
   // Handle search filter
@@ -69,10 +67,6 @@ export const prepareParams = (
   if (params.alpha) {
     p.filter["applicableCategory.categoryName"] =
       CommonService.prepareAlphaRegexFilter(params.alpha);
-  }
-
-  if (!Object.keys(p.filter).length) {
-    delete p.filter;
   }
 
   if (params.sortType) {

@@ -11,9 +11,8 @@ import useAppNav from "~/hooks/useAppNav";
 import useScreenView from "~/hooks/useScreenView";
 import MiscService from "~/services/MiscService";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
-import DesktopView from "./components/DesktopView";
-import MobileView from "./components/MobileView";
 import Review from "./components/review/Review";
+import ScannedBarcodeGrid from "~/shared/inventory/components/scanned-barcode-card/ScannedBarcodeGrid";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
 import ScanQtyModal from "./modals/ScanQtyModal";
@@ -29,12 +28,18 @@ import {
 } from "./helper";
 import {
   ScanLine,
+  ArrowRight,
   CornerDownLeft,
   PackageSearch,
   ListChecks,
+  Search,
   Keyboard,
 } from "lucide-react";
 import CartStatusBar from "~/shared/inventory/subscribe-scan/components/CartStatusBar";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import SubscribeSidePane from "~/shared/inventory/components/subscribe-side-pane/SubscribeSidePane";
 
 const steps: StepData[] = [
   { key: "scan", title: "Scan barcode", icon: "scan-line" },
@@ -76,6 +81,8 @@ const BarcodeScan = () => {
     initialImageId?: string;
   }>({ show: false, images: [] });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Bulk-subscribe state for the review footer action.
+  const [subscribing, setSubscribing] = useState(false);
   // Review data lives here so it flows one way down into <Review/>: index owns
   // the fetch + poll, the review component just renders.
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
@@ -119,7 +126,9 @@ const BarcodeScan = () => {
       currentLocation.pathname !== nextLocation.pathname &&
       // Going to the subscribe cart is the intended forward step after a
       // successful subscribe — don't warn about leaving for that.
-      !nextLocation.pathname.startsWith("/dashboard/inventory/subscribe/cart") &&
+      !nextLocation.pathname.startsWith(
+        "/dashboard/inventory/subscribe/cart",
+      ) &&
       // "Add Details" sends the seller to the add-product page to create a
       // scanned item; the batch is already persisted and they return here with
       // the batchId, so this is a deliberate round-trip, not a discard.
@@ -241,9 +250,9 @@ const BarcodeScan = () => {
     });
   }, [isMobile]);
 
-  // Add several barcodes at once from a comma-separated string. These skip the
-  // quantity modal and land with qty 0 — the user sets quantities afterward in
-  // the scanned list. Dedupes against what's already scanned and caps at 25.
+  // Add one or more barcodes from a (possibly comma-separated) string. Scans
+  // never prompt for a quantity — they land with qty 0 and the user sets
+  // quantities afterward in the scanned list. Dedupes and caps at 25.
   const addBarcodesBulk = useCallback(
     (raw: string) => {
       const codes = raw
@@ -298,41 +307,23 @@ const BarcodeScan = () => {
     [showToast, focusInput, batchId],
   );
 
-  const openModal = useCallback(
+  // A scan/type-in adds straight to the list with qty 0 — no quantity prompt in
+  // the middle of scanning. The modal is only opened when editing an existing
+  // row's quantity.
+  const addOrEdit = useCallback(
     (value: string, qty?: number, opts?: { isEdit?: boolean }) => {
       const barcode = (value || "").trim();
       if (!barcode) {
         showToast({ msg: "Enter a barcode or product name", color: "error" });
         return;
       }
-      // Comma-separated input is a bulk add — split and add each directly,
-      // skipping the per-item quantity modal.
-      if (!opts?.isEdit && barcode.includes(",")) {
+      if (!opts?.isEdit) {
         addBarcodesBulk(barcode);
         return;
       }
-      if (!opts?.isEdit) {
-        if (itemsRef.current.length >= 25) {
-          showToast({
-            msg: "Maximum 25 items allowed",
-            color: "error",
-          });
-          setBarcode("");
-          focusInput();
-          return;
-        }
-        const key = itemKey({ barcode });
-        const exists = itemsRef.current.some((i) => itemKey(i) === key);
-        if (exists) {
-          showToast({ msg: "Already added", color: "error" });
-          setBarcode("");
-          focusInput();
-          return;
-        }
-      }
       setBarcodeModal({ show: true, data: { barcode, qty } });
     },
-    [showToast, focusInput, addBarcodesBulk],
+    [showToast, addBarcodesBulk],
   );
 
   const triggerCordovaScan = useCallback(() => {
@@ -340,11 +331,11 @@ const BarcodeScan = () => {
     if (!cordova) return;
     cordova.plugins.barcodeScanner.scan(
       (r: any) => {
-        if (r && r.text) openModal(r.text);
+        if (r && r.text) addOrEdit(r.text);
       },
       () => {},
     );
-  }, [openModal]);
+  }, [addOrEdit]);
 
   const upsertItem = useCallback((barcode: string, qty: number) => {
     setItems((prev) => {
@@ -479,7 +470,7 @@ const BarcodeScan = () => {
         selectTimeoutRef.current = null;
       }
       const val = inputRef.current?.value ?? barcode;
-      openModal(val);
+      addOrEdit(val);
     }
   };
 
@@ -492,7 +483,7 @@ const BarcodeScan = () => {
       if (selectTimeoutRef.current) clearTimeout(selectTimeoutRef.current);
       selectTimeoutRef.current = setTimeout(() => {
         selectTimeoutRef.current = null;
-        openModal(inputRef.current?.value ?? val);
+        addOrEdit(inputRef.current?.value ?? val);
       }, 100);
     }
   };
@@ -501,10 +492,21 @@ const BarcodeScan = () => {
     (e.target as HTMLInputElement).select();
   };
 
-  const handleAddClick = () => openModal(barcode);
+  const handleAddClick = () => addOrEdit(barcode);
+
+  // Same action as Enter; keep focus in the field so the next scan/type lands
+  // there instead of on the button.
+  const handleFindClick = () => {
+    if (selectTimeoutRef.current) {
+      clearTimeout(selectTimeoutRef.current);
+      selectTimeoutRef.current = null;
+    }
+    addOrEdit(inputRef.current?.value ?? barcode);
+    inputRef.current?.focus();
+  };
 
   const handleEditItem = (item: ScannedItem) =>
-    openModal(item.barcode, item.qty, { isEdit: true });
+    addOrEdit(item.barcode, item.qty, { isEdit: true });
 
   // Own the review batch fetch + poll here so data flows one way into <Review/>.
   // Seed instantly from the barcodes we already scanned, then the first fetch
@@ -625,6 +627,139 @@ const BarcodeScan = () => {
     [],
   );
 
+  // FoundInSk rows carry a real catalog deal we can subscribe to in one call.
+  const subscribableItems = useMemo(
+    () =>
+      reviewItems.filter(
+        (i) => i.matchStatus === "FoundInSk" && i.deal && !i.deal.isSubscribed,
+      ),
+    [reviewItems],
+  );
+
+  // AI-found / Not-found rows the user can send for creation from the cart.
+  // Already-requested rows are excluded — they've been sent to the catalog team,
+  // so counting them again would inflate the "added to pending" tally and the
+  // cart's newPending deep-link.
+  const creatableItems = useMemo(
+    () =>
+      reviewItems.filter(
+        (i) =>
+          (i.matchStatus === "FoundInAi" || i.matchStatus === "NotFound") &&
+          i.status !== "Requested",
+      ),
+    [reviewItems],
+  );
+
+  // Tapping Subscribe bulk-subscribes the FoundInSk rows in one call and then
+  // redirects to the cart — no intermediate selection step. Not-in-catalog rows
+  // aren't created here; they surface in the cart's "Create Pending" tab, the
+  // single place creation now happens.
+  const handleSubscribe = async () => {
+    const allSubscribed =
+      reviewItems.length > 0 && reviewItems.every((i) => i.deal?.isSubscribed);
+    if (allSubscribed) {
+      showToast({
+        msg: "All items in this batch are already subscribed",
+        color: "warning",
+      });
+      return;
+    }
+    if (!subscribableItems.length && !creatableItems.length) {
+      showToast({ msg: "Nothing to subscribe", color: "error" });
+      return;
+    }
+    setSubscribing(true);
+    try {
+      // Subscribe the FoundInSk rows in one call — only when there are any, so
+      // a create-only batch doesn't hit the subscribe endpoint with an empty
+      // products list.
+      let subscribedCount = 0;
+      if (subscribableItems.length) {
+        const products = subscribableItems.map((item) => {
+          const deal = item.deal!;
+          return {
+            dealId: deal.id,
+            dealRefId: deal.dealId,
+            name: deal.title,
+            quantity: item.qty || 0,
+            mrp: deal.mrp,
+            price: deal.mrp,
+            images: deal.images || [],
+            // Drop blanks — a name-scanned row has no code on either side, and
+            // `[""]` would land an empty barcode on the subscription.
+            barcodes: [deal.barcode || item.barcode].filter(Boolean),
+          };
+        });
+        const res = await InventorySubscribeService.bulkSubscription(products);
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          showToast({
+            msg: res.data?.message || "Failed to subscribe products",
+            color: "error",
+          });
+          return;
+        }
+        subscribedCount = products.length;
+      }
+
+      // Mark the batch completed now that its matched items have been
+      // subscribed. Best-effort — a failure here shouldn't block the redirect
+      // since the products are already subscribed.
+      if (batchId) {
+        InventorySubscribeService.submitAiBulkBarcodeScanBatch(batchId).catch(
+          () => {},
+        );
+      }
+
+      // Confirm the subscribe before the redirect so landing on the cart never
+      // feels like a silent teleport. Use specific messages depending on whether
+      // we subscribed catalog items, sent items to pending creation, or both.
+      if (subscribedCount) {
+        if (creatableItems.length > 0) {
+          showToast({
+            msg: `${subscribedCount} product${
+              subscribedCount > 1 ? "s" : ""
+            } subscribed & ${creatableItems.length} product${
+              creatableItems.length > 1 ? "s" : ""
+            } added to pending — taking you to your subscription cart`,
+            color: "success",
+          });
+        } else {
+          showToast({
+            msg: `${subscribedCount} product${
+              subscribedCount > 1 ? "s" : ""
+            } subscribed — taking you to your subscription cart`,
+            color: "success",
+          });
+        }
+      } else if (creatableItems.length > 0) {
+        showToast({
+          msg: `${creatableItems.length} new product${
+            creatableItems.length > 1 ? "s" : ""
+          } found. Tap Create New to add ${
+            creatableItems.length > 1 ? "them" : "it"
+          } to your store.`,
+          color: "success",
+        });
+      }
+
+      // Go straight to the subscription cart. When nothing was subscribed (only
+      // creatable items), deep-link the "Create Pending" tab so the user lands
+      // on the list they need to act on; otherwise show the subscribed items.
+      appNav.to("/dashboard/inventory/subscribe/cart", {
+        from: "barcode-scan-bulk",
+        newPending: String(creatableItems.length),
+        ...(subscribedCount ? {} : { activeTab: "pending" }),
+      });
+    } catch (e: any) {
+      showToast({
+        msg: e?.response?.data?.message || "Failed to subscribe products",
+        color: "error",
+      });
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
   const handleBackToScan = useCallback(async () => {
     // After a reload the in-memory scanned list is gone (only the batchId
     // survives in the URL), so refetch the batch and rebuild the scanned list
@@ -668,184 +803,231 @@ const BarcodeScan = () => {
     <>
       <AppHeader title="Barcode Scan" />
       <div className="app-page tw:p-4 page-bg">
-        <div className="app-container">
-          <AppBreadcrumbs data={breadcrumbs} />
-          <PageDescription description="barcodeScan" />
-          <CartStatusBar className="tw:mt-3" />
-          <BarcodeScanTabs activeTab="bulk" className="tw:mt-4 tw:mb-4" />
-          <div className="tw:mt-4 tw:mb-2">
-            <div className="tw:flex tw:items-baseline tw:justify-between tw:mb-2">
-              <h2 className="tw:text-sm tw:font-semibold tw:text-gray-900">
-                {steps[activeStepIndex].title}
-              </h2>
-              <span className="tw:text-xs tw:font-medium tw:text-gray-400 tw:tabular-nums">
-                Step {activeStepIndex + 1} of {steps.length}
-              </span>
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        {/* <SectionTabs sectionKey="catalog" activeTab="library" noShadow sticky /> */}
+
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title="Manage Catalog"
+              />
             </div>
-            {/* The segmented track is wayfinding for the scan → qty flow. On the
+          </aside>
+
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid; the side pane only exists in
+                  theme-2 desktop, where the CSS lifts it out of the grid. */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                <AppBreadcrumbs
+                  data={breadcrumbs}
+                  className="theme-2-mobile-hide"
+                />
+                <PageDescription description="barcodeScan" />
+                <BarcodeScanTabs activeTab="bulk" className="tw:mt-3 tw:mb-3" />
+                {/* Bulk pins its own Review footer, so theme-2 mobile keeps the
+                    cart out of the footer slot rather than stacking two bars. */}
+                <CartStatusBar className="tw:mb-4" theme2Footer={false} />
+                <div className="tw:mt-4 tw:mb-2">
+                  <div className="tw:flex tw:items-baseline tw:justify-between tw:mb-2">
+                    <h2 className="tw:text-sm tw:font-semibold tw:text-gray-900">
+                      {steps[activeStepIndex].title}
+                    </h2>
+                    <span className="tw:text-xs tw:font-medium tw:text-gray-400 tw:tabular-nums">
+                      Step {activeStepIndex + 1} of {steps.length}
+                    </span>
+                  </div>
+                  {/* The segmented track is wayfinding for the scan → qty flow. On the
                 terminal review step it's fully filled and would clash with the
                 match-results bar below, so drop it there and let the header text
                 alone carry the "you're at the end" cue. */}
-            {!reviewing && (
-              <div className="tw:flex tw:gap-1.5">
-                {steps.map((s, i) => (
-                  <div
-                    key={s.key}
-                    className={`tw:h-1 tw:flex-1 tw:rounded-full tw:transition-colors ${
-                      i <= activeStepIndex ? "tw:bg-blue-500" : "tw:bg-gray-200"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {!reviewing && (
-            <>
-              <section className="tw:mt-2">
-                <div className="tw:flex tw:flex-col tw:gap-2">
-                  {hasCordova && (
-                    <BarcodeScanComp
-                      callback={(r) => {
-                        if (r.action === "scan" && r.data) openModal(r.data);
-                        else if (r.action === "error")
-                          showToast({ msg: r.data, color: "error" });
-                      }}
-                      className="tw:flex tw:items-center tw:justify-center tw:gap-2 tw:w-full tw:bg-blue-600 active:tw:bg-blue-700 tw:text-white tw:font-semibold tw:text-sm tw:rounded-xl tw:py-2.5 tw:shadow-sm tw:transition tw:cursor-pointer"
-                    >
-                      <ScanLine className="tw:w-4 tw:h-4" />
-                      Tap to scan a product
-                    </BarcodeScanComp>
+                  {!reviewing && (
+                    <div className="tw:flex tw:gap-1.5">
+                      {steps.map((s, i) => (
+                        <div
+                          key={s.key}
+                          className={`tw:h-1 tw:flex-1 tw:rounded-full tw:transition-colors ${
+                            i <= activeStepIndex
+                              ? "scan-progress-fill"
+                              : "tw:bg-gray-200"
+                          }`}
+                        />
+                      ))}
+                    </div>
                   )}
-                  {/* On cordova the camera scan lives in the button above, and
+                </div>
+
+                {!reviewing && (
+                  <>
+                    <section className="tw:mt-2">
+                      <div className="tw:flex tw:flex-col tw:gap-2">
+                        {hasCordova && (
+                          <BarcodeScanComp
+                            callback={(r) => {
+                              if (r.action === "scan" && r.data)
+                                addOrEdit(r.data);
+                              else if (r.action === "error")
+                                showToast({ msg: r.data, color: "error" });
+                            }}
+                            className="scan-camera-btn tw:flex tw:items-center tw:justify-center tw:gap-2 tw:w-full tw:font-semibold tw:text-sm tw:rounded-xl tw:py-2.5 tw:shadow-sm tw:transition tw:cursor-pointer"
+                          >
+                            <ScanLine className="tw:w-4 tw:h-4" />
+                            Tap to scan a product
+                          </BarcodeScanComp>
+                        )}
+                        {/* On cordova the camera scan lives in the button above, and
                       this field is type-only — mark it as the "or type it in"
                       alternative so the two paths don't both read as scanning. */}
-                  {hasCordova && (
-                    <div className="tw:flex tw:items-center tw:gap-3 tw:text-[11px] tw:font-medium tw:text-gray-400">
-                      <span className="tw:h-px tw:flex-1 tw:bg-gray-200" />
-                      or type it in
-                      <span className="tw:h-px tw:flex-1 tw:bg-gray-200" />
-                    </div>
-                  )}
-                  <div className="tw:relative tw:flex tw:gap-2">
-                    <div className="tw:relative tw:flex-1">
-                      {hasCordova ? (
-                        <Keyboard className="tw:absolute tw:left-3.5 tw:top-1/2 tw:-translate-y-1/2 tw:w-5 tw:h-5 tw:text-gray-400 tw:pointer-events-none" />
+                        {hasCordova && (
+                          <div className="tw:flex tw:items-center tw:gap-3 tw:text-[11px] tw:font-medium tw:text-gray-400">
+                            <span className="tw:h-px tw:flex-1 tw:bg-gray-200" />
+                            or type it in
+                            <span className="tw:h-px tw:flex-1 tw:bg-gray-200" />
+                          </div>
+                        )}
+                        <div className="tw:relative tw:flex tw:gap-2">
+                          <div className="tw:relative tw:flex-1">
+                            {hasCordova ? (
+                              <Keyboard className="tw:absolute tw:left-3.5 tw:top-1/2 tw:-translate-y-1/2 tw:w-5 tw:h-5 tw:text-gray-400 tw:pointer-events-none" />
+                            ) : (
+                              <ScanLine className="scan-search-icon tw:absolute tw:left-3.5 tw:top-1/2 tw:-translate-y-1/2 tw:w-5 tw:h-5 tw:pointer-events-none" />
+                            )}
+                            <input
+                              ref={inputRef}
+                              autoFocus={!isMobile}
+                              type="text"
+                              value={barcode}
+                              onChange={handleChange}
+                              onClick={handleInputClick}
+                              onKeyDown={handleKeyDown}
+                              placeholder={
+                                hasCordova
+                                  ? "Type a barcode, name or model"
+                                  : isMobile
+                                    ? // The Add button eats the width on phones,
+                                      // so the full prompt gets clipped mid-word.
+                                      "Name, model or barcode…"
+                                    : "Scan or type a barcode, name or model"
+                              }
+                              className={`scan-search-input tw:w-full tw:h-11 tw:border tw:rounded-xl tw:pl-11 tw:text-sm tw:font-mono tw:tracking-wide tw:bg-white tw:transition ${
+                                isMobile ? "tw:pr-4" : "tw:pr-24"
+                              }`}
+                            />
+                            {!isMobile && (
+                              <span className="tw:absolute tw:right-3 tw:top-1/2 tw:-translate-y-1/2 tw:inline-flex tw:items-center tw:gap-1 tw:text-[10px] tw:font-medium tw:text-gray-500 tw:bg-gray-100 tw:border tw:border-gray-200 tw:rounded tw:px-1.5 tw:py-0.5 tw:pointer-events-none">
+                                <CornerDownLeft className="tw:w-3 tw:h-3" />
+                                Enter
+                              </span>
+                            )}
+                          </div>
+                          {isMobile || hasCordova ? (
+                            <AppButton
+                              onClick={handleAddClick}
+                              fill="outline"
+                              className="tw:h-11 tw:px-5"
+                            >
+                              Add
+                            </AppButton>
+                          ) : (
+                            // Enter is the fast path, but a visible Find button
+                            // gives mouse users the same action without having
+                            // to guess the keyboard shortcut.
+                            <AppButton
+                              onClick={handleFindClick}
+                              fill="outline"
+                              className="tw:h-11 tw:px-5 tw:flex tw:items-center tw:gap-2"
+                            >
+                              <Search className="tw:w-4 tw:h-4" />
+                              Find
+                            </AppButton>
+                          )}
+                        </div>
+                        <p className="tw:text-xs tw:text-gray-500">
+                          Items are added straight away — set the quantity on
+                          each one in the list below.
+                          {!isMobile &&
+                            " Press Enter to add, or comma-separate to add many at once."}
+                        </p>
+                      </div>
+                    </section>
+
+                    <section className="tw:mt-6">
+                      <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:mb-2">
+                        <div className="tw:flex tw:items-center tw:gap-2">
+                          <ListChecks className="tw:w-4 tw:h-4 tw:text-gray-600" />
+                          <h2 className="tw:text-sm tw:font-semibold tw:text-gray-900">
+                            Scanned items
+                          </h2>
+                        </div>
+                        {items.length > 0 && (
+                          <div className="tw:flex tw:items-center tw:gap-2">
+                            <span className="tw:text-[11px] tw:font-medium tw:text-gray-500 tw:tabular-nums">
+                              {items.length}{" "}
+                              {items.length === 1 ? "item" : "items"} ·{" "}
+                              {totalQty} units
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowClearAlert(true)}
+                              className="tw:text-[11px] tw:font-medium tw:text-red-600 tw:px-1.5 tw:py-0.5 tw:rounded tw:transition-colors hover:tw:text-red-700 hover:tw:bg-red-50 active:tw:bg-red-100 focus-visible:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-red-300 tw:cursor-pointer"
+                            >
+                              Clear all
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {items.length === 0 ? (
+                        <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:text-center tw:py-10 tw:px-6 tw:rounded-xl tw:border tw:border-dashed tw:border-gray-200 tw:bg-gray-50/60">
+                          <div className="tw:flex tw:h-12 tw:w-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-white tw:border tw:border-gray-200 tw:shadow-sm tw:mb-3">
+                            <PackageSearch className="tw:w-6 tw:h-6 tw:text-gray-400" />
+                          </div>
+                          <div className="tw:text-sm tw:font-semibold tw:text-gray-700">
+                            No items yet
+                          </div>
+                          <div className="tw:text-xs tw:text-gray-500 tw:mt-1 tw:max-w-xs">
+                            Scan or type a barcode above to add your first
+                            product — it lands here instantly, quantity optional.
+                          </div>
+                        </div>
                       ) : (
-                        <ScanLine className="tw:absolute tw:left-3.5 tw:top-1/2 tw:-translate-y-1/2 tw:w-5 tw:h-5 tw:text-blue-500 tw:pointer-events-none" />
+                        <ScannedBarcodeGrid
+                          items={items}
+                          onEdit={handleEditItem}
+                          onRemove={removeItem}
+                        />
                       )}
-                      <input
-                        ref={inputRef}
-                        autoFocus={!isMobile}
-                        type="text"
-                        value={barcode}
-                        onChange={handleChange}
-                        onClick={handleInputClick}
-                        onKeyDown={handleKeyDown}
-                        placeholder={
-                          hasCordova
-                            ? "Type a barcode, name or model"
-                            : "Scan or type a barcode, name or model"
-                        }
-                        className={`tw:w-full tw:h-11 tw:border tw:border-gray-300 tw:rounded-xl tw:pl-11 tw:text-sm tw:font-mono tw:tracking-wide tw:bg-white tw:transition tw:shadow-xs focus:tw:outline-none focus:tw:border-blue-500 focus:tw:ring-4 focus:tw:ring-blue-100 ${
-                          isMobile ? "tw:pr-4" : "tw:pr-24"
-                        }`}
-                      />
-                      {!isMobile && (
-                        <span className="tw:absolute tw:right-3 tw:top-1/2 tw:-translate-y-1/2 tw:inline-flex tw:items-center tw:gap-1 tw:text-[10px] tw:font-medium tw:text-gray-500 tw:bg-gray-100 tw:border tw:border-gray-200 tw:rounded tw:px-1.5 tw:py-0.5 tw:pointer-events-none">
-                          <CornerDownLeft className="tw:w-3 tw:h-3" />
-                          Enter
-                        </span>
-                      )}
-                    </div>
-                    {(isMobile || hasCordova) && (
-                      <AppButton
-                        onClick={handleAddClick}
-                        fill="outline"
-                        className="tw:h-11 tw:px-5"
-                      >
-                        Add
-                      </AppButton>
-                    )}
-                  </div>
-                  <p className="tw:text-xs tw:text-gray-500">
-                    Each scan asks for a quantity, so nothing gets miscounted.
-                    {!isMobile &&
-                      " Press Enter to add, or comma-separate to add many at once."}
-                  </p>
-                </div>
-              </section>
+                    </section>
+                  </>
+                )}
 
-              <section className="tw:mt-6">
-                <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:mb-2">
-                  <div className="tw:flex tw:items-center tw:gap-2">
-                    <ListChecks className="tw:w-4 tw:h-4 tw:text-gray-600" />
-                    <h2 className="tw:text-sm tw:font-semibold tw:text-gray-900">
-                      Scanned items
-                    </h2>
-                  </div>
-                  {items.length > 0 && (
-                    <div className="tw:flex tw:items-center tw:gap-2">
-                      <span className="tw:text-[11px] tw:font-medium tw:text-gray-500 tw:tabular-nums">
-                        {items.length} {items.length === 1 ? "item" : "items"} ·{" "}
-                        {totalQty} units
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowClearAlert(true)}
-                        className="tw:text-[11px] tw:font-medium tw:text-red-600 tw:px-1.5 tw:py-0.5 tw:rounded tw:transition-colors hover:tw:text-red-700 hover:tw:bg-red-50 active:tw:bg-red-100 focus-visible:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-red-300 tw:cursor-pointer"
-                      >
-                        Clear all
-                      </button>
+                {reviewing &&
+                  batchId &&
+                  (reviewLoading || reviewItems.length > 0) && (
+                    <div className="tw:mt-4">
+                      <Review
+                        batchId={batchId}
+                        items={reviewItems}
+                        loading={reviewLoading}
+                        error={reviewError}
+                        onRemoveItem={handleRemoveReviewItem}
+                        onItemRequested={handleReviewItemRequested}
+                        onImagePreview={handleImagePreview}
+                      />
                     </div>
                   )}
-                </div>
-                {items.length === 0 ? (
-                  <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:text-center tw:py-10 tw:px-6 tw:rounded-xl tw:border tw:border-dashed tw:border-gray-200 tw:bg-gray-50/60">
-                    <div className="tw:flex tw:h-12 tw:w-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-white tw:border tw:border-gray-200 tw:shadow-sm tw:mb-3">
-                      <PackageSearch className="tw:w-6 tw:h-6 tw:text-gray-400" />
-                    </div>
-                    <div className="tw:text-sm tw:font-semibold tw:text-gray-700">
-                      No items yet
-                    </div>
-                    <div className="tw:text-xs tw:text-gray-500 tw:mt-1 tw:max-w-xs">
-                      Scan or type a barcode above to add your first product —
-                      you'll set the quantity right after.
-                    </div>
-                  </div>
-                ) : isMobile ? (
-                  <MobileView
-                    items={items}
-                    onEdit={handleEditItem}
-                    onRemove={removeItem}
-                  />
-                ) : (
-                  <DesktopView
-                    items={items}
-                    onEdit={handleEditItem}
-                    onRemove={removeItem}
-                  />
-                )}
-              </section>
-            </>
-          )}
+              </AppPaneMain>
 
-          {reviewing &&
-            batchId &&
-            (reviewLoading || reviewItems.length > 0) && (
-              <div className="tw:mt-4">
-                <Review
-                  batchId={batchId}
-                  items={reviewItems}
-                  loading={reviewLoading}
-                  error={reviewError}
-                  onRemoveItem={handleRemoveReviewItem}
-                  onItemRequested={handleReviewItemRequested}
-                  onBackToScan={handleBackToScan}
-                  onImagePreview={handleImagePreview}
-                />
-              </div>
-            )}
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where it becomes the fixed catalog list pane. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeSidePane scopeLabel="Bulk Scan" />
+              </AppPaneSide>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -865,6 +1047,41 @@ const BarcodeScan = () => {
                 className="tw:h-11 tw:px-6"
               >
                 Review
+              </AppButton>
+            </div>
+          </div>
+        </footer>
+      )}
+
+      {/* Review step — the two decisions (go back and add more, or subscribe
+          the batch) live in the page footer, not inside the review list. */}
+      {reviewing && batchId && reviewItems.length > 0 && (
+        <footer className="app-footer">
+          <div className="app-container">
+            <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:flex-wrap">
+              <AppButton
+                color="light"
+                fill="outline"
+                onClick={handleBackToScan}
+              >
+                <ScanLine className="tw:w-4 tw:h-4 tw:mr-1" />
+                Back to scan
+              </AppButton>
+              <AppButton
+                onClick={handleSubscribe}
+                disabled={
+                  subscribing ||
+                  (subscribableItems.length === 0 &&
+                    creatableItems.length === 0)
+                }
+                isLoading={subscribing}
+              >
+                {/* When nothing maps to the SK catalog the action only routes
+                    the user to the cart to create the AI-found rows — so the
+                    label sets that expectation instead of promising a
+                    subscribe that won't happen. */}
+                {subscribableItems.length > 0 ? "Subscribe" : "Create products"}
+                <ArrowRight className="tw:w-4 tw:h-4 tw:ml-1" />
               </AppButton>
             </div>
           </div>

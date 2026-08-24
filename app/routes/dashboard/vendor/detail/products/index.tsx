@@ -19,7 +19,7 @@ import {
 
 import { FormProvider, useForm } from "react-hook-form";
 import AppCard from "~/components/core/card/AppCard";
-import { Circle, CircleIcon } from "lucide-react";
+import { Circle, CircleIcon, InfoIcon } from "lucide-react";
 import DesktopView from "./components/DesktopView";
 import MobileView from "./components/MobileView";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
@@ -27,8 +27,12 @@ import Brands from "./components/brands/Brands";
 import Browse from "./components/browse/Browse";
 import Filter from "./components/filter/Filter";
 import ProductAppliedFilter from "./components/AppliedFilter";
+import CatalogChips from "./components/CatalogChips";
+import CatalogSummary from "./components/CatalogSummary";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import CommonService from "~/services/CommonService";
+import useTheme from "~/hooks/useTheme";
+import clsx from "clsx";
 
 const Products = () => {
   const { t } = useTranslation(["common"]);
@@ -41,6 +45,8 @@ const Products = () => {
   const { id } = useParams();
   const vendorId = id || "";
   const appNav = useAppNav();
+
+  const isTheme2 = useTheme() === "theme-2";
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,7 +93,7 @@ const Products = () => {
       const params = prepareParams(
         filterRef.current,
         paginationRef.current,
-        sortParam
+        sortParam,
       );
       const result = await getData(filterRef.current.vendorId, params);
       setData(result || []);
@@ -118,7 +124,7 @@ const Products = () => {
       const params = prepareParams(
         filterRef.current,
         paginationRef.current,
-        sortParam
+        sortParam,
       );
       const result = await getData(filterRef.current.vendorId, params);
       setData((prev) => [...prev, ...result]);
@@ -209,7 +215,7 @@ const Products = () => {
         setActiveTab(tabs[0].key);
       }
     },
-    [applyFilter, formMethods, tabs]
+    [applyFilter, formMethods, tabs],
   );
 
   const onTabChange = (tab: TabItem) => {
@@ -237,45 +243,66 @@ const Products = () => {
   return (
     <>
       {/* Tabs: products, brands, browse */}
-      <div className="tw:mb-4">
-        <div className="tw:flex tw:items-center tw:gap-4">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => onTabChange(tab)}
-                className={`tw:inline-flex tw:items-center tw:gap-2 tw:rounded-md tw:transition-all tw:duration-150 tw:text-sm ${
-                  isActive
-                    ? "tw:text-gray-900 tw:font-semibold"
-                    : "tw:text-gray-600"
-                }`}
-              >
-                <span className="tw:w-4 tw:h-4 tw:flex tw:items-center tw:justify-center">
-                  {isActive ? (
-                    <CircleIcon
-                      size={16}
-                      className="tw:fill-primary tw:text-primary"
-                    />
-                  ) : (
-                    <Circle size={16} className="tw:text-gray-400" />
-                  )}
-                </span>
-                <span>{tab.name}</span>
-              </button>
-            );
-          })}
+      {!isTheme2 && (
+        <div className="tw:mb-4">
+          <div className="tw:flex tw:items-center tw:gap-4">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => onTabChange(tab)}
+                  className={`tw:inline-flex tw:items-center tw:gap-2 tw:rounded-md tw:transition-all tw:duration-150 tw:text-sm ${
+                    isActive
+                      ? "tw:text-gray-900 tw:font-semibold"
+                      : "tw:text-gray-600"
+                  }`}
+                >
+                  <span className="tw:w-4 tw:h-4 tw:flex tw:items-center tw:justify-center">
+                    {isActive ? (
+                      <CircleIcon
+                        size={16}
+                        className="tw:fill-primary tw:text-primary"
+                      />
+                    ) : (
+                      <Circle size={16} className="tw:text-gray-400" />
+                    )}
+                  </span>
+                  <span>{tab.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Render content based on active tab */}
       {activeTab === "products" && (
         <>
-          <FormProvider {...formMethods}>
-            <Filter callback={onFilterChange} vendorId={vendorId} />
-            <ProductAppliedFilter onFilterChange={appliedFilterCb} />
-          </FormProvider>
+          <div
+            className={clsx({
+              "tw:bg-white tw:-translate-x-4 tw:px-6 tw:py-4 tw:-mt-4 tw:w-[calc(100%+32px)]":
+                isTheme2 && isMobile,
+            })}
+          >
+            <FormProvider {...formMethods}>
+              <Filter callback={onFilterChange} vendorId={vendorId} />
+              <ProductAppliedFilter onFilterChange={appliedFilterCb} />
+            </FormProvider>
+
+            <CatalogChips className="tw:mb-4" />
+
+            <div className="tw:p-4 tw:bg-red-50 tw:text-red-800 tw:text-sm tw:font-serif tw:border tw:border-red-200 tw:rounded-md tw:flex tw:items-center tw:gap-2">
+              <InfoIcon className="tw:w-4 tw:h-4 tw:text-red-500" />
+              <span className="tw:flex-1 tw:font-semibold tw:text-xs  ">
+                Local vendor catalogs are private to your shop. Scan any SKU on
+                their invoice to add it here.
+              </span>
+            </div>
+          </div>
+
+          <CatalogSummary className="tw:mt-3" />
 
           <div className="tw:flex tw:justify-between tw:items-center tw:mb-2">
             <div>
@@ -294,6 +321,7 @@ const Products = () => {
 
           {isMobile || viewType === "card" ? (
             <MobileView
+              vendorId={vendorId}
               data={data}
               loading={loading}
               loadMore={loadMore}
@@ -306,6 +334,7 @@ const Products = () => {
           ) : (
             <AppCard noPadding>
               <DesktopView
+                vendorId={vendorId}
                 data={data}
                 loading={loading}
                 callback={itemCallbackUnified}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { Children, useEffect, useRef, useState } from "react";
 import Swiper from "swiper";
 import type { SwiperOptions } from "swiper/types";
 import {
@@ -55,6 +55,13 @@ const AppSwiper: React.FC<AppSwiperProps> & AppSwiperComposition = ({
           enabled: true,
           forceToAxis: true,
         },
+        // Slides are usually rendered from async/filterable data, so their
+        // count and width change after init. Without observers Swiper keeps
+        // the stale track width and the last slide can't be scrolled fully
+        // into view.
+        observer: true,
+        observeParents: true,
+        observeSlideChildren: true,
         // we'll merge user-provided `on` handlers with our internal handlers below
         on: {},
       };
@@ -127,6 +134,16 @@ const AppSwiper: React.FC<AppSwiperProps> & AppSwiperComposition = ({
       }
     };
   }, [config]);
+
+  // The MutationObserver above is async; updating synchronously on a slide
+  // count change keeps the track width correct on the very first drag after
+  // slides are added or removed.
+  const slideCount = Children.count(children);
+  useEffect(() => {
+    const swiper = swiperInstanceRef.current;
+    if (!swiper || swiper.destroyed) return;
+    swiper.update();
+  }, [slideCount]);
 
   return (
     <div

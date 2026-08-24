@@ -124,44 +124,34 @@ const OtpVerification: React.FC<Props> = ({
   };
 
   return (
-    <div className="tw:rounded-xl tw:bg-card">
-      {/* Totals block */}
-      <div className="tw:bg-muted tw:p-3 tw:rounded-xl tw:mb-3">
+    <div className="tw:rounded tw:bg-white">
+      {/* Totals block - light gray background */}
+      <div className="tw:bg-gray-50 tw:p-3 tw:rounded tw:mb-3">
         <div className="tw:flex tw:justify-between tw:items-center">
-          <div className="tw:text-sm tw:text-muted-foreground">
-            Total items
-          </div>
-          <div className="wa-mono tw:font-semibold tw:text-foreground">
-            {totalItems}
-          </div>
+          <div className="tw:text-sm tw:text-gray-600">Total items</div>
+          <div className="tw:font-semibold">{totalItems}</div>
         </div>
         <div className="tw:flex tw:justify-between tw:items-center tw:mt-2">
-          <div className="tw:text-sm tw:text-muted-foreground">
-            Total value
-          </div>
-          <div className="wa-amount tw:font-semibold tw:text-foreground">
-            ₹{totalValue.toFixed(2)}
-          </div>
+          <div className="tw:text-sm tw:text-gray-600">Total value</div>
+          <div className="tw:font-semibold">₹{totalValue.toFixed(2)}</div>
         </div>
       </div>
-      {/* Centered icon + heading + instruction */}
+      {/* Centered icon + heading + instruction (assign-delivery modal style) */}
       <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:mb-4">
-        <div className="tw:w-14 tw:h-14 tw:bg-primary/10 tw:rounded-full tw:flex tw:items-center tw:justify-center tw:mb-3">
-          <LockKeyhole className="tw:w-6 tw:h-6 tw:text-primary" />
+        <div className="tw:w-14 tw:h-14 tw:bg-blue-50 tw:rounded-full tw:flex tw:items-center tw:justify-center tw:mb-3">
+          <LockKeyhole className="tw:w-6 tw:h-6 tw:text-blue-600" />
         </div>
 
-        <h3 className="tw:text-lg tw:font-semibold tw:text-foreground tw:mb-1">
+        <h3 className="tw:text-lg tw:font-semibold tw:text-gray-900 tw:mb-1">
           Enter OTP
         </h3>
 
-        <div className="tw:border tw:rounded-xl tw:p-3 tw:bg-primary/5 tw:border-primary/20 tw:mb-4">
-          <p className="tw:text-xs tw:text-muted-foreground tw:text-center tw:m-0">
+        <div className="tw:border tw:rounded tw:p-3 tw:bg-blue-50 tw:border-blue-200 tw:mb-4">
+          <p className="tw:text-xs tw:text-gray-600 tw:text-center tw:m-0">
             A verification code has been sent to{" "}
-            <span className="wa-mono tw:font-medium tw:text-foreground">
-              {mobile || MASKED_PHONE}
-            </span>
+            <span className="tw:font-medium">{mobile || MASKED_PHONE}</span>
             {retailerName ? (
-              <span className="tw:text-muted-foreground"> ({retailerName})</span>
+              <span className="tw:text-gray-500"> ({retailerName})</span>
             ) : null}
           </p>
         </div>
@@ -173,7 +163,7 @@ const OtpVerification: React.FC<Props> = ({
           register={register}
           placeholder="Enter verification code"
           type="tel"
-          inputClassName="wa-mono tw:w-full tw:py-3 tw:px-3 tw:text-lg tw:tracking-widest tw:text-center tw:bg-card tw:border-border"
+          inputClassName="tw:w-full tw:py-3 tw:px-3 tw:text-lg tw:tracking-widest tw:text-center"
           maxLength={6}
           autoFocus={true}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,7 +175,7 @@ const OtpVerification: React.FC<Props> = ({
       </div>
 
       <div className="tw:flex tw:items-center tw:justify-between tw:mb-4">
-        <div className="tw:text-sm tw:text-muted-foreground">
+        <div className="tw:text-sm tw:text-gray-600">
           Didn't receive the code?
         </div>
 
@@ -193,7 +183,7 @@ const OtpVerification: React.FC<Props> = ({
           type="button"
           disabled={isLocked || isResending}
           onClick={handleResend}
-          className={`tw:text-sm tw:font-medium tw:underline tw:underline-offset-2 tw:text-primary tw:cursor-pointer disabled:tw:text-muted-foreground disabled:tw:cursor-not-allowed`}
+          className={`tw:text-sm tw:font-medium tw:underline tw:underline-offset-2 tw:text-blue-600 disabled:tw:text-gray-400`}
         >
           {isResending ? (
             "Resending..."
@@ -217,20 +207,20 @@ const OtpVerification: React.FC<Props> = ({
           onClick={handleBack}
           fill="outline"
           color="light"
-          className="tw:flex-1 tw:inline-flex tw:items-center tw:gap-2 tw:justify-center tw:rounded-xl"
+          className="tw:flex-1 tw:inline-flex tw:items-center tw:gap-2 tw:justify-center"
         >
           <ArrowLeft size={16} />
           <span className="tw:text-sm">Back to Review</span>
         </AppButton>
 
-        <button
-          type="button"
+        <AppButton
           onClick={handleVerify}
+          className="tw:flex-1 tw:font-bold"
+          color="success"
           disabled={isVerifying}
-          className="wa-cta tw:flex-1 tw:flex tw:items-center tw:justify-center tw:gap-1.5 tw:h-10 tw:rounded-xl tw:text-sm tw:font-bold tw:cursor-pointer tw:transition-all tw:disabled:cursor-not-allowed"
         >
           {isVerifying ? "Verifying..." : "Verify & Complete Order"}
-        </button>
+        </AppButton>
       </div>
     </div>
   );

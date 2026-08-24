@@ -1,9 +1,11 @@
 import { orderBy } from "lodash";
 
+import type { ScanResolveSummaryProps } from "~/shared/inventory/subscribe-scan/components/ScanResolveSummary";
+
 /** Phases of the scan journey — drives the gamified step tracker + screens. */
 export type ScanPhase =
   | "idle" // nothing scanned yet
-  | "skSearching" // looking up the StoreKing catalog (searchInSk)
+  | "skSearching" // looking up the SK Library (searchInSk)
   | "matched" // found in matchedSkDeals
   | "aiSearching" // asking StoreKing AI (searchInAi)
   | "suggestions" // skSuggestedDeals / aiSuggestedDeals available
@@ -155,4 +157,74 @@ export const filterAndSortDeals = <
     default:
       return orderBy(filtered, [(d) => d._relevance ?? 0], ["asc"]);
   }
+};
+
+/** Step tracker position for each phase, reused by the resolve summary. */
+const STEP_LABEL: Record<ScanPhase, { step: number; label: string }> = {
+  idle: { step: 1, label: "Scan" },
+  skSearching: { step: 2, label: "Resolve" },
+  aiSearching: { step: 2, label: "Resolve" },
+  matched: { step: 3, label: "Review" },
+  suggestions: { step: 3, label: "Review" },
+  notFound: { step: 2, label: "Resolve" },
+};
+
+/** The whole scan result, handed over untouched. */
+export interface ScanResolveResult {
+  phase: ScanPhase;
+  barcode: string | null;
+  matchedDeals: Array<{ isSubscribed?: boolean }>;
+  skSuggested: Array<{ isSubscribed?: boolean }>;
+  aiSuggested: AiSuggestedProduct[];
+}
+
+/**
+ * Turn a live single-scan result into the counts + copy the shared
+ * ScanResolveSummary panel renders.
+ */
+export const buildScanResolveSummary = ({
+  phase,
+  barcode,
+  matchedDeals,
+  skSuggested,
+  aiSuggested,
+}: ScanResolveResult): ScanResolveSummaryProps => {
+  const skMatch = matchedDeals.length;
+  const skTotal = skMatch + skSuggested.length;
+  const skAi = aiSuggested.length;
+  const total = skTotal + skAi;
+
+  // Already in the seller's own catalog — subscribing again is a no-op, so
+  // these are called out separately from the fresh catalog hits.
+  const yours = [...matchedDeals, ...skSuggested].filter(
+    (d) => d.isSubscribed,
+  ).length;
+
+  const code = barcode || "this code";
+  let title = `Reading ${code}`;
+  if (phase === "skSearching") title = `Matching ${code} in SK Library`;
+  else if (phase === "aiSearching") title = `No SK Library hit — asking SK AI`;
+  else if (phase === "matched")
+    title = `${skMatch} exact ${skMatch === 1 ? "match" : "matches"} in SK Library`;
+  else if (phase === "suggestions")
+    title = `${total} ${total === 1 ? "product" : "products"} found for ${code}`;
+  else if (phase === "notFound") title = `No match anywhere for ${code}`;
+
+  const { step, label } = STEP_LABEL[phase];
+
+  return {
+    eyebrow: `Step ${step} · ${label}`,
+    title,
+    sk: { count: skTotal, live: phase === "skSearching" },
+    ai: {
+      count: skAi,
+      live: phase === "aiSearching",
+      // The AI leg only runs when the library came back empty.
+      ran:
+        phase === "aiSearching" ||
+        phase === "suggestions" ||
+        phase === "notFound",
+    },
+    yours,
+  };
 };

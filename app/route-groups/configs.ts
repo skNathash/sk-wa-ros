@@ -6,6 +6,8 @@ export default [
 
   // RSP (Retail Selling Price) routes
   route("configs/rsp", "routes/configs/rsp/list/index.tsx"),
+  route("configs/rsp/electronics", "routes/configs/rsp/electronics/index.tsx"),
+  route("configs/rsp/trend", "routes/configs/rsp/trend/index.tsx"),
   route("configs/rsp/history", "routes/configs/rsp/history/index.tsx"),
   route("configs/rsp/analysis", "routes/configs/rsp/analysis/index.tsx"),
 
@@ -82,4 +84,9 @@ export default [
   route("configs/coupon", "routes/configs/coupon/list/index.tsx"),
   route("configs/coupon/view/:id", "routes/configs/coupon/view/index.tsx"),
   route("configs/coupon/manage", "routes/configs/coupon/manage/index.tsx"),
+  // WhatsApp template request routes
+  route(
+    "configs/whatsapp-template-request",
+    "routes/configs/whatsapp-template-request/list/index.tsx",
+  ),
 ];

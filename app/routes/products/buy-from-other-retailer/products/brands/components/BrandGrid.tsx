@@ -83,6 +83,7 @@ const BrandGrid = ({
                   <AppLink
                     href={`/products/buy-from-other-retailer/products/list?brandId=${it._id}&brandName=${encodeURIComponent(it.name)}&distance=${distance}`}
                     asLink={true}
+                    noUnderline
                     className="tw:w-full"
                   >
                     <AppButton size="small" className="tw:w-full">

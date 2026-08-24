@@ -34,6 +34,79 @@ export const getPricingDetails = (data: any) => {
   };
 };
 
+/**
+ * Top deals sitting in the same category as the product being viewed — feeds
+ * the "Similar in category" block of the side pane. Sorted by name so the
+ * preview stays stable between visits.
+ */
+export const getCategoryDeals = async (
+  categoryId: string,
+  { count = 6, excludeDealId }: { count?: number; excludeDealId?: string } = {},
+) => {
+  if (!categoryId) return [];
+
+  const params: Record<string, any> = {
+    page: 1,
+    // Fetch one extra so dropping the current product still fills the list.
+    count: count + 1,
+    sort: { dealName: 1 },
+    filter: {
+      "applicableCategory.categoryId": categoryId,
+    },
+  };
+
+  try {
+    const response = await SellerCatalogService.getProducts(params, {
+      showOutOfStock: true,
+    });
+    const deals = SellerCatalogService.formatProductResponse(
+      response.data?.data || [],
+    );
+    return deals
+      .filter((deal: any) => deal._id !== excludeDealId)
+      .slice(0, count);
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
+/**
+ * Deals from the same brand as the product being viewed — feeds the brand rail
+ * that stands in for the variants block on products that aren't grouped.
+ */
+export const getBrandDeals = async (
+  brandId: string,
+  { count = 10, excludeDealId }: { count?: number; excludeDealId?: string } = {},
+) => {
+  if (!brandId) return [];
+
+  const params: Record<string, any> = {
+    page: 1,
+    // One extra so dropping the current product still fills the rail.
+    count: count + 1,
+    sort: { dealName: 1 },
+    filter: {
+      "applicableBrand.brandId": brandId,
+    },
+  };
+
+  try {
+    const response = await SellerCatalogService.getProducts(params, {
+      showOutOfStock: true,
+    });
+    const deals = SellerCatalogService.formatProductResponse(
+      response.data?.data || [],
+    );
+    return deals
+      .filter((deal: any) => deal._id !== excludeDealId)
+      .slice(0, count);
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
 export const getDetails = async (id: string) => {
   const response = await SellerCatalogService.getProducts(
     {

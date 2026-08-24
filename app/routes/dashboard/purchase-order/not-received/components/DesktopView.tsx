@@ -12,10 +12,11 @@ import {
   TableSkeletonLoader,
 } from "~/components/core/table";
 import InvoiceDownload from "~/shared/orders/invoice-download/InvoiceDownload";
+import ReceiveBoxFlow from "~/shared/purchase-order/components/receive-box-flow/ReceiveBoxFlow";
 
 type Props = {
   data: any[];
-  callback: (a: { action: string; data: any }) => void;
+  callback: (a: { action: string; data: any; index?: number }) => void;
   tab?: string;
   sortKey?: string;
   sortValue?: "asc" | "desc" | undefined;
@@ -88,6 +89,7 @@ const DesktopView = ({
   return (
     <AppTable
       size="sm"
+      condensed
       fixedLayout={true}
       container
       minWidth="1000px"
@@ -194,16 +196,18 @@ const DesktopView = ({
                     <Eye size={16} />
                   </AppButton>
 
-                  <AppButton
-                    size="small"
-                    color="success"
-                    onClick={() => {
-                      callback({ action: "receive", data: row, index: idx });
-                    }}
+                  <ReceiveBoxFlow
+                    data={row}
+                    index={idx}
+                    onReceived={() =>
+                      callback({ action: "received", data: row, index: idx })
+                    }
                   >
-                    <CheckCircle size={16} />
-                    {t("receive")}
-                  </AppButton>
+                    <AppButton size="small" color="primary">
+                      <CheckCircle size={16} />
+                      {t("receive")}
+                    </AppButton>
+                  </ReceiveBoxFlow>
                 </div>
               </AppTable.Cell>
             </AppTable.Row>

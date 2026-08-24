@@ -255,7 +255,7 @@ const SubscribeSummaryModal: React.FC<Props> = ({
                   </div>
                   <div className="tw:flex-1 tw:min-w-0">
                     <div className="tw:text-sm tw:font-medium tw:text-gray-400 tw:italic">
-                      No match — add details to create
+                      No match — create item
                     </div>
                     <span className="tw:inline-flex tw:items-center tw:gap-1 tw:mt-0.5 tw:text-[10px] tw:font-mono tw:text-gray-500">
                       <Barcode className="tw:w-3 tw:h-3" />
@@ -268,7 +268,7 @@ const SubscribeSummaryModal: React.FC<Props> = ({
                     className="tw:shrink-0"
                     onClick={() => onEdit(item)}
                   >
-                    Add details
+                    Create Item
                   </AppButton>
                 </li>
               ))}

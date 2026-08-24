@@ -1,0 +1,273 @@
+/* ============================================================
+   StoreKing — OTP verification
+   Scoped under .sk-otp. The modal renders in a portal outside
+   .login-page, so the design tokens are re-declared here.
+   Every rule uses at least one class so it wins over the global
+   `* { font-family: Open Sans }` reset in app.css.
+   ============================================================ */
+
+.sk-otp {
+  --sk-cream: #f7f2e8;
+  --sk-cream-2: #efe7d6;
+  --sk-ink: #0e1626;
+  --sk-muted: #5b6478;
+  --sk-line: rgba(14, 22, 38, 0.08);
+
+  --sk-teal: #0aafa1;
+  --sk-teal-dark: #0a544f;
+  --sk-whatsapp: #25d366;
+
+  --sk-body: "Open Sans", system-ui, sans-serif;
+  --sk-mono: "Inter", ui-monospace, monospace;
+
+  /* AppModal.Content supplies the side and bottom padding but no
+     top padding — match it so the card breathes evenly. */
+  padding: 16px 0 0;
+  font-family: var(--sk-body);
+  color: var(--sk-ink);
+}
+
+.sk-otp :where(button) {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ---------- Sent-to pill ---------- */
+.sk-otp-sent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--sk-cream);
+  border: 1px solid var(--sk-line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 18px;
+}
+
+.sk-otp-sent-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--sk-whatsapp);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sk-otp-sent-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.sk-otp-sent-label {
+  font-size: 13px;
+  color: var(--sk-muted);
+}
+
+.sk-otp-sent-num {
+  font-family: var(--sk-mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--sk-ink);
+}
+
+.sk-otp-sent-change {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sk-teal);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.sk-otp-sent-change:hover {
+  color: var(--sk-teal-dark);
+}
+
+/* ---------- Title & description ---------- */
+.sk-otp-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 14px;
+}
+
+.sk-otp-head-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--sk-ink);
+}
+
+.sk-otp-head-desc {
+  font-size: 13px;
+  color: var(--sk-muted);
+}
+
+/* ---------- Code boxes ----------
+   SplitInput ships its own Tailwind classes; these two-class
+   selectors out-specify them without touching the shared
+   component's markup. */
+.sk-otp-inputs > div > div {
+  gap: 10px;
+}
+
+.sk-otp-inputs input {
+  height: 58px;
+  background: var(--sk-cream);
+  border: 1.5px solid var(--sk-line);
+  border-radius: 12px;
+  box-shadow: none;
+  font-family: var(--sk-mono);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--sk-ink);
+  caret-color: var(--sk-teal);
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.sk-otp-inputs input:focus {
+  background: #fff;
+  border-color: var(--sk-teal);
+  box-shadow: 0 0 0 3px rgba(10, 175, 161, 0.16);
+}
+
+/* Number inputs keep their spinners in some browsers — the code
+   boxes are single-character, so the arrows are only noise. */
+.sk-otp-inputs input::-webkit-outer-spin-button,
+.sk-otp-inputs input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.sk-otp-inputs input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ---------- Resend row ---------- */
+.sk-otp-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 14px 0 16px;
+  font-size: 13px;
+  color: var(--sk-muted);
+}
+
+.sk-otp-meta-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sk-otp-resend {
+  font-weight: 700;
+  color: var(--sk-teal);
+  transition: color 0.15s;
+}
+
+.sk-otp-resend:hover {
+  color: var(--sk-teal-dark);
+}
+
+.sk-otp-timer {
+  font-family: var(--sk-mono);
+  font-weight: 600;
+  color: var(--sk-ink);
+}
+
+/* ---------- Submit ---------- */
+.sk-otp-submit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  background: var(--sk-teal);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  text-align: left;
+  box-shadow: 0 2px 6px -2px rgba(10, 84, 79, 0.3);
+  transition:
+    background 0.15s,
+    box-shadow 0.15s,
+    opacity 0.15s;
+}
+
+.sk-otp-submit:hover:not(:disabled) {
+  background: #099b8f;
+  box-shadow: 0 4px 10px -3px rgba(10, 84, 79, 0.35);
+}
+
+.sk-otp-submit:disabled {
+  background: var(--sk-ink);
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.sk-otp-submit-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sk-otp-submit-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sk-otp-submit-main {
+  display: block;
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.sk-otp-submit-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+@media (max-width: 560px) {
+  .sk-otp-inputs input {
+    height: 52px;
+    font-size: 20px;
+  }
+
+  .sk-otp-inputs > div > div {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-otp *,
+  .sk-otp *::before,
+  .sk-otp *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

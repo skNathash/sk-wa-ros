@@ -25,11 +25,11 @@ const VendorAppliedFilter = ({ callback }: VendorAppliedFilterProps) => {
       resetValue: "All",
       ignoreValue: "All",
     },
-    createdBy: {
-      label: t("createdBy") || "Created By",
-      resetValue: "All",
-      ignoreValue: "All",
-    },
+    // createdBy: {
+    //   label: t("createdBy") || "Created By",
+    //   resetValue: "All",
+    //   ignoreValue: "All",
+    // },
     alpha: {
       label: t("alpha") || "Alpha",
       resetValue: "",
@@ -57,7 +57,7 @@ const VendorAppliedFilter = ({ callback }: VendorAppliedFilterProps) => {
         callback({ action: "remove", data });
       }
     },
-    [setValue, callback, filterMapping]
+    [setValue, callback, filterMapping],
   );
 
   return (
@@ -65,7 +65,7 @@ const VendorAppliedFilter = ({ callback }: VendorAppliedFilterProps) => {
       filter={watchedFilters}
       callback={handleAppliedFilterRemove}
       mapping={filterMapping}
-      className="tw:mb-2"
+      className="tw:mb-1"
     />
   );
 };

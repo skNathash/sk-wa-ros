@@ -26,6 +26,10 @@ export default [
     "routes/dashboard/purchase-order/process/index.tsx"
   ),
   route(
+    "dashboard/purchase-order/received",
+    "routes/dashboard/purchase-order/received/index.tsx"
+  ),
+  route(
     "dashboard/purchase-order/recently-received",
     "routes/dashboard/purchase-order/recently-received/index.tsx"
   ),

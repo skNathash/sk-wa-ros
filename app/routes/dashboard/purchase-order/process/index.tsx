@@ -1,4 +1,4 @@
-import { CheckCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
@@ -7,10 +7,14 @@ import { useTranslation } from "react-i18next";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AppButton from "~/components/core/button/AppButton";
-import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+// import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
+import useScreenView from "~/hooks/useScreenView";
 import ConfirmReceiveModal from "~/modals/receive/ConfirmReceiveModal";
 import AuthService from "~/services/AuthService";
 import CommonService from "~/services/CommonService";
@@ -20,12 +24,16 @@ import PurchaseOrderService from "~/services/PurchaseOrderService";
 import RackBinService from "~/services/RackBinService";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import PlatformFeeRequiredBlock from "~/shared/accounts/platform-fee/components/PlatformFeeRequiredBlock";
+import OrderSnapshotCard from "./components/OrderSnapshotCard";
 import PoInvoice from "./components/PoInvoice";
 import POScanSummary from "./components/POScanSummary";
 import ProductItem from "./components/ProductItem";
+import ProductsDesktopTable from "./components/ProductsDesktopTable";
+import ReceivingHeader from "./components/ReceivingHeader";
 import ScanFab from "./components/ScanFab";
-import { loadDetails, preparePayload, validateProducts } from "./helper";
+import { loadDetails, preparePayload, resolvePurchasePrice, validateProducts } from "./helper";
 import AssignBarcodeModal from "./modals/AssignBarcodeModal";
+import EditProductModal from "./modals/EditProductModal";
 import InsufficientBalanceModal from "./modals/InsufficientBalanceModal";
 import ProductForBarcodeModal from "./modals/ProductForBarcodeModal";
 
@@ -54,7 +62,8 @@ const ProcessPurchaseOrder = () => {
   const { id } = useParams();
   const appToast = useAppToast();
   const appNav = useAppNav();
-  const { t } = useTranslation();
+  const { t } = useTranslation(["common", "menu"]);
+  const { isMobile } = useScreenView();
 
   const [appAlertDialog, setAppAlertDialog] = useState<{
     show: boolean;
@@ -128,10 +137,11 @@ const ProcessPurchaseOrder = () => {
     { label: t("process") },
   ]);
 
-  const [openedIndex, setOpenedIndex] = useState<number>(-1);
+  const [editIndex, setEditIndex] = useState<number>(-1);
 
   const currentBarcode = useRef<string>("");
   const productRefs = useRef<HTMLDivElement | null>(null);
+  const scanFabRef = useRef<HTMLDivElement | null>(null);
 
   const [assignBarcode, setAssignBarcode] = useState<{
     show: boolean;
@@ -213,12 +223,12 @@ const ProcessPurchaseOrder = () => {
 
         setPODetails({
           ...poResp,
-          dealIds: deals.map((d: any) => d._id),
+          dealIds: deals.map((d: any) => d.dealId),
         });
         setBreadcrumbs((prevBreadcrumbs) => [
           ...prevBreadcrumbs.slice(0, -1),
           {
-            label: poResp._id
+            label: poResp.orderId
               ? `${t("process")} - ${poResp.orderId}`
               : t("process"),
           },
@@ -233,6 +243,8 @@ const ProcessPurchaseOrder = () => {
 
           const receivedQty = e.quantity;
 
+          const locationDetail = loc.locationDetail || {};
+
           return {
             ...e,
             _scanned: true,
@@ -243,7 +255,9 @@ const ProcessPurchaseOrder = () => {
               damageRemarks: "",
               damageImages: [],
               location: loc.location || "",
-              locationDetail: loc.locationDetail || {},
+              locationDetail,
+              // preparePayload / buildLocationObj reads locationDetails
+              locationDetails: locationDetail,
               rack: loc.rack || "",
               rackDetails: loc.rackDetails || {},
               bin: loc.bin || "",
@@ -254,7 +268,10 @@ const ProcessPurchaseOrder = () => {
               expRemDays: "",
               expiryDate: "",
               variations: [],
-              purchasePrice: e.purchasePrice || "",
+              purchasePrice:
+                Number(e.purchasePrice) > 0
+                  ? e.purchasePrice
+                  : e.mrp || "",
               mrp: e.mrp || "",
             },
           };
@@ -459,6 +476,7 @@ const ProcessPurchaseOrder = () => {
                 product.formData = product.formData || {};
                 product.formData.location = loc.location;
                 product.formData.locationDetail = loc.locationDetail;
+                product.formData.locationDetails = loc.locationDetail;
                 product.formData.rack = loc.rack;
                 product.formData.rackDetails = loc.rackDetails;
                 product.formData.bin = loc.bin;
@@ -556,8 +574,8 @@ const ProcessPurchaseOrder = () => {
           color: "success",
         });
 
-        // Redirect to PO summary page
-        appNav.replace("/dashboard/purchase-order/summary");
+        // Land on the receipt screen for the PO that was just closed
+        appNav.replace(`/dashboard/purchase-order/received?poId=${id}`);
       } else {
         appToast.show({
           msg: response.data?.message || "Failed to process purchase order",
@@ -575,17 +593,46 @@ const ProcessPurchaseOrder = () => {
     }
   };
 
-  const handleToggleProduct = (index: number) => {
-    setOpenedIndex((prev) => (prev === index ? -1 : index));
-    // Mark as scanned when expanded
-    if (openedIndex !== index) {
-      const updatedProducts = [...products];
+  const handleEditProduct = (index: number) => {
+    const updatedProducts = [...(formMethods.getValues("products") || [])];
+    if (updatedProducts[index]) {
+      const product = updatedProducts[index];
+      const purchasePrice = resolvePurchasePrice(product);
       updatedProducts[index] = {
-        ...updatedProducts[index],
+        ...product,
         _scanned: true,
+        formData: {
+          ...(product.formData || {}),
+          purchasePrice,
+          mrp: product.formData?.mrp || "",
+        },
       };
       formMethods.setValue("products", updatedProducts);
     }
+    setEditIndex(index);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditIndex(-1);
+  };
+
+  const handleScanNextItem = () => {
+    // Prefer ScanFab if present; otherwise nudge the user toward the list.
+    const fabButton = scanFabRef.current?.querySelector("button");
+    if (fabButton instanceof HTMLElement) {
+      fabButton.click();
+      return;
+    }
+    appToast.show({
+      msg: t("scanNextItemHint", {
+        defaultValue: "Use the scanner or edit an item to continue receiving",
+      }),
+      color: "info",
+    });
+  };
+
+  const handleAutoCountFromPhotos = () => {
+    appNav.to("/dashboard/scan/invoice-scan");
   };
 
   const onBarcodeChange = (a: { action: string; data: any }) => {
@@ -595,7 +642,7 @@ const ProcessPurchaseOrder = () => {
       if (product) {
         // Find matching product in the list (ignore already scanned products)
         const matchingIndex = products.findIndex(
-          (p) => p._id === product.id && !p._scanned,
+          (p) => p.dealId === product.dealId && !p._scanned,
         );
 
         if (matchingIndex !== -1) {
@@ -612,7 +659,7 @@ const ProcessPurchaseOrder = () => {
           formMethods.setValue("products", updatedProducts);
 
           appToast.show({
-            msg: `Product scanned successfully: ${product.name}`,
+            msg: `Product scanned successfully: ${updatedProducts[matchingIndex].dealName}`,
             color: "success",
           });
 
@@ -629,7 +676,7 @@ const ProcessPurchaseOrder = () => {
             }
           }, 1000);
 
-          setOpenedIndex(Number(matchingIndex));
+          setEditIndex(Number(matchingIndex));
         } else {
           appToast.show({
             msg: `Product already scanned or not found in this PO`,
@@ -698,8 +745,8 @@ const ProcessPurchaseOrder = () => {
 
         formMethods.setValue("products", updatedProducts);
 
-        // Set the openedIndex to open the selected product
-        setOpenedIndex(productIndex);
+        // Open edit modal for the selected product
+        setEditIndex(productIndex);
 
         appToast.show({
           msg: `Barcode ${barcode} assigned to ${selectedProduct.dealName}`,
@@ -708,9 +755,8 @@ const ProcessPurchaseOrder = () => {
 
         // Scroll to the selected product after a short delay to ensure DOM is updated
         setTimeout(() => {
-          const idKey = selectedProduct._id || selectedProduct.dealId || "";
           const productElement = productRefs.current?.querySelector(
-            `#product-${idKey}-${productIndex}`,
+            `#product-${selectedProduct.dealId}-${productIndex}`,
           ) as HTMLDivElement;
           if (productElement) {
             productElement.scrollIntoView({
@@ -747,6 +793,21 @@ const ProcessPurchaseOrder = () => {
     setShowInsufficientModal(false);
   };
 
+  // Header subtitle: the PO being received, which box is on the counter, and
+  // who it came from — what a receiver checks against the physical carton.
+  const latestPackage =
+    Array.isArray(poDetails.receivedPackages) &&
+    poDetails.receivedPackages.length > 0
+      ? poDetails.receivedPackages[poDetails.receivedPackages.length - 1]
+      : null;
+  const headerSubtitle = [
+    poDetails.orderId,
+    latestPackage?.packageId,
+    poDetails.vendorInfo?.name,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const summaryCallback = (a: { action: string; data?: any }) => {
     if (a.action === "autoFillAll") {
       const updatedProducts = formMethods.getValues("products");
@@ -755,6 +816,7 @@ const ProcessPurchaseOrder = () => {
         if (loc.location) {
           product.formData.location = loc.location;
           product.formData.locationDetail = loc.locationDetail;
+          product.formData.locationDetails = loc.locationDetail;
           product.formData.rack = loc.rack;
           product.formData.rackDetails = loc.rackDetails;
           product.formData.bin = loc.bin;
@@ -789,63 +851,139 @@ const ProcessPurchaseOrder = () => {
     <>
       <AppHeader
         title={t("purchaseOrderReceiveInward")}
+        subtitle={
+          headerSubtitle ? (
+            <span className="tw:truncate tw:opacity-80">{headerSubtitle}</span>
+          ) : undefined
+        }
         showAudioNote={true}
         audioNoteTitle={t("purchaseOrderReceiveInward")}
         audioFeature="receivePo"
       />
       <div
-        className={`page-bg tw:p-4 app-page ${hasPlan !== false ? "has-footer" : ""}`}
+        className={`page-padding page-bg app-page ${hasPlan !== false ? "has-footer" : ""}`}
       >
         <div className="app-container">
-          <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
+          {/* Section tab rail hidden here — this is a receive detail screen,
+              not a section landing page. */}
+          {/* <SectionTabs
+            sectionKey="supply"
+            activeTab="receive-stock"
+            noShadow
+            sticky
+          /> */}
 
-          <FormProvider {...formMethods}>
-            <POScanSummary
-              products={products}
-              callback={summaryCallback}
-              autoAllocate={autoAllocate}
-            />
+          <div className="section-layout page-content-gap">
+            {/* Desktop-only left rail — section side menu. */}
+            <aside className="section-menu-aside">
+              <div className="tw:sticky tw:top-20">
+                <SectionMenu
+                  sectionKey="supply"
+                  activeTab="receive-stock"
+                  title={t("manageSupply", { ns: "menu" })}
+                />
+              </div>
+            </aside>
 
-            <div className="tw:sm tw:mb-2 tw:font-medium">
-              {t("productsInThisOrder")} ({products.length})
-            </div>
-            {/* Product List */}
+            <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
 
-            <div ref={productRefs}>
-              {products.length > 0 ? (
-                products.map((product, index) => (
-                  <div
-                    id={`product-${product._id}-${index}`}
-                    key={`${product._id}-${index}`}
-                  >
-                    <ProductItem
-                      product={product}
-                      index={index}
-                      openedIndex={openedIndex}
-                      onToggle={handleToggleProduct}
+                  <ReceivingHeader poDetails={poDetails} />
+
+                  {/* What the vendor was asked for — the fixed reference the
+                      receive counters below are read against. Mobile only: on
+                      desktop the same numbers already sit in the side pane. */}
+                  <OrderSnapshotCard
+                    poDetails={poDetails}
+                    className="tw:lg:hidden"
+                  />
+
+                  <FormProvider {...formMethods}>
+                    <POScanSummary
+                      products={products}
+                      callback={summaryCallback}
+                      autoAllocate={autoAllocate}
                     />
-                  </div>
-                ))
-              ) : (
-                <div className="tw:text-center tw:py-8 tw:text-gray-500">
-                  {t("noProductsFoundInPurchaseOrder")}
-                </div>
-              )}
+
+                    {isMobile ? (
+                      <>
+                        {/* The list is an instruction, not a heading: a quiet
+                            left-aligned caption telling the receiver what to do
+                            with the bubbles below it. */}
+                        <div className="tw:mb-2 tw:px-0.5 tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-widest tw:text-slate-500">
+                          {t("verifyEachItem", {
+                            defaultValue: "Verify each item",
+                          })}
+                          <span className="tw:ml-1.5 tw:text-slate-400">
+                            ({products.length})
+                          </span>
+                        </div>
+                        <div ref={productRefs} className="tw:mb-3">
+                          {products.length > 0 ? (
+                            products.map((product, index) => (
+                              <div
+                                id={`product-${product.dealId}-${index}`}
+                                key={`${product.dealId}-${index}`}
+                              >
+                                <ProductItem
+                                  product={product}
+                                  index={index}
+                                  onEdit={handleEditProduct}
+                                />
+                              </div>
+                            ))
+                          ) : (
+                            <div className="app-msg-bubble tw:text-center tw:py-8 tw:text-gray-500">
+                              {t("noProductsFoundInPurchaseOrder")}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div ref={productRefs}>
+                        <ProductsDesktopTable
+                          products={products}
+                          onEdit={handleEditProduct}
+                          onScanNext={handleScanNextItem}
+                          onAutoCount={handleAutoCountFromPhotos}
+                        />
+                      </div>
+                    )}
+
+                    <PoInvoice />
+
+                    <EditProductModal
+                      show={editIndex >= 0}
+                      product={
+                        editIndex >= 0 ? products?.[editIndex] : null
+                      }
+                      productIndex={editIndex}
+                      onClose={handleCloseEditModal}
+                    />
+                  </FormProvider>
+
+                  {/* Scan FAB */}
+                  {["F225830", "F324872"].includes(
+                    AuthService.getLoggedInUserId(true) || "",
+                  ) && (
+                    <div ref={scanFabRef}>
+                      <ScanFab
+                        callback={onBarcodeChange}
+                        dealIds={poDetails.dealIds}
+                        vendorId={poDetails.vendorInfo?.id}
+                      />
+                    </div>
+                  )}
+                </AppPaneMain>
+
+                <AppPaneSide className="app-pane-only">
+                  <PurchaseOrderSidePane />
+                </AppPaneSide>
+              </div>
             </div>
-
-            <PoInvoice />
-          </FormProvider>
-
-          {/* Scan FAB */}
-          {["F225830", "F324872"].includes(
-            AuthService.getLoggedInUserId(true) || "",
-          ) && (
-            <ScanFab
-              callback={onBarcodeChange}
-              dealIds={poDetails.dealIds}
-              vendorId={poDetails.vendorInfo?.id}
-            />
-          )}
+          </div>
         </div>
       </div>
 
@@ -881,10 +1019,11 @@ const ProcessPurchaseOrder = () => {
                 onClick={handleProceed}
                 disabled={submitting}
                 isLoading={submitting}
-                color="success"
+                color="primary"
+                className="tw:rounded-full tw:px-6 tw:font-semibold tw:shadow-sm"
               >
-                <CheckCircle />
                 {submitting ? "Processing..." : "Proceed"}
+                <ArrowRight />
               </AppButton>
             </div>
           </div>

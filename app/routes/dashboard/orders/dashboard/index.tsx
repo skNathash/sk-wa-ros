@@ -10,10 +10,14 @@ import PageDescription from "~/components/core/page-description/PageDescription"
 import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import CommonService from "~/services/CommonService";
 import OmsDashboardService from "~/services/OmsDashboardService";
+import MiscService from "~/services/MiscService";
 import PageAccessService from "~/services/PageAccessService";
-import OrderListTab from "~/shared/orders/order-list-tab/OrderListTab";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import OrderTopBar from "~/shared/orders/order-top-bar/OrderTopBar";
 import type { TabItem } from "~/types/CommonTypes";
 import AllOrders from "./components/all-orders/AllOrders";
 import CompletedOrdersCard from "./components/CompletedOrdersCard";
@@ -24,6 +28,7 @@ import PaymentMethodsCard from "./components/PaymentMethodsCard";
 import PendingOrdersCard from "./components/PendingOrdersCard";
 import ProcessOrdersCard from "./components/ProcessOrdersCard";
 import Products from "./components/products/Products";
+import OrdersDashboardSidePane from "./components/side-pane/OrdersDashboardSidePane";
 import Summary from "./components/Summary";
 import type { SummaryItem } from "./helper";
 import { defaultFilter, defaultSummary, prepareParams } from "./helper";
@@ -72,6 +77,13 @@ const tabDescriptions: Record<string, Record<string, string>> = {
   },
 };
 
+/** Theme-2 mono eyebrow that groups a band of cards (see theme-2.css). */
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <div className="tw:mb-2 tw:font-mono tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-widest tw:text-gray-500 app-section-label">
+    {children}
+  </div>
+);
+
 const buildTabs = (mainTab: string): TabItem[] => [
   { key: "all-orders", name: "All Orders" },
   { key: "customers", name: getCustomerTabName(mainTab) },
@@ -81,6 +93,7 @@ const buildTabs = (mainTab: string): TabItem[] => [
 const OrdersDashboard = () => {
   const appNav = useAppNav();
   const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
   const formMethods = useForm({
     defaultValues: defaultFilter,
   });
@@ -94,6 +107,10 @@ const OrdersDashboard = () => {
   const mainTabParam = searchParams.get("mainTab") || mainTabs[0].key;
   const salesEmployeeId = searchParams.get("salesEmployeeId") || "";
   const salesEmployeeName = searchParams.get("salesEmployeeName") || "";
+
+  // The split layout only exists in theme-2 at desktop widths — that is where
+  // the pane owns the channel tabs and the overview totals.
+  const isPaneLayout = isTheme2 && MiscService.isDesktopView();
 
   const [activeTab, setActiveTab] = useState<string>("all-orders");
   const [mainTab, setMainTab] = useState<string>(mainTabParam);
@@ -259,14 +276,23 @@ const OrdersDashboard = () => {
       loadSummary("b2c-orders");
     }
 
-    if (mainTab === "all-orders") {
+    // Every channel's totals — the overview cards on `all-orders`, and the
+    // pane's chips and lane rows on any tab.
+    if (mainTab === "all-orders" || isPaneLayout) {
       loadAllOrdersSummary();
       loadB2bSummary();
       loadB2cSummary();
     }
     // PaymentMethodsCard fetches its own payment summary
     // load pending/process metrics for dashboard cards
-  }, [mainTab, searchParams]);
+  }, [mainTab, searchParams, isPaneLayout]);
+
+  // Units in the scope on screen — only the B2B/B2C summaries carry them, so
+  // the pane drops the row on `all-orders`.
+  const paneTotalUnits =
+    mainTab === "all-orders"
+      ? undefined
+      : summary.find((item) => item.key === "totalUnits")?.value || 0;
 
   const handleFilterChange = () => {
     const values = formMethods.getValues();
@@ -295,6 +321,18 @@ const OrdersDashboard = () => {
     setSearchparams(params, { replace: true });
   };
 
+  const handleMainTabChange = (key: string) => {
+    setMainTab(key);
+    setSearchparams(
+      (prev) => {
+        const params = Object.fromEntries(prev.entries());
+        params.mainTab = key;
+        return new URLSearchParams(params);
+      },
+      { replace: true },
+    );
+  };
+
   const handleOrderCallback = (data: { action: string; data?: any }) => {
     if (data.action === "viewOrder") {
       const url = `/dashboard/orders/view/${data.data.orderId}`;
@@ -312,164 +350,217 @@ const OrdersDashboard = () => {
 
   return (
     <>
-      <AppHeader title={t("ordersManagement")} />
-      <div className="tw:p-4 app-page page-bg">
-        <div className="app-container">
-          <AppBreadcrumbs data={breadcrumbs} />
-          <PageDescription description="ordersDashboard" className="tw:mb-4" />
-
-          {/* Top: moved list tabs */}
-          <div className="tw:mb-4">
-            <OrderListTab activeTab="analytics" className="tw:mb-4" />
-          </div>
-
-          {/* Main Tabs */}
-          <div className="tw:mb-4">
-            <AppTab
-              activeTab={mainTab}
-              variant="underline"
-              onTabChange={(tab) => {
-                setMainTab(tab.key);
-                setSearchparams(
-                  (prev) => {
-                    const params = Object.fromEntries(prev.entries());
-                    params.mainTab = tab.key;
-                    return new URLSearchParams(params);
-                  },
-                  {
-                    replace: true,
-                  },
-                );
-              }}
-              tabs={mainTabs}
-            />
-          </div>
-
-          <div className="tw:sticky tw:top-16 tw:z-50">
-            <FormProvider {...formMethods}>
-              <Filter callback={handleFilterChange} />
-            </FormProvider>
-          </div>
-
-          {mainTab === "all-orders" ? (
-            <div className="tw:mb-4 tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
-              <OverviewSummary
-                totalOrders={allOrdersSummary.totalOrders}
-                uniqueCustomers={allOrdersSummary.totalCustomers}
-                value={allOrdersSummary.totalValue}
-                title="All Orders"
-                iconClassName="tw:text-blue-600"
-                loading={allOrdersSummary.loading}
-              />
-
-              <OverviewSummary
-                totalOrders={b2bSummary.totalOrders}
-                uniqueCustomers={b2bSummary.totalCustomers}
-                value={b2bSummary.totalValue}
-                title="B2B Orders"
-                icon={<Box />}
-                iconClassName="tw:text-green-600"
-                loading={b2bSummary.loading}
-              />
-
-              <OverviewSummary
-                totalOrders={b2cSummary.totalOrders}
-                uniqueCustomers={b2cSummary.totalCustomers}
-                value={b2cSummary.totalValue}
-                title="B2C Orders"
-                icon={<ShoppingCart />}
-                iconClassName="tw:text-orange-600"
-                loading={b2cSummary.loading}
-              />
+      <AppHeader
+        sectionKey="bill"
+        activeTab="orders"
+        mobileLead="menu"
+        title={t("ordersManagement")}
+      />
+      <div className="page-bg app-page page-padding">
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu sectionKey="bill" activeTab="orders" title="Bill" />
             </div>
-          ) : (
-            <Summary summary={summary} />
-          )}
+          </aside>
 
-          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
-            <PendingOrdersCard
-              search={search}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              mainTab={mainTab}
-              salesEmployeeId={salesEmployeeId}
-              callback={handleOrderCallback}
-            />
+          <div className="section-content">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                {/* Board / Directory / Analytics on one white strip under the
+                    header — no search here, the filter bar below owns it. */}
+                <OrderTopBar activeView="analytics" />
 
-            <ProcessOrdersCard
-              search={search}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              mainTab={mainTab}
-              salesEmployeeId={salesEmployeeId}
-              callback={handleOrderCallback}
-            />
+                <div className="hide-in-theme-2">
+                  <AppBreadcrumbs data={breadcrumbs} />
+                  <PageDescription
+                    description="ordersDashboard"
+                    className="tw:mb-4"
+                  />
+                </div>
 
-            <CompletedOrdersCard
-              search={search}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              mainTab={mainTab}
-              salesEmployeeId={salesEmployeeId}
-              callback={handleOrderCallback}
-            />
-          </div>
+                <div className="tw:sticky tw:top-16 tw:z-50">
+                  <FormProvider {...formMethods}>
+                    <Filter callback={handleFilterChange} />
+                  </FormProvider>
+                </div>
 
-          <div className="tw:mt-4">
-            <PaymentMethodsCard
-              search={search}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              mainTab={mainTab}
-              salesEmployeeId={salesEmployeeId}
-              onManage={() => {}}
-            />
-          </div>
+                {/* Channel tabs — under the filter bar. In the split layout
+                    the pane's channel chips carry the same scope, so the tab
+                    bar drops out there (`app-pane-hide`). */}
+                <div className="tw:mb-4 app-pane-hide">
+                  <AppTab
+                    activeTab={mainTab}
+                    variant={isTheme2 ? "pills" : "underline"}
+                    onTabChange={(tab) => handleMainTabChange(tab.key)}
+                    tabs={mainTabs}
+                  />
+                </div>
 
-          <div className="tw:mb-4">
-            <AppTab
-              activeTab={activeTab}
-              onTabChange={(tab) => {
-                // only update local activeTab — do not add `tab` to query params
-                setActiveTab(tab.key);
-              }}
-              tabs={buildTabs(mainTab)}
-            />
-            {tabDescriptions[activeTab]?.[mainTab] && (
-              <p className="tw:text-xs tw:text-gray-500 tw:mt-1 tw:px-1">
-                {tabDescriptions[activeTab][mainTab]}
-              </p>
-            )}
-          </div>
+                {/* Overview totals for the scope on screen. The pane repeats
+                    them in the split layout, so this band hides there. */}
+                <div className="app-pane-hide">
+                  {mainTab === "all-orders" ? (
+                    <div className="tw:mb-4">
+                      {isTheme2 && (
+                        <SectionLabel>Order size by lane</SectionLabel>
+                      )}
+                      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+                        <OverviewSummary
+                          totalOrders={allOrdersSummary.totalOrders}
+                          uniqueCustomers={allOrdersSummary.totalCustomers}
+                          value={allOrdersSummary.totalValue}
+                          title="All Orders"
+                          iconClassName="tw:text-blue-600"
+                          dotClass="tw:bg-teal-700"
+                          numberClass="tw:text-gray-900"
+                          loading={allOrdersSummary.loading}
+                        />
 
-          <div className="tw:mb-6">
-            {activeTab === "all-orders" && (
-              <AllOrders
-                mainTab={mainTab}
-                search={search}
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                salesEmployeeId={salesEmployeeId}
-              />
-            )}
-            {activeTab === "customers" && (
-              <Customers
-                mainTab={mainTab}
-                search={search}
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                salesEmployeeId={salesEmployeeId}
-              />
-            )}
-            {activeTab === "products" && (
-              <Products
-                mainTab={mainTab}
-                search={search}
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                salesEmployeeId={salesEmployeeId}
-              />
-            )}
+                        <OverviewSummary
+                          totalOrders={b2bSummary.totalOrders}
+                          uniqueCustomers={b2bSummary.totalCustomers}
+                          value={b2bSummary.totalValue}
+                          title="B2B Orders"
+                          icon={<Box />}
+                          iconClassName="tw:text-green-600"
+                          dotClass="tw:bg-emerald-500"
+                          numberClass="tw:text-emerald-700"
+                          loading={b2bSummary.loading}
+                        />
+
+                        <OverviewSummary
+                          totalOrders={b2cSummary.totalOrders}
+                          uniqueCustomers={b2cSummary.totalCustomers}
+                          value={b2cSummary.totalValue}
+                          title="B2C Orders"
+                          icon={<ShoppingCart />}
+                          iconClassName="tw:text-orange-600"
+                          dotClass="tw:bg-amber-500"
+                          numberClass="tw:text-amber-600"
+                          loading={b2cSummary.loading}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <Summary summary={summary} />
+                  )}
+                </div>
+
+                {isTheme2 && (
+                  <SectionLabel>
+                    Fulfilment funnel · where orders sit
+                  </SectionLabel>
+                )}
+                <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+                  <PendingOrdersCard
+                    search={search}
+                    dateFrom={dateFrom}
+                    dateTo={dateTo}
+                    mainTab={mainTab}
+                    salesEmployeeId={salesEmployeeId}
+                    callback={handleOrderCallback}
+                  />
+
+                  <ProcessOrdersCard
+                    search={search}
+                    dateFrom={dateFrom}
+                    dateTo={dateTo}
+                    mainTab={mainTab}
+                    salesEmployeeId={salesEmployeeId}
+                    callback={handleOrderCallback}
+                  />
+
+                  <CompletedOrdersCard
+                    search={search}
+                    dateFrom={dateFrom}
+                    dateTo={dateTo}
+                    mainTab={mainTab}
+                    salesEmployeeId={salesEmployeeId}
+                    callback={handleOrderCallback}
+                  />
+                </div>
+
+                <div className="tw:mt-4">
+                  <PaymentMethodsCard
+                    search={search}
+                    dateFrom={dateFrom}
+                    dateTo={dateTo}
+                    mainTab={mainTab}
+                    salesEmployeeId={salesEmployeeId}
+                    onManage={() => {}}
+                  />
+                </div>
+
+                <div className="tw:mt-4 tw:mb-4">
+                  {isTheme2 && <SectionLabel>Breakdown</SectionLabel>}
+                  <AppTab
+                    activeTab={activeTab}
+                    variant={isTheme2 ? "pills" : "tabs"}
+                    onTabChange={(tab) => {
+                      // only update local activeTab — do not add `tab` to query params
+                      setActiveTab(tab.key);
+                    }}
+                    tabs={buildTabs(mainTab)}
+                  />
+                  {tabDescriptions[activeTab]?.[mainTab] && (
+                    <p className="tw:text-xs tw:text-gray-500 tw:mt-1 tw:px-1">
+                      {tabDescriptions[activeTab][mainTab]}
+                    </p>
+                  )}
+                </div>
+
+                <div className="tw:mb-6">
+                  {activeTab === "all-orders" && (
+                    <AllOrders
+                      mainTab={mainTab}
+                      search={search}
+                      dateFrom={dateFrom}
+                      dateTo={dateTo}
+                      salesEmployeeId={salesEmployeeId}
+                    />
+                  )}
+                  {activeTab === "customers" && (
+                    <Customers
+                      mainTab={mainTab}
+                      search={search}
+                      dateFrom={dateFrom}
+                      dateTo={dateTo}
+                      salesEmployeeId={salesEmployeeId}
+                    />
+                  )}
+                  {activeTab === "products" && (
+                    <Products
+                      mainTab={mainTab}
+                      search={search}
+                      dateFrom={dateFrom}
+                      dateTo={dateTo}
+                      salesEmployeeId={salesEmployeeId}
+                    />
+                  )}
+                </div>
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed pane
+                  beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <OrdersDashboardSidePane
+                  activeChannel={mainTab}
+                  onChannelChange={handleMainTabChange}
+                  allOrders={allOrdersSummary}
+                  b2b={b2bSummary}
+                  b2c={b2cSummary}
+                  totalUnits={paneTotalUnits}
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                />
+              </AppPaneSide>
+            </div>
           </div>
         </div>
       </div>

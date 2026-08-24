@@ -1,9 +1,12 @@
 import { format, parseISO, isValid } from "date-fns";
+import { Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSearchParams } from "react-router";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
+import AppButton from "~/components/core/button/AppButton";
 import AppSimpleHeader from "~/components/core/header/AppSimpleHeader";
+import useAppNav from "~/hooks/useAppNav";
 import CommonService from "~/services/CommonService";
 import NetworkAnalyticsService from "~/services/NetworkAnalyticsService";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
@@ -32,10 +35,11 @@ const breadcrumbs: BreadcrumbItem[] = [
       path: "/auth/master/stores",
     },
   },
-  { label: "Sales Dashboard" },
+  { label: "All Retailers" },
 ];
 
 const NetworkDashboard = () => {
+  const appNav = useAppNav();
   const [summary, setSummary] = useState(defaultSummary);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -183,13 +187,25 @@ const NetworkDashboard = () => {
 
   return (
     <>
-      <AppSimpleHeader title="Sales Dashboard - v1.1" />
+      <AppSimpleHeader title="All Retailers" />
       <div className="app-page tw:p-4">
         <div className="app-container ">
-          <AppBreadcrumbs data={breadcrumbs} />
-          <div className="tw:mt-1 tw:text-xs tw:text-gray-500 tw:mb-4">
-            Track network performance, franchise sales, and store analytics
-            across regions.
+          <div className="tw:flex tw:items-start tw:justify-between tw:gap-4">
+            <div>
+              <AppBreadcrumbs data={breadcrumbs} />
+              <div className="tw:mt-1 tw:text-xs tw:text-gray-500 tw:mb-4">
+                Track network performance, franchise sales, and store analytics
+                across regions.
+              </div>
+            </div>
+            <AppButton
+              size="small"
+              onClick={() => appNav.to("/master/crm/dashboard")}
+              className="tw:flex-shrink-0 tw:flex tw:items-center tw:gap-1"
+            >
+              <Users className="tw:w-4 tw:h-4" />
+              <span>CRM Dashboard</span>
+            </AppButton>
           </div>
           <FormProvider {...methods}>
             <Filter callback={handleFilter} className="tw:mb-4" />

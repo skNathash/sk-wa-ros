@@ -72,8 +72,15 @@ export const addToCartHelper = async ({
       throw new Error(apiResponse?.data?.message || "Failed to update cart");
     }
 
-    // Update local storage
-    CartService.addToCartLocal(deal.id, quantity);
+    // Update local storage — scoped to the seller so the same deal bought from
+    // another seller doesn't read as "in cart" here.
+    CartService.addToCartLocal(
+      deal.id,
+      quantity,
+      cartType === "buyer" || cartType === "buy-from-other-retailer"
+        ? deal.buyFromOtherRetailer?.retailerId
+        : undefined,
+    );
 
     // Trigger cart count update event
     window.dispatchEvent(new CustomEvent("cart-count-updated"));

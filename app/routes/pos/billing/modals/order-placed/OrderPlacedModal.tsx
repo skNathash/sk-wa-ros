@@ -120,9 +120,11 @@ const OrderPlacedModal: React.FC<OrderPlacedModalProps> = ({
             <div className="tw:text-xl tw:font-bold tw:text-foreground tw:tracking-tight">
               Order placed successfully
             </div>
-            <div className="tw:text-xs tw:text-muted-foreground tw:mt-1">
-              Print the receipt or share it on WhatsApp.
-            </div>
+            {!isB2b && (
+              <div className="tw:text-xs tw:text-muted-foreground tw:mt-1">
+                Print the receipt or share it on WhatsApp.
+              </div>
+            )}
 
             <div className="tw:w-full tw:mt-5">
               <div className="tw:text-[11px] tw:tracking-[0.18em] tw:text-muted-foreground tw:font-semibold tw:mb-2 tw:text-left">

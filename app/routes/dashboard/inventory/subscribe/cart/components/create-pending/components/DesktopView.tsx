@@ -29,7 +29,11 @@ interface DesktopViewProps {
   totalCount?: number;
   onCreateProduct: (item: ReviewItem) => void;
   onSkSuggestions: (item: ReviewItem) => void;
-  onImagePreview?: (images: string[], initialImageId?: string, useProxy?: boolean) => void;
+  onImagePreview?: (
+    images: string[],
+    initialImageId?: string,
+    useProxy?: boolean,
+  ) => void;
   onRemove: (item: ReviewItem) => void;
   removingKey?: string | null;
   selectedIds: Set<string>;
@@ -56,31 +60,37 @@ const DesktopView: React.FC<DesktopViewProps> = ({
   allSelected = false,
   onToggleSelectAll,
 }) => {
+  // "Not found" rows can't be bulk created, so the select-all checkbox is
+  // pointless when none of the loaded rows are selectable.
+  const hasSelectable = items.some(isSelectable);
+
   const headers = [
     {
       key: "select",
-      width: "4%",
+      width: "40px",
       isCentered: true,
-      label: (
+      label: hasSelectable ? (
         <Checkbox
           aria-label="Select all"
           checked={allSelected}
           onCheckedChange={() => onToggleSelectAll()}
           className="tw:border-gray-400"
         />
+      ) : (
+        ""
       ),
     },
-    { key: "product", label: "Item Name", width: "24%" },
-    { key: "barcode", label: "Barcode", width: "13%" },
-    { key: "mrp", label: "MRP", width: "8%" },
-    { key: "date", label: "Date", width: "12%" },
-    { key: "status", label: "Status", width: "13%" },
-    { key: "actions", label: "", width: "26%" },
+    { key: "product", label: "Item Name", width: "auto" },
+    { key: "barcode", label: "Barcode", width: "130px" },
+    { key: "mrp", label: "MRP", width: "70px" },
+    { key: "date", label: "Date", width: "100px" },
+    { key: "status", label: "Status", width: "130px" },
+    { key: "actions", label: "", width: "300px" },
   ];
 
   return (
     <div className="tw:rounded-xl tw:border tw:border-gray-200 tw:overflow-hidden tw:bg-white">
-      <AppTable fixedLayout>
+      <AppTable fixedLayout minWidth="100%">
         <AppTable.Header>
           <TableHeader headers={headers} />
         </AppTable.Header>
@@ -115,13 +125,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   {/* Item Name & Image */}
                   <AppTable.Cell>
                     <div className="tw:flex tw:items-center tw:gap-2.5">
-                      <div className="tw:flex tw:items-center tw:justify-center tw:w-12 tw:h-12 tw:rounded-lg tw:bg-gray-50 tw:border tw:border-gray-100 tw:shrink-0">
+                      <div className="tw:flex tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-lg tw:bg-gray-50 tw:border tw:border-gray-100 tw:shrink-0">
                         {deal?.image ? (
                           <button
                             type="button"
                             onClick={() =>
                               onImagePreview?.(
-                                deal?.images || (deal?.image ? [deal.image] : []),
+                                deal?.images ||
+                                  (deal?.image ? [deal.image] : []),
                                 deal?.image,
                                 item.matchStatus === "FoundInAi",
                               )
@@ -131,7 +142,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                             <ImgRender
                               {...dealImageProps(deal.image)}
                               alt={deal.title}
-                              className="tw:max-h-12 tw:max-w-12 tw:object-contain"
+                              className="tw:max-h-10 tw:max-w-10 tw:object-contain"
                               useProxy={item.matchStatus === "FoundInAi"}
                             />
                           </button>
@@ -170,9 +181,9 @@ const DesktopView: React.FC<DesktopViewProps> = ({
 
                   {/* Barcode */}
                   <AppTable.Cell>
-                    <span className="tw:inline-flex tw:items-center tw:gap-1 tw:text-xs tw:font-mono tw:font-medium tw:text-gray-800 tw:bg-gray-50 tw:border tw:border-gray-200 tw:rounded tw:px-1.5 tw:py-0.5">
-                      <Barcode className="tw:w-3 tw:h-3 tw:text-gray-400" />
-                      {item.barcode}
+                    <span className="tw:inline-flex tw:max-w-full tw:items-center tw:gap-1 tw:text-[11px] tw:font-mono tw:font-medium tw:text-gray-800 tw:bg-gray-50 tw:border tw:border-gray-200 tw:rounded tw:px-1.5 tw:py-0.5">
+                      <Barcode className="tw:w-3 tw:h-3 tw:shrink-0 tw:text-gray-400" />
+                      <span className="tw:truncate">{item.barcode}</span>
                     </span>
                   </AppTable.Cell>
 
@@ -193,10 +204,16 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                     {item.createdAt ? (
                       <div className="tw:flex tw:flex-col">
                         <span className="tw:text-xs tw:font-medium tw:text-gray-900">
-                          <DateFormat value={item.createdAt} formatStr="dd MMM yyyy" />
+                          <DateFormat
+                            value={item.createdAt}
+                            formatStr="dd MMM yyyy"
+                          />
                         </span>
                         <span className="tw:text-[10px] tw:text-gray-500">
-                          <DateFormat value={item.createdAt} formatStr="hh:mm a" />
+                          <DateFormat
+                            value={item.createdAt}
+                            formatStr="hh:mm a"
+                          />
                         </span>
                       </div>
                     ) : (
@@ -222,7 +239,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
 
                   {/* Action Buttons */}
                   <AppTable.Cell>
-                    <div className="tw:flex tw:items-center tw:justify-end tw:gap-2">
+                    <div className="tw:flex tw:items-center tw:justify-end tw:gap-1.5">
                       {item.status === "Requested" ? null : (
                         <ScanItemActions
                           item={item}
@@ -236,7 +253,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                           aria-label="Remove item"
                           disabled={removing}
                           onClick={() => onRemove(item)}
-                          className="tw:inline-flex tw:items-center tw:justify-center tw:w-8 tw:h-8 tw:shrink-0 tw:rounded-full tw:bg-red-50 tw:border tw:border-red-100 tw:text-red-600 tw:transition-colors active:tw:bg-red-100 hover:tw:bg-red-100 focus-visible:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-red-300 disabled:tw:opacity-50 disabled:tw:cursor-not-allowed tw:cursor-pointer"
+                          className="tw:inline-flex tw:items-center tw:justify-center tw:w-7 tw:h-7 tw:shrink-0 tw:rounded-full tw:bg-red-50 tw:border tw:border-red-100 tw:text-red-600 tw:transition-colors active:tw:bg-red-100 hover:tw:bg-red-100 focus-visible:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-red-300 disabled:tw:opacity-50 disabled:tw:cursor-not-allowed tw:cursor-pointer"
                         >
                           {removing ? (
                             <Loader2 className="tw:w-3.5 tw:h-3.5 tw:animate-spin" />
@@ -253,7 +270,10 @@ const DesktopView: React.FC<DesktopViewProps> = ({
           )}
           {showLoadMore && !loading && items.length > 0 ? (
             <AppTable.Row>
-              <AppTable.Cell colSpan={headers.length} className="tw:text-center tw:py-4">
+              <AppTable.Cell
+                colSpan={headers.length}
+                className="tw:text-center tw:py-4"
+              >
                 <LoadMoreButton
                   loadMore={loadMore}
                   loading={loadingMore}

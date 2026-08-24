@@ -116,7 +116,7 @@ const RemoveButton: React.FC<{
 
 /** Placeholder card shown while the first page loads. Mirrors the card frame. */
 const CardSkeleton: React.FC = () => (
-  <li className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white">
+  <li className="app-bleed-x tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white">
     <span className="tw:absolute tw:left-0 tw:top-0 tw:bottom-0 tw:w-1 tw:bg-gray-200" />
     <div className="tw:py-2.5 tw:pl-4 tw:pr-2.5">
       <div className="tw:flex tw:items-start tw:gap-3">
@@ -198,7 +198,10 @@ const MobileView: React.FC<MobileViewProps> = ({
           return (
             <li
               key={`${item.id || item.barcode}-${index}`}
-              className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white"
+              // `app-bleed-x`: on theme-2 mobile the card runs out of the page
+              // gutter to both screen edges and drops its corner radius, so the
+              // list reads as one sheet rather than floating cards.
+              className="app-bleed-x tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white"
             >
               <span
                 className={`tw:absolute tw:left-0 tw:top-0 tw:bottom-0 tw:w-1 ${status.dot}`}

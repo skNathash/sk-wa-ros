@@ -1,12 +1,10 @@
 import { debounce } from "lodash";
-import { SearchIcon } from "lucide-react";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import Alpha from "~/components/core/alpha/Alpha";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
-import { AppInput } from "~/components/core/form";
 import AppHeader from "~/components/core/header/AppHeader";
 import ImgRender from "~/components/core/img/ImgRender";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
@@ -17,6 +15,7 @@ import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem, PaginationState } from "~/types/CommonTypes";
 import SkProductsTab from "../../components/SkProductsTab";
 import Products from "../components/products/Products";
+import BrowseSearchField from "~/shared/catalog/components/browse/BrowseSearchField";
 import BrandGrid from "./components/BrandGrid";
 import BrandList, { type BrandItem } from "./components/BrandList";
 import CategoryList, { type CategoryItem } from "./components/categories/CategoryList";
@@ -187,18 +186,14 @@ const BrandsPage = () => {
           <div className="section-content">
             <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
             <div className="tw:mb-4 tw:relative tw:z-10">
-              <SkProductsTab activeTab="brands" className="tw:mb-4" />
+              <SkProductsTab
+                activeTab="brands"
+                className="tw:mb-4 hide-in-theme-2"
+              />
 
               <div className="browse-grid--brand tw:grid tw:grid-cols-1 tw:md:grid-cols-[20rem_22rem_1fr] tw:md:grid-rows-1 tw:gap-3 tw:h-[calc(100vh-12rem)]">
               <div className="tw:flex tw:flex-col tw:gap-2 tw:min-h-0 tw:h-full">
-                <AppInput
-                  name="search"
-                  placeholder="Search"
-                  register={register}
-                  className="tw:w-full"
-                  onChange={handleSearch}
-                  leftIcon={<SearchIcon className="tw:text-gray-500" />}
-                />
+                <BrowseSearchField register={register} onChange={handleSearch} />
                 <Alpha
                   selected={alpha}
                   callback={handleAlphaChange}

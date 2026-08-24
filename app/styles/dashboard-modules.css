@@ -1,0 +1,150 @@
+/* ==========================================================================
+   Module directory
+   Everything here is scoped to `.app-modules`, the wrapper on the modules
+   route (app/routes/dashboard/modules/index.tsx). The page renders only under
+   theme-2 (the route redirects otherwise), so the rules are not keyed on
+   [data-theme] themselves — the wrapper is enough. Imported from app.css after
+   the themes so it keeps winning ties at equal specificity.
+
+   The screen is a light directory: a serif promise at the top, then white
+   cards banded by intent. Two tones carry it — the brand green for anything
+   live, a flat grey for anything the shop has not unlocked yet.
+   ========================================================================== */
+
+.app-modules {
+  --modules-ink: #0f172a;
+  --modules-muted: #64748b;
+  --modules-dim: #94a3b8;
+  --modules-line: #e2e8f0;
+  --modules-accent: var(--primary, #075e54);
+  /* The display and caption faces. Swapped here rather than inline so moving
+     the page onto the app's own faces is a one-line change. */
+  --modules-display: Georgia, "Times New Roman", "Noto Serif", serif;
+  --modules-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+
+  color: var(--modules-ink);
+}
+
+/* The directory is a reading column, not a full-bleed grid — capped on the
+   content column so the cards keep their size on a wide desktop. */
+.app-modules .section-content {
+  max-width: 76rem;
+}
+
+/* --------------------------------------------------------------------------
+   Page header
+   -------------------------------------------------------------------------- */
+
+.app-modules .app-modules-display {
+  font-family: var(--modules-display);
+  letter-spacing: -0.01em;
+}
+
+.app-modules .app-modules-accent {
+  color: var(--modules-accent);
+}
+
+/* Eyebrow + counts caption share the mono face, which is what separates the
+   metadata from the serif promise sitting between them. */
+.app-modules .app-modules-eyebrow {
+  display: block;
+  font-family: var(--modules-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--modules-dim);
+}
+
+.app-modules .app-modules-subline {
+  font-family: var(--modules-mono);
+  font-size: 12px;
+  color: var(--modules-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Intent bands
+   -------------------------------------------------------------------------- */
+
+.app-modules .app-modules-group-label {
+  font-family: var(--modules-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--modules-accent);
+}
+
+.app-modules .app-modules-group-caption {
+  font-family: var(--modules-mono);
+  font-size: 12px;
+  color: var(--modules-dim);
+}
+
+/* --------------------------------------------------------------------------
+   Module cards
+   -------------------------------------------------------------------------- */
+
+.app-modules .app-modules-card {
+  background-color: #fff;
+  border: 1px solid var(--modules-line);
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.app-modules a:hover .app-modules-card {
+  border-color: color-mix(in srgb, var(--modules-accent) 35%, transparent);
+  box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Two hairlines, the way the mock separates the card: a solid rule under the
+   icon row, a dotted one above the action. */
+.app-modules .app-modules-card-body {
+  border-top: 1px solid var(--modules-line);
+}
+
+.app-modules .app-modules-card-foot {
+  border-top: 1px dotted var(--modules-line);
+}
+
+.app-modules .app-modules-name {
+  color: var(--modules-ink);
+}
+
+.app-modules .app-modules-desc {
+  color: var(--modules-muted);
+}
+
+/* No colour here on purpose — each tile carries its own through `actionClass`
+   in helper.ts, and a rule at this specificity would beat the utility. */
+.app-modules .app-modules-action {
+  letter-spacing: -0.005em;
+}
+
+/* The count chip is `AppBadge` (size="sm", variant from helper.ts) — no local
+   badge styling here, so it matches every other count chip in the app. */
+
+/* --- Locked modules ------------------------------------------------------
+   Painted exactly like every other tile — same fill, border, chip and
+   coloured action — because the directory is the catalogue and a locked
+   module is a real module. The only difference is behavioural: the card is
+   not wrapped in a link, so a tap goes nowhere rather than somewhere empty.
+   The header states how many are still to unlock. */
+
+.app-modules .app-modules-card.is-locked {
+  cursor: default;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile — the header's count readout sits back under the promise rather than
+   beside it, so it stays left-aligned with everything else.
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1023px) {
+  .app-modules .app-modules-display {
+    letter-spacing: -0.02em;
+  }
+}

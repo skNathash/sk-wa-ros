@@ -17,6 +17,7 @@ import AppButton from "~/components/core/button/AppButton";
 import { Download } from "lucide-react";
 import AuthService from "~/services/AuthService";
 import ReportService from "~/services/ReportService";
+import { SectionLabel } from "../components/ui";
 
 const defaultFilter = {
   search: "",
@@ -58,6 +59,8 @@ const RateSummary = () => {
   });
 
   const [view, setView] = useState<ViewToggleType>("list");
+
+  const showCardView = isMobile || view === "card";
 
   useEffect(() => {
     filterRef.current = {
@@ -140,21 +143,25 @@ const RateSummary = () => {
 
   return (
     <>
-      <div className="tw:mb-4 tw:grid tw:grid-cols-2 tw:md:grid-cols-3">
-        <Controller
-          name="gstRate"
-          control={control}
-          render={({ field }) => (
-            <AppSelect
-              options={gstOptions}
-              placeholder="Select GST Rate"
-              value={gstRate}
-              onChange={handleGstRateChange(field.onChange)}
-              size="sm"
-              inputClassName="tw:w-full"
-            />
-          )}
-        />
+      <div className="tw:mb-4 tw:flex tw:items-center tw:justify-between tw:gap-3">
+        {showCardView && <SectionLabel className="tw:mb-0">By GST rate</SectionLabel>}
+
+        <div className="tw:w-40 tw:md:w-56">
+          <Controller
+            name="gstRate"
+            control={control}
+            render={({ field }) => (
+              <AppSelect
+                options={gstOptions}
+                placeholder="Select GST Rate"
+                value={gstRate}
+                onChange={handleGstRateChange(field.onChange)}
+                size="sm"
+                inputClassName="tw:w-full"
+              />
+            )}
+          />
+        </div>
       </div>
 
       <div className="tw:flex tw:justify-between tw:items-center tw:mb-2">
@@ -184,7 +191,7 @@ const RateSummary = () => {
         </div>
       </div>
 
-      {isMobile || view === "card" ? (
+      {showCardView ? (
         <MobileView
           data={data}
           loading={loading}

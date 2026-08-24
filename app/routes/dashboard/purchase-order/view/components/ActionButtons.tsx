@@ -173,7 +173,12 @@ const ActionButtons = ({
 
   return (
     <>
-      <div className={`tw:flex tw:gap-2 tw:flex-wrap tw:justify-end`}>
+      {/* `app-detail-actions` lets theme-2 mobile lay these out as one
+          full-width strip under the order id instead of letting them wrap
+          into a ragged block beside it. No-op elsewhere. */}
+      <div
+        className={`app-detail-actions tw:flex tw:gap-2 tw:flex-wrap tw:justify-end`}
+      >
         {/* Edit Button - Only for Draft and Approval Pending */}
         {purchaseOrder._canEdit && (
           <AppButton

@@ -1,16 +1,22 @@
-import { useMemo, useState } from "react";
-import { PackageSearch, ScanLine, ArrowRight, AlertCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { PackageSearch, AlertCircle } from "lucide-react";
 
 import useScreenView from "~/hooks/useScreenView";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
 import BarcodeScanBulkService from "~/services/BarcodeScanBulkService";
-import AppButton from "~/components/core/button/AppButton";
+import useTheme from "~/hooks/useTheme";
+import ScanResolveSummary from "~/shared/inventory/subscribe-scan/components/ScanResolveSummary";
 import AiExtractedDetailsModal from "~/shared/catalog/modals/AiExtractedDetailsModal";
 import SkSuggestionsModal from "~/shared/inventory/subscribe-scan/modals/SkSuggestionsModal";
 import DesktopView from "./DesktopView";
 import MobileView from "./MobileView";
+import ReviewFilterChips, {
+  getReviewChips,
+  matchesReviewFilter,
+  type ReviewFilter,
+} from "./ReviewFilterChips";
 import { AiFetchingBanner, ReviewSummary } from "./Summary";
 import type { ReviewItem } from "../../helper";
 
@@ -25,7 +31,6 @@ interface ReviewProps {
   onRemoveItem: (barcode: string) => void;
   /** Mark a row as requested after its create request is sent. */
   onItemRequested?: (id: string) => void;
-  onBackToScan: () => void;
   onImagePreview?: (
     images: string[],
     initialImageId?: string,
@@ -64,19 +69,20 @@ export default function Review({
   error,
   onRemoveItem,
   onItemRequested,
-  onBackToScan,
   onImagePreview,
 }: ReviewProps) {
   const appNav = useAppNav();
   const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
   const { show: showToast } = useAppToast();
 
   // Barcodes whose delete request is in flight — keeps their remove button
   // spinning and guards against a double-tap firing the DELETE twice.
   const [removing, setRemoving] = useState<Set<string>>(new Set());
 
-  // Bulk-subscribe state for the footer action.
-  const [subscribing, setSubscribing] = useState(false);
+  // Source filter for the list — the page footer owns the subscribe action, so
+  // narrowing the view here never changes what gets submitted.
+  const [filter, setFilter] = useState<ReviewFilter>("all");
 
   // Modal state — set when a row's action button asks us to open one. Pure UI,
   // so it stays local; the row data still flows down from the parent.
@@ -93,143 +99,6 @@ export default function Review({
     context: { barcode?: string; scanItemId?: string };
     itemId?: string;
   }>({ show: false, product: null, context: {} });
-
-  // FoundInSk rows carry a real catalog deal we can subscribe to in one call.
-  const subscribableItems = useMemo(
-    () =>
-      items.filter(
-        (i) => i.matchStatus === "FoundInSk" && i.deal && !i.deal.isSubscribed,
-      ),
-    [items],
-  );
-
-  // AI-found / Not-found rows the user can send for creation from the summary.
-  // Already-requested rows are excluded — they've been sent to the catalog team,
-  // so counting them again would inflate the "added to pending" tally and the
-  // cart's newPending deep-link.
-  const creatableItems = useMemo(
-    () =>
-      items.filter(
-        (i) =>
-          (i.matchStatus === "FoundInAi" || i.matchStatus === "NotFound") &&
-          i.status !== "Requested",
-      ),
-    [items],
-  );
-
-  // Head to the subscription cart after a subscribe. `extraParams` lets the
-  // caller deep-link a specific tab (e.g. the "Create Pending" list).
-  const goToCart = (extraParams?: Record<string, string>) => {
-    appNav.to("/dashboard/inventory/subscribe/cart", {
-      from: "barcode-scan-bulk",
-      newPending: String(creatableItems.length),
-      ...extraParams,
-    });
-  };
-
-  // Tapping Subscribe bulk-subscribes the FoundInSk rows in one call and then
-  // redirects to the cart — no intermediate selection step. Not-in-catalog rows
-  // aren't created here; they surface in the cart's "Create Pending" tab, the
-  // single place creation now happens.
-  const handleSubscribe = async () => {
-    const allSubscribed =
-      items.length > 0 && items.every((i) => i.deal?.isSubscribed);
-    if (allSubscribed) {
-      showToast({
-        msg: "All items in this batch are already subscribed",
-        color: "warning",
-      });
-      return;
-    }
-    if (!subscribableItems.length && !creatableItems.length) {
-      showToast({ msg: "Nothing to subscribe", color: "error" });
-      return;
-    }
-    setSubscribing(true);
-    try {
-      // Subscribe the FoundInSk rows in one call — only when there are any, so
-      // a create-only batch doesn't hit the subscribe endpoint with an empty
-      // products list.
-      let subscribedCount = 0;
-      if (subscribableItems.length) {
-        const products = subscribableItems.map((item) => {
-          const deal = item.deal!;
-          return {
-            dealId: deal.id,
-            dealRefId: deal.dealId,
-            name: deal.title,
-            quantity: item.qty || 0,
-            mrp: deal.mrp,
-            price: deal.price || deal.mrp,
-            images: deal.images || [],
-            barcodes: deal.barcode ? [deal.barcode] : [item.barcode],
-          };
-        });
-        const res = await InventorySubscribeService.bulkSubscription(products);
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          showToast({
-            msg: res.data?.message || "Failed to subscribe products",
-            color: "error",
-          });
-          return;
-        }
-        subscribedCount = products.length;
-      }
-
-      // Mark the batch completed now that its matched items have been
-      // subscribed. Best-effort — a failure here shouldn't block the redirect
-      // since the products are already subscribed.
-      if (batchId) {
-        InventorySubscribeService.submitAiBulkBarcodeScanBatch(batchId).catch(
-          () => {},
-        );
-      }
-
-      // Confirm the subscribe before the redirect so landing on the cart never
-      // feels like a silent teleport. Use specific messages depending on whether
-      // we subscribed catalog items, sent items to pending creation, or both.
-      if (subscribedCount) {
-        if (creatableItems.length > 0) {
-          showToast({
-            msg: `${subscribedCount} product${
-              subscribedCount > 1 ? "s" : ""
-            } subscribed & ${creatableItems.length} product${
-              creatableItems.length > 1 ? "s" : ""
-            } added to pending — taking you to your subscription cart`,
-            color: "success",
-          });
-        } else {
-          showToast({
-            msg: `${subscribedCount} product${
-              subscribedCount > 1 ? "s" : ""
-            } subscribed — taking you to your subscription cart`,
-            color: "success",
-          });
-        }
-      } else if (creatableItems.length > 0) {
-        showToast({
-          msg: `${creatableItems.length} new product${
-            creatableItems.length > 1 ? "s" : ""
-          } found. Tap Create New to add ${
-            creatableItems.length > 1 ? "them" : "it"
-          } to your store.`,
-          color: "success",
-        });
-      }
-
-      // Go straight to the subscription cart. When nothing was subscribed (only
-      // creatable items), deep-link the "Create Pending" tab so the user lands
-      // on the list they need to act on; otherwise show the subscribed items.
-      goToCart(subscribedCount ? undefined : { activeTab: "pending" });
-    } catch (e: any) {
-      showToast({
-        msg: e?.response?.data?.message || "Failed to subscribe products",
-        color: "error",
-      });
-    } finally {
-      setSubscribing(false);
-    }
-  };
 
   // Delete the item server-side first; only tell the parent to drop the row
   // once the API confirms, so the list never diverges from the batch.
@@ -306,8 +175,22 @@ export default function Review({
     setAiModal({ show: false, product: null, context: {} });
   };
 
+  const chips = useMemo(() => getReviewChips(items), [items]);
+  const visibleItems = useMemo(
+    () => items.filter((i) => matchesReviewFilter(i, filter)),
+    [items, filter],
+  );
+
+  // A bucket can empty out while it's selected (its last row was removed or
+  // created) — fall back to All so the list never reads as empty by accident.
+  useEffect(() => {
+    if (filter !== "all" && !chips.find((c) => c.key === filter)?.count) {
+      setFilter("all");
+    }
+  }, [chips, filter]);
+
   const viewProps = {
-    items,
+    items: visibleItems,
     removing,
     onSkSuggestions: handleSkSuggestions,
     onCreateProduct: handleCreateProduct,
@@ -318,6 +201,27 @@ export default function Review({
   const aiPending = items.some((i) => i.matchStatus === "Pending");
   // Progress for the fetching banner — how many barcodes are already resolved.
   const resolvedCount = items.filter((i) => i.matchStatus !== "Pending").length;
+
+  // Same tallies as the light ReviewSummary, shaped for the shared resolve
+  // panel. Both legs have already reported by the time this renders (it waits
+  // for aiPending to clear), so neither source row is live.
+  const resolveSummary = useMemo(() => {
+    const resolved = items.filter((i) => i.matchStatus !== "Pending");
+    const sk = resolved.filter((i) => i.matchStatus === "FoundInSk").length;
+    const ai = resolved.filter((i) => i.matchStatus === "FoundInAi").length;
+    const notFound = resolved.filter(
+      (i) => i.matchStatus === "NotFound",
+    ).length;
+    const total = resolved.length;
+    return {
+      eyebrow: "Step 3 · Review",
+      title: `${total} ${total === 1 ? "barcode" : "barcodes"} resolved`,
+      sk: { count: sk },
+      ai: { count: ai },
+      notFound,
+      yours: resolved.filter((i) => i.deal?.isSubscribed).length,
+    };
+  }, [items]);
 
   // While the first fetch is in flight we own the whole frame — no footer, so
   // the user can't act on a half-loaded list.
@@ -337,7 +241,11 @@ export default function Review({
       ) : (
         items.length > 0 && (
           <div className="tw:mb-3">
-            <ReviewSummary items={items} />
+            {isTheme2 ? (
+              <ScanResolveSummary {...resolveSummary} />
+            ) : (
+              <ReviewSummary items={items} />
+            )}
           </div>
         )
       )}
@@ -367,32 +275,23 @@ export default function Review({
             rescan items.
           </div>
         </div>
-      ) : isMobile ? (
-        <MobileView {...viewProps} onImagePreview={onImagePreview} />
       ) : (
-        <DesktopView {...viewProps} onImagePreview={onImagePreview} />
+        <>
+          {/* Source chips — All Items / SK Library / SK AI / Not found / My
+              Items, same set the single-scan results table offers. */}
+          <ReviewFilterChips
+            chips={chips}
+            value={filter}
+            onChange={setFilter}
+            className="tw:mb-2 tw:px-0!"
+          />
+          {isMobile ? (
+            <MobileView {...viewProps} onImagePreview={onImagePreview} />
+          ) : (
+            <DesktopView {...viewProps} onImagePreview={onImagePreview} />
+          )}
+        </>
       )}
-
-      <div className="tw:sticky tw:bottom-0 tw:z-10 tw:mt-4 tw:flex tw:items-center tw:justify-between tw:gap-3 tw:flex-wrap tw:bg-white tw:py-3 tw:border-t tw:border-gray-200">
-        <AppButton color="light" fill="outline" onClick={onBackToScan}>
-          <ScanLine className="tw:w-4 tw:h-4 tw:mr-1" />
-          Back to scan
-        </AppButton>
-        <AppButton
-          onClick={handleSubscribe}
-          disabled={
-            subscribing ||
-            (subscribableItems.length === 0 && creatableItems.length === 0)
-          }
-          isLoading={subscribing}
-        >
-          {/* When nothing maps to the SK catalog the action only routes the user
-              to the cart to create the AI-found rows — so the label sets that
-              expectation instead of promising a subscribe that won't happen. */}
-          {subscribableItems.length > 0 ? "Subscribe" : "Create products"}
-          <ArrowRight className="tw:w-4 tw:h-4 tw:ml-1" />
-        </AppButton>
-      </div>
 
       <SkSuggestionsModal
         show={skModal.show}

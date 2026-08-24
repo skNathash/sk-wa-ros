@@ -4,7 +4,8 @@ import useOnlyNumber from "~/hooks/useOnlyNumbers";
 
 type Props = {
   count?: number;
-  callback: (a: { value: number }) => void;
+  // `raw` keeps the typed digits as-is — `value` loses leading zeros.
+  callback: (a: { value: number; raw: string }) => void;
 };
 
 const SplitInput = ({ count = 4, callback }: Props) => {
@@ -28,7 +29,7 @@ const SplitInput = ({ count = 4, callback }: Props) => {
       .map((x) => x?.value?.toString() || "")
       .join("");
 
-    callback({ value: Number(finalVal) });
+    callback({ value: Number(finalVal), raw: finalVal });
   };
 
   const onKeyDown = (

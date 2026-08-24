@@ -15,6 +15,7 @@ import { useSearchParams } from "react-router";
 import AppButton from "~/components/core/button/AppButton";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import { prepareParams, downloadReport } from "./helper";
+import { SectionLabel } from "../components/ui";
 import useAppToast from "~/hooks/useAppToast";
 import { useTranslation } from "react-i18next";
 
@@ -133,47 +134,54 @@ const GstDashboardReports = () => {
   return (
     <>
       <div className="app-page page-bg">
-        <div className="app-container">
+        <div className="app-container tw:py-4 tw:space-y-6">
           {reports.map((report) => (
-            <div key={report.titleKey}>
-              <h2 className="tw:text-lg tw:font-bold tw:mb-4 tw:mt-8">
-                {t(report.titleKey)}
-              </h2>
-              <div>
-                <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
-                  {report.children.map((child: any) => (
-                    <AppCard key={child.titleKey} className="tw:mb-0">
-                      <div className="tw:text-sm tw:font-bold tw:flex tw:items-center tw:mb-2">
-                        <child.icon className="tw:mr-2 tw:text-lg" />
-                        {t(child.titleKey)}
+            <section key={report.titleKey}>
+              <SectionLabel>{t(report.titleKey)}</SectionLabel>
+              <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:lg:grid-cols-3 tw:gap-3">
+                {report.children.map((child: any) => (
+                  <AppCard
+                    key={child.titleKey}
+                    noPadding
+                    bodyClassName="tw:flex tw:flex-col tw:flex-1 tw:p-4"
+                    className="tw:mb-0 tw:h-full tw:rounded-xl tw:border tw:border-gray-200 tw:shadow-none tw:transition-colors tw:hover:border-violet-300"
+                  >
+                    <div className="tw:flex tw:items-start tw:gap-2.5 tw:mb-3">
+                      <span className="tw:inline-flex tw:items-center tw:justify-center tw:shrink-0 tw:rounded-lg tw:bg-violet-100 tw:text-violet-700 tw:p-2">
+                        <child.icon size={16} />
+                      </span>
+                      <div className="tw:min-w-0">
+                        <div className="tw:text-sm tw:font-semibold tw:text-gray-900 tw:leading-snug">
+                          {t(child.titleKey)}
+                        </div>
+                        <div className="tw:text-xs tw:text-gray-500 tw:leading-relaxed tw:mt-1">
+                          {t(child.descriptionKey)}
+                        </div>
                       </div>
-                      <div className="tw:text-xs tw:text-gray-500 tw:mb-4">
-                        {t(child.descriptionKey)}
-                      </div>
-                      <div>
-                        {child.isCommingSoon ? (
-                          <div className="tw:text-xs tw:text-slate-700 tw:font-medium tw:text-end tw:py-2">
-                            Coming soon
-                          </div>
-                        ) : (
-                          <div className="tw:flex tw:flex-wrap tw:gap-2 tw:items-center tw:justify-end">
-                            <AppButton
-                              size="small"
-                              color="primary"
-                              fill="outline"
-                              onClick={() => onDownload(child, "xlsx")}
-                            >
-                              <Download className="tw:mr-2" />
-                              {t("download")}
-                            </AppButton>
-                          </div>
-                        )}
-                      </div>
-                    </AppCard>
-                  ))}
-                </div>
+                    </div>
+
+                    <div className="tw:mt-auto tw:pt-3 tw:border-t tw:border-gray-100 tw:flex tw:items-center tw:justify-end">
+                      {child.isCommingSoon ? (
+                        <span className="tw:text-xs tw:font-medium tw:text-gray-400">
+                          Coming soon
+                        </span>
+                      ) : (
+                        <AppButton
+                          size="small"
+                          color="primary"
+                          fill="outline"
+                          onClick={() => onDownload(child, "xlsx")}
+                          className="tw:rounded-lg tw:font-medium"
+                        >
+                          <Download size={14} className="tw:mr-1.5" />
+                          {t("download")}
+                        </AppButton>
+                      )}
+                    </div>
+                  </AppCard>
+                ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       </div>

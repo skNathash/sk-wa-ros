@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 
 import { useSidebar } from "~/components/ui/sidebar";
 import useAppNav from "~/hooks/useAppNav";
+import useTheme from "~/hooks/useTheme";
 import AppHeader from "~/components/core/header/AppHeader";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import PageDescription from "~/components/core/page-description/PageDescription";
@@ -11,15 +12,21 @@ import useAppToast from "~/hooks/useAppToast";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
 import AiExtractedDetailsModal from "~/shared/catalog/modals/AiExtractedDetailsModal";
 import BarcodeScanTabs from "~/shared/inventory/subscribe-scan/components/BarcodeScanTabs";
+import ScanResolveSummary from "~/shared/inventory/subscribe-scan/components/ScanResolveSummary";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
 
 import CartStatusBar from "~/shared/inventory/subscribe-scan/components/CartStatusBar";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import SubscribeSidePane from "~/shared/inventory/components/subscribe-side-pane/SubscribeSidePane";
 import EmptyState from "./components/EmptyState";
 import ScanInput, { type ScanInputHandle } from "./components/ScanInput";
 import ScanResults from "./components/ScanResults";
 import StepTracker from "./components/StepTracker";
 import type { MatchedDealData } from "./components/matched-deal/MatchedDeal";
 import {
+  buildScanResolveSummary,
   formatAiSuggestions,
   withRelevance,
   type AiSuggestedProduct,
@@ -60,6 +67,25 @@ const BarcodeScan = () => {
     initialImageId?: string;
   }>({ show: false, images: [] });
 
+  // Mirrors ScanResolveSummary's own render condition — the panel is theme-2
+  // only and stays out of the way until something has been scanned. Knowing it
+  // up front lets the row drop to a single column instead of holding an empty
+  // half beside the scan card.
+  const isTheme2 = useTheme() === "theme-2";
+  const showResolveSummary = isTheme2 && phase !== "idle";
+
+  const resolveSummary = useMemo(
+    () =>
+      buildScanResolveSummary({
+        phase,
+        barcode: lookedUpBarcode,
+        matchedDeals,
+        skSuggested,
+        aiSuggested,
+      }),
+    [phase, lookedUpBarcode, matchedDeals, skSuggested, aiSuggested],
+  );
+
   const { show: showToast } = useAppToast();
   const { setOpen } = useSidebar();
   const appNav = useAppNav();
@@ -88,7 +114,7 @@ const BarcodeScan = () => {
       setPhase("skSearching");
 
       try {
-        // Phase 1: look for an exact match in the StoreKing catalog.
+        // Phase 1: look for an exact match in the SK Library.
         const skRes: any = await InventorySubscribeService.aiSearchByBarcodes(
           { searchKeyword: code },
           { searchInSk: true },
@@ -191,54 +217,103 @@ const BarcodeScan = () => {
     }
   };
 
-  const handleImagePreview = useCallback((images: string[], initialImageId?: string, useProxy?: boolean) => {
-    setImgPreviewModal({
-      show: true,
-      images: images.map((img) => ({ id: img, useProxy })),
-      initialImageId,
-    });
-  }, []);
+  const handleImagePreview = useCallback(
+    (images: string[], initialImageId?: string, useProxy?: boolean) => {
+      setImgPreviewModal({
+        show: true,
+        images: images.map((img) => ({ id: img, useProxy })),
+        initialImageId,
+      });
+    },
+    [],
+  );
 
   return (
     <>
       <AppHeader title="Barcode Scan" />
-      <div className="app-page tw:p-3 page-bg">
-        <div className="app-container">
-          <AppBreadcrumbs data={breadcrumbs} />
-          <PageDescription description="barcodeScan" />
+      <div className="app-page tw:p-4 page-bg">
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        {/* <SectionTabs sectionKey="catalog" activeTab="library" noShadow sticky /> */}
 
-          <BarcodeScanTabs activeTab="single" className="tw:mt-2" />
-
-          {/* Stacked on mobile; sticky scan sidebar + results on desktop */}
-          <div className="tw:mt-2 tw:flex tw:flex-col tw:gap-3 tw:md:grid tw:md:grid-cols-[22rem_minmax(0,1fr)] tw:md:items-start">
-            <aside className="tw:flex tw:flex-col tw:gap-3 tw:md:sticky tw:md:top-3">
-              <StepTracker
-                phase={phase}
-                className="tw:rounded-xl tw:bg-white tw:border tw:border-gray-200 tw:px-4 tw:py-2.5"
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title="Manage Catalog"
               />
+            </div>
+          </aside>
 
-              <section className="tw:rounded-xl tw:border tw:border-blue-200 tw:bg-linear-to-br tw:from-blue-50 tw:to-white tw:p-3">
-                <h2 className="tw:flex tw:items-baseline tw:flex-wrap tw:gap-x-1.5 tw:gap-y-0 tw:text-sm tw:font-bold tw:text-gray-900 tw:mb-2">
-                  <Camera className="tw:w-4 tw:h-4 tw:text-blue-600 tw:self-center" />
-                  Search a product
-                  <span className="tw:text-xs tw:font-normal tw:text-gray-500">
-                    by name, model or barcode
-                  </span>
-                </h2>
-                <ScanInput
-                  ref={scanRef}
-                  value={barcode}
-                  onChange={setBarcode}
-                  onSubmit={handleSubmit}
-                  isLoading={phase === "skSearching" || phase === "aiSearching"}
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                <AppBreadcrumbs
+                  data={breadcrumbs}
+                  className="theme-2-mobile-hide"
                 />
-              </section>
+                <PageDescription description="barcodeScan" />
 
-              <CartStatusBar />
+                <BarcodeScanTabs activeTab="single" className="tw:mt-2" />
 
-              {/* Hidden until a real "how it works" video is ready — the link
+                <div className="tw:mt-2 tw:flex tw:flex-col tw:gap-3">
+                  {/* Top row — scan card (with the step tracker under it) on the
+                      left, the live resolve panel on the right; stacked on
+                      mobile. The panel renders itself away (theme-2 only, and
+                      only once something has been scanned), leaving the left
+                      column alone on the row. */}
+                  <div
+                    className={`tw:grid tw:grid-cols-1 tw:gap-3 tw:items-start ${
+                      showResolveSummary ? "tw:md:grid-cols-2" : ""
+                    }`}
+                  >
+                    <div className="tw:flex tw:flex-col tw:gap-3 tw:min-w-0">
+                      <section className="scan-search-card tw:rounded-xl tw:border tw:p-3">
+                        <h2 className="tw:flex tw:items-baseline tw:flex-wrap tw:gap-x-1.5 tw:gap-y-0 tw:text-sm tw:font-bold tw:text-gray-900 tw:mb-2">
+                          <Camera className="scan-search-icon tw:w-4 tw:h-4 tw:self-center" />
+                          Search a product
+                          <span className="tw:text-xs tw:font-normal tw:text-gray-500">
+                            by name, model or barcode
+                          </span>
+                        </h2>
+                        <ScanInput
+                          ref={scanRef}
+                          value={barcode}
+                          onChange={setBarcode}
+                          onSubmit={handleSubmit}
+                          isLoading={
+                            phase === "skSearching" || phase === "aiSearching"
+                          }
+                        />
+                      </section>
+
+                      <StepTracker
+                        phase={phase}
+                        className="tw:rounded-xl tw:bg-white tw:border tw:border-gray-200 tw:px-4 tw:py-2.5"
+                      />
+                    </div>
+
+                    {/* Counts + copy come from the scan phase; the shared panel
+                        owns the rendering. Held back until something has been
+                        scanned so it doesn't sit empty beside the scan card. */}
+                    {showResolveSummary && (
+                      <ScanResolveSummary
+                        className="tw:min-w-0"
+                        {...resolveSummary}
+                      />
+                    )}
+                  </div>
+
+                  <CartStatusBar />
+
+                  {/* Hidden until a real "how it works" video is ready — the link
                   currently points at youtube.com with no actual walkthrough. */}
-              {/* <a
+                  {/* <a
                 href="https://www.youtube.com/"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -256,29 +331,42 @@ const BarcodeScan = () => {
                   </span>
                 </div>
               </a> */}
-            </aside>
 
-            <main className="tw:min-w-0">
-              {phase === "idle" ? (
-                <EmptyState />
-              ) : (
-                <ScanResults
-                  phase={phase}
-                  lookedUpBarcode={lookedUpBarcode}
-                  matchedDeals={matchedDeals}
-                  skSuggested={skSuggested}
-                  aiSuggested={aiSuggested}
-                  onAdded={handleAdded}
-                  onScanNext={handleScanNext}
-                  onCreateFromAi={handleCreateFromAi}
-                  onCreateManual={handleCreateManual}
-                  onImagePreview={handleImagePreview}
-                />
-              )}
-            </main>
+                  <main className="tw:min-w-0">
+                    {phase === "idle" ? (
+                      <EmptyState />
+                    ) : (
+                      <ScanResults
+                        phase={phase}
+                        lookedUpBarcode={lookedUpBarcode}
+                        matchedDeals={matchedDeals}
+                        skSuggested={skSuggested}
+                        aiSuggested={aiSuggested}
+                        onAdded={handleAdded}
+                        onScanNext={handleScanNext}
+                        onCreateFromAi={handleCreateFromAi}
+                        onCreateManual={handleCreateManual}
+                        onImagePreview={handleImagePreview}
+                      />
+                    )}
+                  </main>
+                </div>
+
+                {/* Tail spacer. theme-2 mobile pins the cart bar above the
+                    bottom tab bar, so the last result needs another bar's
+                    height of room to scroll clear of it. */}
+                <div className="tw:h-24" />
+                {isTheme2 ? <div className="tw:h-16 tw:md:hidden" /> : null}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeSidePane scopeLabel="Barcode Scan" />
+              </AppPaneSide>
+            </div>
           </div>
-
-          <div className="tw:h-24" />
         </div>
       </div>
 

@@ -86,7 +86,7 @@ const Retailers = () => {
       const params = prepareParams(
         formMethods.getValues(),
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
 
       const result = await getData(params, controller.signal);
@@ -121,13 +121,13 @@ const Retailers = () => {
       const params = prepareParams(
         formMethods.getValues(),
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
       const result = await getData(params, controller.signal);
       if (controller.signal.aborted) return;
       setData((prev) => [...prev, ...(result.data || [])]);
       setHasMoreData(
-        (result.data || []).length >= paginationRef.current.rowsPerPage
+        (result.data || []).length >= paginationRef.current.rowsPerPage,
       );
     } catch (e) {
       // handle error
@@ -202,7 +202,7 @@ const Retailers = () => {
       sortRef.current = { key, value };
       applyFilter();
     },
-    [applyFilter]
+    [applyFilter],
   );
 
   const handleAccessStore = useCallback(
@@ -239,23 +239,27 @@ const Retailers = () => {
         setBusyLoading({ show: false, msg: "" });
       }
     },
-    [appNav, appToast]
+    [appNav, appToast],
   );
 
   const handleCallback = useCallback(
     (action: { action: string; data: any }) => {
       if (action.action === "accessStore") {
         appNav.openInNewTab(
-          `/auth/master/stores?fid=${action.data.newFranchiseId}`
+          `/auth/master/stores?fid=${action.data.newFranchiseId}`,
+        );
+      } else if (action.action === "followUp") {
+        appNav.openInNewTab(
+          `/master/crm/retailer?id=${action.data.newFranchiseId}`,
         );
       }
     },
-    [handleAccessStore]
+    [handleAccessStore, appNav],
   );
 
   return (
     <div>
-      <AppCard noContentPadding={true} title="All Retailers">
+      <AppCard noContentPadding={true}>
         <div className="tw:flex tw:items-center tw:px-6 tw:mb-4">
           <div className="tw:flex-1">
             <PaginationSummary

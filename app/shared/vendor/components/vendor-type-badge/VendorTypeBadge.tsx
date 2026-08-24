@@ -9,6 +9,15 @@ type Props = {
   description?: string | React.ReactNode;
   hideInfo?: boolean;
   className?: string;
+  /** "sm" renders a tighter, lower-profile badge; "xs" is smaller still. */
+  size?: "default" | "sm" | "xs";
+};
+
+/** Info glyph tracks the badge's text size so it never dominates the label. */
+const infoIconSize: Record<NonNullable<Props["size"]>, number> = {
+  default: 12,
+  sm: 10,
+  xs: 9,
 };
 
 const VendorTypeBadge: React.FC<Props> = ({
@@ -17,18 +26,21 @@ const VendorTypeBadge: React.FC<Props> = ({
   description,
   hideInfo = false,
   className = "",
+  size = "default",
 }) => {
   const [open, setOpen] = useState(false);
 
   const badge = (
     <span>
-      <AppBadge variant={color as any} className={className}>
+      <AppBadge variant={color as any} size={size} className={className}>
         <span className="tw:flex tw:items-center">
           <span>{type}</span>
           {!hideInfo && (
             <Info
-              size={12}
-              className="tw:align-middle tw:inline-block tw:ms-1 tw:cursor-pointer"
+              size={infoIconSize[size]}
+              className={`tw:align-middle tw:inline-block tw:cursor-pointer ${
+                size === "xs" ? "tw:ms-0.5" : "tw:ms-1"
+              }`}
             />
           )}
         </span>

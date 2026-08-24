@@ -2,6 +2,7 @@ import CommonService from "~/services/CommonService";
 import InventoryDashboardService from "~/services/InventoryDashboardService";
 import type { PaginationState } from "~/types/CommonTypes";
 import type { SortValue } from "./components/SortPopover";
+import { isLooseStockUom, type DeadStockProduct } from "../../helper";
 
 export const getData = async (params: Record<string, any>) => {
   try {
@@ -16,11 +17,12 @@ export const getData = async (params: Record<string, any>) => {
 
 export const getCount = async (params: Record<string, any>) => {
   try {
-    const response =
-      await InventoryDashboardService.getBottomDeadStockProducts({
+    const response = await InventoryDashboardService.getBottomDeadStockProducts(
+      {
         ...params,
         outputType: "count",
-      });
+      },
+    );
     return response.data?.count || 0;
   } catch (error) {
     console.error("Error fetching dead stock products count:", error);
@@ -84,3 +86,26 @@ export const prepareParams = (
 
   return params;
 };
+
+/** A dead-stock row with the per-cell display values already worked out. */
+export interface DeadStockRow extends DeadStockProduct {
+  _key: string;
+  _stockQty: number;
+  _isLooseQty: boolean;
+}
+
+/**
+ * Turn the raw dead-stock feed into rows the desktop and mobile views can
+ * render straight out. Both read the same `_`-prefixed keys, so the two layouts
+ * can't drift apart on how a cell is derived.
+ */
+export const prepareRows = (
+  items: DeadStockProduct[],
+  startIndex = 0,
+): DeadStockRow[] =>
+  items.map((item, index) => ({
+    ...item,
+    _key: String(item.dealId || `${startIndex + index}`),
+    _stockQty: item.stockQty ?? 0,
+    _isLooseQty: isLooseStockUom(item.selectedStockUom),
+  }));

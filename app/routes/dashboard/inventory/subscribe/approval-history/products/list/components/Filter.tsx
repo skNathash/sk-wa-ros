@@ -117,11 +117,7 @@ const Filter = ({ callback, className }: FilterProps) => {
       </div>
 
       {/* Alpha Navigation */}
-      <Alpha
-        selected={alpha || ""}
-        callback={handleAlphaChange}
-        className="tw:mb-4"
-      />
+      <Alpha selected={alpha || ""} callback={handleAlphaChange} />
 
       <FilterModal
         show={filterModal.show}

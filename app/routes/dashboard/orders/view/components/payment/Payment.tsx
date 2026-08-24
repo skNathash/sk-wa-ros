@@ -33,7 +33,7 @@ const Payment = ({ orderId, invoices }: Props) => {
               { invoiceId: { $in: [orderId, ...invoices] } },
             ],
           },
-        }
+        },
       );
       setDetails(details.data);
       setLoading(false);

@@ -1,6 +1,7 @@
 import FranchiseService from "~/services/FranchiseService";
 import CustomerService from "~/services/CustomerService";
 import AuthService from "~/services/AuthService";
+import { fetchPaylaterUserDetails } from "~/shared/accounts/paylater/kyc-form/helper";
 import type { PaginationState } from "~/types/CommonTypes";
 
 export type CustomerType = "b2b" | "b2c";
@@ -79,21 +80,11 @@ export const getCount = async (
   return response?.data?.data?.total || 0;
 };
 
-export const fetchCustomerDetails = async (
+export const fetchCustomerDetails = (
   customer: CustomerItem,
   type: CustomerType,
-): Promise<Record<string, any> | null> => {
-  const id = customer._id || customer.id || "";
-  if (!id) return null;
-
-  if (type === "b2c") {
-    const resp = await CustomerService.getCustomer(id);
-    return resp?.data?.data || null;
-  } else {
-    const resp = await FranchiseService.getFranchise(id);
-    return resp?.data?.data || null;
-  }
-};
+): Promise<Record<string, any> | null> =>
+  fetchPaylaterUserDetails(customer._id || customer.id || "", type);
 
 export const prepareParams = (
   filter: Record<string, any>,

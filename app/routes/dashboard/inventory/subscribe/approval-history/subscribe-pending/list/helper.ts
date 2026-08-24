@@ -11,6 +11,7 @@ export const prepareParams = (filter: any, pagination: any, sort: any) => {
     filter: {
       // isNewProduct: true,
       status: "Synced", // Filter only status with "Synced"
+      isSubscribed: false,
     },
   };
 
@@ -21,7 +22,7 @@ export const prepareParams = (filter: any, pagination: any, sort: any) => {
 
   if (filter.alpha) {
     params.filter.productName = CommonService.prepareAlphaRegexFilter(
-      filter.alpha
+      filter.alpha,
     );
   }
 
@@ -36,12 +37,11 @@ export const prepareParams = (filter: any, pagination: any, sort: any) => {
 // Get seller import products data from API
 export const getData = async (params: Record<string, any>) => {
   try {
-    const response = await InventorySubscribeService.getSellerImportProducts(
-      params
-    );
+    const response =
+      await InventorySubscribeService.getSellerImportProducts(params);
     if (response.statusCode === 200 && response.data?.data) {
       return InventorySubscribeService.formatSellerImportProducts(
-        response.data.data || []
+        response.data.data || [],
       );
     }
     return [];

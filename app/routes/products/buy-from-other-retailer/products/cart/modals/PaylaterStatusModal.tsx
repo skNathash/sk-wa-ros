@@ -13,25 +13,24 @@ type Props = {
 };
 
 const StatusBlock = ({
-  status,
   statusLabel,
   description,
   icon: Icon,
   bgColor,
   textColor,
 }: any) => (
-  <div
-    className={`tw:p-3 tw:rounded-lg tw:border tw:border-gray-200 ${bgColor}`}
-  >
-    <div className="tw:flex tw:items-start tw:gap-3">
-      <Icon className={`tw:w-5 tw:h-5 tw:shrink-0 ${textColor}`} />
-      <div className="tw:flex-1 tw:min-w-0">
-        <div className={`tw:font-medium tw:text-sm ${textColor}`}>
-          {statusLabel}
-        </div>
-        <p className="tw:text-xs tw:text-gray-600 tw:mt-1">{description}</p>
-      </div>
+  <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-4 tw:text-center">
+    <div
+      className={`tw:flex tw:h-14 tw:w-14 tw:items-center tw:justify-center tw:rounded-full ${bgColor}`}
+    >
+      <Icon className={`tw:h-7 tw:w-7 ${textColor}`} />
     </div>
+    <div className={`tw:text-sm tw:font-semibold ${textColor}`}>
+      {statusLabel}
+    </div>
+    <p className="tw:max-w-[300px] tw:text-xs tw:leading-relaxed tw:text-gray-500">
+      {description}
+    </p>
   </div>
 );
 
@@ -60,7 +59,12 @@ const PaylaterStatusModal = ({
           <StatusBlock
             status="NOT_AVAILABLE"
             statusLabel="Not Available"
-            description={`A request has been sent to the seller to enable PayLater for ${sellerName}. We'll notify you when it's approved.`}
+            description={
+              <>
+                A request has been sent to the seller to enable PayLater for{" "}
+                <b>{sellerName}</b>. We'll notify you when it's approved.
+              </>
+            }
             icon={Ban}
             bgColor="tw:bg-red-50"
             textColor="tw:text-red-700"
@@ -71,7 +75,12 @@ const PaylaterStatusModal = ({
           <StatusBlock
             status="Pending"
             statusLabel="Request Pending"
-            description={`Your request for ${sellerName} is under review. We'll notify you soon.`}
+            description={
+              <>
+                Your request for <b>{sellerName}</b> is under review. We'll
+                notify you soon.
+              </>
+            }
             icon={Clock}
             bgColor="tw:bg-yellow-50"
             textColor="tw:text-yellow-700"
@@ -80,7 +89,7 @@ const PaylaterStatusModal = ({
       case "Approved":
         if (availableBalance === null || Number(availableBalance) <= 0) {
           const desc =
-            availableBalance !== null ? (
+            availableBalance != null ? (
               <>
                 Insufficient PayLater balance. Current balance:{" "}
                 <Amount value={availableBalance} />. Top up to complete your
@@ -105,7 +114,12 @@ const PaylaterStatusModal = ({
           <StatusBlock
             status="Approved"
             statusLabel="Ready to Use"
-            description={`PayLater approved for ${sellerName}. Balance: ₹${availableBalance}`}
+            description={
+              <>
+                PayLater approved for <b>{sellerName}</b>. Available balance:{" "}
+                <Amount value={availableBalance ?? 0} />
+              </>
+            }
             icon={CheckCircle}
             bgColor="tw:bg-green-50"
             textColor="tw:text-green-700"
@@ -163,22 +177,6 @@ const PaylaterStatusModal = ({
                   Request PayLater
                 </AppButton>
               </div>
-            );
-          }
-
-          if (
-            status === "Approved" &&
-            (availableBalance === null || Number(availableBalance) <= 0)
-          ) {
-            return (
-              <AppButton
-                fill="solid"
-                color="primary"
-                onClick={onClose}
-                className="tw:w-full"
-              >
-                Close
-              </AppButton>
             );
           }
 

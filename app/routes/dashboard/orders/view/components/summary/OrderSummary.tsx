@@ -13,9 +13,9 @@ const OrderSummary = ({ order }: OrderSummaryProps) => {
   // Sum all items in all invoices for correct invoiced products count
   const invoicedProducts = Array.isArray(order.invoices)
     ? order.invoices.reduce(
-      (sum: number, inv: any) => sum + (inv.items?.length || 0),
-      0
-    )
+        (sum: number, inv: any) => sum + (inv.items?.length || 0),
+        0,
+      )
     : 0;
   const notInvoicedProducts = totalProducts - invoicedProducts;
 

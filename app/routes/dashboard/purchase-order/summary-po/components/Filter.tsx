@@ -14,13 +14,13 @@ const dateConfig: DayPickerProps = {
   mode: "range",
 };
 
-const Filter = ({ callback }: { callback: (data: any) => void }) => {
+const Filter = ({ callback, className }: { callback: (data: any) => void; className?: string }) => {
   const { t } = useTranslation(["common"]);
   const { register, getValues, control, setValue } = useFormContext();
 
   const [filterModal, setFilterModal] = useState({
     show: false,
-    data: { status: "All", purchasedFrom: "All" },
+    data: { status: "All" },
   });
 
   const statusOptions = PurchaseOrderService.getStatuses()
@@ -58,7 +58,6 @@ const Filter = ({ callback }: { callback: (data: any) => void }) => {
       show: true,
       data: {
         status: getValues("status") || "All",
-        purchasedFrom: getValues("purchasedFrom") || "All",
       },
     });
   };
@@ -69,14 +68,13 @@ const Filter = ({ callback }: { callback: (data: any) => void }) => {
   }) => {
     if (payload.action === "apply") {
       setValue("status", payload.data.status);
-      setValue("purchasedFrom", payload.data.purchasedFrom);
       triggerCallback();
     }
     setFilterModal({ show: false, data: filterModal.data });
   };
 
   return (
-    <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4 tw:mb-4">
+    <div className={`tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4 ${className || ""}`}>
       <AppInput
         name="search"
         placeholder="Search by PO ID, Vendor"

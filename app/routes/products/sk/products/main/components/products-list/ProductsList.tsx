@@ -106,7 +106,9 @@ const ProductsList: React.FC<ProductsListProps> = ({
     return (
       <div className="tw:mb-4">
         <div className="tw:flex tw:items-center tw:justify-between tw:mb-3">
-          <h2 className="tw:text-lg tw:font-bold tw:text-slate-900">{title}</h2>
+          <h2 className="app-label tw:text-[0.8125rem]! tw:font-semibold tw:uppercase tw:tracking-[0.12em] tw:text-primary/70">
+            {title}
+          </h2>
         </div>
         <div className={`tw:grid tw:grid-cols-2 ${gridCols} tw:gap-3`}>
           {Array.from({ length: 10 }).map((_, index) => (
@@ -121,7 +123,9 @@ const ProductsList: React.FC<ProductsListProps> = ({
     return (
       <div className="tw:mb-4">
         <div className="tw:flex tw:items-center tw:justify-between tw:mb-3">
-          <h2 className="tw:text-lg tw:font-bold tw:text-slate-900">{title}</h2>
+          <h2 className="app-label tw:text-[0.8125rem]! tw:font-semibold tw:uppercase tw:tracking-[0.12em] tw:text-primary/70">
+            {title}
+          </h2>
         </div>
         <NoData />
       </div>

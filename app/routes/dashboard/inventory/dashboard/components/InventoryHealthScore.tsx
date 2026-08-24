@@ -53,6 +53,8 @@ const InventoryHealthScore = ({
   data: HealthScore;
   loading: boolean;
 }) => {
+  const scoreClassName = getScoreColor(data.score);
+
   return (
     <AppStatsCard
       template={2}
@@ -64,9 +66,7 @@ const InventoryHealthScore = ({
       {loading ? (
         <AppSpinner size="sm" />
       ) : (
-        <span
-          className={`tw:text-xl tw:font-bold ${getScoreColor(data.score)}`}
-        >
+        <span className={`tw:text-xl tw:font-bold ${scoreClassName}`}>
           {data.score}
           <span className="tw:text-sm">%</span>
           {data.status && (

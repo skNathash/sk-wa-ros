@@ -1,30 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
-import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
-import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
-import useScreenView from "~/hooks/useScreenView";
-import type { ViewToggleType } from "~/types/CommonTypes";
 import InventoryProductAuditTab from "../components/inventory-audit-tab/InventoryAuditTab";
 import Filter from "./components/Filter";
 import MobileView from "./components/MobileView";
-import Table from "./components/Table";
 import { getCount, getData, prepareParams } from "./helper";
 import CommonService from "~/services/CommonService";
 
 const ProductSalesHistory = () => {
   const { t } = useTranslation(["common"]);
   const { id } = useParams();
-  const { isMobile } = useScreenView();
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
   const [loadingTotalRecords, setLoadingTotalRecords] = useState(false);
-
-  const [view, setView] = useState<ViewToggleType>("list");
 
   const filterRef = useRef<Record<string, any>>({ dealId: id });
   const paginationRef = useRef({
@@ -104,7 +96,7 @@ const ProductSalesHistory = () => {
         if (event?.target) event.target.complete();
       }
     },
-    [loadingMore, hasMoreData]
+    [loadingMore, hasMoreData],
   );
 
   const filterCallback = (a: { action: string; formData: any }) => {
@@ -132,32 +124,18 @@ const ProductSalesHistory = () => {
               fwSize="sm"
             />
           </div>
-          <ViewToggle viewType={view} callback={setView} />
         </div>
       </div>
-      {isMobile || view === "card" ? (
-        <MobileView
-          data={data}
-          loading={loading}
-          showLoadMore={hasMoreData && !loading}
-          loadingMore={loadingMore}
-          loadMore={loadMore}
-          totalCount={paginationRef.current.totalRecords}
-          loadedCount={data.length}
-        />
-      ) : (
-        <AppCard noPadding>
-          <Table
-            data={data}
-            loading={loading}
-            showLoadMore={hasMoreData && !loading}
-            loadingMore={loadingMore}
-            loadMore={loadMore}
-            totalCount={paginationRef.current.totalRecords}
-            loadedCount={data.length}
-          />
-        </AppCard>
-      )}
+
+      <MobileView
+        data={data}
+        loading={loading}
+        showLoadMore={hasMoreData && !loading}
+        loadingMore={loadingMore}
+        loadMore={loadMore}
+        totalCount={paginationRef.current.totalRecords}
+        loadedCount={data.length}
+      />
     </>
   );
 };

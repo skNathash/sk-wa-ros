@@ -5,6 +5,8 @@ export const defaultSummaryData = [
     key: "totalGstInward",
     color: "primary",
     valueKey: "gstCollected",
+    accent: "#047857",
+    caption: "From sales",
   },
   {
     label: "Total GST Inwarded",
@@ -12,6 +14,8 @@ export const defaultSummaryData = [
     key: "totalGstInwarded",
     color: "success",
     valueKey: "gstInwarded",
+    accent: "#c2410c",
+    caption: "From purchases",
   },
   {
     label: "Gst payable",
@@ -20,6 +24,8 @@ export const defaultSummaryData = [
     color: "danger",
     valueKey: "gstPayable",
     template: 2,
+    accent: "#b45309",
+    caption: "Before adjustments",
     info: "Gst payable (NetGSTLiable) is the GST liability before final adjustments.",
   },
   {
@@ -29,6 +35,7 @@ export const defaultSummaryData = [
     color: "danger",
     valueKey: "finalGstToPay",
     template: 2,
+    hero: true,
     info: "Final GST to Pay (NetGSTPayable) is the GST amount after adjustments.",
   },
   {
@@ -37,5 +44,8 @@ export const defaultSummaryData = [
     key: "uniqueHsnCodes",
     color: "warning",
     valueKey: "uniqueHsnCodes",
+    accent: "#1d4ed8",
+    caption: "In this period",
+    isCount: true,
   },
 ];

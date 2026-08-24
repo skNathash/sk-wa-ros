@@ -8,10 +8,13 @@ import type { FilterFormFields } from "../helper";
 
 interface ProductAppliedFilterProps {
   onFilterChange: (filters: { formData: FilterFormFields }) => void;
+  /** Filter keys that should not be rendered as applied-filter chips. */
+  hiddenFilters?: string[];
 }
 
 const ProductAppliedFilter = ({
   onFilterChange,
+  hiddenFilters = [],
 }: ProductAppliedFilterProps) => {
   const { t } = useTranslation(["common"]);
   const { control, setValue, getValues } = useFormContext<FilterFormFields>();
@@ -90,81 +93,87 @@ const ProductAppliedFilter = ({
 
       return transformed;
     },
-    [velocityLabelMap, stockStatusLabelMap],
+    [velocityLabelMap, stockStatusLabelMap, sellInLabelMap],
   );
 
-  // Filter mapping for the applied filter component
-  const filterMapping: Record<string, AppliedFilterLabel> = {
-    category: {
-      label: t("category"),
-      resetValue: null,
-      value: {
-        isMulti: true,
-        path: "label",
+  // Filter mapping for the applied filter component. Hidden filter keys are
+  // omitted from the mapping so no chip is rendered for them.
+  const filterMapping = useMemo<Record<string, AppliedFilterLabel>>(() => {
+    const mapping: Record<string, AppliedFilterLabel> = {
+      category: {
+        label: t("category"),
+        resetValue: null,
+        value: {
+          isMulti: true,
+          path: "label",
+        },
       },
-    },
-    brand: {
-      label: t("brand"),
-      resetValue: null,
-      value: {
-        isMulti: true,
-        path: "label",
+      brand: {
+        label: t("brand"),
+        resetValue: null,
+        value: {
+          isMulti: true,
+          path: "label",
+        },
       },
-    },
-    menu: {
-      label: t("menu"),
-      resetValue: null,
-      value: {
-        isMulti: true,
-        path: "label",
+      menu: {
+        label: t("menu"),
+        resetValue: null,
+        value: {
+          isMulti: true,
+          path: "label",
+        },
       },
-    },
-    companyName: {
-      label: t("companyName"),
-      resetValue: null,
-      value: {
-        isMulti: true,
-        path: "label",
+      companyName: {
+        label: t("companyName"),
+        resetValue: null,
+        value: {
+          isMulti: true,
+          path: "label",
+        },
       },
-    },
-    velocity: {
-      label: t("velocity"),
-      resetValue: "All",
-      ignoreValue: "All", // Don't display filter when value is "All"
-    },
-    stockStatus: {
-      label: t("stockStatus") || "Stock Status",
-      resetValue: "All",
-      ignoreValue: "All", // Don't display filter when value is "All"
-    },
-    isGroupDeal: {
-      label: t("onlyMultipleVariants", { ns: "common" }),
-      resetValue: false,
-      ignoreValue: false,
-      // boolean value will be shown as Yes/No by CommonService
-    },
-    isPriceSlab: {
-      label: "Price Slab",
-      resetValue: false,
-      ignoreValue: false,
-      // boolean value will be shown as Yes/No by CommonService
-    },
-    sellIn: {
-      label: "Pack Type",
-      resetValue: "All",
-      ignoreValue: "All",
-    },
-    reserve: {
-      label: t("reserve") || "Reserve",
-      resetValue: "All",
-      ignoreValue: "All",
-    },
-    isPromotionalDeal: {
-      label: "Only Promotional Deals",
-      resetValue: false,
-      ignoreValue: false,
-    },
-  };
+      velocity: {
+        label: t("velocity"),
+        resetValue: "All",
+        ignoreValue: "All", // Don't display filter when value is "All"
+      },
+      stockStatus: {
+        label: t("stockStatus") || "Stock Status",
+        resetValue: "All",
+        ignoreValue: "All", // Don't display filter when value is "All"
+      },
+      isGroupDeal: {
+        label: t("onlyMultipleVariants", { ns: "common" }),
+        resetValue: false,
+        ignoreValue: false,
+        // boolean value will be shown as Yes/No by CommonService
+      },
+      isPriceSlab: {
+        label: "Price Slab",
+        resetValue: false,
+        ignoreValue: false,
+        // boolean value will be shown as Yes/No by CommonService
+      },
+      sellIn: {
+        label: "Pack Type",
+        resetValue: "All",
+        ignoreValue: "All",
+      },
+      reserve: {
+        label: t("reserve") || "Reserve",
+        resetValue: "All",
+        ignoreValue: "All",
+      },
+      isPromotionalDeal: {
+        label: "Only Promotional Deals",
+        resetValue: false,
+        ignoreValue: false,
+      },
+    };
+
+    hiddenFilters.forEach((key) => delete mapping[key]);
+    return mapping;
+  }, [t, hiddenFilters]);
 
   // Handle applied filter removal
   const handleAppliedFilterRemove = useCallback(
@@ -192,7 +201,7 @@ const ProductAppliedFilter = ({
       filter={transformedFilters}
       callback={handleAppliedFilterRemove}
       mapping={filterMapping}
-      className="tw:mt-2"
+      className="tw:mt-2 tw:mb-3"
     />
   );
 };

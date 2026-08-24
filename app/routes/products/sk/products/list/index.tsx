@@ -98,10 +98,12 @@ const SkProductsListPage = () => {
     },
   });
 
-  const [filterModal, setFilterModal] = useState<{ show: boolean; data?: any }>({
-    show: false,
-    data: undefined,
-  });
+  const [filterModal, setFilterModal] = useState<{ show: boolean; data?: any }>(
+    {
+      show: false,
+      data: undefined,
+    },
+  );
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
@@ -271,7 +273,12 @@ const SkProductsListPage = () => {
 
     const id = data?.data?.data?.id;
     const showOtherDeals = data?.data?.data?.showOtherDeals;
-    if (action === "add" && id && showOtherDeals && !AuthService.isBuyerUser()) {
+    if (
+      action === "add" &&
+      id &&
+      showOtherDeals &&
+      !AuthService.isBuyerUser()
+    ) {
       setOtherDealModal({ show: true, dealId: id });
     }
   };
@@ -359,7 +366,11 @@ const SkProductsListPage = () => {
       <AppHeader
         title={
           <span className="tw:flex tw:items-center tw:gap-2">
-            <ImgRender src="logo.svg" alt="StoreKing" className="tw:h-5 tw:w-5" />
+            <ImgRender
+              src="logo.svg"
+              alt="StoreKing"
+              className="tw:h-5 tw:w-5"
+            />
             {titleFromParams}
           </span>
         }
@@ -371,7 +382,7 @@ const SkProductsListPage = () => {
           <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
 
           <FormProvider {...methods}>
-            <div className="tw:flex tw:items-center tw:gap-2 tw:mb-4 tw:sticky tw:top-16 tw:bg-white tw:z-10">
+            <div className="search-sticky tw:flex tw:items-center tw:gap-2 tw:mb-4 tw:sticky tw:top-29 tw:lg:top-15 tw:pt-2 tw:pb-4 tw:bg-(--page-bg,white) tw:z-10">
               <div className="tw:flex-1">
                 <SearchWithVoice value={search} onSearch={handleSearch} />
               </div>

@@ -32,13 +32,14 @@ interface DesktopViewProps {
   hasMoreData: boolean;
 }
 
+// Widths add up to 100% so the fixed layout has nothing left to redistribute.
 const headers = [
   { label: "Date", key: "date", enableSort: false, width: "12%" },
-  { label: "Customer", key: "customer", enableSort: false, width: "20%" },
-  { label: "Description", key: "description", enableSort: false, width: "28%" },
-  { label: "Order ID", key: "orderId", enableSort: false, width: "12%" },
-  { label: "Amount", key: "amount", enableSort: false, width: "8%" },
-  { label: "Available Limit", key: "balance", enableSort: false, width: "8%" },
+  { label: "Customer", key: "customer", enableSort: false, width: "22%" },
+  { label: "Description", key: "description", enableSort: false, width: "26%" },
+  { label: "Order ID", key: "orderId", enableSort: false, width: "14%" },
+  { label: "Amount", key: "amount", enableSort: false, width: "13%" },
+  { label: "Available Limit", key: "balance", enableSort: false, width: "13%" },
 ];
 
 const DesktopView: React.FC<DesktopViewProps> = ({
@@ -64,7 +65,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
   }
 
   return (
-    <AppTable size="sm" stickyHeader fixedLayout container minWidth="100px">
+    <AppTable size="sm" stickyHeader fixedLayout container minWidth="900px">
       <AppTable.Header>
         <TableHeader headers={headers} />
       </AppTable.Header>

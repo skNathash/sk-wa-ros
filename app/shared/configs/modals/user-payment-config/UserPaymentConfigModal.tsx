@@ -33,9 +33,9 @@ const UserPaymentConfigModal = ({
       return;
     }
 
-    if (!keys?.cod && !keys?.prepaid) {
+    if (!keys?.prepaid) {
       appToast.show({
-        msg: "At least one payment option must be enabled",
+        msg: "Prepaid payment must be enabled",
         color: "error",
       });
       return;
@@ -44,10 +44,9 @@ const UserPaymentConfigModal = ({
     const payload = {
       businessType: type,
       buyerId: userId,
-      codEnabled: !!keys?.cod,
       prepaidEnabled: !!keys?.prepaid,
       isActive: true,
-      remarks: "COD and Prepaid payment updated",
+      remarks: "Prepaid payment updated",
     } as any;
 
     const res = await FranchiseService.updateUserPaymentConfig(payload);

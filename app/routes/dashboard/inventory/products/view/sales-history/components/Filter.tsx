@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Filter as FilterIcon, Search } from "lucide-react";
 import { AppInput } from "~/components/core/form";
 import AppButton from "~/components/core/button/AppButton";
+import AppCard from "~/components/core/card/AppCard";
 import FilterModal from "../modals/FilterModal";
 
 type FilterProps = {
@@ -66,19 +67,28 @@ const Filter = ({ callback }: FilterProps) => {
 
   return (
     <>
-      <div className="tw:flex tw:gap-4 tw:mb-4">
-        <AppInput
-          name="search"
-          register={register}
-          onChange={debounceSearch}
-          placeholder={t("searchByOrderNumber")}
-          className="tw:flex-1"
-          leftIcon={<Search size={16} />}
-        />
-        <AppButton fill="outline" color="light" onClick={handleOpenModal}>
-          <FilterIcon size={16} />
-        </AppButton>
-      </div>
+      <AppCard noPadding bodyClassName="tw:p-3" className="tw:mb-4">
+        <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-3">
+          <div className="tw:min-w-[180px] tw:flex-1">
+            <AppInput
+              name="search"
+              register={register}
+              onChange={debounceSearch}
+              placeholder={t("searchByOrderNumber")}
+              className="tw:w-full"
+              leftIcon={<Search size={16} />}
+            />
+          </div>
+          <AppButton
+            fill="outline"
+            color="light"
+            className="tw:shrink-0"
+            onClick={handleOpenModal}
+          >
+            <FilterIcon size={16} />
+          </AppButton>
+        </div>
+      </AppCard>
 
       <FilterModal
         show={modalState.show}

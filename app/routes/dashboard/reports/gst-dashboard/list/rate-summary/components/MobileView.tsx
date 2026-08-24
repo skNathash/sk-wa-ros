@@ -2,6 +2,7 @@ import React from "react";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import NoData from "~/components/core/no-data/NoData";
 import Amount from "~/components/core/amount/Amount";
+import { ListLoader, getRateAccent } from "../../components/ui";
 import type { RateRow } from "../helper";
 
 interface Props {
@@ -24,12 +25,7 @@ const MobileView: React.FC<Props> = ({
   loadedCount,
 }) => {
   if (loading) {
-    return (
-      <div className="tw:p-8 tw:text-center">
-        <div className="tw:inline-block tw:w-12 tw:h-12 tw:border-4 tw:border-gray-200 tw:border-t-blue-600 tw:rounded-full tw:animate-spin"></div>
-        <p className="tw:text-gray-600 tw:text-sm tw:mt-4">Loading...</p>
-      </div>
-    );
+    return <ListLoader />;
   }
 
   if (data.length === 0) {
@@ -40,53 +36,60 @@ const MobileView: React.FC<Props> = ({
     );
   }
 
+  // Bars are scaled against the largest collected figure on screen, so the
+  // longest bar always fills the track and the rest read relative to it.
+  const maxCollected = Math.max(...data.map((item) => item.gstCollected), 0);
+
   return (
     <>
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-3 tw:py-3">
-        {data.map((item) => (
-          <div
-            key={item.gstRate}
-            className="tw:bg-white tw:p-4 tw:rounded-lg tw:border tw:border-gray-200 tw:shadow-sm tw:hover:shadow-md tw:transition-shadow tw:duration-200"
-          >
-            <div className="tw:flex tw:items-baseline tw:justify-between tw:mb-3">
-              <span className="tw:text-xs tw:font-semibold tw:text-gray-500 tw:uppercase tw:tracking-wide">
-                GST Rate
-              </span>
-              <span className="tw:text-xl tw:font-bold tw:text-gray-900">
-                {item.gstRate || "0"}%
-              </span>
+      <div className="tw:bg-white tw:rounded-xl tw:border tw:border-gray-200 tw:divide-y tw:divide-gray-100">
+        {data.map((item, index) => {
+          const accent = getRateAccent(index);
+          const barWidth = maxCollected
+            ? Math.max((item.gstCollected / maxCollected) * 100, 2)
+            : 0;
+
+          return (
+            <div key={item.gstRate} className="tw:px-3 tw:py-3">
+              <div className="tw:flex tw:items-center tw:gap-3">
+                <div
+                  className="tw:w-10 tw:shrink-0 tw:text-xs tw:font-bold tw:tabular-nums"
+                  style={{ color: accent }}
+                >
+                  {item.gstRate || "0"}%
+                </div>
+
+                <div className="tw:flex-1 tw:h-1.5 tw:rounded-full tw:bg-gray-100 tw:overflow-hidden">
+                  <div
+                    className="tw:h-full tw:rounded-full"
+                    style={{ width: `${barWidth}%`, backgroundColor: accent }}
+                  />
+                </div>
+
+                <div className="tw:shrink-0 tw:text-right">
+                  <div className="tw:text-sm tw:font-bold tw:text-gray-900 tw:tabular-nums">
+                    <Amount value={item.netGstPayable} />
+                  </div>
+                  <div className="tw:text-[10px] tw:text-gray-400 tw:leading-tight">
+                    net GST
+                  </div>
+                </div>
+              </div>
+
+              <div className="tw:flex tw:items-center tw:gap-2 tw:mt-1.5 tw:pl-13 tw:text-[11px] tw:tabular-nums">
+                <span className="tw:font-semibold tw:text-emerald-600">
+                  +<Amount value={item.gstCollected} />
+                </span>
+                <span className="tw:text-gray-400">collected</span>
+                <span className="tw:text-gray-300">·</span>
+                <span className="tw:font-semibold tw:text-red-600">
+                  −<Amount value={item.gstInward} />
+                </span>
+                <span className="tw:text-gray-400">inward</span>
+              </div>
             </div>
-
-            <div className="tw:grid tw:grid-cols-2 tw:gap-x-4 tw:gap-y-3 tw:text-sm">
-              <div>
-                <p className="tw:text-xs tw:font-semibold tw:text-gray-500 tw:uppercase tw:tracking-wide">
-                  GST Collected
-                </p>
-                <p className="tw:text-base tw:font-semibold tw:text-emerald-600 tw:leading-tight">
-                  <Amount value={item.gstCollected} />
-                </p>
-              </div>
-
-              <div>
-                <p className="tw:text-xs tw:font-semibold tw:text-gray-500 tw:uppercase tw:tracking-wide">
-                  GST Inward
-                </p>
-                <p className="tw:text-base tw:font-semibold tw:text-amber-600 tw:leading-tight">
-                  <Amount value={item.gstInward} />
-                </p>
-              </div>
-
-              <div className="tw:col-span-2 tw:flex tw:items-center tw:justify-between tw:bg-blue-50 tw:border tw:border-blue-100 tw:rounded-md tw:px-3 tw:py-2">
-                <p className="tw:text-xs tw:font-semibold tw:text-blue-700 tw:uppercase tw:tracking-wide">
-                  Net GST Payable
-                </p>
-                <p className="tw:text-lg tw:font-bold tw:text-blue-700 tw:leading-tight">
-                  <Amount value={item.netGstPayable} />
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {showLoadMore && data.length > 0 && (

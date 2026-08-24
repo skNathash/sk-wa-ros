@@ -130,42 +130,38 @@ const PendingPicking = ({
 
   return (
     <>
-      <div className="tw:bg-orange-50 tw:rounded-lg tw:p-4 tw:border tw:border-orange-200 tw:mb-4">
-        <div className="tw:flex tw:justify-between tw:items-center tw:mb-4">
-          <div className="tw:flex tw:items-center tw:gap-2 tw:text-yellow-800 tw:font-semibold">
-            <TriangleAlert size={20} />
+      {/* Compact strip: one-line header, products as an inline wrapped list. */}
+      <div className="tw:bg-orange-50 tw:rounded-lg tw:px-3 tw:py-2 tw:border tw:border-orange-200 tw:mb-4">
+        <div className="tw:flex tw:justify-between tw:items-center tw:gap-2">
+          <div className="tw:flex tw:items-center tw:gap-1.5 tw:text-yellow-800 tw:text-xs tw:font-semibold">
+            <TriangleAlert size={14} className="tw:shrink-0" />
             Remaining to pick{" "}
-            <span className="tw:font-semibold">{totalPending}</span>
+            <span className="tw:font-bold">{totalPending}</span>
           </div>
-          <div>
-            <button
-              className="tw:bg-white tw:text-gray-900 tw:border tw:border-gray-300 tw:rounded-md tw:px-3 tw:py-1 tw:text-xs tw:cursor-pointer"
-              onClick={handleOpenContinueDialog}
-            >
-              Continue to pick
-            </button>
-          </div>
+          <button
+            className="tw:bg-white tw:text-gray-900 tw:border tw:border-gray-300 tw:rounded-md tw:px-2 tw:py-0.5 tw:text-[11px] tw:cursor-pointer tw:shrink-0"
+            onClick={handleOpenContinueDialog}
+          >
+            Continue to pick
+          </button>
         </div>
-        <div className="tw:text-sm tw:text-slate-800">
+        <div className="tw:mt-1 tw:flex tw:flex-wrap tw:gap-x-3 tw:gap-y-0.5 tw:text-xs tw:text-slate-800">
           {pendingProducts.map((product) => (
-            <div
+            <span
               key={product.dealId}
-              className="tw:bg-white tw:flex tw:items-center tw:justify-between tw:p-2 tw:rounded-md tw:mt-2"
+              className="tw:inline-flex tw:items-center tw:gap-1 tw:min-w-0"
             >
-              <div>
-                <AppLink
-                  href={`/dashboard/inventory/products/view/${product.dealId}`}
-                  asLink
-                >
-                  {product.dealName}
-                </AppLink>
-              </div>
-              <div>
-                <span className="tw:bg-white tw:rounded-md tw:px-2 tw:py-1 tw:text-xs tw:border tw:border-gray-300 tw:font-medium">
-                  {product.quantity - product.pickedQty} to pick
-                </span>
-              </div>
-            </div>
+              <AppLink
+                href={`/dashboard/inventory/products/view/${product.dealId}`}
+                asLink
+                className="tw:truncate"
+              >
+                {product.dealName}
+              </AppLink>
+              <span className="tw:font-semibold tw:text-orange-700 tw:whitespace-nowrap">
+                ×{product.quantity - product.pickedQty}
+              </span>
+            </span>
           ))}
         </div>
       </div>

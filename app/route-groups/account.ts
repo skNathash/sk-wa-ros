@@ -29,6 +29,18 @@ export default [
     "dashboard/accounts/platform-fee/benefits",
     "routes/dashboard/accounts/platform-fee/benefits/index.tsx"
   ),
+  route(
+    "dashboard/accounts/platform-fee/compare",
+    "routes/dashboard/accounts/platform-fee/compare/index.tsx"
+  ),
+  route(
+    "dashboard/accounts/platform-fee/buy-plan",
+    "routes/dashboard/accounts/platform-fee/buy-plan/index.tsx"
+  ),
+  route(
+    "dashboard/accounts/platform-fee/tiers",
+    "routes/dashboard/accounts/platform-fee/tiers/index.tsx"
+  ),
   layout("routes/dashboard/accounts/layout/layout.tsx", [
     route(
       "dashboard/accounts/revenue",
@@ -45,6 +57,18 @@ export default [
     route(
       "dashboard/accounts/overall-statement",
       "routes/dashboard/accounts/overall-statement/index.tsx"
+    ),
+    route(
+      "dashboard/accounts/money-in",
+      "routes/dashboard/accounts/money-in/index.tsx"
+    ),
+    route(
+      "dashboard/accounts/money-out",
+      "routes/dashboard/accounts/money-out/index.tsx"
+    ),
+    route(
+      "dashboard/accounts/profit-loss",
+      "routes/dashboard/accounts/profit-loss/index.tsx"
     ),
     route(
       "dashboard/accounts/summary",

@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
 import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
-
-import { Package } from "lucide-react";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppHeader from "~/components/core/header/AppHeader";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
@@ -12,13 +10,17 @@ import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import useScreenView from "~/hooks/useScreenView";
 import CommonService from "~/services/CommonService";
 import type { BreadcrumbItem, ViewToggleType } from "~/types/CommonTypes";
+import PageDescription from "~/components/core/page-description/PageDescription";
+import ViewStockLedgerModal from "~/shared/catalog/modals/view-stock-ledger/ViewStockLedgerModal";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import CatalogSidePane from "~/shared/inventory/components/catalog-side-pane/CatalogSidePane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import InventoryTab from "../../components/tab/InventoryTab";
 import DesktopView from "./components/DesktopView";
 import Filter from "./components/Filter";
 import MobileView from "./components/MobileView";
 import { getCount, getData, prepareParams } from "./helper";
-import PageDescription from "~/components/core/page-description/PageDescription";
-import ViewStockLedgerModal from "~/shared/catalog/modals/view-stock-ledger/ViewStockLedgerModal";
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -142,56 +144,93 @@ const StockLedger = () => {
     <>
       <AppHeader title={t("stockMaster")} />
       <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <div className="tw:mb-4">
-            <AppBreadcrumbs data={breadcrumbs} className="tw:!mb-0" />
-            <PageDescription description="stockMaster" />
-          </div>
+        <SectionTabs
+          sectionKey="catalog"
+          activeTab="my-catalog"
+          noShadow
+          sticky
+        />
 
-          <InventoryTab activeTab="stock-master" className="tw:mb-4" />
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="my-catalog"
+                title={t("manageCatalog", { ns: "menu" })}
+              />
+            </div>
+          </aside>
 
-          <div>
-            <Filter callback={filterCallback} />
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              <AppPaneMain className="tw:lg:col-span-12">
+                <div className="tw:mb-4 hide-in-theme-2">
+                  <AppBreadcrumbs data={breadcrumbs} className="tw:!mb-0" />
+                  <PageDescription description="stockMaster" />
+                </div>
 
-            <div className="tw:flex tw:justify-between tw:items-end tw:mb-4">
-              <div>
-                <PaginationSummary
-                  paginationConfig={paginationRef.current}
-                  loadingTotalRecords={loadingTotalRecords}
-                  loadedCount={data.length}
-                  fwSize="sm"
+                <InventoryTab activeTab="stock-master" className="tw:mb-4 hide-in-theme-2" />
+
+                {/* Full-bleed white filter strip, pinned on scroll. Kept as a
+                    direct child of the scrolling content column (alongside the
+                    list) so it stays sticky over the whole list — a short
+                    wrapper would unstick as soon as it scrolled out of view. */}
+                <div className="catalog-search-sticky catalog-search-flush tw:mb-5">
+                  <Filter callback={filterCallback} />
+                </div>
+
+                <div>
+                  <div className="tw:flex tw:justify-between tw:items-end tw:mb-4">
+                    <div>
+                      <PaginationSummary
+                        paginationConfig={paginationRef.current}
+                        loadingTotalRecords={loadingTotalRecords}
+                        loadedCount={data.length}
+                        fwSize="sm"
+                      />
+                    </div>
+                    <ViewToggle viewType={view} callback={setView} />
+                  </div>
+                </div>
+                {isMobile || view === "card" ? (
+                  <>
+                    <MobileView data={data} loading={loading} onView={onViewLedger} />
+                    {hasMoreData && !loading && (
+                      <div className="tw:flex tw:justify-center tw:my-4">
+                        <LoadMoreButton
+                          loadMore={loadMore}
+                          loading={loadingMore}
+                          totalCount={paginationRef.current.totalRecords}
+                          loadedCount={data.length}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <AppCard noPadding>
+                    <DesktopView
+                      data={data}
+                      loading={loading}
+                      hasMoreData={hasMoreData}
+                      loadMore={loadMore}
+                      loadingMore={loadingMore}
+                      totalCount={paginationRef.current.totalRecords}
+                      onView={onViewLedger}
+                    />
+                  </AppCard>
+                )}
+              </AppPaneMain>
+
+              <AppPaneSide className="app-pane-only">
+                <CatalogSidePane
+                  scopeLabel={t("stockMaster")}
+                  showInventoryValue={false}
                 />
-              </div>
-              <ViewToggle viewType={view} callback={setView} />
+              </AppPaneSide>
             </div>
           </div>
-          {isMobile || view === "card" ? (
-            <>
-              <MobileView data={data} loading={loading} onView={onViewLedger} />
-              {hasMoreData && !loading && (
-                <div className="tw:flex tw:justify-center tw:my-4">
-                  <LoadMoreButton
-                    loadMore={loadMore}
-                    loading={loadingMore}
-                    totalCount={paginationRef.current.totalRecords}
-                    loadedCount={data.length}
-                  />
-                </div>
-              )}
-            </>
-          ) : (
-            <AppCard noPadding>
-              <DesktopView
-                data={data}
-                loading={loading}
-                hasMoreData={hasMoreData}
-                loadMore={loadMore}
-                loadingMore={loadingMore}
-                totalCount={paginationRef.current.totalRecords}
-                onView={onViewLedger}
-              />
-            </AppCard>
-          )}
         </div>
       </div>
 

@@ -173,13 +173,20 @@ const MobileView: React.FC<MobileViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Reviewed By */}
+                  {/* Reviewed On */}
                   <div className="tw:flex tw:justify-between tw:items-center">
                     <span className="tw:text-sm tw:text-gray-700">
-                      {t("reviewedBy")}
+                      {t("reviewedOn")}
                     </span>
                     <span className="tw:text-sm tw:text-gray-900">
-                      {item.updatedByName || "-"}
+                      {item.updatedByName && item.updatedAt ? (
+                        <DateFormat
+                          value={item.updatedAt}
+                          formatStr="dd MMM yyyy"
+                        />
+                      ) : (
+                        "-"
+                      )}
                     </span>
                   </div>
                 </div>

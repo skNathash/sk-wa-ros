@@ -1,0 +1,345 @@
+/* ==========================================================================
+   Bright Store journey map
+   Everything here is scoped to `.app-journey`, the wrapper on the journey
+   route (app/routes/dashboard/journey/index.tsx). The page renders only under
+   theme-2 (the route redirects otherwise), so the rules are not keyed on
+   [data-theme] themselves — the wrapper is enough. Imported from app.css after
+   the themes so it keeps winning ties at equal specificity.
+
+   The screen is one dark-green field with a single rail running down it: gold
+   for the road already walked, green for the stage the shop is standing on,
+   dim for what is still locked. Those three tones are the whole system.
+   ========================================================================== */
+
+.app-journey {
+  /* Deep-green field, keyed off the brand primary so a theme change carries.
+     `--journey-*` are the only colours the rest of this file names. */
+  --journey-base: color-mix(in srgb, var(--primary, #075e54) 74%, black);
+  --journey-gold: #f0b429;
+  --journey-green: #2ecc71;
+  --journey-ink: #ffffff;
+  --journey-muted: rgba(255, 255, 255, 0.72);
+  --journey-dim: rgba(255, 255, 255, 0.42);
+  --journey-line: rgba(255, 255, 255, 0.14);
+  --journey-card: rgba(255, 255, 255, 0.045);
+  --journey-card-border: rgba(255, 255, 255, 0.09);
+  /* The display face. Swapped here rather than inline so switching the page
+     back to the app's own `--font-serif` is a one-line change. */
+  --journey-display: Georgia, "Times New Roman", "Noto Serif", serif;
+
+  color: var(--journey-ink);
+}
+
+/* The dark field has to cover the whole scroll area, not just the content
+   box, so it sits on the page shell rather than the wrapper. */
+.app-journey .app-page {
+  background:
+    radial-gradient(
+      90% 60% at 85% 0%,
+      color-mix(in srgb, var(--primary, #075e54) 88%, white) 0%,
+      transparent 60%
+    ),
+    var(--journey-base);
+}
+
+/* The rail owns the left edge (`.section-menu-aside`), so the measure is capped
+   on the content column rather than the page container — the map stays a
+   reading column instead of stretching across a wide desktop. */
+.app-journey .section-content {
+  max-width: 64rem;
+}
+
+.app-journey .app-journey-display {
+  font-family: var(--journey-display);
+  letter-spacing: -0.01em;
+}
+
+.app-journey .app-journey-accent {
+  color: var(--journey-gold);
+}
+
+.app-journey .app-journey-muted {
+  color: var(--journey-muted);
+}
+
+.app-journey .app-journey-dim {
+  color: var(--journey-dim);
+}
+
+/* --------------------------------------------------------------------------
+   Page header
+   -------------------------------------------------------------------------- */
+
+.app-journey .app-journey-eyebrow {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  border-color: transparent;
+  border-radius: 999px !important;
+  padding: 0.375rem 0.875rem !important;
+  font-size: 11px !important;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Stages / coins pair, split by a hairline the way the mock does. */
+.app-journey .app-journey-stats > * + * {
+  border-left: 1px solid var(--journey-line);
+}
+
+.app-journey .app-journey-stat-label {
+  margin-top: 0.25rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--journey-dim);
+}
+
+/* --------------------------------------------------------------------------
+   Rail
+   Each row is [pin column | card]; the connector is drawn inside the pin
+   column and spans the row's full box (padding included) so it runs unbroken
+   through the gap to the next stage.
+   -------------------------------------------------------------------------- */
+
+.app-journey .app-journey-rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-journey .app-journey-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  padding-bottom: 1.25rem;
+}
+
+.app-journey .app-journey-pin-col {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  /* Drops the pin to sit against the card's status line rather than its top
+     edge — the alignment the mock reads with. */
+  padding-top: 1.75rem;
+}
+
+/* The connector. Behind the pin (z-index), full row height, and stopped at the
+   pin on the last row so the rail ends at the crown instead of running off. */
+.app-journey .app-journey-pin-col::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background-color: var(--journey-line);
+}
+
+.app-journey .app-journey-row.is-complete .app-journey-pin-col::before {
+  background-color: var(--journey-gold);
+}
+
+/* The road runs gold up to where the shop is standing, then goes quiet. */
+.app-journey .app-journey-row.is-current .app-journey-pin-col::before {
+  background: linear-gradient(
+    180deg,
+    var(--journey-gold) 0%,
+    var(--journey-green) 3.25rem,
+    var(--journey-line) 60%
+  );
+}
+
+.app-journey .app-journey-row.is-last .app-journey-pin-col::before {
+  bottom: auto;
+  height: 3.75rem;
+}
+
+/* --- Pins --------------------------------------------------------------- */
+
+.app-journey .app-journey-pin {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  /* Punches the pin out of the connector line running behind it. */
+  box-shadow: 0 0 0 6px var(--journey-base);
+}
+
+.app-journey .app-journey-row.is-complete .app-journey-pin,
+.app-journey .app-journey-row.is-current .app-journey-pin {
+  color: #06281a;
+}
+
+.app-journey .app-journey-row.is-complete .app-journey-pin {
+  background-color: var(--journey-gold);
+  box-shadow:
+    0 0 0 6px var(--journey-base),
+    0 0 0 10px color-mix(in srgb, var(--journey-gold) 22%, transparent);
+}
+
+.app-journey .app-journey-row.is-current .app-journey-pin {
+  background-color: var(--journey-green);
+  box-shadow:
+    0 0 0 6px var(--journey-base),
+    0 0 0 10px color-mix(in srgb, var(--journey-green) 28%, transparent);
+}
+
+.app-journey .app-journey-row.is-locked .app-journey-pin {
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  color: var(--journey-dim);
+}
+
+.app-journey .app-journey-row.is-destination .app-journey-pin {
+  background-color: rgba(255, 255, 255, 0.07);
+  font-size: 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   Stage cards
+   -------------------------------------------------------------------------- */
+
+.app-journey .app-journey-card {
+  background-color: var(--journey-card);
+  border: 1px solid var(--journey-card-border);
+}
+
+/* The live stage is the only lit card — brighter field, green edge. */
+.app-journey .app-journey-row.is-current .app-journey-card {
+  background-color: color-mix(in srgb, var(--journey-green) 8%, transparent);
+  border-color: color-mix(in srgb, var(--journey-green) 45%, transparent);
+}
+
+/* Locked stages sit back a step: same card, quieter text. */
+.app-journey .app-journey-row.is-locked .app-journey-card {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.app-journey .app-journey-row.is-locked .app-journey-muted {
+  color: var(--journey-dim);
+}
+
+.app-journey .app-journey-status {
+  color: var(--journey-dim);
+}
+
+.app-journey .app-journey-row.is-complete .app-journey-status,
+.app-journey .app-journey-row.is-destination .app-journey-status {
+  color: var(--journey-gold);
+}
+
+.app-journey .app-journey-row.is-current .app-journey-status {
+  color: var(--journey-green);
+}
+
+.app-journey .app-journey-status-dot {
+  height: 0.4rem;
+  width: 0.4rem;
+  border-radius: 999px;
+  background-color: currentColor;
+}
+
+.app-journey .app-journey-coin {
+  background-color: color-mix(in srgb, var(--journey-gold) 18%, transparent);
+  color: var(--journey-gold);
+  border-color: transparent;
+  border-radius: 999px !important;
+  padding: 0.25rem 0.625rem !important;
+  font-size: 11px !important;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+/* --- Task checklist ----------------------------------------------------- */
+
+.app-journey .app-journey-task {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.app-journey .app-journey-task-mark {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.app-journey .app-journey-task.is-done .app-journey-task-mark {
+  background-color: var(--journey-gold);
+  color: #3a2600;
+}
+
+/* --- Current-stage footer ----------------------------------------------- */
+
+.app-journey .app-journey-cta {
+  border-top: 1px dashed rgba(255, 255, 255, 0.16);
+}
+
+.app-journey .app-journey-unlocks {
+  background-color: color-mix(in srgb, var(--journey-gold) 14%, transparent);
+  color: var(--journey-gold);
+  border-color: transparent;
+  border-radius: 999px !important;
+  padding: 0.375rem 0.75rem !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.app-journey .app-journey-action {
+  background-color: var(--journey-green);
+  color: #06331f;
+  font-weight: 700;
+  padding-inline: 1.25rem;
+}
+
+.app-journey .app-journey-action:hover {
+  background-color: color-mix(in srgb, var(--journey-green) 85%, white);
+}
+
+/* --- Destination -------------------------------------------------------- */
+
+.app-journey .app-journey-destination {
+  background:
+    radial-gradient(
+      70% 120% at 88% 100%,
+      color-mix(in srgb, var(--journey-green) 14%, transparent) 0%,
+      transparent 70%
+    ),
+    rgba(255, 255, 255, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   Mobile — narrower rail, smaller pins; the cards keep the full width left.
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  .app-journey .app-journey-row {
+    grid-template-columns: 3rem 1fr;
+  }
+
+  .app-journey .app-journey-pin-col {
+    padding-top: 1.25rem;
+  }
+
+  .app-journey .app-journey-pin {
+    height: 2rem;
+    width: 2rem;
+    font-size: 0.75rem;
+    box-shadow: 0 0 0 5px var(--journey-base);
+  }
+
+  .app-journey .app-journey-row.is-complete .app-journey-pin,
+  .app-journey .app-journey-row.is-current .app-journey-pin {
+    box-shadow: 0 0 0 5px var(--journey-base);
+  }
+
+  .app-journey .app-journey-row.is-last .app-journey-pin-col::before {
+    height: 2.5rem;
+  }
+}

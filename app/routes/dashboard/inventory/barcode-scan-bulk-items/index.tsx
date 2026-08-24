@@ -16,6 +16,10 @@ import BarcodeScanBulkService from "~/services/BarcodeScanBulkService";
 import SkSuggestionsModal from "~/shared/inventory/subscribe-scan/modals/SkSuggestionsModal";
 import BarcodeScanTabs from "~/shared/inventory/subscribe-scan/components/BarcodeScanTabs";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import SubscribeSidePane from "~/shared/inventory/components/subscribe-side-pane/SubscribeSidePane";
 
 import DesktopView from "./components/DesktopView";
 import MobileView from "./components/MobileView";
@@ -215,7 +219,9 @@ const BarcodeScanBulkItems = () => {
     if (item.matchStatus !== "FoundInAi") {
       appNav.to("/dashboard/inventory/subscribe/add-product", {
         barcode: item.barcode,
-        from: encodeURIComponent("/dashboard/inventory/barcode-scan-bulk-items"),
+        from: encodeURIComponent(
+          "/dashboard/inventory/barcode-scan-bulk-items",
+        ),
         fromLabel: encodeURIComponent("Barcode Scan"),
       });
       return;
@@ -314,39 +320,73 @@ const BarcodeScanBulkItems = () => {
     <>
       <AppHeader title="Barcode Scan History" />
       <div className="app-page tw:p-4 page-bg">
-        <div className="app-container">
-          <AppBreadcrumbs data={breadcrumbs} />
-          <PageDescription description="barcodeScanHistory" />
-          <BarcodeScanTabs activeTab="items" className="tw:mt-2 tw:mb-4" />
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        {/* <SectionTabs sectionKey="catalog" activeTab="library" noShadow sticky /> */}
 
-          {/* Search container */}
-          <div className="tw:mt-4 tw:mb-4">
-            <Filter
-              callback={handleFilterChange}
-              defaultValue={search}
-              defaultStatus={status}
-              defaultDateRange={
-                fromParam && toParam
-                  ? [new Date(fromParam), new Date(toParam)]
-                  : []
-              }
-            />
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title="Manage Catalog"
+              />
+            </div>
+          </aside>
 
-            <PaginationSummary
-              paginationConfig={paginationRef.current}
-              loadingTotalRecords={loading}
-              loadedCount={items.length}
-              fwSize="sm"
-              className="tw:mt-4"
-            />
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid; the side pane only exists in
+                  theme-2 desktop, where the CSS lifts it out of the grid. */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                <AppBreadcrumbs
+                  data={breadcrumbs}
+                  className="theme-2-mobile-hide"
+                />
+                <PageDescription description="barcodeScanHistory" />
+                <BarcodeScanTabs
+                  activeTab="items"
+                  className="tw:mt-2 tw:mb-4"
+                />
+
+                {/* Search container */}
+                <div className="tw:mt-4 tw:mb-4">
+                  <Filter
+                    callback={handleFilterChange}
+                    defaultValue={search}
+                    defaultStatus={status}
+                    defaultDateRange={
+                      fromParam && toParam
+                        ? [new Date(fromParam), new Date(toParam)]
+                        : []
+                    }
+                  />
+
+                  <PaginationSummary
+                    paginationConfig={paginationRef.current}
+                    loadingTotalRecords={loading}
+                    loadedCount={items.length}
+                    fwSize="sm"
+                    className="tw:mt-4"
+                  />
+                </div>
+
+                {/* Responsive Views */}
+                {isMobile ? (
+                  <MobileView {...viewProps} />
+                ) : (
+                  <DesktopView {...viewProps} />
+                )}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where it becomes the fixed catalog list pane. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeSidePane scopeLabel="Scan History" />
+              </AppPaneSide>
+            </div>
           </div>
-
-          {/* Responsive Views */}
-          {isMobile ? (
-            <MobileView {...viewProps} />
-          ) : (
-            <DesktopView {...viewProps} />
-          )}
         </div>
       </div>
 

@@ -1,28 +1,17 @@
 import { Minus, Plus } from "lucide-react";
 import SellingTypeDisplay from "~/shared/catalog/components/SellingTypeDsiplay";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import AppButton from "~/components/core/button/AppButton";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import { CART_ITEM_ADDED, CART_ITEM_REMOVED, EVENTS } from "~/constants";
 import useAppToast from "~/hooks/useAppToast";
-import AuthService from "~/services/AuthService";
 import CartService from "~/services/CartService";
 import MiscService from "~/services/MiscService";
 import PosService from "~/services/PosService";
-import ProductService from "~/services/ProductService";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import AppPopover from "~/components/core/popover/AppPopover";
 import QuantityPopoverContent from "~/shared/catalog/components/QuantityPopoverContent";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
-
-const getSkDeal = async (dealRefId: string) => {
-  const skDealResp = await ProductService.getProducts({
-    filter: {
-      _id: dealRefId,
-    },
-  });
-  return skDealResp?.data?.[0] || null;
-};
 
 const SellerAddToCart: React.FC<{
   qty: number;
@@ -36,9 +25,15 @@ const SellerAddToCart: React.FC<{
   isSkSeller?: boolean;
   callback: (response: { action: string; data: any }) => void;
   className?: string;
+  /** Overrides the type-2 stepper trigger's spacing/rounding classes. */
+  stepperClassName?: string;
   sellingType?: string;
   packageQty?: number;
   selectedStockUom?: string;
+  /** Button fill when not in stepper mode. Defaults to solid. */
+  fill?: "solid" | "outline" | "clear";
+  /** Overrides the default "ADD" label (e.g. "+ ₹1,896"). */
+  children?: React.ReactNode;
 }> = ({
   qty,
   maxQty,
@@ -46,14 +41,16 @@ const SellerAddToCart: React.FC<{
   itemId,
   cartId,
   sellerId,
-  dealRefId,
   callback,
   type,
   isSkSeller,
   className,
+  stepperClassName,
   sellingType,
   packageQty,
   selectedStockUom,
+  fill = "solid",
+  children,
 }) => {
   const toast = useAppToast();
 
@@ -62,131 +59,20 @@ const SellerAddToCart: React.FC<{
   const [updating, setUpdating] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
-  const skDealRef = useRef<Record<string, any> | null>(null);
   const dealRef = useRef<any | null>(null);
 
-  const getMaxQty = useCallback(() => {
-    if (isSkSeller) {
-      const skDeal = skDealRef.current || {};
-      return skDeal.maxQty || maxQty;
-    }
-
-    return maxQty;
-  }, [isSkSeller, maxQty]);
-
-  const handleSkFlow = async (quantity: number) => {
-    const userId = AuthService.getLoggedInUserId(true);
-
-    if (!userId) {
-      toast.show({
-        msg: "User not authenticated",
-        color: "danger",
-      });
-      return;
-    }
-
-    setUpdating(true);
-    const skDeal = skDealRef.current || {};
-
-    // If the SK deal is out of stock (based on formatted response), show toast and skip add-to-cart
-    const skMaxQty = skDeal.maxQty || 0;
-    const skIsOutOfStock = skDeal.isOutOfStock || skMaxQty <= 0;
-    if (skIsOutOfStock) {
-      setUpdating(false);
-      toast.show({
-        msg: "Item is out of stock",
-        color: "warning",
-      });
-      return;
-    }
-
-    const resp = await CartService.addToCart("B2B", userId, {
-      fulfilledBy: skDeal.fulfilledBy,
-      quantity: quantity,
-      whId: skDeal.isSfToSf ? skDeal.fulfilledBy : skDeal.whId || 1,
-      _id: skDeal.id,
-      ...(skDeal.isSfToSf && { processType: "SFTOSF" }),
-    });
-    setUpdating(false);
-
-    if (resp.statusCode === 200) {
-      toast.show({
-        msg: "Item added to cart successfully",
-        color: "success",
-      });
-      const newItemId = resp?.data?.itemId;
-      const newCartId = resp?.data?.cartId;
-      callback({
-        action: CART_ITEM_ADDED,
-        data: {
-          dealId: dealId,
-          quantity: quantity,
-          itemId: newItemId,
-          cartId: newCartId,
-          isSkSeller,
-        },
-      });
-
-      MiscService.createEvent(EVENTS.CART_ITEM_ADDED, {
-        dealId: dealId,
-        quantity: quantity,
-        itemId: newItemId,
-        cartId: newCartId,
-      });
-    } else {
-      toast.show({
-        msg: resp.data?.message || "Failed to update cart",
-        color: "danger",
-      });
-    }
-  };
+  // Min/increment order rules come from the fetched deal. SK deals carry them
+  // as `b2bMinQuantity`/`incrementQuantity` on the seller entry; everything
+  // else steps by 1.
+  const effectiveMinQty = dealRef.current?.minQty || 1;
+  const effectiveIncrQty = dealRef.current?.incrQty || 1;
 
   const handleCartUpdate = async (cartQty: number) => {
-    const currentMax = getMaxQty();
-    if (cartQty > currentMax) {
+    if (cartQty > maxQty) {
       toast.show({
-        msg: `Max stock available: ${currentMax}`,
+        msg: `Max stock available: ${maxQty}`,
         color: "warning",
       });
-      return;
-    }
-
-    if (isSkSeller) {
-      // Reuse cached SK deal if available, otherwise fetch it.
-      let skDeal = skDealRef.current;
-      if (!skDeal) {
-        if (!dealRefId) {
-          toast.show({ msg: "Invalid product details", color: "danger" });
-          return;
-        }
-        try {
-          setUpdating(true);
-          skDeal = await getSkDeal(dealRefId);
-        } finally {
-          setUpdating(false);
-        }
-
-        if (skDeal && skDeal._id) {
-          skDealRef.current = skDeal;
-        } else {
-          skDealRef.current = null;
-          toast.show({
-            msg: "Failed to fetch product details",
-            color: "danger",
-          });
-          return;
-        }
-      }
-
-      // Check for out-of-stock based on ProductService.format output
-      const skMaxQty = skDeal.maxQty || 0;
-      const skIsOutOfStock = skDeal.isOutOfStock || skMaxQty <= 0;
-      if (skIsOutOfStock) {
-        toast.show({ msg: "Item is out of stock", color: "warning" });
-        return;
-      }
-
-      await handleSkFlow(cartQty);
       return;
     }
 
@@ -222,7 +108,7 @@ const SellerAddToCart: React.FC<{
       const newItemId = apiResponse?.data?.data?.itemId;
       const newCartId = apiResponse?.data?.data?.cartId;
       // Update local cart
-      CartService.addToCartLocal(dealId, cartQty);
+      CartService.addToCartLocal(dealId, cartQty, sellerId);
       callback({
         action: CART_ITEM_ADDED,
         data: {
@@ -241,6 +127,7 @@ const SellerAddToCart: React.FC<{
         qty: cartQty,
         itemId: newItemId,
         cartId: newCartId,
+        sellerId: sellerId,
       });
     } else {
       toast.show({
@@ -268,6 +155,7 @@ const SellerAddToCart: React.FC<{
       const formatted = d
         ? SellerCatalogService.formatProductResponse([d], {
             view: "buyer",
+            sellerId,
           })?.[0]
         : null;
 
@@ -299,7 +187,7 @@ const SellerAddToCart: React.FC<{
         color: "success",
       });
       // Clear local cart
-      CartService.removeFromCart(dealId);
+      CartService.removeFromCart(dealId, sellerId);
       callback({
         action: CART_ITEM_REMOVED,
         data: {
@@ -310,6 +198,7 @@ const SellerAddToCart: React.FC<{
 
       MiscService.createEvent(EVENTS.CART_ITEM_REMOVED, {
         dealId: dealId,
+        sellerId: sellerId,
       });
     } else {
       toast.show({
@@ -342,7 +231,10 @@ const SellerAddToCart: React.FC<{
       return;
     }
 
-    handleCartUpdate(1);
+    // Seed the cart at the deal's minimum order quantity (1 for deals with no
+    // min configured). Read off the just-fetched deal — `effectiveMinQty` is
+    // still the pre-fetch render value here.
+    handleCartUpdate(dealData?.minQty || 1);
   };
 
   const onIncr = async (e: React.MouseEvent) => {
@@ -362,45 +254,7 @@ const SellerAddToCart: React.FC<{
       });
       return;
     }
-    // If this is an SK seller ensure we have sk deal details first.
-    const ensureSkDeal = async () => {
-      if (!isSkSeller) return true;
 
-      // If already fetched, reuse it.
-      if (skDealRef.current) return true;
-
-      if (!dealRefId) {
-        toast.show({ msg: "Invalid product details", color: "danger" });
-        return false;
-      }
-
-      try {
-        setUpdating(true);
-        const skDeal = await getSkDeal(dealRefId);
-        if (skDeal && skDeal._id) {
-          skDealRef.current = skDeal;
-          return true;
-        }
-
-        skDealRef.current = null;
-        toast.show({ msg: "Failed to fetch product details", color: "danger" });
-        return false;
-      } finally {
-        setUpdating(false);
-      }
-    };
-
-    let ok = false;
-    try {
-      ok = await ensureSkDeal();
-    } catch (e) {
-      console.error("Error fetching SK deal:", e);
-      toast.show({ msg: "Failed to fetch product details", color: "danger" });
-      ok = false;
-    }
-    if (!ok) return;
-
-    // Determine increment step. For SK deals, use the deal's `incrQty` as formatted by ProductService.
     setPopoverOpen(true);
   };
 
@@ -421,41 +275,6 @@ const SellerAddToCart: React.FC<{
       });
       return;
     }
-    const ensureSkDeal = async () => {
-      if (!isSkSeller) return true;
-
-      if (skDealRef.current) return true;
-
-      if (!dealRefId) {
-        toast.show({ msg: "Invalid product details", color: "danger" });
-        return false;
-      }
-
-      try {
-        setUpdating(true);
-        const skDeal = await getSkDeal(dealRefId);
-        if (skDeal && skDeal._id) {
-          skDealRef.current = skDeal;
-          return true;
-        }
-
-        skDealRef.current = null;
-        toast.show({ msg: "Failed to fetch product details", color: "danger" });
-        return false;
-      } finally {
-        setUpdating(false);
-      }
-    };
-
-    let ok = false;
-    try {
-      ok = await ensureSkDeal();
-    } catch (e) {
-      console.error("Error fetching SK deal:", e);
-      toast.show({ msg: "Failed to fetch product details", color: "danger" });
-      ok = false;
-    }
-    if (!ok) return;
 
     setPopoverOpen(true);
   };
@@ -467,7 +286,11 @@ const SellerAddToCart: React.FC<{
           open={popoverOpen}
           onOpenChange={setPopoverOpen}
           triggerContent={
-            <div className="tw:inline-flex tw:gap-1 tw:text-xs tw:border tw:border-slate-200 tw:px-1 tw:py-2 tw:rounded tw:items-center tw:overflow-visible">
+            <div
+              className={`tw:inline-flex tw:gap-1 tw:text-xs tw:border tw:border-slate-200 tw:items-center tw:overflow-visible ${
+                stepperClassName || "tw:px-1 tw:py-2 tw:rounded"
+              }`}
+            >
               <button
                 className={`tw:cursor-pointer ${updating ? "tw:opacity-50 tw:cursor-not-allowed" : ""}`}
                 onClick={onDecr}
@@ -509,13 +332,9 @@ const SellerAddToCart: React.FC<{
           <QuantityPopoverContent
             initialQty={localQty}
             sellingType={dealRef.current?.sellingType}
-            minQty={
-              isSkSeller
-                ? skDealRef.current?.minQty || 1
-                : dealRef.current?.minQty || 1
-            }
-            maxQty={getMaxQty() || 0}
-            incrQty={isSkSeller ? skDealRef.current?.incrQty || 1 : 1}
+            minQty={effectiveMinQty}
+            maxQty={maxQty || 0}
+            incrQty={effectiveIncrQty}
             isUpdating={updating}
             onClose={() => setPopoverOpen(false)}
             onRemove={async () => {
@@ -539,11 +358,12 @@ const SellerAddToCart: React.FC<{
       isLoading={updating}
       size="small"
       color="primary"
+      fill={fill}
       noShadow={true}
       type="button"
       className={className}
     >
-      ADD
+      {children ?? "ADD"}
     </AppButton>
   );
 };

@@ -106,7 +106,7 @@ const Table: React.FC<TableProps> = ({
                 <div className="tw:flex tw:flex-col">
                   <AppLink
                     asLink
-                    href={`/dashboard/inventory/products/view/${row.dealId}`}
+                    href={`/dashboard/inventory/products/view/${row.dealId}/pricing`}
                     className="tw:text-blue-600 hover:tw:text-blue-800"
                   >
                     {row.dealName}

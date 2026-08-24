@@ -10,28 +10,28 @@ import useScreenView from "~/hooks/useScreenView";
 
 const colorMap: Record<
   string,
-  { bg: string; iconBg: string; iconText: string; value: string }
+  { topBorder: string; iconBg: string; iconText: string; value: string }
 > = {
   primary: {
-    bg: "tw:bg-blue-50/60 tw:border-blue-100",
+    topBorder: "tw:border-t-blue-500",
     iconBg: "tw:bg-blue-100",
     iconText: "tw:text-blue-600",
     value: "tw:text-blue-900",
   },
   success: {
-    bg: "tw:bg-green-50/60 tw:border-green-100",
+    topBorder: "tw:border-t-green-500",
     iconBg: "tw:bg-green-100",
     iconText: "tw:text-green-600",
     value: "tw:text-green-900",
   },
   warning: {
-    bg: "tw:bg-amber-50/60 tw:border-amber-100",
+    topBorder: "tw:border-t-amber-500",
     iconBg: "tw:bg-amber-100",
     iconText: "tw:text-amber-600",
     value: "tw:text-amber-900",
   },
   danger: {
-    bg: "tw:bg-red-50/60 tw:border-red-100",
+    topBorder: "tw:border-t-red-500",
     iconBg: "tw:bg-red-100",
     iconText: "tw:text-red-600",
     value: "tw:text-red-900",
@@ -205,13 +205,13 @@ const InventoryMainSummary: React.FC<InventoryMainSummaryProps> = ({
               onClick={() => onItemClick?.(item.key)}
               title={item.desc}
               className={clsx(
-                "tw:flex tw:items-center tw:gap-2.5 tw:px-3 tw:py-2 tw:rounded-lg tw:border tw:cursor-pointer tw:transition-colors hover:tw:shadow-sm",
-                c.bg
+                "tw:flex tw:items-center tw:gap-3 tw:px-3.5 tw:py-2.5 tw:rounded-xl tw:bg-white tw:border tw:border-gray-200 tw:border-t-[3px] tw:cursor-pointer tw:transition-shadow hover:tw:shadow-sm",
+                c.topBorder
               )}
             >
               <span
                 className={clsx(
-                  "tw:shrink-0 tw:rounded-md tw:p-1.5 tw:flex tw:items-center tw:justify-center",
+                  "tw:shrink-0 tw:rounded-lg tw:p-2 tw:flex tw:items-center tw:justify-center",
                   c.iconBg
                 )}
               >
@@ -221,11 +221,16 @@ const InventoryMainSummary: React.FC<InventoryMainSummaryProps> = ({
                   className={c.iconText}
                 />
               </span>
-              <div className="tw:flex tw:flex-col tw:min-w-0 tw:leading-tight">
-                <span className="tw:text-[10px] tw:uppercase tw:tracking-wide tw:font-medium tw:text-gray-500 tw:truncate">
+              <div className="tw:flex tw:flex-col tw:min-w-0 tw:gap-0.5 tw:leading-tight">
+                <span className="app-label tw:text-[10px] tw:uppercase tw:tracking-wide tw:font-medium tw:text-gray-500 tw:truncate">
                   {item.label}
                 </span>
-                <span className={clsx("tw:text-base tw:font-bold", c.value)}>
+                <span
+                  className={clsx(
+                    "app-amount tw:text-base tw:font-bold",
+                    c.value
+                  )}
+                >
                   {loading ? (
                     "…"
                   ) : item.isAmount ? (

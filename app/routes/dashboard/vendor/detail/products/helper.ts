@@ -20,7 +20,7 @@ export type FilterFormData = {
 export const prepareParams = (
   filter: Record<string, any>,
   pagination: PaginationState | null,
-  sort: { key: string; value: "asc" | "desc" } | null
+  sort: { key: string; value: "asc" | "desc" } | null,
 ) => {
   const params: Record<string, any> = {
     page: pagination?.activePage || 1,
@@ -34,7 +34,10 @@ export const prepareParams = (
 
   const search = filter.search?.trim();
   if (search) {
-    params.filter.search = search;
+    params.filter.name = {
+      $regex: search,
+      $options: "i",
+    };
   }
 
   if (filter.dateRange && filter.dateRange.length > 0) {
@@ -45,7 +48,7 @@ export const prepareParams = (
   }
 
   if (filter.alpha) {
-    params.filter.search = CommonService.prepareAlphaRegexFilter(filter.alpha);
+    params.filter.name = CommonService.prepareAlphaRegexFilter(filter.alpha);
   }
 
   if (filter.status === "Active") {
@@ -90,8 +93,8 @@ export const prepareParams = (
 };
 
 export const getData = async (id: string, params: Record<string, any>) => {
-  const response = await VendorService.getProducts(id, params);
-  return response?.data?.data || [];
+  const response = await VendorService.getVendorCatalog(id, params);
+  return VendorService.formatVendorCatalog(response?.data?.data || []);
 };
 
 export const getCount = async (id: string, params: Record<string, any>) => {
@@ -101,6 +104,6 @@ export const getCount = async (id: string, params: Record<string, any>) => {
   delete p.limit;
   delete p.sort;
 
-  const response = await VendorService.getProductsCount(id, params);
+  const response = await VendorService.getVendorCatalogCount(id, params);
   return response?.data?.count || 0;
 };

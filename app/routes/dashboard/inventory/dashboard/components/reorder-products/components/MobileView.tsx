@@ -10,15 +10,10 @@ import AppPopover from "~/components/core/popover/AppPopover";
 import { Skeleton } from "~/components/ui/skeleton";
 import DealSummaryPopover from "~/components/feature/inventory/popover/deal-sales-summary/DealSummaryPopover";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
-import {
-  formatReserveQty,
-  isLooseStockUom,
-  type InventoryRiskItem,
-} from "../../../helper";
-import type { InventoryRiskType } from "../helper";
+import type { InventoryRiskRow, InventoryRiskType } from "../helper";
 
 type Props = {
-  data: InventoryRiskItem[];
+  data: InventoryRiskRow[];
   loading: boolean;
   loadMore: () => void;
   loadingMore: boolean;
@@ -67,7 +62,7 @@ const MobileView = ({
       <div className="tw:grid tw:grid-cols-1 tw:lg:grid-cols-3 tw:gap-2">
         {data.map((p, idx) => (
           <AppCard
-            key={idx}
+            key={p._key}
             noPadding
             className="tw:h-full"
             bodyClassName="tw:flex tw:flex-col tw:h-full"
@@ -75,7 +70,9 @@ const MobileView = ({
             {/* Header */}
             <div className="tw:px-4 tw:py-3">
               <div className="tw:flex tw:items-start tw:gap-2">
-                <span className="tw:text-xs tw:text-gray-400 tw:mt-0.5">#{idx + 1}</span>
+                <span className="tw:text-xs tw:text-gray-400 tw:mt-0.5">
+                  #{idx + 1}
+                </span>
                 <div className="tw:flex-1 tw:min-w-0">
                   <AppLink
                     asLink
@@ -101,19 +98,15 @@ const MobileView = ({
                   <span className="tw:text-xs tw:text-gray-500">Qty Sold</span>
                   <div className="tw:flex tw:items-center tw:gap-2 tw:text-xs">
                     <span className="tw:text-gray-500">7d</span>
-                    <span className="tw:font-semibold">
-                      {p.salesAnalytics?.last7Days?.quantity ?? 0}
-                    </span>
+                    <span className="tw:font-semibold">{p._sales7Qty}</span>
                     <span className="tw:text-gray-500">15d</span>
-                    <span className="tw:font-semibold">
-                      {p.salesAnalytics?.last15Days?.quantity ?? 0}
-                    </span>
+                    <span className="tw:font-semibold">{p._sales15Qty}</span>
                     <AppPopover
                       triggerContent={
                         <span className="tw:inline-flex tw:items-center tw:gap-1 tw:cursor-pointer">
                           <span className="tw:text-gray-500">30d</span>
                           <span className="tw:font-semibold">
-                            {p.salesAnalytics?.last30Days?.quantity ?? 0}
+                            {p._sales30Qty}
                           </span>
                           <span className="tw:inline-flex tw:items-center tw:gap-0.5 tw:text-[10px] tw:text-slate-400">
                             More
@@ -131,15 +124,19 @@ const MobileView = ({
               )}
               {type !== "expiryRisk" && (
                 <div className="tw:flex tw:justify-between tw:items-center">
-                  <span className="tw:text-xs tw:text-gray-500">Sales Value</span>
+                  <span className="tw:text-xs tw:text-gray-500">
+                    Sales Value
+                  </span>
                   <span className="tw:text-xs tw:font-semibold">
-                    <Amount value={p.salesAnalytics?.last30Days?.value ?? 0} />
+                    <Amount value={p._sales30Value} />
                   </span>
                 </div>
               )}
               {type !== "reserve" && type !== "expiryRisk" && (
                 <div className="tw:flex tw:justify-between tw:items-center">
-                  <span className="tw:text-xs tw:text-gray-500">Last Order</span>
+                  <span className="tw:text-xs tw:text-gray-500">
+                    Last Order
+                  </span>
                   {p.lastOrderDate ? (
                     <span className="tw:flex tw:items-center tw:gap-2 tw:text-xs">
                       <DateFormat
@@ -148,7 +145,7 @@ const MobileView = ({
                         className="tw:font-semibold tw:text-slate-700"
                       />
                       <span className="tw:font-semibold">
-                        <Amount value={p.lastOrderValue ?? 0} />
+                        <Amount value={p._lastOrderValue} />
                       </span>
                     </span>
                   ) : (
@@ -162,14 +159,11 @@ const MobileView = ({
                 </span>
                 {type === "reserve" ? (
                   <span className="tw:text-sm tw:font-medium tw:text-amber-700">
-                    {formatReserveQty(p.totalReserveQty ?? 0, p.selectedStockUom)}
+                    {p._reserveQtyLabel}
                   </span>
                 ) : (
                   <span className="tw:text-sm tw:font-medium">
-                    <DisplayQty
-                      qty={p.stockQty ?? 0}
-                      isLooseQty={isLooseStockUom(p.selectedStockUom)}
-                    />
+                    <DisplayQty qty={p._stockQty} isLooseQty={p._isLooseQty} />
                   </span>
                 )}
               </div>

@@ -16,6 +16,10 @@ export default [
       "routes/dashboard/reports/gst-dashboard/list/rate-summary/index.tsx"
     ),
     route(
+      "dashboard/reports/gst-dashboard/party-wise",
+      "routes/dashboard/reports/gst-dashboard/list/party-wise/index.tsx"
+    ),
+    route(
       "dashboard/reports/gst-dashboard/reports",
       "routes/dashboard/reports/gst-dashboard/list/reports/index.tsx"
     ),

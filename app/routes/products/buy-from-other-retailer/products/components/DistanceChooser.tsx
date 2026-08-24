@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { ChevronDown, Map, MapPin } from "lucide-react";
 import { useCallback, useState } from "react";
 import AppPopover from "~/components/core/popover/AppPopover";
 import { useSearchParams } from "react-router";
@@ -6,17 +6,23 @@ import { DEFAULT_BROWSE_DISTANCE } from "~/constants";
 
 type Props = {
   selectedDistance?: string;
+  /** `inline` sits inside the unified search bar (All areas label + map icon). */
+  variant?: "default" | "inline";
 };
 
 const KM = DEFAULT_BROWSE_DISTANCE;
 
-const DistanceChooser = ({ selectedDistance = KM }: Props) => {
+const DistanceChooser = ({
+  selectedDistance = KM,
+  variant = "default",
+}: Props) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [distancePopoverOpen, setDistancePopoverOpen] = useState(false);
 
   const distanceOptions = [2, 4, 6, 8, 10, 25, 30, 50, 100];
   const currentDistance = searchParams.get("distance") || selectedDistance;
   const isIgnoringDistance = currentDistance === "all";
+  const isInline = variant === "inline";
 
   const handleDistanceSelect = useCallback(
     async (distance: number | string) => {
@@ -36,6 +42,14 @@ const DistanceChooser = ({ selectedDistance = KM }: Props) => {
     [setSearchParams],
   );
 
+  const label = isIgnoringDistance
+    ? isInline
+      ? "All areas"
+      : "All"
+    : isInline
+      ? `${currentDistance} km`
+      : currentDistance;
+
   return (
     <AppPopover
       open={distancePopoverOpen}
@@ -44,30 +58,35 @@ const DistanceChooser = ({ selectedDistance = KM }: Props) => {
         <button
           aria-label={
             isIgnoringDistance
-              ? "All stores"
+              ? "All areas"
               : `Selected distance ${currentDistance} kilometers`
           }
-          className="tw:h-11 tw:inline-flex tw:items-center tw:justify-center tw:gap-1.5 tw:px-3 tw:sm:px-3.5 tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white tw:text-sm tw:font-medium tw:text-gray-700 tw:hover:border-gray-300 tw:hover:bg-gray-50 tw:transition-colors tw:shrink-0"
+          aria-expanded={distancePopoverOpen}
+          className={`tw:h-9 tw:inline-flex tw:items-center tw:justify-center tw:gap-1.5 tw:px-2.5 tw:sm:px-3 tw:rounded-xl tw:border tw:text-sm tw:font-medium tw:transition-colors tw:shrink-0 ${
+            isIgnoringDistance
+              ? "tw:border-gray-200 tw:bg-white tw:text-gray-700 tw:hover:border-gray-300 tw:hover:bg-gray-50"
+              : "tw:border-primary/30 tw:bg-primary/5 tw:text-primary tw:hover:bg-primary/10"
+          }`}
           type="button"
         >
-          <MapPin size={16} className="tw:text-primary tw:shrink-0" />
-          {/* Compact on mobile: icon-only. Show the label from `sm` up. When a
-              specific radius is set, keep the short km value visible everywhere
-              so the active filter isn't hidden. */}
-          <span
-            className={`tw:whitespace-nowrap ${
-              isIgnoringDistance ? "tw:hidden tw:sm:inline" : ""
-            }`}
-          >
-            {isIgnoringDistance ? (
-              "All Sellers"
-            ) : (
-              <>
-                {currentDistance}{" "}
-                <span className="tw:text-gray-500 tw:font-normal">km</span>
-              </>
-            )}
+          {isInline ? (
+            <Map
+              size={15}
+              className={`tw:shrink-0 ${isIgnoringDistance ? "tw:text-gray-500" : "tw:text-primary"}`}
+            />
+          ) : (
+            <MapPin size={15} className="tw:text-primary tw:shrink-0" />
+          )}
+          {/* Always show the current radius so the active filter is never hidden. */}
+          <span className="tw:whitespace-nowrap tw:tabular-nums tw:hidden tw:sm:inline">
+            {label}
           </span>
+          <ChevronDown
+            size={13}
+            className={`tw:shrink-0 tw:transition-transform tw:duration-200 ${
+              isIgnoringDistance ? "tw:text-gray-400" : "tw:text-primary/60"
+            } ${distancePopoverOpen ? "tw:rotate-180" : ""}`}
+          />
         </button>
       }
       side="bottom"

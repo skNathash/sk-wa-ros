@@ -23,7 +23,7 @@ const MobileView: React.FC<MobileViewProps> = ({ products, callback }) => {
   }
 
   return (
-    <div className="tw:space-y-4 tw:px-4">
+    <div className="tw:space-y-3 tw:px-3">
       {products.map((product, index) => (
         <div
           key={index}

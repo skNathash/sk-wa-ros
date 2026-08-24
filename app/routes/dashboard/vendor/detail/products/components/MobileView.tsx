@@ -1,13 +1,17 @@
 import { useTranslation } from "react-i18next";
 import AppCard from "~/components/core/card/AppCard";
 import Amount from "~/components/core/amount/Amount";
+import DateFormat from "~/components/core/date/DateFormat";
 import Divider from "~/components/core/divider/Divider";
 import NoData from "~/components/core/no-data/NoData";
 import KeyValue from "~/components/core/key-value/KeyValue";
 import { Skeleton } from "~/components/ui/skeleton";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
+import ImgRender from "~/components/core/img/ImgRender";
+import PoAddToCart from "~/shared/purchase-order/components/po-add-to-cart/PoAddToCart";
 
 type Props = {
+  vendorId: string;
   data: any[];
   loading: boolean;
   loadMore?: () => void;
@@ -19,6 +23,7 @@ type Props = {
 };
 
 const MobileView = ({
+  vendorId,
   data,
   loading,
   loadMore,
@@ -33,20 +38,20 @@ const MobileView = ({
   // Loading state
   if (loading) {
     return (
-      <div className="tw:flex tw:flex-col tw:gap-4">
+      <div className="app-bleed-x tw:divide-y tw:divide-border tw:rounded-none tw:bg-white">
         {Array.from({ length: 5 }).map((_, idx) => (
           <div
             key={`skeleton-${idx}`}
-            className="tw:border tw:border-gray-200 tw:rounded-md tw:bg-white tw:p-4"
+            className="tw:flex tw:items-center tw:gap-3 tw:p-3"
           >
-            <Skeleton className="tw:h-4 tw:w-3/4 tw:mb-3" />
-            <Skeleton className="tw:h-3 tw:w-1/2 tw:mb-2" />
-            <Skeleton className="tw:h-3 tw:w-2/3 tw:mb-2" />
-            <Skeleton className="tw:h-3 tw:w-1/3 tw:mb-2" />
-            <Skeleton className="tw:h-3 tw:w-1/4 tw:mb-3" />
-            <Divider />
-            <div className="tw:flex tw:items-center tw:justify-between tw:mt-3">
-              <Skeleton className="tw:h-6 tw:w-20" />
+            <Skeleton className="tw:h-12 tw:w-12 tw:shrink-0 tw:rounded-lg" />
+            <div className="tw:min-w-0 tw:flex-1 tw:space-y-1.5">
+              <Skeleton className="tw:h-4 tw:w-3/4" />
+              <Skeleton className="tw:h-3 tw:w-1/3" />
+            </div>
+            <div className="tw:flex tw:shrink-0 tw:flex-col tw:items-end tw:gap-1.5">
+              <Skeleton className="tw:h-4 tw:w-12" />
+              <Skeleton className="tw:h-7 tw:w-14 tw:rounded-full" />
             </div>
           </div>
         ))}
@@ -57,6 +62,89 @@ const MobileView = ({
   // No data state
   if (!data || data.length === 0) {
     return <NoData />;
+  }
+
+  if (1) {
+    return (
+      <>
+        {/* `app-bleed-x` pulls the list out of the page gutter on theme-2
+            mobile so rows run edge to edge as one flush block. */}
+        <div className="app-bleed-x tw:divide-y tw:divide-border tw:rounded-none tw:bg-white">
+          {data.map((item, idx) => {
+            const stock = Number(
+              item.loggedInUserStock?.availableQuantity ?? 0,
+            );
+            const hasDiscount = Number(item.discount) > 0;
+
+            return (
+              <div
+                key={item._id || item.dealId || idx}
+                className="tw:flex tw:items-center tw:gap-3 tw:p-3"
+              >
+                <div className="tw:flex tw:h-12 tw:w-12 tw:shrink-0 tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-lg tw:bg-muted">
+                  <ImgRender
+                    assetId={item.image}
+                    alt={item.name}
+                    className="tw:h-full tw:w-full tw:object-cover"
+                  />
+                </div>
+
+                <div className="tw:min-w-0 tw:flex-1">
+                  <h3 className="tw:text-sm tw:font-semibold tw:leading-snug tw:text-foreground tw:line-clamp-2">
+                    {item.name || "--"}
+                  </h3>
+                  <p className="tw:mt-0.5 tw:text-[11px] tw:leading-4 tw:text-muted-foreground">
+                    {`${stock} ${t("inStock", "in stock")}`}
+                    {item.lastPurchaseDate ? (
+                      <>
+                        {" · "}
+                        {t("lastBuy", "last buy")}{" "}
+                        <DateFormat
+                          value={item.lastPurchaseDate}
+                          formatStr="dd MMM yyyy"
+                        />
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+
+                <div className="tw:flex tw:shrink-0 tw:flex-col tw:items-end tw:gap-1.5">
+                  <div className="tw:flex tw:items-baseline tw:gap-1.5">
+                    <Amount
+                      value={item.price}
+                      className="tw:text-sm tw:font-bold tw:text-foreground"
+                    />
+                    {hasDiscount ? (
+                      <Amount
+                        value={item.mrp}
+                        className="tw:text-[11px] tw:text-muted-foreground tw:line-through"
+                      />
+                    ) : null}
+                  </div>
+                  <PoAddToCart
+                    vendorId={vendorId}
+                    dealId={item.dealId || item.dealRefId}
+                    type="catalog"
+                    buttonClassName="tw:rounded-full tw:px-2.5"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {hasMoreData && !loading && data.length > 0 && loadMore ? (
+          <div className="tw:mt-2 tw:text-center">
+            <LoadMoreButton
+              loadMore={loadMore}
+              loading={!!loadingMore}
+              totalCount={totalCount ?? 0}
+              loadedCount={loadedCount ?? 0}
+            />
+          </div>
+        ) : null}
+      </>
+    );
   }
 
   // Data state

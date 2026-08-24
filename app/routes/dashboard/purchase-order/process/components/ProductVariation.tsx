@@ -119,6 +119,7 @@ const ProductVariation = ({
           notes: response.data.notes,
           location: response.data.location,
           locationDetail: response.data.locationDetail,
+          locationDetails: response.data.locationDetail,
           rack: response.data.rack,
           rackDetails: response.data.rackDetails,
           bin: response.data.bin,
@@ -151,23 +152,23 @@ const ProductVariation = ({
     <>
       <div>
         {/* Compact Header with better visual hierarchy */}
-        <div className="tw:flex tw:items-center tw:justify-between tw:py-2 tw:px-3 tw:border-t tw:border-gray-200">
+        <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:py-2 tw:px-3 tw:border-t tw:border-gray-200">
           <div
-            className="tw:flex tw:items-center tw:gap-2 tw:cursor-pointer tw:flex-1"
+            className="tw:flex tw:items-center tw:gap-2 tw:cursor-pointer tw:min-w-0 tw:flex-1"
             onClick={() => setIsOpen((s) => !s)}
             role="button"
             aria-expanded={isOpen}
           >
             <ChevronDown
-              className={`tw:transition-transform tw:duration-200 tw:text-gray-500 tw:flex-shrink-0 ${
+              className={`tw:transition-transform tw:duration-200 tw:text-gray-500 tw:shrink-0 ${
                 isOpen ? "tw:rotate-180" : ""
               }`}
               size={16}
             />
-            <h3 className="tw:text-sm tw:font-semibold tw:text-gray-700">
+            <h3 className="tw:text-sm tw:font-semibold tw:text-gray-700 tw:truncate">
               {t("variations")}
             </h3>
-            <span className="tw:inline-flex tw:items-center tw:justify-center tw:min-w-[20px] tw:h-5 tw:px-1.5 tw:text-xs tw:font-medium tw:bg-blue-100 tw:text-blue-700 tw:rounded-full">
+            <span className="tw:inline-flex tw:items-center tw:justify-center tw:min-w-5 tw:h-5 tw:px-1.5 tw:text-xs tw:font-medium tw:bg-blue-100 tw:text-blue-700 tw:rounded-full tw:shrink-0">
               {variationsArray.length}
             </span>
           </div>
@@ -176,7 +177,7 @@ const ProductVariation = ({
             size="small"
             fill="outline"
             onClick={handleAddVariation}
-            className="tw:ml-2 tw:flex-shrink-0"
+            className="tw:ml-2 tw:shrink-0"
           >
             <Plus size={14} />
             {t("addVariation")}

@@ -66,12 +66,16 @@ const AppliedFilter = ({ filter, callback, className, mapping }: Props) => {
 
   return (
     <div
+      data-slot="applied-filter"
       className={cn(
         "tw:flex tw:items-center tw:gap-2 tw:overflow-x-hidden",
         className
       )}
     >
-      <span className="tw:text-xs tw:font-medium tw:text-gray-600 tw:dark:text-gray-400 tw:whitespace-nowrap">
+      <span
+        data-slot="applied-filter-label"
+        className="tw:text-xs tw:font-medium tw:text-gray-600 tw:dark:text-gray-400 tw:whitespace-nowrap"
+      >
         {t("appliedFilters")}
       </span>
       <div className="tw:flex tw:flex-wrap tw:gap-2 tw:min-w-0">
@@ -86,22 +90,32 @@ const AppliedFilter = ({ filter, callback, className, mapping }: Props) => {
 
             return (
               <AppSwiper.Slide key={filter.key} isAutoWidth={true}>
-                <div className="tw:group tw:inline-flex tw:items-center tw:gap-1.5 tw:px-2 tw:py-1 tw:h-6 tw:bg-gray-100 tw:dark:bg-gray-800 tw:border tw:border-gray-200 tw:dark:border-gray-700 tw:rounded-md tw:text-xs tw:font-medium tw:text-gray-700 tw:dark:text-gray-200 tw:transition-colors tw:hover:bg-gray-200 tw:dark:hover:bg-gray-700">
+                <div
+                  data-slot="applied-filter-chip"
+                  className="tw:group tw:inline-flex tw:items-center tw:gap-1.5 tw:px-2 tw:py-1 tw:h-6 tw:bg-gray-100 tw:dark:bg-gray-800 tw:border tw:border-gray-200 tw:dark:border-gray-700 tw:rounded-md tw:text-xs tw:font-medium tw:text-gray-700 tw:dark:text-gray-200 tw:transition-colors tw:hover:bg-gray-200 tw:dark:hover:bg-gray-700"
+                >
                   <span className="tw:flex tw:items-center tw:gap-1.5 tw:leading-none">
-                    <span className="tw:text-gray-500 tw:dark:text-gray-400 tw:font-normal tw:leading-none">
+                    <span
+                      data-slot="applied-filter-chip-label"
+                      className="tw:text-gray-500 tw:dark:text-gray-400 tw:font-normal tw:leading-none"
+                    >
                       {filter.label}:
                     </span>
-                    <span className="tw:font-medium tw:text-gray-900 tw:dark:text-gray-100 tw:leading-none">
+                    <span
+                      data-slot="applied-filter-chip-value"
+                      className="tw:font-medium tw:text-gray-900 tw:dark:text-gray-100 tw:leading-none"
+                    >
                       {filter.value}
                     </span>
                   </span>
                   {shouldShowCloseIcon && (
                     <button
+                      data-slot="applied-filter-remove"
                       onClick={() =>
                         callback({ action: "remove", data: filter })
                       }
                       aria-label={`Remove ${filter.label} filter`}
-                      className="tw:ml-0.5 tw:inline-flex tw:items-center tw:justify-center tw:rounded-sm tw:p-0 tw:w-3.5 tw:h-3.5 tw:text-gray-400 tw:dark:text-gray-500 tw:transition-colors tw:hover:bg-gray-300 tw:dark:hover:bg-gray-600 tw:hover:text-gray-600 tw:dark:hover:text-gray-300 tw:focus:outline-none tw:focus:ring-2 tw:focus:ring-gray-400 tw:focus:ring-offset-1 tw:flex-shrink-0"
+                      className="tw:ml-0.5 tw:inline-flex tw:items-center tw:justify-center tw:rounded-sm tw:p-0 tw:w-3.5 tw:h-3.5 tw:text-gray-400 tw:dark:text-gray-500 tw:transition-colors tw:hover:bg-gray-300 tw:dark:hover:bg-gray-600 tw:hover:text-gray-600 tw:dark:hover:text-gray-300 tw:focus:outline-none tw:focus:ring-2 tw:focus:ring-gray-400 tw:focus:ring-offset-1 tw:shrink-0"
                     >
                       <X size={12} strokeWidth={2.5} />
                     </button>

@@ -2,7 +2,12 @@
  * Service for managing localStorage operations
  */
 export class StorageService {
-  private static readonly KEY_PREFIX = "v2-";
+  /**
+   * Prefix applied to every key. Public because code that must read storage
+   * without loading this module — e.g. the blocking theme script inlined into
+   * <head> in root.tsx — needs to build the same prefixed key.
+   */
+  public static readonly KEY_PREFIX = "v2-";
 
   /**
    * Adds the v2- prefix to the key

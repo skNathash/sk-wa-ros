@@ -15,7 +15,7 @@ interface ScanItemActionsProps {
 /**
  * Action row for a scanned item. Surfaces the two steps of the user flow in a
  * deliberate order: first "Similar items" (review SK matches that may already
- * exist), then "Create New" / "Add Details" as the primary fallback.
+ * exist), then "Create New" / "Create Item" as the primary fallback.
  *
  * Shared across inventory scan flows so the UI stays consistent between bulk
  * scan, subscribe/cart create-pending, and any future review screens.
@@ -53,7 +53,7 @@ const ScanItemActions: React.FC<ScanItemActionsProps> = ({
           className="tw:inline-flex tw:items-center tw:gap-1.5 tw:rounded-lg tw:border tw:border-blue-200 tw:bg-blue-50 tw:px-2.5 tw:py-1.5 tw:text-xs tw:font-medium tw:text-blue-700 tw:transition-colors tw:cursor-pointer tw:whitespace-nowrap hover:tw:border-blue-300 hover:tw:bg-blue-100 focus-visible:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-blue-200"
         >
           <Layers className="tw:w-3.5 tw:h-3.5" />
-          Similar items
+          Similar
           <span className="tw:inline-flex tw:items-center tw:justify-center tw:min-w-4 tw:h-4 tw:px-1 tw:rounded-full tw:bg-blue-200/70 tw:text-[10px] tw:font-semibold tw:text-blue-800">
             {suggestionCount}
           </span>
@@ -72,7 +72,7 @@ const ScanItemActions: React.FC<ScanItemActionsProps> = ({
           ].join(" ")}
         >
           <Plus className="tw:w-3.5 tw:h-3.5" />
-          {isAiFound ? "Create New" : "Add Details"}
+          {isAiFound ? "Create" : "Create Item"}
         </button>
       )}
     </div>

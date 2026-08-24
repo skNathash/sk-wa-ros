@@ -24,6 +24,7 @@ import type {
   ViewToggleType,
 } from "~/types/CommonTypes";
 import PageAccessService from "~/services/PageAccessService";
+import AuthService from "~/services/AuthService";
 import Rbac from "~/components/core/rbac/Rbac";
 import AppliedFilters from "./components/AppliedFilters";
 import DesktopView from "./components/DesktopView";
@@ -377,7 +378,10 @@ export default function BannerConfigList() {
               <AppBreadcrumbs data={breadcrumbs} className="tw:mb-1!" />
             </div>
             {!isMobile && (
-              <Rbac roles={rbacRoles.create}>
+              <Rbac
+                roles={rbacRoles.create}
+                forceDisplay={AuthService.isMasterLogin()}
+              >
                 <AppButton
                   onClick={() => nav.to("/configs/banner/manage-slide")}
                   size="small"
@@ -465,7 +469,10 @@ export default function BannerConfigList() {
 
       {isMobile && (
         <div className="app-footer tw:p-4 tw:text-end">
-          <Rbac roles={rbacRoles.create}>
+          <Rbac
+            roles={rbacRoles.create}
+            forceDisplay={AuthService.isMasterLogin()}
+          >
             <AppButton
               onClick={() => nav.to("/configs/banner/manage-slide")}
               size="large"

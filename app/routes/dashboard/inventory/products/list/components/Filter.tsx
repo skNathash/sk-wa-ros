@@ -10,6 +10,7 @@ import AppButton from "~/components/core/button/AppButton";
 import { AppInput } from "~/components/core/form/AppInput";
 import VoiceMic from "~/components/core/voice-search/VoiceMic";
 import InventoryFilterModal from "~/shared/inventory/modals/inventory-filter/InventoryFilterModal";
+import NavChips from "~/shared/inventory/components/nav-chips/NavChips";
 import { type FilterFormFields } from "../helper";
 import useScreenView from "~/hooks/useScreenView";
 import MiscService from "~/services/MiscService";
@@ -22,8 +23,11 @@ interface FilterProps {
 const Filter = ({ callback, className }: FilterProps) => {
   const { t } = useTranslation(["common"]);
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const isInactivePage = searchParams.get("inactive") === "true";
+  // Dedicated menu view — the menu is fixed by the page, so the modal drops its
+  // menu picker the same way the applied-filter chip is hidden.
+  const isMenuView = searchParams.get("view") === "menu";
 
   const [filterModal, setFilterModal] = useState<{ show: boolean; data: any }>({
     show: false,
@@ -139,18 +143,12 @@ const Filter = ({ callback, className }: FilterProps) => {
 
       // If user cleared the input, handle clearing keys and URL params
       if (typeof val === "string" && val.trim() === "") {
-        const hasKeysParam = Boolean(searchParams.get("keys"));
-        const hasSearchParam = Boolean(searchParams.get("search"));
-
-        // If either `keys` or `search` exists in the URL, remove them
-        if (hasKeysParam || hasSearchParam) {
-          // Remove only the `keys` and `search` params, keep other params intact
-          const newParams = new URLSearchParams(searchParams as any);
-          newParams.delete("keys");
-          newParams.delete("search");
-
-          setSearchParams(newParams, { replace: true });
-        }
+        // Route the clear through the parent callback (instead of deleting
+        // `search`/`keys` from the URL here) so it can also drop the
+        // brand/category/menu that was applied via the search-driven facet
+        // filter. The form's search/keys were already reset above, so the
+        // rebuilt params reflect the cleared state.
+        triggerCallback();
         scannerDetector.reset();
         // Clear any pending select timeout
         if (selectTimeoutRef.current) {
@@ -280,10 +278,13 @@ const Filter = ({ callback, className }: FilterProps) => {
     <div className={`tw:space-y-4 ${className || ""}`}>
       {/* Search Input - Full Row */}
       <div className="tw:w-full">
+        <div className="tw:mb-3 tw:md:hidden">
+          <NavChips />
+        </div>
         <div className="tw:flex tw:items-center tw:gap-2">
           <AppInput
             name="search"
-            placeholder={t("searchProductsPlaceholder")}
+            placeholder={t("searchProductsPlaceholderShort")}
             register={register}
             onChange={handleSearchChange}
             onClick={(e) => (e.target as HTMLInputElement).select()}
@@ -345,6 +346,7 @@ const Filter = ({ callback, className }: FilterProps) => {
         data={filterModal.data}
         callback={handleInventoryFilterModalCallback}
         hideStatus={isInactivePage}
+        hideMenu={isMenuView}
       />
     </div>
   );

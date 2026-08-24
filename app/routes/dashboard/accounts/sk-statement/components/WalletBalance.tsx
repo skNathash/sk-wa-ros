@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Amount from "~/components/core/amount/Amount";
 import AppButton from "~/components/core/button/AppButton";
-import InfoBlock from "~/components/core/info-blk/InfoBlock";
+import AppCard from "~/components/core/card/AppCard";
 import AuthService from "~/services/AuthService";
 import FranchiseService from "~/services/FranchiseService";
 
@@ -32,7 +32,7 @@ const WalletBalance: React.FC = () => {
     }
 
     if (!fid) {
-      setError("Franchise ID not found");
+      setError(t("franchiseIdNotFound") || "Franchise ID not found");
       return;
     }
 
@@ -45,11 +45,11 @@ const WalletBalance: React.FC = () => {
       if (response.statusCode === 200) {
         setBalance(response.balance || 0);
       } else {
-        setError("Failed to fetch balance");
+        setError(t("failedToFetchBalance") || "Failed to fetch balance");
       }
     } catch (err) {
       console.error("Error fetching balance:", err);
-      setError("Error fetching balance");
+      setError(t("errorFetchingBalance") || "Error fetching balance");
     } finally {
       setLoading(false);
     }
@@ -65,39 +65,47 @@ const WalletBalance: React.FC = () => {
   };
 
   return (
-    <InfoBlock variant="info" size="sm" bordered>
-      <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
-        <div>
-          Hello <span className="tw:font-semibold">{userName}</span>, your
-          wallet balance with StoreKing is{" "}
-          <span className="tw:font-semibold">
+    <AppCard noPadding className="tw:mb-4 tw:border-l-4 tw:border-l-primary">
+      <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:p-3 tw:md:p-4">
+        <div className="tw:min-w-0">
+          <span className="tw:block tw:text-xs tw:font-semibold tw:uppercase tw:tracking-wide tw:text-muted-foreground">
+            {t("skWalletBalance")}
+          </span>
+          <div className="tw:mt-1 tw:text-2xl tw:font-bold tw:text-foreground">
             {loading ? (
-              <RefreshCw className="tw:inline tw:w-3 tw:h-3 tw:animate-spin" />
+              <RefreshCw className="tw:w-5 tw:h-5 tw:animate-spin tw:text-primary" />
             ) : error ? (
-              <span className="tw:text-red-500">{error}</span>
+              <span className="tw:text-sm tw:font-normal tw:text-destructive">
+                {error}
+              </span>
             ) : (
               <Amount value={balance} decimalPlaces={2} />
             )}
-          </span>
+          </div>
+          {userName && (
+            <span className="tw:block tw:text-xs tw:text-muted-foreground tw:mt-0.5">
+              {t("hello") || "Hello"}{" "}
+              <span className="tw:font-medium">{userName}</span>
+            </span>
+          )}
         </div>
         <AppButton
           onClick={handleRefresh}
           size="small"
           color="light"
-          fill="clear"
+          fill="outline"
           disabled={loading}
-          className="tw:p-1 tw:h-auto tw:min-h-0"
           title={t("refresh")}
         >
           <RefreshCw
             className={clsx(
-              "tw:w-3.5 tw:h-3.5 tw:text-gray-500",
+              "tw:w-4 tw:h-4",
               loading && "tw:animate-spin"
             )}
           />
         </AppButton>
       </div>
-    </InfoBlock>
+    </AppCard>
   );
 };
 

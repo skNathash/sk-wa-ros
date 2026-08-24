@@ -1,0 +1,93 @@
+/* ============================================================================
+   BARCODE SCAN — accent seam
+   ---------------------------------------------------------------------------
+   The scan screen's search card, input and step tracker were painted with
+   hardcoded Tailwind blues, which read as foreign inside theme-2 (WhatsApp
+   green). Rather than swap the blue for green at every call site — theme-1
+   still wants blue — the accent is routed through one variable per surface:
+   the defaults below keep theme-1 exactly as it was, and the theme-2 block at
+   the bottom re-points them at the theme tokens.
+   ========================================================================= */
+
+:root {
+  --scan-accent: var(--color-blue-600, #2563eb);
+  --scan-accent-strong: var(--color-blue-700, #1d4ed8);
+  --scan-accent-border: var(--color-blue-500, #3b82f6);
+  --scan-accent-soft: var(--color-blue-200, #bfdbfe);
+  --scan-accent-tint: var(--color-blue-50, #eff6ff);
+  --scan-accent-ring: var(--color-blue-100, #dbeafe);
+  --scan-accent-label: var(--color-blue-700, #1d4ed8);
+  --scan-accent-fg: #fff;
+}
+
+/* ── Search card ───────────────────────────────────────────────────────── */
+
+.scan-search-card {
+  border-color: var(--scan-accent-soft);
+  background-image: linear-gradient(
+    to bottom right,
+    var(--scan-accent-tint),
+    #fff
+  );
+}
+
+.scan-search-icon {
+  color: var(--scan-accent);
+}
+
+/* ── Input + camera button ─────────────────────────────────────────────── */
+
+.scan-search-input {
+  border-color: var(--scan-accent-border);
+  box-shadow: 0 1px 2px 0 color-mix(in srgb, var(--scan-accent) 10%, transparent);
+}
+
+.scan-search-input:focus {
+  border-color: var(--scan-accent);
+  outline: none;
+  box-shadow: 0 0 0 4px var(--scan-accent-ring);
+}
+
+.scan-camera-btn {
+  background-color: var(--scan-accent);
+  color: var(--scan-accent-fg);
+}
+
+.scan-camera-btn:active {
+  background-color: var(--scan-accent-strong);
+}
+
+/* ── Step tracker ──────────────────────────────────────────────────────── */
+
+/* Only the *active* step is accented; done steps stay green in both themes
+   (green-on-green still reads, because "done" is carried by the check mark
+   and the filled connector, not by hue alone). */
+.scan-step-active {
+  background-color: var(--scan-accent);
+  border-color: var(--scan-accent);
+  color: var(--scan-accent-fg);
+  box-shadow: 0 0 0 4px var(--scan-accent-ring);
+}
+
+.scan-step-active-label {
+  color: var(--scan-accent-label);
+}
+
+/* Filled segment of the bulk scan's step progress track. */
+.scan-progress-fill {
+  background-color: var(--scan-accent-border);
+}
+
+/* ── Theme-2 ───────────────────────────────────────────────────────────── */
+
+/* WhatsApp palette: the deep green is the primary, the bubble green the tint.
+   `--primary` shifts on dark, so these follow it rather than restating hex. */
+[data-theme="theme-2"] {
+  --scan-accent: var(--primary);
+  --scan-accent-strong: var(--primary);
+  --scan-accent-border: var(--primary-2);
+  --scan-accent-soft: color-mix(in srgb, var(--primary-2) 45%, #fff);
+  --scan-accent-tint: var(--accent);
+  --scan-accent-ring: color-mix(in srgb, var(--primary-2) 22%, #fff);
+  --scan-accent-label: var(--primary);
+}

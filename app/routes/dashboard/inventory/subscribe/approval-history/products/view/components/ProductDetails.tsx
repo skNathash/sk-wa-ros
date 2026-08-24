@@ -1,164 +1,56 @@
-import ImgRender from "~/components/core/img/ImgRender";
-import Amount from "~/components/core/amount/Amount";
-import AppBadge from "~/components/core/badge/AppBadge";
+import clsx from "clsx";
+import { Store } from "lucide-react";
+import { buildDetailFields, type Item } from "../helper";
+import FieldValue from "./FieldValue";
 
-type ProductDetailsProps = {
+type Props = {
+  data: Partial<Item>;
   onImageClick?: (images: any[]) => void;
-  data: {
-    productName?: string;
-    brandName?: string;
-    categoryName?: string;
-    mrp?: number;
-    price?: number;
-    weight?: number;
-    unitType?: string;
-    barcode?: string;
-    hsn?: string;
-    gst?: number;
-    description?: string;
-    images?: string[];
-    isConsumerOffer?: boolean;
-    consumerOfferData?: string | null;
-    consumerOfferPrice?: number | null;
-  };
+  /** header caption above the list; pass null to hide it */
+  title?: string | null;
 };
 
-const ProductDetails = ({ data, onImageClick }: ProductDetailsProps) => {
-  const renderData = (value: any, type: string = "text") => {
-    if (type === "image") {
-      return (
-        <div className="tw:flex tw:flex-wrap tw:gap-2">
-          {Array.isArray(value) && value.length > 0 ? (
-            value.map((item: string) => (
-              <div
-                key={item}
-                className="tw:cursor-pointer tw:rounded-md tw:border-2 tw:border-gray-200 hover:tw:border-blue-400 tw:transition-colors"
-                onClick={() => onImageClick?.(value)}
-              >
-                <ImgRender
-                  assetId={item}
-                  className="tw:w-20 tw:h-20 tw:object-cover tw:rounded-md"
-                />
-              </div>
-            ))
-          ) : (
-            <span className="tw:text-gray-500">No images</span>
-          )}
-        </div>
-      );
-    }
-    if (type === "amount") {
-      return <Amount value={value || 0} />;
-    }
-
-    if (type === "boolean") {
-      return (
-        <AppBadge variant={value ? "success" : "default"}>
-          {value ? "Yes" : "No"}
-        </AppBadge>
-      );
-    }
-
-    return value || "--";
-  };
-
-  const isConsumerOfferEnabled = data.isConsumerOffer === true;
-
-  const detailItems = [
-    {
-      label: "Product Name",
-      value: data.productName,
-      type: "text",
-    },
-    {
-      label: "OFFER",
-      value: data.isConsumerOffer,
-      type: "boolean",
-    },
-    // Consumer offer title & price will be conditionally added below when enabled
-    {
-      label: "Brand",
-      value: data.brandName,
-      type: "text",
-    },
-    {
-      label: "Category",
-      value: data.categoryName,
-      type: "text",
-    },
-    {
-      label: "MRP",
-      value: data.mrp,
-      type: "text",
-    },
-    {
-      label: "Price",
-      value: data.price,
-      type: "text",
-    },
-    {
-      label: "Weight",
-      value:
-        data.weight !== undefined && data.weight !== null
-          ? `${data.weight} ${data.unitType || ""}`
-          : undefined,
-      type: "text",
-    },
-    {
-      label: "Unit Type",
-      value: data.unitType,
-      type: "text",
-    },
-    {
-      label: "Barcode",
-      value: data.barcode,
-      type: "text",
-    },
-    {
-      label: "HSN",
-      value: data.hsn,
-      type: "text",
-    },
-    {
-      label: "GST %",
-      value: typeof data.gst === "number" ? `${data.gst}%` : data.gst,
-      type: "text",
-    },
-    {
-      label: "Description",
-      value: data.description,
-      type: "text",
-    },
-    {
-      label: "Images",
-      value: data.images,
-      type: "image",
-    },
-  ];
-
-  if (isConsumerOfferEnabled) {
-    detailItems.splice(2, 0, {
-      label: "OFFER TITLE",
-      value: data.consumerOfferData ?? "--",
-      type: "text",
-    });
-  }
+/** Read-only view of a single set of values — the retailer's submission. */
+const ProductDetails = ({
+  data,
+  onImageClick,
+  title = "Details you submitted",
+}: Props) => {
+  const fields = buildDetailFields(data);
 
   return (
-    <div className="tw:space-y-4">
-      {detailItems.map((item) => (
-        <div
-          key={item.label}
-          className="tw:bg-gray-50 tw:p-4 tw:rounded-md tw:border tw:border-gray-200"
-        >
-          <div className="tw:text-sm tw:font-semibold tw:mb-2 tw:text-gray-700">
-            {item.label}
-          </div>
-          <div className="tw:text-sm tw:text-slate-600">
-            {renderData(item.value, item.type)}
-          </div>
+    <div>
+      {title ? (
+        <div className="tw:flex tw:items-center tw:gap-1.5 tw:text-[11px] tw:font-semibold tw:tracking-wide tw:text-gray-500 tw:uppercase tw:mb-2">
+          <Store size={12} />
+          {title}
         </div>
-      ))}
+      ) : null}
+
+      <div className="tw:border tw:border-gray-200 tw:rounded-lg tw:overflow-hidden">
+        {/* gap-px over a gray background draws the separators — stays correct
+            even when a full-width row breaks the two-column rhythm */}
+        <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:gap-px tw:bg-gray-100">
+          {fields.map((f) => (
+            <div
+              key={f.key}
+              className={clsx(
+                "tw:bg-white tw:px-3 tw:py-2.5",
+                f.wide && "tw:sm:col-span-2"
+              )}
+            >
+              <div className="tw:text-xs tw:font-medium tw:text-gray-500 tw:mb-0.5">
+                {f.label}
+              </div>
+              <FieldValue
+                value={f.submitted}
+                type={f.type}
+                onImageClick={onImageClick}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

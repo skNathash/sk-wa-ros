@@ -1,7 +1,8 @@
-import { debounce } from "lodash";
+import clsx from "clsx";
 import { useCallback, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { useDebouncedCallback } from "use-debounce";
 import { AppInput } from "~/components/core/form";
 
 import { FilterIcon, SearchIcon } from "lucide-react";
@@ -14,7 +15,16 @@ import {
   type FilterFormData,
 } from "../helper";
 
-const Filter = () => {
+interface FilterProps {
+  /**
+   * Render the search field. Off where the page's top bar already carries the
+   * search — only the filter button is left, to sit alongside it.
+   */
+  showSearch?: boolean;
+  className?: string;
+}
+
+const Filter = ({ showSearch = true, className }: FilterProps) => {
   const { t } = useTranslation(["common"]);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,12 +46,12 @@ const Filter = () => {
     setSearchParams(params);
   };
 
-  const debounceSearch = useCallback(
-    debounce(() => {
-      handleFilterChange();
-    }, 500),
-    [handleFilterChange],
-  );
+  // `useDebouncedCallback` keeps the latest callback internally, so the fire
+  // always uses the current `handleFilterChange` (and its live `searchParams`)
+  // instead of the first render's frozen closure.
+  const debounceSearch = useDebouncedCallback(() => {
+    handleFilterChange();
+  }, 500);
 
   const openFilterModal = useCallback(() => {
     setFilterModal({ show: true, data: getValues() });
@@ -73,18 +83,25 @@ const Filter = () => {
 
   return (
     <>
-      <div className="tw:flex tw:items-center tw:gap-2 tw:mb-4">
-        <div className="tw:flex-1">
-          <AppInput
-            name="search"
-            register={register}
-            onChange={debounceSearch}
-            placeholder={t("searchIdNameProduct")}
-            className="tw:bg-white"
-            leftIcon={<SearchIcon size={16} className="tw:text-gray-500" />}
-            inputClassName="tw:placeholder:text-xs tw:placeholder:md:text-sm"
-          />
-        </div>
+      <div
+        className={clsx(
+          "tw:flex tw:items-center tw:gap-2",
+          className ?? "tw:mb-4",
+        )}
+      >
+        {showSearch && (
+          <div className="tw:flex-1">
+            <AppInput
+              name="search"
+              register={register}
+              onChange={debounceSearch}
+              placeholder={t("searchIdNameProduct")}
+              className="tw:bg-white"
+              leftIcon={<SearchIcon size={16} className="tw:text-gray-500" />}
+              inputClassName="tw:placeholder:text-xs tw:placeholder:md:text-sm"
+            />
+          </div>
+        )}
 
         <div>
           <AppButton

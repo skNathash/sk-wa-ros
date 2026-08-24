@@ -36,6 +36,10 @@ export interface CartItem {
   caseQty: number;
   innerCaseQty: number;
   sellingType: string;
+  /** Normalized from `b2bMinQuantity`. */
+  minQty?: number;
+  /** Normalized from `incrementQuantity`. */
+  incrQty?: number;
 }
 
 export interface RouteInfo {
@@ -92,6 +96,8 @@ export interface SellerData {
     description?: string;
   };
 
+  /** True when this multi-cart entry is a StoreKing (SK) cart. */
+  isSkCart?: boolean;
   minCartValue: number;
   payments?: Array<PaymentsType>;
   selectedPayment?: SelectedPaymentType;

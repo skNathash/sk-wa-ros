@@ -120,7 +120,7 @@ const DesktopView = ({
                 )}
               </AppTable.Cell>
               <AppTable.Cell className="tw:text-center">
-                <Amount value={item.value} decimalPlaces={0} />
+                <Amount value={item.value ?? 0} decimalPlaces={0} />
               </AppTable.Cell>
               <AppTable.Cell className="tw:text-center">
                 <span className={item.totalProducts ? "" : "tw:text-gray-400"}>

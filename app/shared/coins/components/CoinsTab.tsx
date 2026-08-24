@@ -1,44 +1,95 @@
-import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import {
+  ChartNoAxesColumn,
+  ListOrdered,
+  Settings,
+  Sparkles,
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { useMemo } from "react";
 import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
-import type { TabItem } from "~/types/CommonTypes";
-import { ListOrdered, Settings, Sparkles } from "lucide-react";
+import LoyaltyPointService, {
+  type CoinSectionTabKey,
+} from "~/services/LoyaltyPointService";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import type { SectionTab, TabItem } from "~/types/CommonTypes";
 
 interface CoinsTabProps {
-  activeTab?: string;
+  activeTab?: CoinSectionTabKey;
   className?: string;
+  /**
+   * Ride the shared sticky section-tab bar instead of rendering the in-page
+   * pill strip — the theme-2 phone treatment (see the customer detail layout).
+   * The bar hides itself outside theme-2 mobile, so a page mounts this copy at
+   * the top of the container and hides its in-content strip below md.
+   */
+  sticky?: boolean;
 }
 
-const tabs: TabItem[] = [
-  { key: "config", name: "Config", langKey: "config", icon: <Settings /> },
-  {
-    key: "transactions",
-    name: "Transactions",
-    langKey: "transactions",
-    icon: <ListOrdered />,
-  },
-  {
-    key: "coin-store",
-    name: "KingCoin Store",
-    langKey: "kingCoinStore",
-    icon: <Sparkles />,
-  },
-];
+/** The icon names the service hands back, resolved to lucide elements. */
+const ICONS: Record<string, ReactNode> = {
+  chart: <ChartNoAxesColumn />,
+  settings: <Settings />,
+  list: <ListOrdered />,
+  sparkles: <Sparkles />,
+};
 
-const CoinsTab = ({ activeTab = "config", className = "" }: CoinsTabProps) => {
-  const { t } = useTranslation(["common"]);
+/**
+ * The King Coins sub-nav. The tab set and where each tab goes live in
+ * `LoyaltyPointService.getSectionTabs()`, so every coins page shows the same
+ * strip and only says which tab it is.
+ */
+const CoinsTab = ({
+  activeTab = "config",
+  className = "",
+  sticky = false,
+}: CoinsTabProps) => {
   const appNav = useAppNav();
+
+  const sectionTabs = useMemo(() => LoyaltyPointService.getSectionTabs(), []);
+
+  const tabs: TabItem[] = useMemo(
+    () =>
+      sectionTabs.map((tab) => ({
+        key: tab.key,
+        name: tab.name,
+        langKey: tab.langKey,
+        icon: tab.icon ? ICONS[tab.icon] : undefined,
+      })),
+    [sectionTabs],
+  );
 
   const initialTab = tabs.find((t) => t.key === activeTab) ?? tabs[0];
 
   const handleTabChange = (tab: TabItem) => {
-    if (tab.key === "coin-store") {
-      appNav.to(`/products/coin-store-deals`);
-    } else {
-      appNav.to(`/dashboard/points/list`, { tab: tab.key });
-    }
+    const sectionTab = sectionTabs.find((t) => t.key === tab.key);
+    if (!sectionTab) return;
+    appNav.to(sectionTab.redirect.url, sectionTab.redirect.params);
   };
+
+  if (sticky) {
+    // The bar navigates on its own — each tab carries its destination.
+    const stickyTabs: SectionTab[] = sectionTabs.map((tab) => ({
+      key: tab.key,
+      label: tab.name,
+      langKey: tab.langKey,
+      icon: tab.icon ? ICONS[tab.icon] : undefined,
+      redirect: tab.redirect,
+    }));
+
+    return (
+      <SectionTabs
+        tabs={stickyTabs}
+        activeTab={initialTab?.key ?? activeTab}
+        noShadow
+        sticky
+        // The bar's own padding leaves the first card hugging it; add the page
+        // gutter back below it. Safe as a plain margin — the container is
+        // display:none outside theme-2 mobile.
+        outerClassName="tw:mb-3"
+      />
+    );
+  }
 
   return (
     <div className={className}>
@@ -46,6 +97,7 @@ const CoinsTab = ({ activeTab = "config", className = "" }: CoinsTabProps) => {
         activeTab={initialTab?.key}
         tabs={tabs}
         onTabChange={handleTabChange}
+        variant="pills"
       />
     </div>
   );

@@ -218,9 +218,9 @@ const PosB2bAddToCart = ({
             open={popoverOpen}
             onOpenChange={setPopoverOpen}
             triggerContent={
-              <div className="tw:inline-flex tw:items-center tw:bg-muted tw:border tw:border-border tw:rounded-lg tw:p-0.5 tw:h-7">
+              <div className="tw:inline-flex tw:items-center tw:bg-slate-100/80 tw:border tw:border-slate-200/50 tw:rounded-lg tw:p-0.5 tw:h-7">
                 <button
-                  className={`tw:h-5 tw:w-5 tw:flex tw:items-center tw:justify-center tw:text-muted-foreground hover:tw:text-foreground disabled:tw:opacity-40 tw:rounded-md tw:transition-colors tw:cursor-pointer ${
+                  className={`tw:h-5 tw:w-5 tw:flex tw:items-center tw:justify-center tw:text-slate-500 hover:tw:text-slate-800 disabled:tw:opacity-40 tw:rounded-md tw:transition-colors tw:cursor-pointer ${
                     loading ? "tw:opacity-50 tw:cursor-not-allowed" : ""
                   }`}
                   onClick={onDecr}
@@ -229,7 +229,7 @@ const PosB2bAddToCart = ({
                   <Minus size={12} />
                 </button>
                 <div className="tw:min-w-[24px] tw:text-center tw:px-1">
-                  <div className="wa-mono tw:text-xs tw:font-bold tw:text-foreground tw:leading-none">
+                  <div className="tw:text-xs tw:font-bold tw:text-slate-800 tw:leading-none">
                     {loading ? (
                       <AppSpinner className="tw:w-3 tw:h-3 tw:mx-auto" />
                     ) : (
@@ -242,13 +242,13 @@ const PosB2bAddToCart = ({
                     )}
                   </div>
                   {isRealPack && !loading && (
-                    <div className="tw:text-[8px] tw:leading-none tw:text-muted-foreground tw:lowercase tw:mt-0.5">
+                    <div className="tw:text-[8px] tw:leading-none tw:text-slate-400 tw:lowercase tw:mt-0.5">
                       <SellingTypeDisplay sellingType={sellingType} />
                     </div>
                   )}
                 </div>
                 <button
-                  className={`tw:h-5 tw:w-5 tw:flex tw:items-center tw:justify-center tw:text-muted-foreground hover:tw:text-foreground disabled:tw:opacity-40 tw:rounded-md tw:transition-colors tw:cursor-pointer ${
+                  className={`tw:h-5 tw:w-5 tw:flex tw:items-center tw:justify-center tw:text-slate-500 hover:tw:text-slate-800 disabled:tw:opacity-40 tw:rounded-md tw:transition-colors tw:cursor-pointer ${
                     loading ? "tw:opacity-50 tw:cursor-not-allowed" : ""
                   }`}
                   onClick={onIncr}

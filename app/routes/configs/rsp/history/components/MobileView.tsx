@@ -48,7 +48,7 @@ const MobileView: React.FC<MobileViewProps> = ({ data }) => {
             <div className="tw:flex tw:flex-col tw:mb-2">
               <AppLink
                 asLink
-                href={`/dashboard/inventory/products/view/${item.dealId}`}
+                href={`/dashboard/inventory/products/view/${item.dealId}/pricing`}
                 className="tw:text-blue-600 hover:tw:text-blue-800 tw:text-sm tw:font-medium"
               >
                 {item.dealName}

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
+import useTheme from "~/hooks/useTheme";
 import type { TabItem } from "~/types/CommonTypes";
 
 interface InventoryProductAuditTabProps {
@@ -10,7 +11,7 @@ interface InventoryProductAuditTabProps {
 }
 
 const tabItems: TabItem[] = [
-  { key: "sales", name: "Sales History", langKey: "salesHistory" },
+  // { key: "sales", name: "Sales History", langKey: "salesHistory" },
   { key: "purchase", name: "Purchase History", langKey: "purchaseHistory" },
   { key: "stock-ledger", name: "Stock Ledger", langKey: "stockLedger" },
   { key: "price-changes", name: "Price Changes", langKey: "priceChanges" },
@@ -22,6 +23,15 @@ const InventoryProductAuditTab: React.FC<InventoryProductAuditTabProps> = ({
   dealId,
 }) => {
   const appNav = useAppNav();
+  const isTheme2 = useTheme() === "theme-2";
+
+  // theme-2 carries purchase history on its own "Purchasing" tab (see the
+  // product-view layout), so it is dropped from here to avoid two ways in.
+  const visibleTabs = useMemo(
+    () =>
+      isTheme2 ? tabItems.filter((tab) => tab.key !== "purchase") : tabItems,
+    [isTheme2],
+  );
 
   const onTabChange = (tab: TabItem) => {
     if (tab.key === "sales") {
@@ -43,9 +53,14 @@ const InventoryProductAuditTab: React.FC<InventoryProductAuditTabProps> = ({
     }
   };
 
+  // Purchase history keeps rendering this bar, but in theme-2 it reaches the
+  // page from its own top-level tab — a sub-nav with nothing selected in it
+  // would only mislead, so it is dropped.
+  if (!visibleTabs.some((tab) => tab.key === activeTab)) return null;
+
   return (
     <AppTab
-      tabs={tabItems}
+      tabs={visibleTabs}
       activeTab={activeTab}
       onTabChange={onTabChange}
       className={className}

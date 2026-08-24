@@ -8,6 +8,11 @@ import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
+import { AppPaneMain } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import SettingsSidePane from "~/shared/settings/components/settings-side-pane/SettingsSidePane";
+import { settingsSectionTabs } from "~/shared/settings/components/settings-side-pane/helper";
 import useScreenView from "~/hooks/useScreenView";
 import CommonService from "~/services/CommonService";
 import PageAccessService from "~/services/PageAccessService";
@@ -322,6 +327,22 @@ const DeliverySlot = () => {
     }
   };
 
+  const confirmAutoFill = () =>
+    setAppAlertDialog({
+      show: true,
+      title: "Auto-fill Slots",
+      description: "Next 30 days slots will be auto filled from today's date.",
+      type: "confirm",
+      okText: "Continue",
+      cancelText: "Cancel",
+      successCb: () => autoFillNext30Days(),
+      cancelCb: () =>
+        setAppAlertDialog((prev) => ({
+          ...prev,
+          show: false,
+        })),
+    });
+
   const autoFillNext30Days = async () => {
     setAppAlertDialog((prev) => ({ ...prev, show: false }));
     setBusyLoader({ show: true, msg: t("pleaseWait") });
@@ -362,102 +383,138 @@ const DeliverySlot = () => {
 
   return (
     <>
-      <AppHeader title={t("deliverySlotConfiguration")} />
-      <div className="app-page tw:p-4 page-bg">
+      <AppHeader
+        title={t("deliverySlotConfiguration")}
+        sectionKey="profile"
+        activeTab="settings"
+        mobileLead="menu"
+      />
+      <div
+        className={`app-page page-bg tw:p-4 ${isMobile ? "has-footer" : ""}`}
+      >
         <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:lg:flex-row tw:lg:justify-between tw:lg:items-start tw:gap-4 tw:mb-4">
-            <div className="tw:flex-1 tw:min-w-0">
-              <AppBreadcrumbs data={defaultBreadcrumbs} />
-              <div className="tw:text-gray-500 tw:text-xs">
-                {t("deliverySlotDescription")}
+          {/* Settings menu on mobile — theme-2 only (see theme-2.css); the
+              desktop equivalent is the side pane below. */}
+          <SectionTabs
+            tabs={settingsSectionTabs}
+            activeTab={"delivery-slot"}
+            noShadow
+            sticky
+          />
+
+          <div className="section-layout">
+            {/* Desktop-only left rail. Settings is a tab of the Profile
+                section, so the rail keeps listing the profile entries with
+                "Settings" highlighted; moving between the individual config
+                pages is the side pane's job. */}
+            <aside className="section-menu-aside">
+              <div className="tw:sticky tw:top-20">
+                <SectionMenu
+                  sectionKey="profile"
+                  activeTab="settings"
+                  title={t("settings.title")}
+                />
               </div>
-            </div>
-            <div className="tw:shrink-0">
-              <div className="tw-flex tw-gap-2 tw-items-center">
-                <Actions callback={handleActionsCallback} />
-                <div>
-                  <AppButton
-                    size="small"
-                    fill="outline"
-                    color="primary"
-                    onClick={() =>
-                      setAppAlertDialog({
-                        show: true,
-                        title: "Auto-fill Slots",
-                        description:
-                          "Next 30 days slots will be auto filled from today's date.",
-                        type: "confirm",
-                        okText: "Continue",
-                        cancelText: "Cancel",
-                        successCb: () => autoFillNext30Days(),
-                        cancelCb: () =>
-                          setAppAlertDialog((prev) => ({
-                            ...prev,
-                            show: false,
-                          })),
-                      })
-                    }
-                  >
-                    Auto fill next 30 days
-                  </AppButton>
-                </div>
+            </aside>
+
+            <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Full span: in theme-2 desktop the pane is lifted out of the
+                    grid, so the main column owns all 12 columns. */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="tw:flex tw:flex-col tw:lg:flex-row tw:lg:justify-between tw:lg:items-start tw:gap-4 tw:mb-4">
+                    <div className="tw:flex-1 tw:min-w-0">
+                      <AppBreadcrumbs data={defaultBreadcrumbs} />
+                      <div className="hide-in-theme-2 tw:text-gray-500 tw:text-xs">
+                        {t("deliverySlotDescription")}
+                      </div>
+                    </div>
+                    {/* Desktop action rail — on mobile the auto-fill CTA moves
+                        into the sticky footer below. */}
+                    <div className="tw:shrink-0 tw:hidden tw:md:block">
+                      <div className="tw:flex tw:gap-2 tw:items-center">
+                        <Actions callback={handleActionsCallback} />
+                        <div>
+                          <AppButton
+                            size="small"
+                            color="primary"
+                            onClick={confirmAutoFill}
+                          >
+                            Auto fill next 30 days
+                          </AppButton>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {isInitialLoad ? (
+                    <AppCard noPadding className="delivery-slot-sheet">
+                      <div className="delivery-slot-sheet-body tw:p-4">
+                        <div className="tw:h-[calc(100vh-200px)] tw:flex tw:items-center tw:justify-center">
+                          <BusyLoader show={true} message={t("loading")} />
+                        </div>
+                      </div>
+                    </AppCard>
+                  ) : (
+                    <AppCard noPadding className="delivery-slot-sheet">
+                      <div className="delivery-slot-sheet-body tw:p-4">
+                        <div className="tw:h-[calc(100vh-200px)]">
+                          <FullCalendar
+                            ref={calendarRef}
+                            plugins={plugins}
+                            initialView="timeGridWeek"
+                            slotDuration="00:30:00"
+                            slotMinTime="00:00:00"
+                            height="100%"
+                            expandRows={true}
+                            allDaySlot={false}
+                            editable={true}
+                            selectable={true}
+                            eventStartEditable={false}
+                            dayHeaderFormat={dayHeaderFormat}
+                            dateClick={handleDateClick}
+                            eventContent={(info) => {
+                              return {
+                                html: `<div class="tw:text-[10px]"> ${info.timeText}, ${info.event.title} </div>`,
+                              };
+                            }}
+                            eventClick={eventClick}
+                            events={events}
+                            customButtons={{
+                              prev: {
+                                text: t("prevWeek"),
+                                click: () => navigateToWeek("prev"),
+                              },
+                              next: {
+                                text: t("nextWeek"),
+                                click: () => navigateToWeek("next"),
+                              },
+                            }}
+                            headerToolbar={{
+                              left: "title",
+                              center: "",
+                              right: "prev,next", // 'today' is removed here
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </AppCard>
+                  )}
+                </AppPaneMain>
+
+                <SettingsSidePane activeKey="delivery-slot" />
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {isInitialLoad ? (
-            <AppCard noPadding>
-              <div className="tw:p-4">
-                <div className="tw:h-[calc(100vh-200px)] tw:flex tw:items-center tw:justify-center">
-                  <BusyLoader show={true} message={t("loading")} />
-                </div>
-              </div>
-            </AppCard>
-          ) : (
-            <AppCard noPadding>
-              <div className="tw:p-4">
-                <div className="tw:h-[calc(100vh-200px)]">
-                  <FullCalendar
-                    ref={calendarRef}
-                    plugins={plugins}
-                    initialView="timeGridWeek"
-                    slotDuration="00:30:00"
-                    slotMinTime="00:00:00"
-                    height="100%"
-                    expandRows={true}
-                    allDaySlot={false}
-                    editable={true}
-                    selectable={true}
-                    eventStartEditable={false}
-                    dayHeaderFormat={dayHeaderFormat}
-                    dateClick={handleDateClick}
-                    eventContent={(info) => {
-                      return {
-                        html: `<div class="tw:text-[10px]"> ${info.timeText}, ${info.event.title} </div>`,
-                      };
-                    }}
-                    eventClick={eventClick}
-                    events={events}
-                    customButtons={{
-                      prev: {
-                        text: t("prevWeek"),
-                        click: () => navigateToWeek("prev"),
-                      },
-                      next: {
-                        text: t("nextWeek"),
-                        click: () => navigateToWeek("next"),
-                      },
-                    }}
-                    headerToolbar={{
-                      left: "title",
-                      center: "",
-                      right: "prev,next", // 'today' is removed here
-                    }}
-                  />
-                </div>
-              </div>
-            </AppCard>
-          )}
+      {/* Mobile CTA — the desktop header button doesn't fit the narrow layout. */}
+      <div className="app-footer tw:md:hidden">
+        <div className="app-container">
+          <AppButton className="tw:w-full" onClick={confirmAutoFill}>
+            Auto fill next 30 days
+          </AppButton>
         </div>
       </div>
 

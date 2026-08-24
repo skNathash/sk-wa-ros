@@ -1,15 +1,12 @@
-import { Building2, Package, User } from "lucide-react";
-import { AppRadio } from "~/components/core/form/AppRadio";
-import { useTranslation } from "react-i18next";
+import { Hash, Package, ScanBarcode } from "lucide-react";
 import { API } from "~/constants";
 import CommonService from "~/services/CommonService";
 import { BulkFileUpload, BulkUploadInfo } from "../components";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import BulkUploadService from "~/services/BulkUploadService";
 import useAppToast from "~/hooks/useAppToast";
 import Preview from "./components/Preview";
-import AppTab from "~/components/core/tab/AppTab";
-import type { TabItem } from "~/types/CommonTypes";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AuthService from "~/services/AuthService";
 import PageAccessService from "~/services/PageAccessService";
@@ -18,26 +15,23 @@ export async function clientLoader() {
   return PageAccessService.canAccessPage([]);
 }
 
-// Define tabs for B2B and B2C
-const baseTabs: TabItem[] = [
-  {
-    name: "B2C Pricing",
-    key: "b2c",
-    icon: <User />,
-  },
-  {
-    name: "B2B Pricing",
-    key: "b2b",
-    icon: <Building2 />,
-  },
+type UploadMode = "dealId" | "barcode";
+
+const UPLOAD_MODES: { value: UploadMode; label: string; icon: typeof Hash }[] = [
+  { value: "dealId", label: "Deal Id", icon: Hash },
+  { value: "barcode", label: "Barcode", icon: ScanBarcode },
 ];
 
 const PricingTab = () => {
-  const { t } = useTranslation(["common"]);
   const appToast = useAppToast();
+  const [searchParams] = useSearchParams();
 
-  // Determine if current user is a buyer (should not see B2B tab)
+  // Determine if current user is a buyer (they get no B2B pricing)
   const isBuyer = AuthService.isBuyerUser() || AuthService.isSkBuyer();
+
+  // B2C/B2B now live in the parent tab strip, so the type rides on the URL.
+  const activeTab =
+    searchParams.get("tab") === "b2b" && !isBuyer ? "b2b" : "b2c";
 
   const [busyLoader, setBusyLoader] = useState({
     show: false,
@@ -45,13 +39,7 @@ const PricingTab = () => {
   });
 
   const [dispaly, setDisplay] = useState<"upload" | "preview">("upload");
-  const [activeTab, setActiveTab] = useState<string>(isBuyer ? "b2c" : "b2c");
-  const [uploadMode, setUploadMode] = useState<"dealId" | "barcode">("dealId");
-
-  // Compute tabs based on user role: hide B2B for buyer users
-  const tabs: TabItem[] = isBuyer
-    ? baseTabs.filter((t) => t.key === "b2c")
-    : baseTabs;
+  const [uploadMode, setUploadMode] = useState<UploadMode>("dealId");
 
   const [products, setProducts] = useState<any[]>([]);
   const [batchId, setBatchId] = useState<string>("");
@@ -95,13 +83,14 @@ const PricingTab = () => {
     });
   }, [products]);
 
-  const handleTabChange = (tab: TabItem) => {
-    setActiveTab(tab.key);
-    // Reset the display and products when switching tabs
+  // B2C <-> B2B stays on the same route, so nothing remounts: clear any
+  // pending upload/preview when the type changes.
+  useEffect(() => {
     resetToUpload();
-  };
+  }, [activeTab]);
 
-  const handleModeChange = (mode: "dealId" | "barcode") => {
+  const handleModeChange = (mode: UploadMode) => {
+    if (mode === uploadMode) return;
     setUploadMode(mode);
     // Reset the display and products when switching upload mode
     resetToUpload();
@@ -203,28 +192,34 @@ const PricingTab = () => {
 
   return (
     <>
-      {/* B2C/B2B selector and upload mode selector on a single row */}
-      <div className="tw:mb-4 tw:flex tw:flex-col tw:gap-3 tw:sm:flex-row tw:sm:items-center tw:sm:justify-between">
-        <AppTab
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          variant="tabs"
-        />
-        <div className="tw:flex tw:items-center tw:gap-3 tw:rounded-md tw:border tw:border-gray-200 tw:bg-white tw:px-3 tw:py-2">
-          <span className="tw:text-sm tw:font-medium tw:text-gray-600 tw:whitespace-nowrap">
-            Upload by
-          </span>
-          <AppRadio
-            name="uploadMode"
-            inline
-            defaultValue={uploadMode}
-            options={[
-              { value: "dealId", label: "Deal Id" },
-              { value: "barcode", label: "Barcode" },
-            ]}
-            onChange={(v) => handleModeChange(v as "dealId" | "barcode")}
-          />
+      {/* Upload mode selector; B2C/B2B is picked in the page's main tab strip.
+          Right-aligned next to its caption on desktop, full-width segmented
+          switch on phones (see `.app-mode-seg` in app.css). */}
+      <div
+        className="app-mode-seg-row tw:sm:justify-end"
+        role="radiogroup"
+        aria-label="Upload by"
+      >
+        <span className="app-mode-seg-label">Upload by</span>
+        <div className="app-mode-seg">
+          {UPLOAD_MODES.map(({ value, label, icon: Icon }) => {
+            const isActive = uploadMode === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                className={`app-mode-seg-btn ${
+                  isActive ? "app-mode-seg-btn-active" : ""
+                }`}
+                onClick={() => handleModeChange(value)}
+              >
+                <Icon size={15} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -233,7 +228,15 @@ const PricingTab = () => {
           {/* Bulk Upload Information */}
           <BulkUploadInfo
             title={`Bulk ${activeTab.toUpperCase()} Pricing Upload`}
-            icon={<Package className="tw:text-blue-600" size={20} />}
+            icon={
+              <Package className="app-accent-icon tw:text-blue-600" size={20} />
+            }
+            columns={[
+              uploadMode === "barcode" ? "Barcode" : "Deal Id",
+              activeTab === "b2c" ? "B2C Price" : "B2B Price",
+              "Mrp",
+            ]}
+            limitNote="Up to 50 products per upload"
             requiredFormat={
               uploadMode === "barcode"
                 ? `Your Excel file should contain the following columns: Barcode, ${
@@ -244,6 +247,8 @@ const PricingTab = () => {
                   }, Mrp. Only 50 products can be updated at a time.`
             }
             onDownloadTemplate={handleDownloadTemplate}
+            /* theme-2 drops the page header that used to carry "Download
+               Inventory", so the card has to offer it — same as add-stock. */
             showDownloadInventory={true}
             description={`Upload your ${activeTab.toUpperCase()} pricing data in bulk using our Excel template. This will help you update multiple product prices at once.`}
           />

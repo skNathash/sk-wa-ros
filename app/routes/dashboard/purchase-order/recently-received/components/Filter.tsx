@@ -6,7 +6,6 @@ import { AppInput, AppSelect } from "~/components/core/form";
 import AppDateInput from "~/components/core/form/AppDateInput";
 // defaultFilterData removed from this component; filter defaults are provided by parent
 
-import useScreenView from "~/hooks/useScreenView";
 import type { DayPickerProps } from "react-day-picker";
 import { Search } from "lucide-react";
 import MiscService from "~/services/MiscService";
@@ -14,7 +13,6 @@ import { sub } from "date-fns";
 
 interface FilterProps {
   onFilterChange: (value: any) => void;
-  showFilters?: boolean;
   activeTab: string;
 }
 
@@ -26,16 +24,12 @@ const dateConfig: DayPickerProps = {
   numberOfMonths: MiscService.isMobile() ? 1 : 2,
 };
 
-const Filter = ({ onFilterChange, showFilters, activeTab }: FilterProps) => {
+const Filter = ({ onFilterChange, activeTab }: FilterProps) => {
   const { t } = useTranslation(["common"]);
-  const { isMobile } = useScreenView();
 
   // Use form context provided by parent
   const { register, getValues, control, setValue } = useFormContext();
   const [alpha] = useWatch({ control, name: ["alpha"] });
-
-  const showFiltersResolved =
-    typeof showFilters === "boolean" ? showFilters : !isMobile;
 
   // Debounced search
   const debouncedSearch = debounce(() => {
@@ -81,34 +75,29 @@ const Filter = ({ onFilterChange, showFilters, activeTab }: FilterProps) => {
           leftIcon={<Search size={16} className="tw:text-gray-500" />}
         />
 
-        {/* other filters hidden on mobile unless toggled */}
-        {(!isMobile || showFiltersResolved) && (
-          <>
-            <Controller
-              control={control}
-              name="dateRange"
-              render={({ field }) => (
-                <AppDateInput
-                  callback={(dt: Date | Date[]) => {
-                    field.onChange(dt);
-                    triggerCallback();
-                  }}
-                  value={field.value}
-                  size="sm"
-                  dateConfig={dateConfig}
-                  placeholder={t("filterByDateRange")}
-                  className="tw:w-full"
-                  hideClose={true}
-                />
-              )}
+        <Controller
+          control={control}
+          name="dateRange"
+          render={({ field }) => (
+            <AppDateInput
+              callback={(dt: Date | Date[]) => {
+                field.onChange(dt);
+                triggerCallback();
+              }}
+              value={field.value}
+              size="sm"
+              dateConfig={dateConfig}
+              placeholder={t("filterByDateRange")}
+              className="tw:w-full"
+              hideClose={true}
             />
+          )}
+        />
 
-            {/* received/status filter removed as per design */}
-          </>
-        )}
+        {/* received/status filter removed as per design */}
       </div>
 
-      {(!isMobile || showFiltersResolved) && activeTab !== "by-box" && (
+      {activeTab !== "by-box" && (
         <Alpha selected={alpha} callback={handleAlphaChange} />
       )}
     </div>

@@ -10,6 +10,7 @@ import Rbac from "~/components/core/rbac/Rbac";
 import { TableSkeletonLoader } from "~/components/core/table";
 import AppTable from "~/components/core/table/AppTable";
 import TableHeader from "~/components/core/table/TableHeader";
+import AuthService from "~/services/AuthService";
 import type { TableHeaderItem } from "~/types/CommonTypes";
 
 const rbacRoles = {
@@ -200,7 +201,10 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                     View
                   </AppButton>
                   {item?.status !== "Expired" && (
-                    <Rbac roles={rbacRoles.update}>
+                    <Rbac
+                      roles={rbacRoles.update}
+                      forceDisplay={AuthService.isMasterLogin()}
+                    >
                       <AppButton
                         fill="outline"
                         size="small"

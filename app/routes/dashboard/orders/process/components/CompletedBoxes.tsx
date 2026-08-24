@@ -1,54 +1,49 @@
 import React, { useMemo, useState } from "react";
-import { X, Package, ChevronDown, ChevronUp } from "lucide-react";
-import AppCard from "~/components/core/card/AppCard";
+import { Barcode, Check, Package } from "lucide-react";
+import { buildTile } from "./item-pick/helper";
+import AppModal from "~/components/core/modal/AppModal";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
-import AppLink from "~/components/core/link/AppLink";
+import Amount from "~/components/core/amount/Amount";
+import ImgRender from "~/components/core/img/ImgRender";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
 import useAppToast from "~/hooks/useAppToast";
-import CommonService from "~/services/CommonService";
 import SellerService from "~/services/SellerService";
-import CompletedBoxSummary from "./CompletedBoxSummary";
-import MrpSnapshots from "../../components/MrpSnapshots";
 
 interface CompletedBoxesProps {
+  show: boolean;
+  onClose: () => void;
   boxes: any[];
+  // When set, the modal shows just this box's details
+  boxId?: string | null;
   deals?: any[];
+  orderRefNo?: string;
+  customerName?: string;
   callback: (params: { action: string; data?: any }) => void;
 }
 
-// Array of 20 light background colors for box items
-const boxColors = [
-  "tw:bg-blue-50",
-  "tw:bg-green-50",
-  "tw:bg-yellow-50",
-  "tw:bg-pink-50",
-  "tw:bg-purple-50",
-  "tw:bg-indigo-50",
-  "tw:bg-red-50",
-  "tw:bg-orange-50",
-  "tw:bg-teal-50",
-  "tw:bg-cyan-50",
-  "tw:bg-lime-50",
-  "tw:bg-amber-50",
-  "tw:bg-emerald-50",
-  "tw:bg-violet-50",
-  "tw:bg-fuchsia-50",
-  "tw:bg-rose-50",
-  "tw:bg-sky-50",
-  "tw:bg-slate-50",
-  "tw:bg-stone-50",
-  "tw:bg-neutral-50",
-];
-
 const CompletedBoxes: React.FC<CompletedBoxesProps> = ({
+  show,
+  onClose,
   boxes,
+  boxId,
   deals,
+  orderRefNo,
+  customerName,
   callback,
 }) => {
-  const dealUomMap = useMemo(() => {
-    const map: Record<string, string> = {};
+  // dealId → order-line details (image, unit price, uom) for the rows
+  const dealMap = useMemo(() => {
+    const map: Record<
+      string,
+      { image?: string; price: number; uom: string }
+    > = {};
     (deals || []).forEach((d: any) => {
-      if (d?.dealId) map[d.dealId] = d.selectedStockUom || "unit";
+      if (!d?.dealId) return;
+      map[d.dealId] = {
+        image: d.dealDetails?.images?.[0],
+        price: Number(d.price) || 0,
+        uom: d.selectedStockUom || "unit",
+      };
     });
     return map;
   }, [deals]);
@@ -58,9 +53,6 @@ const CompletedBoxes: React.FC<CompletedBoxesProps> = ({
     boxId?: string;
   }>({ show: false });
   const [loading, setLoading] = useState(false);
-  const [collapsedBoxes, setCollapsedBoxes] = useState<{
-    [key: string]: boolean;
-  }>({});
 
   const handleRemoveBox = (boxId: string) => {
     setAlertState({ show: true, boxId });
@@ -79,6 +71,7 @@ const CompletedBoxes: React.FC<CompletedBoxesProps> = ({
         });
         callback({ action: "removeBox", data: { boxId: alertState.boxId } });
         setAlertState({ show: false });
+        onClose();
       } else {
         appToast.show({
           msg: resp.data?.message || "Failed to cancel package",
@@ -99,142 +92,200 @@ const CompletedBoxes: React.FC<CompletedBoxesProps> = ({
     setAlertState({ show: false });
   };
 
-  const toggleCollapse = (boxId: string) => {
-    setCollapsedBoxes((prev) => ({
-      ...prev,
-      [boxId]: !prev[boxId],
-    }));
-  };
-
   // Filter only completed boxes (boxes with "Closed" status)
-  const completedBoxes = boxes.filter((box) => box.status !== "Open");
+  const allCompletedBoxes = boxes.filter((box) => box.status !== "Open");
+  const completedBoxes = boxId
+    ? allCompletedBoxes.filter((box) => box._id === boxId)
+    : allCompletedBoxes;
 
   if (!completedBoxes || completedBoxes.length === 0) {
     return null;
   }
 
+  // A line's amount comes from its MRP snapshots when present, else the
+  // order line's unit price × boxed qty.
+  const getLineParts = (item: any) => {
+    const deal = dealMap[item.dealId];
+    const snapshots = (item.mrpSnapshots || []).filter(
+      (s: any) => Number(s.quantity ?? s.qty ?? s.usedQty ?? 0) > 0,
+    );
+    if (snapshots.length > 0) {
+      const parts = snapshots.map((s: any) => ({
+        qty: Number(s.quantity ?? s.qty ?? s.usedQty ?? 0),
+        rate: Number(s.mrp) || 0,
+      }));
+      return { parts, uom: deal?.uom || "unit" };
+    }
+    return {
+      parts: [{ qty: Number(item.qty) || 0, rate: deal?.price || 0 }],
+      uom: deal?.uom || "unit",
+    };
+  };
+
+  const selectedBox = boxId ? completedBoxes[0] : null;
+  const subtitle = [orderRefNo ? `Order ${orderRefNo}` : "", customerName]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <>
-      <AppCard
-        title={`Packed Boxes Information (${completedBoxes.length})`}
-        className="tw:mt-4"
-        icon={<Package />}
+      <AppModal
+        show={show}
+        callback={({ action }) => {
+          if (action === "close") onClose();
+        }}
       >
-        {completedBoxes?.[0]?.createdAt && (
-          <CompletedBoxSummary
-            completedBoxes={completedBoxes}
-            dealUomMap={dealUomMap}
-          />
-        )}
-        <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:md:grid-cols-2">
-          {completedBoxes.map((box, index) => {
-            const boxId = box._id;
-            const boxRef = box.packageRefNo;
-            const collapsed = collapsedBoxes[boxId] ?? true;
-            const boxColor = boxColors[index % boxColors.length];
-            const boxDisplaySummary =
-              CommonService.groupQtyByUom(
-                (box.items || []).map((it: any) => ({
-                  uom: dealUomMap[it.dealId] || "unit",
-                  qty: Number(it.qty ?? 0) || 0,
-                })),
-              ).label || "0 units";
-            return (
-              <div
-                key={`${boxId}-${boxRef}`}
-                className={`${boxColor} tw:rounded-lg tw:p-4 tw:border tw:border-gray-200`}
-              >
-                {/* Box Header */}
-                <div className="tw:flex tw:items-start tw:justify-between tw:mb-3">
-                  <div className="tw:flex tw:items-center tw:gap-3">
-                    <div className="tw:w-8 tw:h-8 tw:border-2 tw:border-green-500 tw:rounded tw:flex tw:items-center tw:justify-center">
-                      <Package className="tw:w-4 tw:h-4 tw:text-green-500" />
-                    </div>
-                    <div>
-                      <div className="tw:font-semibold tw:text-gray-800">
-                        Box #{index + 1} - {boxRef}
+        <AppModal.Title onClose={onClose}>
+          <div className="tw:flex tw:items-center tw:gap-3 tw:min-w-0">
+            <div className="tw:w-10 tw:h-10 tw:rounded-xl tw:bg-orange-100 tw:text-orange-600 tw:flex tw:items-center tw:justify-center tw:shrink-0">
+              <Package className="tw:w-5 tw:h-5" />
+            </div>
+            <div className="tw:min-w-0">
+              <div className="tw:text-sm tw:text-gray-900 tw:truncate">
+                {selectedBox ? (
+                  <>
+                    Contents of{" "}
+                    <span className="tw:font-bold">
+                      {selectedBox.packageRefNo}
+                    </span>
+                  </>
+                ) : (
+                  <span className="tw:font-bold">
+                    Packed Boxes ({completedBoxes.length})
+                  </span>
+                )}
+              </div>
+              {subtitle ? (
+                <div className="tw:text-xs tw:text-gray-500 tw:font-normal tw:truncate">
+                  {subtitle}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </AppModal.Title>
+        <AppModal.Content>
+          <div className="tw:space-y-5">
+            {completedBoxes.map((box) => {
+              const boxSubtotal = (box.items || []).reduce(
+                (sum: number, item: any) =>
+                  sum +
+                  getLineParts(item).parts.reduce(
+                    (s: number, p: any) => s + p.qty * p.rate,
+                    0,
+                  ),
+                0,
+              );
+              return (
+                <div key={box._id}>
+                  {/* Shipping-label plate: barcode glyph + box code on a dark
+                      ground, box status as the badge. */}
+                  <div className="tw:bg-gray-900 tw:rounded-xl tw:px-4 tw:py-3 tw:flex tw:items-center tw:justify-between tw:gap-3 tw:mb-3">
+                    <div className="tw:flex tw:items-center tw:gap-3 tw:min-w-0">
+                      <Barcode
+                        size={24}
+                        className="tw:text-emerald-400 tw:shrink-0"
+                      />
+                      <div className="tw:min-w-0">
+                        <div className="tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-[0.14em] tw:text-emerald-500/80">
+                          Box
+                        </div>
+                        <div className="tw:font-mono tw:text-sm tw:font-bold tw:tracking-wider tw:text-emerald-300 tw:truncate">
+                          {box.packageRefNo}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  {box.status === "Packed" && (
-                    <button
-                      onClick={() => handleRemoveBox(boxId)}
-                      className="tw:text-red-500 hover:tw:text-red-700 tw:transition-colors"
-                      title="Cancel box"
-                      aria-label={`Cancel box ${boxRef}`}
-                      disabled={loading}
-                    >
-                      <X className="tw:w-5 tw:h-5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Box Details */}
-                <div className="tw:border-t tw:border-gray-200 tw:pt-3 tw:mb-3">
-                  <div className="tw:flex tw:justify-between tw:text-sm">
-                    <span className="tw:text-gray-700">
-                      Weight: {box.boxDetails?.weight || 0}{" "}
-                      {box.boxDetails?.uom || "kg"}
-                    </span>
-                    <span className="tw:text-gray-700">
-                      Total Items: {box.items.length} ({boxDisplaySummary})
+                    <span className="tw:inline-flex tw:items-center tw:gap-1 tw:bg-emerald-500 tw:text-emerald-950 tw:rounded-full tw:px-2.5 tw:py-1 tw:text-[10px] tw:font-extrabold tw:uppercase tw:tracking-wide tw:shrink-0">
+                      {box.status}
+                      <Check size={12} strokeWidth={3} />
                     </span>
                   </div>
-                </div>
 
-                {/* Items List */}
-                <div className="tw:border-t tw:border-gray-200 tw:pt-3">
-                  <div
-                    className="tw:flex tw:items-center tw:justify-between tw:cursor-pointer"
-                    onClick={() => toggleCollapse(boxId)}
-                  >
-                    <div className="tw:text-sm tw:text-gray-500 tw:mb-2">
-                      Items ({box.items.length})
-                    </div>
-                    {collapsed ? (
-                      <ChevronDown className="tw:w-4 tw:h-4" />
-                    ) : (
-                      <ChevronUp className="tw:w-4 tw:h-4" />
-                    )}
-                  </div>
-                  {!collapsed && (
-                    <div className="tw:space-y-2 tw:mt-2">
-                      {box.items.map((item: any) => (
+                  <div className="tw:rounded-2xl tw:border tw:border-gray-200 tw:bg-white tw:overflow-hidden">
+                    {(box.items || []).map((item: any) => {
+                      const deal = dealMap[item.dealId];
+                      const tile = buildTile(item.dealName || "");
+                      const { parts, uom } = getLineParts(item);
+                      const lineTotal = parts.reduce(
+                        (s: number, p: any) => s + p.qty * p.rate,
+                        0,
+                      );
+                      return (
                         <div
                           key={item.dealId}
-                          className="tw:bg-white tw:rounded tw:px-2 tw:py-1 tw:border tw:border-gray-100"
+                          className="tw:flex tw:items-center tw:gap-3 tw:px-3 tw:py-2.5 tw:border-b tw:border-gray-100 tw:last:border-b-0"
                         >
-                          <div className="tw:flex tw:justify-between tw:items-start">
-                            <AppLink
-                              asLink={true}
-                              href={`/dashboard/inventory/products/view/${item.dealId}`}
-                              className="tw:text-gray-800 tw:text-sm tw:font-medium"
+                          {deal?.image ? (
+                            <ImgRender
+                              assetId={deal.image}
+                              alt={item.dealName}
+                              className="tw:w-9 tw:h-9 tw:rounded-lg tw:object-cover tw:shrink-0"
+                            />
+                          ) : (
+                            <div
+                              className="op-tile"
+                              style={{ backgroundColor: tile.color }}
                             >
+                              {tile.code}
+                            </div>
+                          )}
+
+                          <div className="tw:flex-1 tw:min-w-0">
+                            <div className="tw:text-sm tw:font-semibold tw:text-gray-900 tw:truncate">
                               {item.dealName}
-                            </AppLink>
-                            <span className="tw:bg-gray-200 tw:text-gray-600 tw:px-2 tw:py-1 tw:rounded-full tw:text-xs tw:font-medium">
-                              <DisplayQty
-                                qty={Number(item.qty) || 0}
-                                isLooseQty={false}
-                                uom={dealUomMap[item.dealId] || "unit"}
-                              />
-                            </span>
+                            </div>
+                            <div className="tw:text-xs tw:text-gray-500">
+                              {parts.map((p: any, idx: number) => (
+                                <span key={idx}>
+                                  {idx > 0 ? ", " : ""}
+                                  Qty{" "}
+                                  <span className="tw:font-semibold tw:text-gray-700">
+                                    <DisplayQty
+                                      qty={p.qty}
+                                      isLooseQty={false}
+                                      uom={uom}
+                                      hideDefaultUom
+                                    />
+                                  </span>{" "}
+                                  × <Amount value={p.rate} />
+                                </span>
+                              ))}
+                            </div>
                           </div>
 
-                          <MrpSnapshots
-                            mrpSnapshots={item.mrpSnapshots}
-                            uom={dealUomMap[item.dealId] || "unit"}
-                          />
+                          <div className="tw:text-sm tw:font-bold tw:text-emerald-700 tw:shrink-0">
+                            <Amount value={lineTotal} />
+                          </div>
                         </div>
-                      ))}
+                      );
+                    })}
+                  </div>
+
+                  <div className="tw:flex tw:items-center tw:justify-between tw:bg-gray-100 tw:rounded-xl tw:px-4 tw:py-3 tw:mt-3">
+                    <span className="tw:text-sm tw:text-gray-500">
+                      Box subtotal
+                    </span>
+                    <span className="tw:text-lg tw:font-extrabold tw:text-emerald-800">
+                      <Amount value={boxSubtotal} />
+                    </span>
+                  </div>
+
+                  {box.status === "Packed" && (
+                    <div className="tw:flex tw:justify-end tw:mt-2">
+                      <button
+                        onClick={() => handleRemoveBox(box._id)}
+                        className="tw:text-xs tw:font-medium tw:text-red-500 hover:tw:text-red-600 tw:transition-colors"
+                        disabled={loading}
+                      >
+                        Cancel this box
+                      </button>
                     </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </AppCard>
+              );
+            })}
+          </div>
+        </AppModal.Content>
+      </AppModal>
       <AppAlertDialog
         show={alertState.show}
         title="Cancel Box?"

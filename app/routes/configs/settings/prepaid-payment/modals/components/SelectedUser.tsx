@@ -1,4 +1,4 @@
-import { IndianRupee, Phone, User, Wallet } from "lucide-react";
+import { Phone, User, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import AppCard from "~/components/core/card/AppCard";
 import AppSwitch from "~/components/core/form/AppSwitch";
@@ -9,16 +9,6 @@ import AuthService from "~/services/AuthService";
 import useAppToast from "~/hooks/useAppToast";
 
 const defaultGlobalSettings = [
-  {
-    label: "Enable COD Payment",
-    key: "cod",
-    icon: <IndianRupee />,
-    description: "Enable COD payments for this user",
-    value: false,
-    showToggle: true,
-    apiKey: "codEnabled",
-    initApiKey: "cod",
-  },
   {
     label: "Enable Prepaid Payment",
     key: "prepaid",
@@ -155,26 +145,28 @@ const SelectedUser = ({
       {globalSettings.map((setting) => (
         <div
           key={setting.key}
-          className="tw:flex tw:items-center tw:gap-2 tw:border tw:border-gray-200 tw:rounded-lg tw:p-4 tw:bg-white tw:mb-2"
+          className="tw:flex tw:items-center tw:gap-4 tw:border tw:border-gray-200 tw:rounded-xl tw:p-4 tw:bg-white tw:shadow-sm tw:transition-shadow hover:tw:shadow-md"
         >
-          <div className="tw:shrink-0 tw:text-gray-500">{setting.icon}</div>
-          <div className="tw:flex-1">
-            <div className="tw:text-sm tw:font-medium tw:mb-0.5">
+          <div className="tw:shrink-0 tw:h-11 tw:w-11 tw:rounded-full tw:bg-blue-50 tw:flex tw:items-center tw:justify-center tw:text-blue-600">
+            {setting.icon}
+          </div>
+          <div className="tw:flex-1 tw:min-w-0">
+            <div className="tw:text-sm tw:font-semibold tw:text-gray-800">
               {setting.label}
             </div>
             {!setting.showToggle ? (
-              <span className="tw:text-xs tw:text-red-500">
+              <div className="tw:mt-1 tw:text-xs tw:text-red-500 tw:flex tw:items-center tw:gap-1 tw:flex-wrap">
                 Please configure payment methods first in the payment config
                 section{" "}
                 <button
-                  className="tw:text-blue-500 tw:cursor-pointer tw:underline"
+                  className="tw:font-medium tw:text-blue-600 tw:cursor-pointer tw:underline-offset-2 hover:tw:underline"
                   onClick={handleConfigureNow}
                 >
                   Configure Now
                 </button>
-              </span>
+              </div>
             ) : (
-              <div className="tw:text-xs tw:text-gray-500">
+              <div className="tw:mt-0.5 tw:text-xs tw:text-gray-500">
                 {setting.description}
               </div>
             )}

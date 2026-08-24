@@ -1,0 +1,205 @@
+/* Runner earnings — the week's money. The brand block itself is shared with
+   the home screen (`.runner-hero` / `.runner-hero-band` in runner-home.css);
+   only what this screen adds lives here. */
+
+/* Earnings hero has no summary card straddling its edge, so it keeps just
+   enough bottom padding to close the block off. */
+.runner-hero:has(.runner-payout-slab) {
+  --runner-strip-overlap: 1rem;
+}
+
+/* Payout slab — sits on the gradient rather than on the page, so the date the
+   money lands is read in the same glance as the amount. */
+.runner-payout-slab {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, #fff 22%, transparent);
+  background-color: color-mix(in srgb, #000 14%, transparent);
+  padding: 0.75rem 0.875rem;
+}
+
+/* The account is a fact, not an action — white chip, dark text, no emphasis
+   beyond being legible against the band. */
+.runner-payout-account {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background-color: #fff;
+  padding: 0.3125rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #0f172a;
+}
+
+/* Daily chart. Bars grow from a shared baseline inside a fixed-height track,
+   so the row keeps its shape whatever the week paid. */
+.runner-chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.375rem;
+  height: 10.5rem;
+}
+
+/* A column is three rows, not a flex stack: the figure, the bar's own track,
+   and the day. The bar is sized as a share of that middle row, so the two
+   labels are outside the scale the percentages are read against — in a stack
+   they were inside it, which pushed the tall days past the track and left the
+   best three days squashed to the same height. */
+.runner-chart-col {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  justify-items: center;
+  gap: 0.375rem;
+}
+
+.runner-chart-value {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+.runner-chart-value--today {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* An ordinary day is a quiet slab; today is the only filled bar, so the runner
+   places themselves in the week without reading a figure. */
+.runner-chart-bar {
+  align-self: end;
+  width: 100%;
+  min-height: 0.5rem;
+  border-radius: 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, #e2e8f0);
+  background-color: color-mix(in srgb, var(--primary) 8%, #fff);
+}
+.runner-chart-bar--today {
+  border-color: color-mix(in srgb, var(--primary) 75%, #000);
+  background-color: var(--primary);
+}
+
+.runner-chart-day {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.runner-chart-day--today {
+  color: var(--primary);
+}
+
+/* Bonus tiles — the three lines the runner can still move this week. Each one
+   is tinted in its own colour so it stays distinct from the settled maths. */
+.runner-earn-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  padding: 0.75rem 0.875rem;
+}
+
+.runner-earn-tile--tips {
+  border-color: #fde68a;
+  background-color: #fffbeb;
+  color: #b45309;
+}
+.runner-earn-tile--streak {
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+  background-color: color-mix(in srgb, var(--primary) 8%, #fff);
+  color: var(--primary);
+}
+.runner-earn-tile--fuel {
+  border-color: #bfdbfe;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* Breakdown rows. Dashed rules rather than solid ones — this is a statement
+   the runner reads down, not a list of separate cards. */
+.runner-earn-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.6875rem;
+}
+.runner-earn-row + .runner-earn-row {
+  border-top: 1px dashed var(--border);
+}
+
+/* The total sits off the dashed run, on a solid rule, so it reads as the line
+   the payout is actually made against. */
+.runner-earn-net {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.375rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+/* Cleared mark on a settled week — the first thing the row says. */
+.runner-payout-tick {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+/* Bank reference — kept quiet and mono-spaced: it is only ever read out or
+   copied, never scanned. */
+.runner-payout-utr {
+  display: block;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: #94a3b8;
+}
+
+.runner-payout-status {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #15803d;
+}
+
+.runner-bond-icon {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background-color: color-mix(in srgb, var(--primary) 12%, #fff);
+  color: var(--primary);
+}
+
+/* Bond progress — full width so the fill reads as a distance covered rather
+   than a proportion of the card. */
+.runner-bond-track {
+  margin-top: 0.875rem;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--primary) 12%, #e2e8f0);
+}
+
+.runner-bond-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--primary);
+}

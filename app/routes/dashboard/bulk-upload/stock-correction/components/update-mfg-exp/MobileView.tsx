@@ -27,7 +27,7 @@ const MobileView: React.FC = () => {
   }
 
   return (
-    <div className="tw:space-y-4 tw:px-4">
+    <div className="tw:space-y-3 tw:px-3">
       {fields.map((field, index) => (
         <div
           key={field.id}

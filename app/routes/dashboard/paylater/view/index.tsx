@@ -1,5 +1,6 @@
 import { CheckCircle, Plus, SlidersHorizontal, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
 import AppBadge from "~/components/core/badge/AppBadge";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
@@ -18,11 +19,19 @@ import useScreenView from "~/hooks/useScreenView";
 import ImgRender from "~/components/core/img/ImgRender";
 import DocumentDisplayItem from "~/routes/dashboard/paylater/request/components/DocumentDisplayItem";
 import PaylaterService from "~/services/PaylaterService";
+import PaylaterPane from "~/shared/accounts/components/paylater/paylater-pane/PaylaterPane";
 import PaylaterManageWalletModal from "~/shared/accounts/modals/paylater/manage-wallet/PaylaterManageWalletModal";
+import PaylaterReviewRequestModal from "~/shared/accounts/paylater/modals/review-request/PaylaterReviewRequestModal";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import DocumentsUploadModal from "~/shared/others/modals/documents-upload/DocumentsUploadModal";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import AuditLog from "./components/AuditLog";
+import BuyerScorecard from "./components/BuyerScorecard";
+import BuyerSummary from "./components/BuyerSummary";
 import DocumentItem from "./components/DocumentItem";
+import PendingRequestBanner from "./components/PendingRequestBanner";
+import RecentOrders from "./components/RecentOrders";
 import { getRequest } from "./helper";
 import ApproveModal from "./modals/ApproveModal";
 import RejectModal from "./modals/RejectModal";
@@ -49,6 +58,7 @@ type Document = {
 
 const PaylaterRequestViewPage = () => {
   const { id } = useParams();
+  const { t } = useTranslation(["common", "menu"]);
   const { isMobile } = useScreenView();
   const toast = useAppToast();
 
@@ -57,6 +67,7 @@ const PaylaterRequestViewPage = () => {
 
   const [approveModal, setApproveModal] = useState({ show: false });
   const [rejectModal, setRejectModal] = useState({ show: false });
+  const [reviewModal, setReviewModal] = useState({ show: false });
   const [manageModal, setManageModal] = useState<{ show: boolean }>({
     show: false,
   });
@@ -92,6 +103,16 @@ const PaylaterRequestViewPage = () => {
   };
   const handleRejectModalCallback = (a: { action: string; data?: any }) => {
     setRejectModal({ show: false });
+    if (a.action === "submit") {
+      fetchRequest();
+      setNewDocuments([]);
+    }
+  };
+
+  // The guided review lands the same approve/reject the footer buttons do, so a
+  // decision there refreshes the request the page is showing.
+  const handleReviewModalCallback = (a: { action: string; data?: any }) => {
+    setReviewModal({ show: false });
     if (a.action === "submit") {
       fetchRequest();
       setNewDocuments([]);
@@ -266,352 +287,431 @@ const PaylaterRequestViewPage = () => {
 
   return (
     <>
-      <AppHeader title="View Paylater Request" />
+      <AppHeader
+        title="View Paylater Request"
+        sectionKey="business"
+        activeTab="paylater"
+      />
       <div className="app-page page-bg tw:p-4">
         <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-end tw:md:justify-between tw:md:mb-2">
-            <AppBreadcrumbs data={breadcrumbs} />
-
-            {request && request?._canManage && !isMobile ? (
-              <div className="tw:flex tw:items-center tw:gap-2">
-                {renderManageWalletButton()}
+          <div className="section-layout">
+            {/* Desktop-only left rail — same section side menu the PayLater
+                layout carries, so the request view keeps its place in the
+                section rather than reading as a detached page. */}
+            <aside className="section-menu-aside">
+              <div className="tw:sticky tw:top-20">
+                <SectionMenu
+                  sectionKey="business"
+                  activeTab="paylater"
+                  title={t("manageBusiness", { ns: "menu" })}
+                />
               </div>
-            ) : null}
-          </div>
-          {loading ? (
-            <div className="tw:flex tw:justify-center tw:items-center tw:h-full">
-              <AppSpinner />
-            </div>
-          ) : null}
+            </aside>
 
-          {!loading && !request ? <NoData /> : null}
+            <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Main column spans the full grid — in theme-2 desktop the CSS
+                    lifts the side pane out of it into the fixed list rail. */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-end tw:md:justify-between tw:md:mb-2">
+                    <AppBreadcrumbs data={breadcrumbs} />
 
-          {!loading && request ? (
-            <>
-              {request?.status === "Rejected" && request?.rejectionReason ? (
-                <InfoBlock variant="danger" className="tw:mb-4" size="sm">
-                  <div className="tw:flex tw:items-start tw:gap-2">
-                    <XCircle size={16} className="tw:mt-1" />
-                    <div>
-                      <div className="tw:font-semibold">Rejected Reason:</div>
-                      <div className="tw:mt-1">
-                        &quot;{request?.rejectionReason}&quot;
+                    {request && request?._canManage && !isMobile ? (
+                      <div className="tw:flex tw:items-center tw:gap-2">
+                        {renderManageWalletButton()}
                       </div>
-                    </div>
+                    ) : null}
                   </div>
-                </InfoBlock>
-              ) : null}
-
-              <AppCard>
-                <div className="tw:text-base tw:font-semibold tw:mb-4">
-                  Request Details
-                </div>
-                <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4">
-                  <KeyValue label="Request ID" size="sm">
-                    {request?.refId}
-                  </KeyValue>
-
-                  <KeyValue label="Status" size="sm">
-                    <AppBadge
-                      variant={
-                        request?.status === "Approved" ? "success" : "danger"
-                      }
-                    >
-                      {request?.status}
-                    </AppBadge>
-                  </KeyValue>
-
-                  <KeyValue label="KYC Status" size="sm">
-                    <AppBadge variant={request?.kycStatusColor || "default"}>
-                      {request?.kycStatus}
-                    </AppBadge>
-                  </KeyValue>
-
-                  <KeyValue label="Request Date" size="sm">
-                    <DateFormat
-                      value={request?.createdAt}
-                      formatStr="dd MMM yyyy"
-                    />
-                    <DateFormat
-                      value={request?.createdAt}
-                      formatStr="hh:mm a"
-                      className="tw:text-xs tw:text-gray-500 tw:ml-2"
-                    />
-                  </KeyValue>
-
-                  <KeyValue label="Updated On" size="sm">
-                    <DateFormat
-                      value={request?.updatedAt}
-                      formatStr="dd MMM yyyy"
-                    />
-                    <DateFormat
-                      value={request?.updatedAt}
-                      formatStr="hh:mm a"
-                      className="tw:text-xs tw:text-gray-500 tw:ml-2"
-                    />
-                  </KeyValue>
-
-                  <KeyValue label="Approved Limit" size="sm">
-                    {request?.approvedLimit ?? request?.creditLimit ?? "N/A"}
-                  </KeyValue>
-
-                  <KeyValue label="Validity Period" size="sm">
-                    {request?.validityPeriod || "N/A"}
-                  </KeyValue>
-
-                  {request?.reason ? (
-                    <KeyValue label="Reason" size="sm">
-                      {request.reason}
-                    </KeyValue>
+                  {loading ? (
+                    <div className="tw:flex tw:justify-center tw:items-center tw:h-full">
+                      <AppSpinner />
+                    </div>
                   ) : null}
-                </div>
 
-                <Divider />
+                  {!loading && !request ? <NoData /> : null}
 
-                <div>
-                  <div>
-                    {/* requester details */}
-                    <div className="tw:mb-4">
-                      <div className="tw:text-base tw:font-semibold">
-                        Requester Details
-                      </div>
-                      <div className="tw:text-xs tw:text-gray-500">
-                        Details of the user who requested for paylater
-                      </div>
-                    </div>
+                  {!loading && request ? (
+                    <>
+                      {/* Who the request is for. */}
+                      <BuyerSummary request={request} />
 
-                    <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4">
-                      <KeyValue
-                        label={
-                          request?.userInfo?.type === "customer"
-                            ? "B2C User"
-                            : "B2B User"
-                        }
-                        size="sm"
-                      >
-                        <div className="tw:flex tw:items-center tw:gap-2">
-                          {request?.userInfo?.photo ? (
-                            <ImgRender
-                              assetId={request.userInfo.photo}
-                              alt="User"
-                              className="tw:w-8 tw:h-8 tw:rounded-full tw:object-cover"
-                            />
-                          ) : null}
-                          <span className="tw:font-semibold tw:text-blue-600 tw:flex-1">
-                            {request?.userInfo?.name}
-                          </span>
-                        </div>
-                      </KeyValue>
-
-                      <KeyValue label="User Mobile" size="sm">
-                        {request?.userInfo?.mobile}
-                      </KeyValue>
-
-                      {request?.userInfo?.alternatePhone ? (
-                        <KeyValue label="Alternate Phone" size="sm">
-                          {request.userInfo.alternatePhone}
-                        </KeyValue>
-                      ) : null}
-
-                      {request?.userInfo?.email ? (
-                        <KeyValue label="Email" size="sm">
-                          {request.userInfo.email}
-                        </KeyValue>
-                      ) : null}
-
-                      {request?.userInfo?.gender ? (
-                        <KeyValue label="Gender" size="sm">
-                          {request.userInfo.gender}
-                        </KeyValue>
-                      ) : null}
-
-                      {request?.userInfo?.dob ? (
-                        <KeyValue label="Date of Birth" size="sm">
-                          <DateFormat
-                            value={request.userInfo.dob}
-                            formatStr="dd MMM yyyy"
-                          />
-                        </KeyValue>
-                      ) : null}
-
-                      {request?.userInfo?.age ? (
-                        <KeyValue label="Age" size="sm">
-                          {request.userInfo.age}
-                        </KeyValue>
-                      ) : null}
-
-                      {request?.userInfo?.occupation ? (
-                        <KeyValue label="Occupation" size="sm">
-                          {request.userInfo.occupation}
-                        </KeyValue>
-                      ) : null}
-
-                      <KeyValue
-                        label="Address"
-                        size="sm"
-                        className="tw:col-span-2"
-                      >
-                        {request?.userInfo?._formattedAddress}
-                      </KeyValue>
-
-                      {request?.vehicleInfo?.length > 0 ? (
-                        <KeyValue
-                          label="Vehicle Info"
-                          size="sm"
-                          className="tw:col-span-2"
-                        >
-                          {request.vehicleInfo.map((v: any, i: number) => (
-                            <span key={i}>
-                              {v.vehileName || v.vehicleName}
-                              {v.vehicleNo ? ` - ${v.vehicleNo}` : ""}
-                              {i < request.vehicleInfo.length - 1 ? ", " : ""}
-                            </span>
-                          ))}
-                        </KeyValue>
-                      ) : null}
-                    </div>
-                    {/* end of requester details */}
-                  </div>
-                  <div></div>
-                </div>
-
-                {request?.franchiseInfo?.name ? (
-                  <>
-                    <Divider />
-                    <div className="tw:mb-4">
-                      <div className="tw:text-base tw:font-semibold">
-                        Franchise Details
-                      </div>
-                      <div className="tw:text-xs tw:text-gray-500">
-                        Details of the franchise who assigned paylater
-                      </div>
-                    </div>
-                    <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4">
-                      <KeyValue label="Franchise Name" size="sm">
-                        {request.franchiseInfo.name}
-                      </KeyValue>
-                      {request.franchiseInfo.subType ? (
-                        <KeyValue label="Type" size="sm">
-                          {request.franchiseInfo.subType}
-                        </KeyValue>
-                      ) : null}
-                    </div>
-                  </>
-                ) : null}
-
-                <Divider />
-                {/* nominee details */}
-                <div className="tw:mb-4">
-                  <div className="tw:text-base tw:font-semibold">
-                    Nominee Details
-                  </div>
-                  <div className="tw:text-xs tw:text-gray-500">
-                    Details of the nominee(s) who requested for paylater
-                  </div>
-                </div>
-
-                {nominees.length === 0 ? (
-                  <div className="tw:text-center tw:text-gray-500 tw:py-4">
-                    No nominee details available
-                  </div>
-                ) : (
-                  nominees.map((nominee: any, index: number) => (
-                    <div key={index} className="tw:grid tw:grid-cols-2 tw:gap-4">
-                      <KeyValue label="Nominee Name" size="sm">
-                        {nominee?.name || "N/A"}
-                        {nominee?.relationShip && (
-                          <span className="tw:text-xs tw:text-gray-500 tw:uppercase tw:ml-2">
-                            {nominee.relationShip}
-                          </span>
-                        )}
-                      </KeyValue>
-
-                      <KeyValue label="Nominee Mobile" size="sm">
-                        {nominee?.mobile || "N/A"}
-                      </KeyValue>
-                    </div>
-                  ))
-                )}
-
-                {/* end of nominee details */}
-
-                <Divider />
-
-                {/* document details */}
-                <div className="tw:mb-4">
-                  <div className="tw:text-base tw:font-semibold">
-                    KYC Documents
-                  </div>
-                  <div className="tw:text-xs tw:text-gray-500">
-                    Details of the KYC documents uploaded by the user
-                  </div>
-                </div>
-                {request?.status === "Pending" && (
-                  <div className="tw:flex tw:items-center tw:justify-between tw:mb-3">
-                    <div className="tw:flex-1">
-                      <div className="tw:flex tw:items-center tw:gap-2 tw:mb-1">
-                        <span className="tw:text-sm tw:font-semibold tw:text-gray-900">
-                          Additional KYC Documents
-                        </span>
-                      </div>
-
-                      <p className="tw:text-xs tw:text-gray-500">
-                        Upload additional KYC documents if needed
-                      </p>
-                    </div>
-
-                    <Rbac roles={["ACCOUNTS.PAYLATER-REQUEST-REVIEW"]}>
-                      <AppButton
-                        size="small"
-                        color="primary"
-                        onClick={() => setShowDocumentsModal(true)}
-                        disabled={updating}
-                        className="tw:flex-shrink-0"
-                      >
-                        <Plus size={14} />
-                        <span className="tw:ml-1">Add</span>
-                      </AppButton>
-                    </Rbac>
-                  </div>
-                )}
-
-                {(!request?.otherDocuments ||
-                  (Array.isArray(request.otherDocuments) &&
-                    request.otherDocuments.length === 0)) &&
-                newDocuments.length === 0 ? (
-                  <div className="tw:text-center tw:text-gray-400 tw:text-sm tw:py-6 tw:bg-gray-50 tw:rounded-lg tw:border tw:border-dashed tw:border-gray-200">
-                    No additional KYC documents uploaded
-                  </div>
-                ) : (
-                  <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:lg:grid-cols-3 tw:gap-3">
-                    {Array.isArray(request?.otherDocuments) &&
-                      request.otherDocuments.map((doc: any, index: number) => (
-                        <DocumentItem
-                          key={doc.id || index}
-                          title={doc.type || "KYC Document"}
-                          front={doc.frontImage || ""}
-                          back={doc.backImage || ""}
-                          refNo={doc.id || ""}
+                      {/* The ask, while it is still undecided. */}
+                      {request?.status === "Pending" ? (
+                        <PendingRequestBanner
+                          request={request}
+                          onReview={() => setReviewModal({ show: true })}
                         />
-                      ))}
-                    {newDocuments.map((doc, index) => (
-                      <DocumentDisplayItem
-                        key={`new-${index}`}
-                        title={doc.documentType}
-                        front={doc.frontImage}
-                        back={doc.backImage}
-                        refNo={doc.referenceNo}
-                        onRemove={() => handleRemoveDocument(index)}
-                      />
-                    ))}
-                  </div>
-                )}
-                {/* end of document details */}
-              </AppCard>
+                      ) : null}
 
-              <AuditLog logs={request?.auditLog} />
-            </>
-          ) : null}
+                      {/* What the buyer is worth — spend, cart, fill rate, repayment. */}
+                      <BuyerScorecard buyerId={request?.userInfo?.id || ""} />
+
+                      {/* What the wallet has actually funded. */}
+                      <RecentOrders buyerId={request?.userInfo?.id || ""} />
+
+                      {request?.status === "Rejected" &&
+                      request?.rejectionReason ? (
+                        <InfoBlock
+                          variant="danger"
+                          className="tw:mb-4"
+                          size="sm"
+                        >
+                          <div className="tw:flex tw:items-start tw:gap-2">
+                            <XCircle size={16} className="tw:mt-1" />
+                            <div>
+                              <div className="tw:font-semibold">
+                                Rejected Reason:
+                              </div>
+                              <div className="tw:mt-1">
+                                &quot;{request?.rejectionReason}&quot;
+                              </div>
+                            </div>
+                          </div>
+                        </InfoBlock>
+                      ) : null}
+
+                      <AppCard>
+                        <div className="tw:text-base tw:font-semibold tw:mb-4">
+                          Request Details
+                        </div>
+                        <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4">
+                          <KeyValue label="Request ID" size="sm">
+                            {request?.refId}
+                          </KeyValue>
+
+                          <KeyValue label="Status" size="sm">
+                            <AppBadge
+                              variant={
+                                request?.status === "Approved"
+                                  ? "success"
+                                  : "danger"
+                              }
+                            >
+                              {request?.status}
+                            </AppBadge>
+                          </KeyValue>
+
+                          <KeyValue label="KYC Status" size="sm">
+                            <AppBadge
+                              variant={request?.kycStatusColor || "default"}
+                            >
+                              {request?.kycStatus}
+                            </AppBadge>
+                          </KeyValue>
+
+                          <KeyValue label="Request Date" size="sm">
+                            <DateFormat
+                              value={request?.createdAt}
+                              formatStr="dd MMM yyyy"
+                            />
+                            <DateFormat
+                              value={request?.createdAt}
+                              formatStr="hh:mm a"
+                              className="tw:text-xs tw:text-gray-500 tw:ml-2"
+                            />
+                          </KeyValue>
+
+                          <KeyValue label="Updated On" size="sm">
+                            <DateFormat
+                              value={request?.updatedAt}
+                              formatStr="dd MMM yyyy"
+                            />
+                            <DateFormat
+                              value={request?.updatedAt}
+                              formatStr="hh:mm a"
+                              className="tw:text-xs tw:text-gray-500 tw:ml-2"
+                            />
+                          </KeyValue>
+
+                          <KeyValue label="Approved Limit" size="sm">
+                            {request?.approvedLimit ??
+                              request?.creditLimit ??
+                              "N/A"}
+                          </KeyValue>
+
+                          <KeyValue label="Validity Period" size="sm">
+                            {request?.validityPeriod || "N/A"}
+                          </KeyValue>
+
+                          {request?.reason ? (
+                            <KeyValue label="Reason" size="sm">
+                              {request.reason}
+                            </KeyValue>
+                          ) : null}
+                        </div>
+
+                        <Divider />
+
+                        <div>
+                          <div>
+                            {/* requester details */}
+                            <div className="tw:mb-4">
+                              <div className="tw:text-base tw:font-semibold">
+                                Requester Details
+                              </div>
+                              <div className="tw:text-xs tw:text-gray-500">
+                                Details of the user who requested for paylater
+                              </div>
+                            </div>
+
+                            <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4">
+                              <KeyValue
+                                label={
+                                  request?.userInfo?.type === "customer"
+                                    ? "B2C User"
+                                    : "B2B User"
+                                }
+                                size="sm"
+                              >
+                                <div className="tw:flex tw:items-center tw:gap-2">
+                                  {request?.userInfo?.photo ? (
+                                    <ImgRender
+                                      assetId={request.userInfo.photo}
+                                      alt="User"
+                                      className="tw:w-8 tw:h-8 tw:rounded-full tw:object-cover"
+                                    />
+                                  ) : null}
+                                  <span className="tw:font-semibold tw:text-blue-600 tw:flex-1">
+                                    {request?.userInfo?.name}
+                                  </span>
+                                </div>
+                              </KeyValue>
+
+                              <KeyValue label="User Mobile" size="sm">
+                                {request?.userInfo?.mobile}
+                              </KeyValue>
+
+                              {request?.userInfo?.alternatePhone ? (
+                                <KeyValue label="Alternate Phone" size="sm">
+                                  {request.userInfo.alternatePhone}
+                                </KeyValue>
+                              ) : null}
+
+                              {request?.userInfo?.email ? (
+                                <KeyValue label="Email" size="sm">
+                                  {request.userInfo.email}
+                                </KeyValue>
+                              ) : null}
+
+                              {request?.userInfo?.gender ? (
+                                <KeyValue label="Gender" size="sm">
+                                  {request.userInfo.gender}
+                                </KeyValue>
+                              ) : null}
+
+                              {request?.userInfo?.dob ? (
+                                <KeyValue label="Date of Birth" size="sm">
+                                  <DateFormat
+                                    value={request.userInfo.dob}
+                                    formatStr="dd MMM yyyy"
+                                  />
+                                </KeyValue>
+                              ) : null}
+
+                              {request?.userInfo?.age ? (
+                                <KeyValue label="Age" size="sm">
+                                  {request.userInfo.age}
+                                </KeyValue>
+                              ) : null}
+
+                              {request?.userInfo?.occupation ? (
+                                <KeyValue label="Occupation" size="sm">
+                                  {request.userInfo.occupation}
+                                </KeyValue>
+                              ) : null}
+
+                              <KeyValue
+                                label="Address"
+                                size="sm"
+                                className="tw:col-span-2"
+                              >
+                                {request?.userInfo?._formattedAddress}
+                              </KeyValue>
+
+                              {request?.vehicleInfo?.length > 0 ? (
+                                <KeyValue
+                                  label="Vehicle Info"
+                                  size="sm"
+                                  className="tw:col-span-2"
+                                >
+                                  {request.vehicleInfo.map(
+                                    (v: any, i: number) => (
+                                      <span key={i}>
+                                        {v.vehileName || v.vehicleName}
+                                        {v.vehicleNo ? ` - ${v.vehicleNo}` : ""}
+                                        {i < request.vehicleInfo.length - 1
+                                          ? ", "
+                                          : ""}
+                                      </span>
+                                    ),
+                                  )}
+                                </KeyValue>
+                              ) : null}
+                            </div>
+                            {/* end of requester details */}
+                          </div>
+                          <div></div>
+                        </div>
+
+                        {request?.franchiseInfo?.name ? (
+                          <>
+                            <Divider />
+                            <div className="tw:mb-4">
+                              <div className="tw:text-base tw:font-semibold">
+                                Franchise Details
+                              </div>
+                              <div className="tw:text-xs tw:text-gray-500">
+                                Details of the franchise who assigned paylater
+                              </div>
+                            </div>
+                            <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4">
+                              <KeyValue label="Franchise Name" size="sm">
+                                {request.franchiseInfo.name}
+                              </KeyValue>
+                              {request.franchiseInfo.subType ? (
+                                <KeyValue label="Type" size="sm">
+                                  {request.franchiseInfo.subType}
+                                </KeyValue>
+                              ) : null}
+                            </div>
+                          </>
+                        ) : null}
+
+                        <Divider />
+                        {/* nominee details */}
+                        <div className="tw:mb-4">
+                          <div className="tw:text-base tw:font-semibold">
+                            Nominee Details
+                          </div>
+                          <div className="tw:text-xs tw:text-gray-500">
+                            Details of the nominee(s) who requested for paylater
+                          </div>
+                        </div>
+
+                        {nominees.length === 0 ? (
+                          <div className="tw:text-center tw:text-gray-500 tw:py-4">
+                            No nominee details available
+                          </div>
+                        ) : (
+                          nominees.map((nominee: any, index: number) => (
+                            <div
+                              key={index}
+                              className="tw:grid tw:grid-cols-2 tw:gap-4"
+                            >
+                              <KeyValue label="Nominee Name" size="sm">
+                                {nominee?.name || "N/A"}
+                                {nominee?.relationShip && (
+                                  <span className="tw:text-xs tw:text-gray-500 tw:uppercase tw:ml-2">
+                                    {nominee.relationShip}
+                                  </span>
+                                )}
+                              </KeyValue>
+
+                              <KeyValue label="Nominee Mobile" size="sm">
+                                {nominee?.mobile || "N/A"}
+                              </KeyValue>
+                            </div>
+                          ))
+                        )}
+
+                        {/* end of nominee details */}
+
+                        <Divider />
+
+                        {/* document details */}
+                        <div className="tw:mb-4">
+                          <div className="tw:text-base tw:font-semibold">
+                            KYC Documents
+                          </div>
+                          <div className="tw:text-xs tw:text-gray-500">
+                            Details of the KYC documents uploaded by the user
+                          </div>
+                        </div>
+                        {request?.status === "Pending" && (
+                          <div className="tw:flex tw:items-center tw:justify-between tw:mb-3">
+                            <div className="tw:flex-1">
+                              <div className="tw:flex tw:items-center tw:gap-2 tw:mb-1">
+                                <span className="tw:text-sm tw:font-semibold tw:text-gray-900">
+                                  Additional KYC Documents
+                                </span>
+                              </div>
+
+                              <p className="tw:text-xs tw:text-gray-500">
+                                Upload additional KYC documents if needed
+                              </p>
+                            </div>
+
+                            <Rbac roles={["ACCOUNTS.PAYLATER-REQUEST-REVIEW"]}>
+                              <AppButton
+                                size="small"
+                                color="primary"
+                                onClick={() => setShowDocumentsModal(true)}
+                                disabled={updating}
+                                className="tw:flex-shrink-0"
+                              >
+                                <Plus size={14} />
+                                <span className="tw:ml-1">Add</span>
+                              </AppButton>
+                            </Rbac>
+                          </div>
+                        )}
+
+                        {(!request?.otherDocuments ||
+                          (Array.isArray(request.otherDocuments) &&
+                            request.otherDocuments.length === 0)) &&
+                        newDocuments.length === 0 ? (
+                          <div className="tw:text-center tw:text-gray-400 tw:text-sm tw:py-6 tw:bg-gray-50 tw:rounded-lg tw:border tw:border-dashed tw:border-gray-200">
+                            No additional KYC documents uploaded
+                          </div>
+                        ) : (
+                          <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:lg:grid-cols-3 tw:gap-3">
+                            {Array.isArray(request?.otherDocuments) &&
+                              request.otherDocuments.map(
+                                (doc: any, index: number) => (
+                                  <DocumentItem
+                                    key={doc.id || index}
+                                    title={doc.type || "KYC Document"}
+                                    front={doc.frontImage || ""}
+                                    back={doc.backImage || ""}
+                                    refNo={doc.id || ""}
+                                  />
+                                ),
+                              )}
+                            {newDocuments.map((doc, index) => (
+                              <DocumentDisplayItem
+                                key={`new-${index}`}
+                                title={doc.documentType}
+                                front={doc.frontImage}
+                                back={doc.backImage}
+                                refNo={doc.referenceNo}
+                                onRemove={() => handleRemoveDocument(index)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {/* end of document details */}
+                      </AppCard>
+
+                      <AuditLog logs={request?.auditLog} />
+                    </>
+                  ) : null}
+                </AppPaneMain>
+
+                {/* Side column — theme-2 desktop only. The request view reads
+                    the same book as the rest of the section, so the pane keeps
+                    the section chips, the portfolio health and both approval
+                    queues; the period strip and nudge list are dropped, they
+                    belong to the analytics landing, not to one request. */}
+                <AppPaneSide className="app-pane-only">
+                  <PaylaterPane
+                    title={t("paylater")}
+                    showPeriodSummary={false}
+                    showNudgeTargets={false}
+                  />
+                </AppPaneSide>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -670,6 +770,12 @@ const PaylaterRequestViewPage = () => {
         callback={handleRejectModalCallback}
         requestId={id || ""}
         userName={request?.userInfo?.name}
+      />
+
+      <PaylaterReviewRequestModal
+        show={reviewModal.show}
+        requestId={id || ""}
+        callback={handleReviewModalCallback}
       />
 
       <PaylaterManageWalletModal

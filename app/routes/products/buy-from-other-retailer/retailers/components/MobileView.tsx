@@ -1,16 +1,11 @@
 import React from "react";
-import { Calendar, MapPin, Navigation, Phone } from "lucide-react";
-import UserBadgeType from "~/shared/store/badge/UserBadgeType";
+import { Star, Navigation } from "lucide-react";
 import AppCard from "~/components/core/card/AppCard";
-import AppButton from "~/components/core/button/AppButton";
 import ImgRender from "~/components/core/img/ImgRender";
-import KeyValue from "~/components/core/key-value/KeyValue";
-import { useTranslation } from "react-i18next";
-import DateFormat from "~/components/core/date/DateFormat";
-import AppSpinner from "~/components/core/Spinner/AppSpinner";
-import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import AppLink from "~/components/core/link/AppLink";
-import StoreLinkPopover from "./StoreLinkPopover";
+import Amount from "~/components/core/amount/Amount";
+import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
+import { Skeleton } from "~/components/ui/skeleton";
 
 interface MobileViewProps {
   data: any[];
@@ -33,12 +28,41 @@ const MobileView: React.FC<MobileViewProps> = ({
   loadMore,
   totalCount = 0,
 }) => {
-  const { t } = useTranslation();
-
   if (loading && (!data || data.length === 0)) {
     return (
-      <div className="tw:text-center tw:py-6">
-        <AppSpinner />
+      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-3">
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <AppCard
+            key={idx}
+            noPadding
+            className="tw:mb-0 tw:border-l-4 tw:border-l-primary"
+          >
+            <div className="tw:p-2">
+              <div className="tw:flex tw:gap-2.5">
+                <Skeleton className="tw:w-9 tw:h-9 tw:rounded-full tw:shrink-0" />
+                <div className="tw:flex-1 tw:min-w-0">
+                  <div className="tw:flex tw:items-start tw:justify-between tw:gap-2">
+                    <div className="tw:min-w-0 tw:flex-1">
+                      <Skeleton className="tw:h-3.5 tw:w-2/3" />
+                      <Skeleton className="tw:h-2.5 tw:w-4/5 tw:mt-1.5" />
+                    </div>
+                    <div className="tw:shrink-0 tw:flex tw:flex-col tw:items-end tw:gap-1">
+                      <Skeleton className="tw:h-3.5 tw:w-10" />
+                      <Skeleton className="tw:h-2.5 tw:w-6" />
+                    </div>
+                  </div>
+                  <div className="tw:mt-2">
+                    <Skeleton className="tw:h-1.5 tw:w-full tw:rounded-full" />
+                    <div className="tw:flex tw:items-center tw:justify-between tw:mt-1.5">
+                      <Skeleton className="tw:h-2.5 tw:w-16" />
+                      <Skeleton className="tw:h-2.5 tw:w-6" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </AppCard>
+        ))}
       </div>
     );
   }
@@ -58,96 +82,127 @@ const MobileView: React.FC<MobileViewProps> = ({
   return (
     <>
       <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-3">
-        {data.map((item, idx) => (
-          <AppCard key={idx} className="tw:mb-0">
-            <div className="tw:mb-4">
-              <div className="tw:flex tw:items-center tw:gap-2">
-                <div>
-                  <button
-                    onClick={() =>
-                      callback({ action: "viewImages", data: item })
-                    }
-                  >
+        {data.map((item, idx) => {
+          const paylater = item.paylaterInfo;
+
+          return (
+          <AppCard
+            key={idx}
+            noPadding
+            className="tw:mb-0 tw:border-l-4 tw:border-l-primary"
+          >
+            <div className="tw:p-2">
+              <div className="tw:flex tw:gap-2.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    callback({ action: "viewImages", data: item })
+                  }
+                  className="tw:shrink-0 tw:rounded-full tw:focus:outline-none"
+                >
+                  {item.shopImg ? (
                     <ImgRender
                       assetId={item.shopImg}
-                      className="tw:w-10 tw:h-10 tw:rounded-full"
+                      className="tw:w-9 tw:h-9 tw:rounded-full tw:object-cover"
                     />
-                  </button>
-                </div>
-                <div className="tw:flex-1 tw:flex tw:items-center tw:justify-between">
-                  <div>
-                    <div className="tw:font-medium tw:mb-1 tw:line-clamp-1 tw:text-sm">
+                  ) : (
+                    <div className="tw:w-9 tw:h-9 tw:rounded-full tw:bg-teal-500 tw:flex tw:items-center tw:justify-center tw:text-white tw:font-bold tw:text-xs">
+                      {(item.name || "A").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+
+                <div className="tw:flex-1 tw:min-w-0">
+                  <div className="tw:flex tw:items-start tw:justify-between tw:gap-2">
+                    <div className="tw:min-w-0">
                       <AppLink
                         href={`/products/buy-from-other-retailer/retailer/${item._id}`}
-                        showLinkColor
                         asLink
+                        className="tw:block tw:font-bold tw:text-sm tw:leading-tight tw:line-clamp-1 tw:text-slate-900"
                       >
                         {item.name}
                       </AppLink>
+                      <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-x-1 tw:gap-y-0.5 tw:mt-0.5 tw:text-[11px] tw:text-gray-500">
+                        <span className="tw:truncate">
+                          {item.city || item.town || item.district || "-"}
+                        </span>
+                        <span>•</span>
+                        <span>{item.displayType?.name || "Prepaid"}</span>
+                        {item.distanceToFranchiseKm != null && (
+                          <>
+                            <span>•</span>
+                            <span className="tw:flex tw:items-center tw:gap-0.5 tw:whitespace-nowrap tw:shrink-0">
+                              <Navigation
+                                size={9}
+                                className="tw:text-gray-500"
+                              />
+                              {item.distanceToFranchiseKm.toFixed(1)}km
+                            </span>
+                          </>
+                        )}
+                        {item.ratingsSummary?.avgRating != null && (
+                          <>
+                            <span>•</span>
+                            <span className="tw:flex tw:items-center tw:gap-0.5">
+                              <Star
+                                size={9}
+                                className="tw:fill-amber-400 tw:text-amber-400"
+                              />
+                              {item.ratingsSummary.avgRating.toFixed(1)}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <UserBadgeType type={item.displayType?.name} />
+
+                    {paylater && (
+                      <div className="tw:shrink-0 tw:text-right">
+                        <Amount
+                          value={paylater.totalPayableAmount || 0}
+                          decimalPlaces={0}
+                          className="tw:text-sm tw:font-bold tw:text-gray-900 tw:leading-tight"
+                        />
+                        <span className="tw:block tw:text-[10px] tw:text-gray-500">
+                          owe
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <AppLink
-                      href={`/products/buy-from-other-retailer/retailer/${item._id}`}
-                      asLink
-                    >
-                      <AppButton size="small">{t("browse")}</AppButton>
-                    </AppLink>
-                  </div>
+
+                  {paylater && (
+                    <div className="tw:mt-2">
+                      <div className="tw:h-1.5 tw:w-full tw:overflow-hidden tw:rounded-full tw:bg-[#e5dfd6]">
+                        <div
+                          className="tw:h-full tw:rounded-full tw:bg-[#c8a87d]"
+                          style={{ width: `${paylater.usedPct}%` }}
+                        />
+                      </div>
+                      <div className="tw:flex tw:items-center tw:justify-between tw:mt-1 tw:text-[10px] tw:text-gray-500">
+                        <span className="tw:flex tw:items-center tw:gap-0.5">
+                          <Amount
+                            value={paylater.totalAmountUsed || 0}
+                            decimalPlaces={0}
+                          />
+                          {" / "}
+                          <Amount
+                            value={paylater.creditLimit || 0}
+                            decimalPlaces={0}
+                          />
+                        </span>
+                        <span>{paylater.usedPct}%</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <div className="tw:flex tw:gap-2 tw:flex-wrap">
-                <div className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-gray-500 tw:mt-1">
-                  <Calendar size={10} className="tw:text-gray-500 tw:mt-0.5" />
-                  <DateFormat value={item.createdAt} formatStr="dd MMM yyyy" />
-                </div>
-
-                <div className="tw:mt-1">
-                  <StoreLinkPopover mobile={item.mobile} />
-                </div>
-
-                <div className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-gray-500 tw:mt-1">
-                  ID:
-                  <span className="tw:text-gray-500">
-                    {item.franchiseId || "-"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="tw:bg-gray-50 tw:rounded-md tw:p-2 tw:mt-2 tw:flex tw:items-center tw:justify-between tw:mb-4">
-              <KeyValue label={t("inventory")} size="sm">
-                {item.analytics?.totalSubscribedInStockDeals ?? "0"}{" "}
-                <span className="tw:text-xs tw:text-gray-500">
-                  {t("products")}
-                </span>{" "}
-              </KeyValue>
-              <KeyValue label={t("distance")} size="sm">
-                <div className="tw:flex tw:gap-1 tw:items-center">
-                  <Navigation size={12} className="tw:text-gray-500" />{" "}
-                  {item.distanceToFranchiseKm || 0} {t("km")}
-                </div>
-              </KeyValue>
-            </div>
-
-            <div className="tw:flex tw:gap-2 tw:mt-2 tw:mb-1">
-              <MapPin size={14} className="tw:text-gray-400 tw:mt-0.5" />
-              <span className="tw:text-gray-400 tw:text-xs tw:line-clamp-2 tw:flex-1">
-                {item.addressLine1}{" "}
-                {item.addressLine2 ? `, ${item.addressLine2}` : ""}
-              </span>
-            </div>
-            <div className="tw:text-xs tw:text-gray-500">
-              {t("pincode")}: {item.pincode || "-"}
             </div>
           </AppCard>
-        ))}
+          );
+        })}
       </div>
 
       {showLoadMore && (
-        <div className="tw-mt-4 tw-flex tw-justify-center">
+        <div className="tw:mt-4 tw:flex tw:justify-center">
           <LoadMoreButton
             loadMore={loadMore}
             loading={loadingMore}

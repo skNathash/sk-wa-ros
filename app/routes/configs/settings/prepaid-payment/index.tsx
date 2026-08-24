@@ -1,7 +1,6 @@
 import { produce } from "immer";
 import {
   Building,
-  IndianRupee,
   Plus,
   Settings,
   User,
@@ -16,10 +15,17 @@ import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import AppSwitch from "~/components/core/form/AppSwitch";
 import AppHeader from "~/components/core/header/AppHeader";
+import { AppPaneMain } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import SettingsSidePane from "~/shared/settings/components/settings-side-pane/SettingsSidePane";
+import { settingsSectionTabs } from "~/shared/settings/components/settings-side-pane/helper";
 import NoData from "~/components/core/no-data/NoData";
 import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
+import { useIsMobile } from "~/hooks/use-mobile";
+import useTheme from "~/hooks/useTheme";
 import RemarksModal from "~/modals/feature/remarks/RemarksModal";
 import AuthService from "~/services/AuthService";
 import FranchiseService from "~/services/FranchiseService";
@@ -63,15 +69,6 @@ const tabItems: TabItem[] = [
 
 const defaultGlobalSettings = [
   {
-    label: "Enable COD Payment",
-    key: "cod",
-    icon: <IndianRupee />,
-    description: "Enable COD payment for all users",
-    value: false,
-    showToggle: true,
-    apiKey: "codEnabled",
-  },
-  {
     label: "Enable Prepaid Payment",
     key: "prepaid",
     icon: <Wallet />,
@@ -84,6 +81,9 @@ const defaultGlobalSettings = [
 
 const PrepaidPayment = () => {
   const appNav = useAppNav();
+  const isMobile = useIsMobile();
+  // theme-2 reads sub-navs as free-standing pills, not the grey segmented bar.
+  const isTheme2 = useTheme() === "theme-2";
 
   const { show: showToast } = useAppToast();
   const [activeTab, setActiveTab] = useState("b2c");
@@ -119,6 +119,8 @@ const PrepaidPayment = () => {
   const currentConfigRef = useRef<any>(null);
 
   useEffect(() => {
+    // The logs tab renders its own data — no payment config to load for it.
+    if (activeTab === "logs") return;
     fetchPaymentConfig();
   }, [activeTab]);
 
@@ -142,8 +144,10 @@ const PrepaidPayment = () => {
     setGlobalSettings(
       produce((draft) => {
         draft.forEach((setting) => {
+          // Coerce: an unset key comes back undefined, which would both skip
+          // the "at least one enabled" guard and go into the payload as-is.
           setting.value =
-            currentConfigRef.current?.overallCustomers?.[setting.apiKey];
+            !!currentConfigRef.current?.overallCustomers?.[setting.apiKey];
 
           if (setting.key === "prepaid") {
             setting.showToggle = paymentConfig.length > 0;
@@ -350,7 +354,6 @@ const PrepaidPayment = () => {
             const it = draft[i] as any;
             const bid = it.buyerId || it._id || it.id;
             if (bid === userId) {
-              it.codEnabled = !!allowed?.cod;
               it.prepaidEnabled = !!allowed?.prepaid;
             }
           }
@@ -363,110 +366,191 @@ const PrepaidPayment = () => {
 
   return (
     <>
-      <AppHeader title="Prepaid Payment" />
-      <div className="app-page tw:p-4 page-bg">
-        <div className="app-container">
-          <AppBreadcrumbs data={defaultBreadcrumbs} className="tw:mb-4" />
-          <AppTab
-            tabs={tabItems}
-            activeTab={activeTab}
-            onTabChange={onTabChange}
-            className="tw:mb-4"
+      <AppHeader
+        title="Prepaid Payment"
+        sectionKey="profile"
+        activeTab="settings"
+        mobileLead="menu"
+      />
+      {/* theme-2 runs this page edge to edge: no page gutter and no centred
+          container — every block (tab tray, cards) owns its own spacing.
+          See `.settings-page-flush` in theme-2.css. */}
+      <div
+        className={`app-page page-bg ${
+          isTheme2 ? "settings-page-flush" : "tw:p-4"
+        }`}
+      >
+        <div className={isTheme2 ? "" : "app-container"}>
+          {/* Settings menu on mobile — theme-2 only (see theme-2.css); the
+              desktop equivalent is the side pane below. */}
+          <SectionTabs
+            tabs={settingsSectionTabs}
+            activeTab={"prepaid-payment"}
+            noShadow
+            sticky
           />
 
-          {loading ? (
-            <div className="tw:flex tw:items-center tw:justify-center tw:h-full">
-              <AppSpinner />
-            </div>
-          ) : activeTab === "logs" ? (
-            <>
-              <ActivityLog />
-            </>
-          ) : (
-            <>
-              <AppCard
-                title="Global Settings"
-                icon={<Settings />}
-                subtitle="Configure global settings for all users"
-              >
-                <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4">
-                  {globalSettings.map((setting) => (
-                    <div
-                      key={setting.key}
-                      className="tw:flex tw:items-center tw:gap-2 tw:border tw:border-gray-200 tw:rounded-lg tw:p-4 tw:bg-white"
-                    >
-                      <div className="tw:shrink-0 tw:text-gray-500">
-                        {setting.icon}
-                      </div>
-                      <div className="tw:flex-1">
-                        <div className="tw:text-sm tw:font-medium tw:mb-0.5">
-                          {setting.label}
-                        </div>
-                        {!setting.showToggle ? (
-                          <span className="tw:text-xs tw:text-red-500">
-                            Please configure payment methods first in the
-                            payment config section{" "}
-                            <button
-                              className="tw:text-blue-500 tw:cursor-pointer tw:underline"
-                              onClick={handleConfigureNow}
-                            >
-                              Configure Now
-                            </button>
-                          </span>
-                        ) : (
-                          <div className="tw:text-xs tw:text-gray-500">
-                            {setting.description}
-                          </div>
-                        )}
-                      </div>
-                      <div className="tw:shrink-0">
-                        {setting.showToggle && (
-                          <AppSwitch
-                            checked={setting.value}
-                            onCheckedChange={(checked) =>
-                              handleSwitchChange(setting.key, checked)
-                            }
-                            label={""}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </AppCard>
+          <div className="section-layout">
+            {/* Desktop-only left rail. Settings is a tab of the Profile
+                section, so the rail keeps listing the profile entries with
+                "Settings" highlighted; moving between the individual config
+                pages is the side pane's job. */}
+            <aside className="section-menu-aside">
+              <div className="tw:sticky tw:top-20">
+                <SectionMenu
+                  sectionKey="profile"
+                  activeTab="settings"
+                  title={"Settings"}
+                />
+              </div>
+            </aside>
 
-              <AppCard
-                title={
-                  <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:w-full">
-                    <div>Configure to Specific Users</div>
-                    <div>
-                      <AppButton
-                        color="primary"
-                        size="small"
-                        onClick={handleAddUser}
-                        fill="outline"
-                      >
-                        <Plus size={14} />
-                        Add User
-                      </AppButton>
-                    </div>
-                  </div>
-                }
-                icon={<Users />}
-              >
-                {specificCustomers?.length > 0 ? (
-                  <>
-                    <SpecificUsers
-                      users={specificCustomers || []}
-                      callback={handleUserCallback}
+            <div className="section-content">
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Full span: in theme-2 desktop the pane is lifted out of the
+                    grid, so the main column owns all 12 columns. */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  {/* Breadcrumbs are dropped entirely in theme-2 (they'd be
+                      hidden there anyway). Not rendered rather than CSS-hidden
+                      so the tab strip below is the column's first child and
+                      lands flush under the sticky section bar — same treatment
+                      as the payment config page. */}
+                  {!isTheme2 && (
+                    <AppBreadcrumbs
+                      data={defaultBreadcrumbs}
+                      className="tw:mb-4"
                     />
-                  </>
-                ) : (
-                  <NoData />
-                )}
-              </AppCard>
-            </>
-          )}
+                  )}
+
+                  {/* theme-2 mobile renders the sub-nav as the full-bleed
+                      underlined tray pinned right below the sticky section pill
+                      bar; theme-2 desktop pins the pills on their own white
+                      band so they don't float on page-bg; the other themes keep
+                      the segmented control. Kept outside the `loading` branch
+                      so the strip stays the column's first child. */}
+                  <AppTab
+                    tabs={tabItems}
+                    activeTab={activeTab}
+                    onTabChange={onTabChange}
+                    variant={
+                      isTheme2 ? (isMobile ? "underline" : "pills") : "tabs"
+                    }
+                    className={
+                      isTheme2
+                        ? isMobile
+                          ? "edge-tabs app-tabs-tray app-tabs-sticky app-tabs-bleed"
+                          : "subscribe-tabs-sticky barcode-tabs-pills"
+                        : "tw:mb-4"
+                    }
+                    scrollable={isTheme2 && isMobile}
+                  />
+
+                  {loading ? (
+                    <div className="tw:flex tw:items-center tw:justify-center tw:h-full">
+                      <AppSpinner />
+                    </div>
+                  ) : activeTab === "logs" ? (
+                    <>
+                      <ActivityLog />
+                    </>
+                  ) : (
+                    <>
+                      {/* theme-2 drops the card box (same `app-flat-sheet`
+                          treatment as the bulk pricing preview): the body is
+                          already a stack of bordered blocks, so the outer
+                          rounded surface is a box around boxes. The title sits
+                          straight on the page ground instead. */}
+                      <AppCard
+                        title="Global Settings"
+                        icon={<Settings />}
+                        subtitle="Configure global settings for all users"
+                        className={isTheme2 ? "app-flat-sheet" : ""}
+                      >
+                        <div className="tw:space-y-3">
+                          {globalSettings.map((setting) => (
+                            <div
+                              key={setting.key}
+                              className="tw:flex tw:items-center tw:gap-4 tw:border tw:border-gray-200 tw:rounded-xl tw:p-4 tw:bg-white tw:shadow-sm tw:transition-shadow hover:tw:shadow-md"
+                            >
+                              <div className="tw:shrink-0 tw:h-11 tw:w-11 tw:rounded-full tw:bg-blue-50 tw:flex tw:items-center tw:justify-center tw:text-blue-600">
+                                {setting.icon}
+                              </div>
+                              <div className="tw:flex-1 tw:min-w-0">
+                                <div className="tw:text-sm tw:font-semibold tw:text-gray-800">
+                                  {setting.label}
+                                </div>
+                                {!setting.showToggle ? (
+                                  <div className="tw:mt-1 tw:text-xs tw:text-red-500 tw:flex tw:items-center tw:gap-1 tw:flex-wrap">
+                                    Please configure payment methods first in
+                                    the payment config section{" "}
+                                    <button
+                                      className="tw:font-medium tw:text-blue-600 tw:cursor-pointer tw:underline-offset-2 hover:tw:underline"
+                                      onClick={handleConfigureNow}
+                                    >
+                                      Configure Now
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="tw:mt-0.5 tw:text-xs tw:text-gray-500">
+                                    {setting.description}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="tw:shrink-0">
+                                {setting.showToggle && (
+                                  <AppSwitch
+                                    checked={setting.value}
+                                    onCheckedChange={(checked) =>
+                                      handleSwitchChange(setting.key, checked)
+                                    }
+                                    label={""}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </AppCard>
+
+                      <AppCard
+                        title={
+                          <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:w-full">
+                            <div>Configure to Specific Users</div>
+                            <div>
+                              <AppButton
+                                color="primary"
+                                size="small"
+                                onClick={handleAddUser}
+                                fill="outline"
+                              >
+                                <Plus size={14} />
+                                Add User
+                              </AppButton>
+                            </div>
+                          </div>
+                        }
+                        icon={<Users />}
+                        className={isTheme2 ? "app-flat-sheet" : ""}
+                      >
+                        {specificCustomers?.length > 0 ? (
+                          <>
+                            <SpecificUsers
+                              users={specificCustomers || []}
+                              callback={handleUserCallback}
+                            />
+                          </>
+                        ) : (
+                          <NoData />
+                        )}
+                      </AppCard>
+                    </>
+                  )}
+                </AppPaneMain>
+
+                <SettingsSidePane activeKey="prepaid-payment" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

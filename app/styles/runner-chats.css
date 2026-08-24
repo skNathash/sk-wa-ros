@@ -1,0 +1,484 @@
+/* Runner chats — the inbox and one thread. Scoped under `.runner-chat-*`.
+   The thread borrows the runner brand green for its masthead so a conversation
+   still reads as part of the runner app, but everything below it is quieter
+   than the feed screens: messages carry the colour, the chrome does not. */
+
+/* ── Inbox ──────────────────────────────────────────────────────────────── */
+
+/* Search field — a pill on the page tint rather than a boxed input, so the
+   list below it is the only thing that reads as structure. */
+[data-slot="input"].runner-chat-search {
+  height: 2.75rem;
+  border-radius: 999px;
+  border-color: transparent;
+  background-color: #fff;
+  padding-left: 2.625rem;
+  padding-right: 2.625rem;
+  font-size: 0.9375rem;
+}
+
+.runner-chat-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  height: 1.75rem;
+  width: 1.75rem;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  color: #64748b;
+}
+
+/* The list itself is a white slab with hairline rules — no card per row, or
+   six shadows would compete for a feed the runner only scans. */
+.runner-chat-list {
+  border-block: 1px solid var(--border);
+  background-color: #fff;
+}
+
+/* An inbox row is a name, a line of preview and a time — it reads as a list,
+   not as a table, so on the inbox screen it keeps a list's width instead of
+   running the length of the content column. Boxed rather than edge-to-edge
+   once it no longer spans the column, or the hairlines it hangs from lead
+   nowhere. Only the standalone screen takes this: in a thread's side pane the
+   list already has a pane's width and a pane's edge. */
+@media (min-width: 64rem) {
+  .runner-chat-search-wrap--page,
+  .runner-chat-list--page {
+    max-width: 40rem;
+    margin-inline: auto;
+  }
+
+  .runner-chat-search-wrap--page {
+    padding-inline: 0;
+  }
+
+  .runner-chat-list--page {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+  }
+}
+
+.runner-chat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+.runner-chat-row + .runner-chat-row {
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+/* The thread the runner is reading, marked in the side pane. The same brand
+   tint the desktop nav rail uses for the section they are in, so both parts of
+   the left of the window say "here" the same way. */
+.runner-chat-row--active,
+.runner-chat-row--active:active {
+  background-color: color-mix(in srgb, var(--primary) 8%, #fff);
+}
+
+.runner-chat-row:active {
+  background-color: #f8fafc;
+}
+
+.runner-chat-avatar {
+  position: relative;
+  display: flex;
+  height: 3rem;
+  width: 3rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+/* Compact variant for the thread masthead, where the name is the subject and
+   the avatar is only there to confirm the runner opened the right chat. */
+.runner-chat-avatar--sm {
+  height: 2.25rem;
+  width: 2.25rem;
+  font-size: 0.75rem;
+}
+
+.runner-chat-avatar--brand {
+  background-color: #0f766e;
+}
+.runner-chat-avatar--teal {
+  background-color: #14806a;
+}
+.runner-chat-avatar--blue {
+  background-color: #2563eb;
+}
+.runner-chat-avatar--orange {
+  background-color: #ea580c;
+}
+.runner-chat-avatar--amber {
+  background-color: #b45309;
+}
+.runner-chat-avatar--slate {
+  background-color: #94a3b8;
+}
+
+/* Presence and verification both hang off the avatar's bottom-right, ringed in
+   the list's own white so they read as badges rather than as part of the fill.
+   Only one of the two ever shows on a given row. */
+.runner-chat-avatar-dot {
+  position: absolute;
+  right: -0.0625rem;
+  bottom: 0.0625rem;
+  height: 0.75rem;
+  width: 0.75rem;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background-color: #22c55e;
+}
+
+.runner-chat-avatar-tick {
+  position: absolute;
+  right: -0.125rem;
+  bottom: -0.125rem;
+  border-radius: 50%;
+  background-color: #fff;
+  color: #16a34a;
+}
+
+.runner-chat-official {
+  flex-shrink: 0;
+  border-radius: 0.3125rem;
+  background-color: #dcfce7;
+  padding: 0.0625rem 0.3125rem;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #15803d;
+}
+
+.runner-chat-time {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+/* An unread thread states its time in the same green as its count, so the two
+   halves of "you have not read this" agree. */
+.runner-chat-time--unread {
+  color: #16a34a;
+}
+
+.runner-chat-unread {
+  display: inline-flex;
+  min-width: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background-color: #22c55e;
+  padding: 0.0625rem 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.runner-chat-encrypted {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3125rem;
+  padding: 0.875rem 1rem 0.5rem;
+  font-size: 0.6875rem;
+  color: #94a3b8;
+}
+
+/* ── Thread ─────────────────────────────────────────────────────────────── */
+
+/* Full-height column: masthead, a scrolling message list, composer. The list
+   is the only part that moves, so the composer never rides up the screen.
+
+   The column is the capped frame rather than the page box — the box stays full
+   width so its tint fills the window either side of the thread. */
+.runner-chat-page {
+  display: flex;
+  justify-content: center;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.runner-chat-page .runner-frame {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+}
+
+.runner-chat-topbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.625rem;
+  background: color-mix(in srgb, var(--primary) 85%, #000);
+  padding: 0.625rem 0.75rem;
+}
+
+.runner-chat-back {
+  display: flex;
+  height: 2rem;
+  width: 1.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  color: #fff;
+}
+
+.runner-chat-topbar-btn {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  color: #fff;
+}
+.runner-chat-topbar-btn:hover {
+  background-color: color-mix(in srgb, #fff 16%, transparent);
+}
+
+/* Message ground. Warm rather than white so the outgoing bubbles' tint has
+   something to sit against. */
+.runner-chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #efeae2;
+  padding: 0.75rem 0.75rem 1rem;
+}
+
+.runner-chat-day {
+  display: inline-flex;
+  border-radius: 0.5rem;
+  background-color: #dcf0d8;
+  padding: 0.1875rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3f6212;
+}
+
+.runner-chat-thread-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3125rem;
+  padding: 0.5rem 1rem 0.25rem;
+  font-size: 0.625rem;
+  color: #8a8078;
+}
+
+.runner-chat-msg-row {
+  display: flex;
+  margin-top: 0.5rem;
+}
+.runner-chat-msg-row--out {
+  justify-content: flex-end;
+}
+
+/* One bubble. The tail is a squared-off corner on the sending side — cheaper
+   than a drawn tail and it survives a long wrapped message unchanged. */
+.runner-chat-bubble {
+  position: relative;
+  max-width: 85%;
+  border-radius: 0.5rem;
+  border-top-left-radius: 0;
+  background-color: #fff;
+  box-shadow: 0 1px 1.5px rgb(11 20 26 / 0.13);
+  padding: 0.4375rem 0.625rem 1.125rem;
+}
+
+.runner-chat-bubble--out {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0;
+  background-color: #d9fdd3;
+}
+
+/* Time and ticks sit in the padding the bubble already reserves at its foot,
+   so a short message stays short instead of growing a second line. */
+.runner-chat-bubble-meta {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.3125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  font-size: 0.625rem;
+  color: #667781;
+}
+
+.runner-chat-tick {
+  color: #53bdeb;
+}
+
+/* The job offer reads as a bubble with a card inside it: wider, bordered, and
+   with its own padding so the fee row is not crowded by the timestamp. */
+.runner-chat-bubble--job {
+  width: 17rem;
+  max-width: 90%;
+  border: 1px solid #e2e8f0;
+  padding: 0.625rem 0.75rem 1.375rem;
+}
+
+.runner-chat-job-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b45309;
+}
+
+/* Pay leads the chip row in green; the order type follows in neutral, so the
+   number the runner decides on is never the second thing read. */
+.runner-chat-job-fee {
+  border-radius: 0.375rem;
+  background-color: #dcfce7;
+  padding: 0.1875rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.runner-chat-job-type {
+  border-radius: 0.375rem;
+  background-color: #f1f5f9;
+  padding: 0.1875rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* ── Composer ───────────────────────────────────────────────────────────── */
+
+.runner-chat-composer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #efeae2;
+  padding: 0.5rem 0.625rem;
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+}
+
+.runner-chat-composer-field {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background-color: #fff;
+  box-shadow: 0 1px 1.5px rgb(11 20 26 / 0.1);
+  padding: 0.625rem 0.875rem;
+}
+
+.runner-chat-send {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: #fff;
+}
+
+/* ── Thread panes ───────────────────────────────────────────────────────── */
+
+/* Below the desktop breakpoint neither is merely narrow — both are absent. The
+   composer owns the bottom of a phone, and the inbox is a screen the runner
+   came out of rather than something beside them. */
+.runner-chat-page .runner-tabbar,
+.runner-chat-inbox-pane {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  /* Three panes: sections, inbox, thread. The page keeps its own height and
+     hidden overflow — each pane scrolls inside its cell, so the composer and
+     the nav stay put while messages move. */
+  .runner-chat-page {
+    display: grid;
+    grid-template-columns: var(--runner-rail-w) 22rem minmax(0, 1fr);
+  }
+
+  /* The rail is the shell's, styled in runner-shell.css; the thread page only
+     has to let it back in and give it the first column. */
+  .runner-chat-page .runner-tabbar {
+    display: block;
+  }
+
+  .runner-chat-inbox-pane {
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background-color: #fff;
+  }
+
+  /* The same green and the same height as the thread's masthead beside it, so
+     one brand bar runs across the window instead of starting midway along it. */
+  .runner-chat-inbox-head,
+  .runner-chat-topbar {
+    min-height: 3.5rem;
+  }
+
+  .runner-chat-inbox-head {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.25rem;
+    background: color-mix(in srgb, var(--primary) 85%, #000);
+    padding: 0.625rem 0.75rem 0.625rem 1rem;
+  }
+
+  .runner-chat-inbox-scroll {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* The thread takes whatever is left. The frame is placed by hand because the
+     shell's own desktop rule puts a `.runner-frame` in the second column — the
+     content column of a feed screen, which here is the inbox. */
+  .runner-chat-page .runner-frame {
+    grid-column: 3;
+    grid-row: 1;
+    max-width: none;
+    padding-bottom: 0;
+  }
+
+  /* Back leads to the inbox, which is on screen — the row the arrow would
+     return to is already lit beside the thread. */
+  .runner-chat-back {
+    display: none;
+  }
+
+  /* Messages keep a reading column of their own rather than spreading with the
+     pane: a bubble that runs the width of a monitor is unreadable, and the
+     composer has to line up with the messages it sends. */
+  .runner-chat-thread-col,
+  .runner-chat-composer {
+    width: 100%;
+    max-width: 46rem;
+    margin-inline: auto;
+  }
+
+  .runner-chat-bubble {
+    max-width: 70%;
+  }
+}

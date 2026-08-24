@@ -1,10 +1,10 @@
 import { ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { redirect } from "react-router";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import AppButton from "~/components/core/button/AppButton";
-import { AppInput } from "~/components/core/form";
+import { AppInput, AppSelect } from "~/components/core/form";
 import AppSimpleHeader from "~/components/core/header/AppSimpleHeader";
 import ImgRender from "~/components/core/img/ImgRender";
 import useAppToast from "~/hooks/useAppToast";
@@ -18,6 +18,7 @@ type FormValues = {
   isWhatsapp?: boolean;
   ownerName?: string;
   email?: string;
+  notificationMessageLang?: string;
 };
 
 const PersonalInfo = () => {
@@ -36,6 +37,7 @@ const PersonalInfo = () => {
       isWhatsapp: temp.isWhatsapp || false,
       ownerName: temp.ownerName || "",
       email: temp.email || "",
+      notificationMessageLang: temp.notificationMessageLang || "en",
     });
     if (temp.emailVerified && temp.email) {
       setEmailVerified(true);
@@ -101,6 +103,7 @@ const PersonalInfo = () => {
         isWhatsapp: data.isWhatsapp,
         ownerName: data.ownerName,
         email: data.email,
+        notificationMessageLang: data.notificationMessageLang || "en",
       });
 
       // Navigate to register step using router helper (no params needed)
@@ -219,6 +222,31 @@ const PersonalInfo = () => {
                 {/* <p className="tw:text-xs tw:text-gray-500 tw:mt-1 tw:mb-4">
                   {t("register.contact.email.optionalHint")}
                 </p> */}
+
+                <div className="tw:mt-4">
+                  <Controller
+                    name="notificationMessageLang"
+                    control={control}
+                    render={({ field }) => (
+                      <AppSelect
+                        label={t(
+                          "register.contact.msgLang.label",
+                          "Notification Language",
+                        )}
+                        options={CommonService.getMessageLanguages()}
+                        onChange={field.onChange}
+                        value={field.value}
+                        inputClassName="tw:w-full"
+                      />
+                    )}
+                  />
+                  <div className="tw:text-xs tw:text-gray-500 tw:mt-1">
+                    {t(
+                      "register.contact.msgLang.note",
+                      "Language for your WhatsApp messages",
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="tw:mt-6 tw:flex tw:justify-between tw:items-center">

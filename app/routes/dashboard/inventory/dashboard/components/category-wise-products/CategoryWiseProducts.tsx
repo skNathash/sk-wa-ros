@@ -169,7 +169,8 @@ const CategoryWiseProducts = () => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        next.set("tab", tab);
+        next.set("tab", "products");
+        next.set("view", tab);
         if (item.categoryRefId) {
           next.set("categoryId", item.categoryRefId);
           next.set("categoryName", item.categoryName || "");

@@ -79,6 +79,8 @@ export const prepareParams = (filter: any, pagination: PaginationState) => {
   // Handle feature filter
   if (filter.feature === "newlyLaunched") {
     return SellerCatalogService.getNetworkNewlyLaunchedParams(params);
+  } else if (filter.feature === "trending") {
+    return SellerCatalogService.getNetworkTrendingParams(params);
   } else if (filter.feature === "topSelling") {
     return SellerCatalogService.getNetworkTopSellingParams(params);
   } else if (filter.feature === "promotionalDeals") {
@@ -87,8 +89,20 @@ export const prepareParams = (filter: any, pagination: PaginationState) => {
     return SellerCatalogService.getRecommendNetworkMyLowStockParams(params);
   } else if (filter.feature === "outOfStock") {
     return SellerCatalogService.getRecommendNetworkMyOutofStockParams(params);
+  } else if (filter.feature === "reorder") {
+    return SellerCatalogService.getNetworkReorderParams(params);
   } else if (filter.feature === "pormotionalDeals") {
     return SellerCatalogService.getNetworkPromotionalDealParams(params);
+  } else if (filter.feature === "fastMovers") {
+    return SellerCatalogService.getNetworkFastMoversParams(params);
+  } else if (filter.feature === "seasonal") {
+    return SellerCatalogService.getNetworkSeasonalParams(params);
+  } else if (filter.feature === "prevBest") {
+    return SellerCatalogService.getNetworkPrevBestParams(params);
+  } else if (filter.feature === "priceDrops") {
+    return SellerCatalogService.getNetworkPriceDropsParams(params);
+  } else if (filter.feature === "clearSlow") {
+    return SellerCatalogService.getNetworkClearSlowParams(params);
   }
 
   return params;

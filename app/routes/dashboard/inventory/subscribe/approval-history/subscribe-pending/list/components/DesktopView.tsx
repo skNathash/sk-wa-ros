@@ -11,7 +11,7 @@ import type {
   TableHeaderItem,
 } from "~/types/CommonTypes";
 import DateFormat from "~/components/core/date/DateFormat";
-import { Eye, Plus, Mail, User, Percent } from "lucide-react";
+import { Eye, Plus, Mail, Percent } from "lucide-react";
 import AppButton from "~/components/core/button/AppButton";
 import DealLinked from "../../../components/DealLinked";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
@@ -49,7 +49,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
     { label: t("product"), key: "productName", width: "20%", enableSort: true },
     { label: t("status"), key: "status", width: "13%", enableSort: true },
     { label: t("adminNotes"), key: "remarks", width: "12%" },
-    { label: t("reviewedBy"), key: "updatedBy", width: "13%" },
+    { label: t("reviewedOn"), key: "updatedAt", width: "13%" },
     { label: t("action"), key: "action", width: "20%" },
   ];
 
@@ -140,31 +140,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   <div>{item.remarks || "-"}</div>
                 </AppTable.Cell>
 
-                {/* Updated By Column */}
+                {/* Reviewed On Column */}
                 <AppTable.Cell>
-                  {item.updatedByName ? (
+                  {item.updatedByName && item.updatedAt ? (
                     <div className="tw:text-sm tw:text-slate-700">
-                      {item.updatedByName && (
-                        <div className="tw:flex tw:items-center tw:gap-1 tw:mb-1">
-                          <User className="tw:w-3 tw:h-3 tw:text-slate-500" />
-                          <span>{item.updatedByName}</span>
-                        </div>
-                      )}
-
-                      {item.updatedAt && (
-                        <div className="tw:text-xs tw:text-slate-500">
-                          <DateFormat
-                            value={item.updatedAt}
-                            formatStr="dd MMM yyy"
-                          />
-                          <div className="tw:text-xs tw:text-slate-500">
-                            <DateFormat
-                              value={item.updatedAt}
-                              formatStr="hh:mm a"
-                            />
-                          </div>
-                        </div>
-                      )}
+                      <DateFormat
+                        value={item.updatedAt}
+                        formatStr="dd MMM yyyy"
+                      />
                     </div>
                   ) : (
                     <span>-</span>

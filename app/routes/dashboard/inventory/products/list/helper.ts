@@ -23,6 +23,7 @@ export interface SummaryItem {
 }
 
 export interface MainSummaryData {
+  inStock: number;
   totalProducts: number;
   lowStock: number;
   inventoryValue: number;
@@ -97,6 +98,7 @@ export const DEFAULT_PRODUCT_SUMMARY: SummaryItem[] = [
 
 // Default main summary data
 export const DEFAULT_MAIN_SUMMARY: MainSummaryData = {
+  inStock: 0,
   totalProducts: 0,
   lowStock: 0,
   inventoryValue: 0,
@@ -122,6 +124,7 @@ export const prepareParams = (filter: any, pagination: any, sort: any) => {
     count: pagination.rowsPerPage,
     filter: { ...serviceParams.filter },
     showAllDeals: true,
+    includeVariants: true,
   };
 
   if (sort?.key && sort?.value) {
@@ -249,6 +252,13 @@ export const getSummary = async (
     const firstResponse =
       await SellerCatalogService.getInventoryAnalytics(firstParams);
 
+    console.log("firstResponse", firstResponse);
+
+    const inStockCount = await getCount({
+      ...params,
+      filter: { ...params?.filter, availableQuantity: { $gt: 0 } },
+    });
+
     // Second API call: with deleting the keys (for other cards)
     const secondParams = { ...params };
     if (secondParams?.filter?.movementTypeFilter) {
@@ -279,6 +289,7 @@ export const getSummary = async (
       // Use first call for totalProducts and inventoryValue
       // Use second call for lowStock, outOfStock, nearExpiry, expired
       const mainSummary: MainSummaryData = {
+        inStock: inStockCount || 0,
         totalProducts: firstData.totalDeals || 0,
         lowStock: secondData.lowStockAlert || 0,
         inventoryValue: firstData.inventoryValue || 0,

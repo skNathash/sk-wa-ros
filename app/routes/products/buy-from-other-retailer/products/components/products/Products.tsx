@@ -12,7 +12,7 @@ import useTheme from "~/hooks/useTheme";
 import { DEFAULT_BROWSE_DISTANCE } from "~/constants";
 import type { PaginationState } from "~/types/CommonTypes";
 import ProductCard from "../ProductCard";
-import SellerListModal from "../../modals/seller-list/SellerListModal";
+import SellerListModal from "~/shared/catalog/modals/seller-list/SellerListModal";
 import { getCount, getData, prepareParams } from "./helper";
 
 type Props = {

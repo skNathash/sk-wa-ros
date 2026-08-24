@@ -38,32 +38,33 @@ const Summary = ({ summary, callback, selected }: SummaryProps) => {
 
   return (
     <div className="tw:mb-4">
-      {isMobile ? (
-        <>
-          {summary.map((item, index) => (
-            <div key={index} className="tw:mb-4">
-              {renderSummary(item)}
-            </div>
-          ))}
-        </>
-      ) : (
-        <AppSwiper config={swiperConfig}>
-          {summary.map((item, index) => (
-            <AppSwiper.Slide key={index}>{renderSummary(item)}</AppSwiper.Slide>
-          ))}
-        </AppSwiper>
-      )}
+      <AppSwiper config={isMobile ? mobileSwiperConfig : desktopSwiperConfig}>
+        {summary.map((item, index) => (
+          <AppSwiper.Slide key={index}>{renderSummary(item)}</AppSwiper.Slide>
+        ))}
+      </AppSwiper>
     </div>
   );
 };
 
-const swiperConfig: SwiperOptions = {
-  slidesPerView: 4.5,
+const baseSwiperConfig: SwiperOptions = {
   spaceBetween: 12,
   pagination: false,
   navigation: false,
   slidesOffsetAfter: 1,
   slidesOffsetBefore: 1,
+};
+
+// Desktop shows the four cards in one row; mobile peeks the next card so the
+// strip reads as swipeable.
+const desktopSwiperConfig: SwiperOptions = {
+  ...baseSwiperConfig,
+  slidesPerView: 4,
+};
+
+const mobileSwiperConfig: SwiperOptions = {
+  ...baseSwiperConfig,
+  slidesPerView: 1.5,
 };
 
 export default Summary;

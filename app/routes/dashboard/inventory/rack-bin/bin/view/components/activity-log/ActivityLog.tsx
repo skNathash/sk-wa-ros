@@ -1,12 +1,18 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { PaginationState } from "~/types/CommonTypes";
-import { prepareParams, getData, getCount } from "./helper";
+import type { ActivityGroup } from "./helper";
+import {
+  prepareParams,
+  getData,
+  getCount,
+  groupLabel,
+  countLogs,
+} from "./helper";
 
 import Filter from "./Filter";
 import Item from "./Item";
-import AppButton from "~/components/core/button/AppButton";
-import AppCard from "~/components/core/card/AppCard";
+import NoData from "~/components/core/no-data/NoData";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import useAppNav from "~/hooks/useAppNav";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
@@ -15,7 +21,9 @@ const ActivityLog = ({ binId }: { binId: string }) => {
   const appNav = useAppNav();
   const { t } = useTranslation(["common"]);
 
-  const [data, setData] = useState<any[]>([]);
+  // The API already buckets the logs by day, so the timeline holds the groups
+  // it was given.
+  const [groups, setGroups] = useState<ActivityGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
@@ -33,7 +41,7 @@ const ActivityLog = ({ binId }: { binId: string }) => {
   // Apply filter (initial load or filter change)
   const applyFilter = useCallback(async () => {
     setLoading(true);
-    setData([]);
+    setGroups([]);
     paginationRef.current = {
       ...paginationRef.current,
       activePage: 1,
@@ -45,15 +53,13 @@ const ActivityLog = ({ binId }: { binId: string }) => {
         key: "date",
         value: "desc",
       });
-      const result = await getData(params, filterRef.current.binId);
-      setData(result || []);
+      const page = await getData(params, filterRef.current.binId);
+      setGroups(page);
       const totalRecords = await getCount(params, filterRef.current.binId);
       paginationRef.current.totalRecords = totalRecords;
-      setHasMoreData(
-        (result || []).length >= paginationRef.current.rowsPerPage
-      );
+      setHasMoreData(countLogs(page) >= paginationRef.current.rowsPerPage);
     } catch (e) {
-      setData([]);
+      setGroups([]);
       setHasMoreData(false);
     } finally {
       setLoading(false);
@@ -73,11 +79,9 @@ const ActivityLog = ({ binId }: { binId: string }) => {
         key: "date",
         value: "desc",
       });
-      const result = await getData(params, filterRef.current.binId);
-      setData((prev) => [...prev, ...(result || [])]);
-      setHasMoreData(
-        (result || []).length >= paginationRef.current.rowsPerPage
-      );
+      const page = await getData(params, filterRef.current.binId);
+      setGroups((prev) => [...prev, ...(page || [])]);
+      setHasMoreData(countLogs(page) >= paginationRef.current.rowsPerPage);
     } catch (e) {
       // handle error
     } finally {
@@ -106,42 +110,68 @@ const ActivityLog = ({ binId }: { binId: string }) => {
     if (a.action === "view-bin") {
       appNav.to(`/dashboard/inventory/rack-bin/bin/view/${a.data.binId}`);
     }
+    if (a.action === "view-deal") {
+      appNav.to(`/dashboard/inventory/products/view/${a.data.dealId}`);
+    }
   }, []);
 
+  const loadedCount = countLogs(groups);
+
   return (
-    <AppCard title={t("activityLog")} className="tw:mb-4">
+    <div className="tw:mb-4">
       <Filter callback={onFilterChange} />
 
       <PaginationSummary
         paginationConfig={paginationRef.current}
         loadingTotalRecords={loading}
-        loadedCount={data.length}
+        loadedCount={loadedCount}
         fwSize="sm"
         className="tw:mb-4"
       />
 
-      <div>
-        {loading ? (
-          <div className="tw-text-center tw-py-8">{t("loading")}</div>
-        ) : data.length === 0 ? (
-          <div className="tw-text-center tw-py-8">{t("noActivityFound")}</div>
-        ) : (
-          data.map((item, idx) => (
-            <Item key={idx} data={item} callback={onItemCallback} />
-          ))
-        )}
-      </div>
+      {loading ? (
+        <div className="tw:flex tw:flex-col tw:gap-2">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="tw:h-20 tw:animate-pulse tw:rounded-2xl tw:bg-white"
+            />
+          ))}
+        </div>
+      ) : !groups.length ? (
+        <NoData description={t("noActivityFound")} />
+      ) : (
+        <div className="tw:flex tw:flex-col tw:gap-5">
+          {groups.map((group, groupIdx) => (
+            <section key={group.date || groupIdx}>
+              <p className="app-label tw:mb-2 tw:border-b tw:border-slate-200 tw:pb-1.5 tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-[0.18em] tw:text-slate-400">
+                {groupLabel(group.date)}
+              </p>
+              <div className="tw:flex tw:flex-col tw:gap-2">
+                {(group.logs || []).map((log: any, idx: number) => (
+                  <Item
+                    key={log?.id || log?._id || idx}
+                    data={log}
+                    callback={onItemCallback}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
       {hasMoreData && !loading && (
         <div className="tw:text-center tw:mt-4">
           <LoadMoreButton
             loadMore={loadMore}
             loading={loadingMore}
             totalCount={paginationRef.current.totalRecords}
-            loadedCount={data.length}
+            loadedCount={loadedCount}
           />
         </div>
       )}
-    </AppCard>
+    </div>
   );
 };
 

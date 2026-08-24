@@ -7,13 +7,21 @@ import type {
   ViewToggleType,
 } from "~/types/CommonTypes";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
-import { getData, getCount, prepareFilterParams } from "./helper";
+import {
+  getData,
+  getCount,
+  getSummary,
+  prepareFilterParams,
+  defaultSummaryData,
+  type PurchaseOrderSummary,
+} from "./helper";
 import useScreenView from "~/hooks/useScreenView";
 import MobileView from "./components/MobileView";
 import DesktopView from "./components/DesktopView";
 import AppCard from "~/components/core/card/AppCard";
 import AppButton from "~/components/core/button/AppButton";
 import Filter from "./components/Filter";
+import Summary from "./components/Summary";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import useAppNav from "~/hooks/useAppNav";
 import CommonService from "~/services/CommonService";
@@ -51,6 +59,10 @@ const VendorPurchaseOrderPage = () => {
   const [loading, setLoading] = useState(true);
   const [hasMoreData, setHasMoreData] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [summary, setSummary] = useState<PurchaseOrderSummary>({
+    ...defaultSummaryData,
+  });
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
   const filterRef = useRef<FilterState>({ ...defaultFilter });
   const paginationRef = useRef<PaginationState>({
@@ -78,6 +90,10 @@ const VendorPurchaseOrderPage = () => {
         paginationRef.current,
         sortRef.current
       );
+      setSummaryLoading(true);
+      getSummary(vendorId, filterRef.current)
+        .then(setSummary)
+        .finally(() => setSummaryLoading(false));
       const totalRecords = await getCount(params);
       paginationRef.current.totalRecords = totalRecords;
       const ordersData = await getData(params);
@@ -86,7 +102,7 @@ const VendorPurchaseOrderPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [vendorId]);
 
   // Load more data for infinite scroll
   const loadMore = useCallback(
@@ -142,6 +158,7 @@ const VendorPurchaseOrderPage = () => {
 
   return (
     <div>
+      <Summary data={summary} loading={summaryLoading} />
       <Filter callback={filterCb} />
       <div className="tw:flex tw:justify-between tw:items-center tw:mb-2">
         <div>

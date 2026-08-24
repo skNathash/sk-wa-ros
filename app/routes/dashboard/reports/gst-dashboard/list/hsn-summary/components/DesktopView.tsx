@@ -61,7 +61,7 @@ const DesktopView: React.FC<Props> = ({
 
   return (
     <div>
-      <AppTable container responsive fixedLayout minWidth="900px" stickyHeader>
+      <AppTable container responsive fixedLayout minWidth="900px" stickyHeader condensed>
         <AppTable.Header>
           <TableHeader
             headers={headers}

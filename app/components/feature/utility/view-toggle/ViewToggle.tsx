@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { Grid, List } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useTranslation } from "react-i18next";
+import useTheme from "~/hooks/useTheme";
 
 type Props = {
   viewType: "list" | "card";
@@ -19,6 +20,11 @@ const ViewToggle = ({
   showOnlyIcon = false,
 }: Props) => {
   const { t } = useTranslation(["common"]);
+  const theme = useTheme();
+
+  // theme-2 ships a single, fixed presentation per page — no list/card switch.
+  if (theme === "theme-2") return null;
+
   return (
     <div
       className={clsx(className, {

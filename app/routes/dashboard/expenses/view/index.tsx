@@ -13,6 +13,11 @@ import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
 import ExpenseService from "~/services/ExpenseService";
 import PageAccessService from "~/services/PageAccessService";
+import RecentExpenses from "~/shared/expense/components/recent-expenses/RecentExpenses";
+import { AppPaneMain } from "~/shared/layout/app-pane/AppPane";
+import ExpenseSidePane from "~/shared/expense/components/expense-side-pane/ExpenseSidePane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 
 export async function clientLoader() {
@@ -34,7 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const ExpenseView = () => {
-  const { t } = useTranslation(["expense"]);
+  const { t } = useTranslation(["expense", "menu"]);
   const { id } = useParams();
 
   const [expense, setExpense] = useState<any>(null);
@@ -92,7 +97,7 @@ const ExpenseView = () => {
     icon: React.ReactNode,
     title: string,
     value: string,
-    type: string = "text"
+    type: string = "text",
   ) => {
     return (
       <div className="tw:bg-gray-50 tw:p-4 tw:rounded-lg tw:flex tw:flex-col tw:gap-2">
@@ -111,80 +116,104 @@ const ExpenseView = () => {
       <AppHeader title={t("expenseDetailsTitle")} />
 
       <div className="page-bg tw:p-4 app-page">
-        <div className="app-container">
-          <div className="tw:max-w-4xl tw:mx-auto">
-            <div className="tw:flex tw:items-center tw:justify-between tw:flex-wrap tw:gap-2 tw:mb-4">
-              <AppBreadcrumbs data={breadcrumbs} />
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs
+          sectionKey="business"
+          activeTab="expenses"
+          noShadow
+          sticky
+        />
+
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — business section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="business"
+                activeTab="expenses"
+                title={t("manageBusiness", { ns: "menu" })}
+              />
             </div>
+          </aside>
 
-            {loading ? (
-              <div className="tw:p-4 tw:text-center tw:flex tw:justify-center tw:items-center tw:h-40">
-                <AppSpinner />
-              </div>
-            ) : null}
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid; the side pane only exists in
+                  theme-2 desktop, where the CSS lifts it out of the grid into
+                  the fixed list pane (see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                <div className="tw:flex tw:items-center tw:justify-between tw:flex-wrap tw:gap-2 tw:mb-4">
+                  <AppBreadcrumbs data={breadcrumbs} />
+                </div>
 
-            {!loading && !expense ? <NoData /> : null}
-
-            {!loading && expense ? (
-              <>
-                <AppCard>
-                  <div className="tw:flex tw:flex-col tw:gap-2 tw:mb-10 tw:mt-4 tw:text-center">
-                    <div className="tw:text-xl tw:font-bold tw:whitespace-nowrap tw:mx-auto">
-                      {expense.title}
-                    </div>
-                    <div className="tw:text-3xl tw:font-semibold">
-                      <Amount
-                        value={Number(expense.amount ?? 0)}
-                        className="tw:text-red-600"
-                      />
-                    </div>
-                    <div className="tw:text-sm tw:text-gray-500 tw:flex tw:items-center tw:gap-1 tw:justify-center">
-                      <span className="tw:font-semibold">
-                        {t("expenseDate")}:
-                      </span>
-                      <DateFormat
-                        value={expense.expenseDate}
-                        formatStr="dd MMM yyyy"
-                      />
-                    </div>
+                {loading ? (
+                  <div className="tw:p-4 tw:text-center tw:flex tw:justify-center tw:items-center tw:h-40">
+                    <AppSpinner />
                   </div>
+                ) : null}
 
-                  <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-4">
-                    {renderBlock(
-                      <Tag size={16} />,
-                      t("category"),
-                      expense.categoryName || "-"
-                    )}
+                {!loading && !expense ? <NoData /> : null}
 
-                    {renderBlock(
-                      <Tag size={16} />,
-                      t("subCategory"),
-                      expense.subCategoryName || "-"
-                    )}
+                {!loading && expense ? (
+                  <>
+                    <AppCard>
+                      <div className="tw:flex tw:flex-col tw:gap-2 tw:mb-10 tw:mt-4 tw:text-center">
+                        <div className="tw:text-xl tw:font-bold tw:whitespace-nowrap tw:mx-auto">
+                          {expense.title}
+                        </div>
+                        <div className="tw:text-3xl tw:font-semibold">
+                          <Amount
+                            value={Number(expense.amount ?? 0)}
+                            className="tw:text-red-600"
+                          />
+                        </div>
+                        <div className="tw:text-sm tw:text-gray-500 tw:flex tw:items-center tw:gap-1 tw:justify-center">
+                          <span className="tw:font-semibold">
+                            {t("expenseDate")}:
+                          </span>
+                          <DateFormat
+                            value={expense.expenseDate}
+                            formatStr="dd MMM yyyy"
+                          />
+                        </div>
+                      </div>
 
-                    {renderBlock(
-                      <User size={16} />,
-                      t("createdBy"),
-                      expense.createdBy?.name || "-"
-                    )}
+                      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-4">
+                        {renderBlock(
+                          <Tag size={16} />,
+                          t("category"),
+                          expense.categoryName || "-",
+                        )}
 
-                    {renderBlock(
-                      <Clock size={16} />,
-                      t("createdOn"),
-                      expense.createdAt || "-",
-                      "date"
-                    )}
+                        {renderBlock(
+                          <Tag size={16} />,
+                          t("subCategory"),
+                          expense.subCategoryName || "-",
+                        )}
 
-                    {expense.recipient?.name
-                      ? renderBlock(
+                        {renderBlock(
                           <User size={16} />,
-                          "Vendor / Recipient",
-                          expense.recipient?.name || "-"
-                        )
-                      : null}
-                  </div>
+                          t("createdBy"),
+                          expense.createdBy?.name || "-",
+                        )}
 
-                  {/* <div className="tw:mb-4 tw:flex tw:flex-col tw:gap-2">
+                        {renderBlock(
+                          <Clock size={16} />,
+                          t("createdOn"),
+                          expense.createdAt || "-",
+                          "date",
+                        )}
+
+                        {expense.recipient?.name
+                          ? renderBlock(
+                              <User size={16} />,
+                              "Vendor / Recipient",
+                              expense.recipient?.name || "-",
+                            )
+                          : null}
+                      </div>
+
+                      {/* <div className="tw:mb-4 tw:flex tw:flex-col tw:gap-2">
                     <div className="tw:text-sm tw:text-slate-600 ">
                       {t("description")}
                     </div>
@@ -195,30 +224,41 @@ const ExpenseView = () => {
                     </div>
                   </div> */}
 
-                  {expense.assets?.length > 0 ? (
-                    <div>
-                      <div className="tw:text-sm tw:text-slate-600 tw:mb-2">
-                        Attachments:
-                      </div>
-                      <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-6 tw:gap-4">
-                        {expense.assets?.map((item: any, idx: number) => (
-                          <div
-                            key={idx}
-                            className="tw:border tw:border-gray-200 tw:rounded-lg tw:overflow-hidden"
-                            onClick={() => openImagePreview(item)}
-                          >
-                            <ImgRender
-                              assetId={item}
-                              className="tw:w-full tw:h-full tw:object-cover"
-                            />
+                      {expense.assets?.length > 0 ? (
+                        <div>
+                          <div className="tw:text-sm tw:text-slate-600 tw:mb-2">
+                            Attachments:
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </AppCard>
-              </>
-            ) : null}
+                          <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-6 tw:gap-4">
+                            {expense.assets?.map((item: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="tw:border tw:border-gray-200 tw:rounded-lg tw:overflow-hidden"
+                                onClick={() => openImagePreview(item)}
+                              >
+                                <ImgRender
+                                  assetId={item}
+                                  className="tw:w-full tw:h-full tw:object-cover"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </AppCard>
+                  </>
+                ) : null}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed list pane
+                  beside the icon rail. */}
+              <ExpenseSidePane>
+                {/* "View all" is the way back to the expense list here — the
+                    breadcrumbs are hidden in theme-2. */}
+                <RecentExpenses limit={5} showViewAll />
+              </ExpenseSidePane>
+            </div>
           </div>
         </div>
       </div>

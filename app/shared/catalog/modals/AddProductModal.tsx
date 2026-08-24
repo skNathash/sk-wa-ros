@@ -57,6 +57,12 @@ type Props = {
   // present it's attached to the create payload so the backend can correlate
   // the created item with its AI extraction.
   aiCacheId?: string;
+  /**
+   * Bump this value each time the modal is opened to remount brand/category
+   * inputs and reset form state (same idea as PosAddProductModal resetting
+   * on `show`). Prevents stale Autocomplete selections leaking across opens.
+   */
+  forceNewKeys?: number | string;
 };
 
 const UOM_OPTIONS = InventorySubscribeService.getUomOptions();
@@ -118,6 +124,21 @@ function SectionCard({
   );
 }
 
+const EMPTY_FORM_VALUES = {
+  name: "",
+  mrp: "",
+  uom: DEFAULT_UOM,
+  barcode: "",
+  hsn: "",
+  gst: "",
+  description: "",
+  brand: undefined,
+  category: undefined,
+  images: [] as Array<{ id: string }>,
+  newBrand: "",
+  model: "",
+};
+
 export default function AddProductModal({
   show,
   data,
@@ -131,11 +152,13 @@ export default function AddProductModal({
   useBulkApi = false,
   itemId,
   aiCacheId,
+  forceNewKeys,
 }: Props) {
   const isLocalDealMode = mode === "localDeal";
   // In both local-deal and scan flows the barcode is fixed: show it read-only at
   // the top and hide the editable barcode input.
   const showBarcodeReadOnly = isLocalDealMode || mode === "scan";
+  const fieldsKey = forceNewKeys ?? "default";
   const {
     register,
     handleSubmit,
@@ -144,18 +167,7 @@ export default function AddProductModal({
     control,
     formState: { errors },
   } = useForm<Record<string, any>>({
-    defaultValues: {
-      name: "",
-      mrp: "",
-      uom: DEFAULT_UOM,
-      barcode: "",
-      hsn: "",
-      gst: "",
-      description: "",
-      brand: undefined,
-      category: undefined,
-      images: [],
-    },
+    defaultValues: EMPTY_FORM_VALUES,
   });
 
   const uploadedImages =
@@ -324,6 +336,15 @@ export default function AddProductModal({
   const { show: toast } = useAppToast();
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(false);
+
+  // Match PosAddProductModal: whenever the modal opens (or forceNewKeys bumps),
+  // clear ephemeral UI state so a previous success/brand mode can't linger.
+  useEffect(() => {
+    if (!show) return;
+    setCreated(false);
+    setAddNewBrand(false);
+    setLoading(false);
+  }, [show, forceNewKeys]);
 
   const toggleAddNewBrand = () => {
     setAddNewBrand((prev) => !prev);
@@ -519,14 +540,16 @@ export default function AddProductModal({
           </div>
         ) : (
           <>
-            <div className="tw:mb-4 tw:flex tw:items-start tw:gap-2.5 tw:rounded-lg tw:border tw:border-blue-200 tw:bg-blue-50 tw:p-3">
-              <ShieldCheck className="tw:mt-0.5 tw:h-4 tw:w-4 tw:shrink-0 tw:text-blue-600" />
-              <div className="tw:text-xs tw:leading-relaxed tw:text-blue-700">
-                <span className="tw:font-semibold">Product verification:</span>{" "}
-                Once saved, the product is submitted for verification. You'll get
-                a notification when it's confirmed.
+            {forceNewKeys === undefined ? (
+              <div className="tw:mb-4 tw:flex tw:items-start tw:gap-2.5 tw:rounded-lg tw:border tw:border-blue-200 tw:bg-blue-50 tw:p-3">
+                <ShieldCheck className="tw:mt-0.5 tw:h-4 tw:w-4 tw:shrink-0 tw:text-blue-600" />
+                <div className="tw:text-xs tw:leading-relaxed tw:text-blue-700">
+                  <span className="tw:font-semibold">Product verification:</span>{" "}
+                  Once saved, the product is submitted for verification. You'll
+                  get a notification when it's confirmed.
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <form onSubmit={handleSubmit(onSubmit)} className="tw:space-y-4">
               <SectionCard
@@ -692,6 +715,7 @@ export default function AddProductModal({
                           control={control}
                           render={({ field }) => (
                             <BrandSearchInput
+                              key={`brand-${fieldsKey}`}
                               size="sm"
                               values={field.value ? [field.value] : []}
                               callback={handleBrandChange}
@@ -715,6 +739,7 @@ export default function AddProductModal({
                     control={control}
                     render={({ field }) => (
                       <CategorySearchInput
+                        key={`category-${fieldsKey}`}
                         size="sm"
                         values={field.value ? [field.value] : []}
                         callback={handleCategoryChange}
@@ -829,7 +854,7 @@ export default function AddProductModal({
               ) : (
                 <>
                   <CheckCircle2 className="tw:w-4 tw:h-4" />
-                  Send Request
+                  {forceNewKeys === undefined ? "Send Request" : "Submit"}
                 </>
               )}
             </AppButton>

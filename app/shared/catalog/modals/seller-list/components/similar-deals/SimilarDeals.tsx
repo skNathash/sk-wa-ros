@@ -5,11 +5,12 @@ import Amount from "~/components/core/amount/Amount";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import { getData, getCount, prepareParams } from "./helper";
+import { DEFAULT_BROWSE_DISTANCE } from "~/constants";
 
 type Props = {
   brandId?: string;
   categoryId?: string;
-  distance?: number;
+  distance?: number | string;
   excludeDealId?: string;
   callback: (a: { action: string; data?: any }) => void;
 };
@@ -17,7 +18,7 @@ type Props = {
 const SimilarDeals = ({
   brandId,
   categoryId,
-  distance = 10,
+  distance = DEFAULT_BROWSE_DISTANCE as any,
   excludeDealId,
   callback,
 }: Props) => {
@@ -125,7 +126,7 @@ const SimilarDeals = ({
           className="tw:bg-white tw:rounded tw:shadow tw:p-3 tw:text-left tw:flex tw:items-center tw:gap-3 tw:justify-between hover:tw:shadow-md tw:transition-shadow"
         >
           <div className="tw:flex tw:items-center tw:gap-3 tw:flex-1 tw:min-w-0">
-            <div className="tw:w-16 tw:h-16 tw:flex-shrink-0">
+            <div className="tw:w-16 tw:h-16 tw:shrink-0">
               <ImgRender
                 assetId={d.images?.[0]}
                 alt={d.name}
@@ -154,7 +155,7 @@ const SimilarDeals = ({
               </div>
             </div>
           </div>
-          <ChevronRight className="tw:w-5 tw:h-5 tw:text-gray-400 tw:flex-shrink-0" />
+          <ChevronRight className="tw:w-5 tw:h-5 tw:text-gray-400 tw:shrink-0" />
         </button>
       ))}
       <LoadMoreButton

@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Truck, Check, Users, Building2, FileDown } from "lucide-react";
-import AppCard from "~/components/core/card/AppCard";
 import AppButton from "~/components/core/button/AppButton";
 import useAppToast from "~/hooks/useAppToast";
 import AssignDeliveryPersonModal from "~/modals/feature/delivery/assign-delivery/AssignDeliveryPersonModal";
@@ -297,88 +296,91 @@ const Ship: React.FC<ShipProps> = ({
   // OTP handled by parent ShippedDetails; Ship no longer opens OTP modal.
 
   return (
-    <>
-      <AppCard
-        title="Prepare for Shipment"
-        icon={<Truck />}
-        subtitle="The order has been invoiced and is ready for delivery assignment."
-      >
-        {/* Invoice Status Section */}
-        <div className="tw:bg-green-50 tw:border tw:border-green-200 tw:rounded-lg tw:p-4 tw:mb-6">
-          <div className="tw:flex tw:items-center tw:gap-3 tw:flex-col tw:md:flex-row tw:md:items-start">
-            <div className="tw:flex tw:items-center tw:gap-3 tw:flex-1">
-              <div className="tw:w-8 tw:h-8 tw:bg-green-100 tw:rounded-full tw:flex tw:items-center tw:justify-center">
-                <Check className="tw:w-4 tw:h-4 tw:text-green-600" />
-              </div>
-              <div>
-                <h4 className="tw:font-bold tw:text-green-800">
-                  Invoice Generated
-                </h4>
-                <p className="tw:text-sm tw:text-green-700">
-                  Invoice ID: {invoiceRefId} - Ready for delivery assignment.
-                </p>
-              </div>
-            </div>
-
-            {/* Download invoice button next to ready for delivery */}
-            <div className="tw:mt-3 md:tw:mt-0">
-              {orderType === "B2C" ? (
-                <PrintReceipt orderId={orderId || ""} />
-              ) : (
-                <AppButton
-                  size="small"
-                  color="success"
-                  fill="outline"
-                  onClick={() => {
-                    if (invoiceDocumentId) {
-                      CommonService.assetDownload(invoiceDocumentId);
-                      appToast.show({
-                        msg: "Downloading invoice",
-                        color: "success",
-                      });
-                    } else {
-                      appToast.show({
-                        msg: "Invoice document not available",
-                        color: "danger",
-                      });
-                    }
-                  }}
-                >
-                  <FileDown className="tw:text-lg" />
-                  Download Invoice
-                </AppButton>
-              )}
+    <div className="op-stage-handover">
+      <div className="op-card op-card-pad tw:mb-4">
+        <div className="tw:flex tw:items-center tw:gap-3 tw:mb-4">
+          <div
+            className="tw:p-2.5 tw:rounded-xl tw:shrink-0"
+            style={{
+              backgroundColor: "var(--op-tint)",
+              color: "var(--op-accent)",
+            }}
+          >
+            <Truck size={20} />
+          </div>
+          <div>
+            <div className="op-eyebrow tw:mb-0.5">Handover to Logistics</div>
+            <div className="tw:text-sm tw:text-gray-600">
+              The order has been invoiced and is ready for delivery assignment.
             </div>
           </div>
         </div>
 
-        {/* Delivery Method Selection */}
-        <div className="tw:mb-6">
-          <h4 className="tw:font-bold tw:text-gray-800 tw:mb-4">
-            Choose Delivery Method
-          </h4>
+        {/* Invoice Status Section — compact one-line strip */}
+        <div className="tw:flex tw:items-center tw:gap-2 tw:mb-4 tw:rounded-xl tw:border tw:border-green-200 tw:bg-green-50 tw:pl-3 tw:pr-2 tw:py-1.5">
+          <Check className="tw:w-4 tw:h-4 tw:text-green-600 tw:shrink-0" />
+          <div className="tw:text-sm tw:text-green-800 tw:flex-1 tw:min-w-0 tw:truncate">
+            Invoice <span className="tw:font-semibold">{invoiceRefId}</span>{" "}
+            generated
+          </div>
+          <div className="tw:shrink-0">
+            {orderType === "B2C" ? (
+              <PrintReceipt orderId={orderId || ""} />
+            ) : (
+              <AppButton
+                size="small"
+                color="success"
+                fill="clear"
+                onClick={() => {
+                  if (invoiceDocumentId) {
+                    CommonService.assetDownload(invoiceDocumentId);
+                    appToast.show({
+                      msg: "Downloading invoice",
+                      color: "success",
+                    });
+                  } else {
+                    appToast.show({
+                      msg: "Invoice document not available",
+                      color: "danger",
+                    });
+                  }
+                }}
+              >
+                <FileDown className="tw:text-lg" />
+                Download
+              </AppButton>
+            )}
+          </div>
+        </div>
 
-          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4">
+        {/* Delivery Method Selection */}
+        <div className="tw:mb-4">
+          <div className="op-eyebrow tw:text-gray-400! tw:mb-3">
+            Choose Runner or Delivery Method
+          </div>
+
+          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-3">
             {deliveryMethods.map((method) => (
               <div
                 key={method.id}
-                className={`tw:border tw:rounded-lg tw:p-4 tw:cursor-pointer tw:transition-all ${
+                className={`tw:border tw:rounded-xl tw:p-4 tw:cursor-pointer tw:transition-colors ${
                   selectedMethod === method.id
-                    ? "tw:border-blue-500 tw:bg-blue-50"
-                    : "tw:border-gray-200 tw:bg-gray-50 tw:cursor-not-allowed"
+                    ? "tw:border-sky-500 tw:bg-sky-50"
+                    : "tw:border-gray-200 tw:bg-white hover:tw:border-gray-300"
                 }`}
                 onClick={() => handleMethodSelect(method.id)}
               >
                 <div className="tw:flex tw:items-start tw:gap-3">
                   <div className="tw:flex-shrink-0">{method.icon}</div>
                   <div className="tw:flex-1">
-                    <h5 className="tw:font-bold tw:text-gray-800 tw:mb-1">
+                    <h5 className="tw:font-semibold tw:text-gray-800 tw:mb-1">
                       {method.title}
                     </h5>
                     <p className="tw:text-sm tw:text-gray-600 tw:mb-2">
                       {method.description}
                     </p>
-                    <p
+                    {/* Available count display hidden as per requirement */}
+                    {/* <p
                       className={`tw:text-xs ${
                         counts[method.id as keyof typeof counts] > 0
                           ? "tw:text-gray-500"
@@ -390,7 +392,7 @@ const Ship: React.FC<ShipProps> = ({
                             counts[method.id as keyof typeof counts]
                           }`
                         : ""}
-                    </p>
+                    </p> */}
                   </div>
                 </div>
               </div>
@@ -399,25 +401,25 @@ const Ship: React.FC<ShipProps> = ({
         </div>
 
         {/* Action Button */}
-        <div className="tw:text-center">
-          <AppButton
+        <div className="op-cta">
+          <button
+            type="button"
+            className="op-cta-btn"
             onClick={handleAssignDelivery}
             disabled={!selectedMethod}
-            color="dark"
-            fill="solid"
           >
             {selectedMethod === "selfShipment" ? (
-              <Truck className="tw:w-4 tw:h-4" />
+              <Truck size={18} />
             ) : (
-              <Building2 className="tw:w-4 tw:h-4" />
+              <Building2 size={18} />
             )}
             Assign for{" "}
             {selectedMethod === "selfShipment"
               ? "Self Delivery"
               : "Delivery Person"}
-          </AppButton>
+          </button>
         </div>
-      </AppCard>
+      </div>
 
       {/* Assign Delivery Person Modal */}
       <AssignDeliveryPersonModal
@@ -443,7 +445,7 @@ const Ship: React.FC<ShipProps> = ({
         okText={appAlertDialog.okText}
         show={appAlertDialog.show}
       />
-    </>
+    </div>
   );
 };
 

@@ -3,12 +3,37 @@ import { AuthService } from "~/services/AuthService";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
 import type { PaginationState } from "~/types/CommonTypes";
 
-export const purchasedFromOptions = [
-  { value: "All", label: "All Types", langKey: "allTypes" },
-  { value: "Local Vendor", label: "Local Vendor" },
-  { value: "StoreKing", label: "StoreKing" },
-  { value: "Added Stock", label: "Added Stock" },
+/**
+ * PO statuses considered still "in-flight" (not yet fully received). Kept in sync
+ * with the main dashboard's arriving-today badge (main/helper.ts) so the
+ * "Arriving Today" chip here counts the same set of orders.
+ */
+const ACTIVE_PO_STATUSES = ["Approved", "Partially Received"];
+
+/**
+ * Quick-filter chips shown above the search row. The three source chips are a
+ * shortcut for the `purchasedFrom` (type) filter; "Arriving Today" is a separate
+ * axis that filters by expected-delivery-date instead of source. The chips are
+ * single-select — picking one clears the others (see FilterChips).
+ */
+export const filterChips = [
+  { value: "all", label: "All", langKey: "all" },
+  { value: "arrivingToday", label: "Arriving Today", langKey: "arrivingToday" },
+  { value: "Local Vendor", label: "Local Vendor", langKey: "localVendor" },
+  { value: "StoreKing", label: "StoreKing", langKey: "storeKing" },
+  { value: "Added Stock", label: "Stock Added", langKey: "stockAdded" },
 ];
+
+/**
+ * Derive which chip is active from the current form state. `arrivingToday` wins
+ * over a source selection because the two are mutually exclusive in the UI.
+ */
+export const getActiveChip = (filters: Record<string, any>): string => {
+  if (filters.arrivingToday) return "arrivingToday";
+  const source = filters.purchasedFrom;
+  if (source && source !== "All") return source;
+  return "all";
+};
 
 export const prepareFilterParams = (
   filters: Record<string, any>,
@@ -60,6 +85,20 @@ export const prepareFilterParams = (
     if (found) params.filter.status = { $in: found };
   }
 
+  // "Arriving Today" chip: restrict to POs whose expected delivery falls today.
+  // Default to the active (not-yet-received) statuses so it reads as "still
+  // coming", unless the user has picked an explicit status in the filter modal.
+  if (filters.arrivingToday) {
+    const now = new Date();
+    params.filter.expectedDeliveryDate = {
+      $gte: startOfDay(now).toISOString(),
+      $lte: endOfDay(now).toISOString(),
+    };
+    if (!params.filter.status) {
+      params.filter.status = { $in: ACTIVE_PO_STATUSES };
+    }
+  }
+
   if (filters.purchasedFrom && filters.purchasedFrom !== "All") {
     if (filters.purchasedFrom === "Local Vendor") {
       params.filter.source = "manual";
@@ -98,6 +137,88 @@ export const getData = async (params: Record<string, any>) => {
     console.error(error);
     return [];
   }
+};
+
+/** Count + rupee value for one slice of the purchase summary. */
+export type PoSummarySlice = {
+  count: number;
+  value: number;
+};
+
+export type PoSummaryCounts = {
+  total: PoSummarySlice;
+  localVendor: PoSummarySlice;
+  storeKing: PoSummarySlice;
+  stockAdded: PoSummarySlice;
+  /** Length of the active date filter, in days — drives the "LAST 30D" label. */
+  rangeDays: number;
+};
+
+/**
+ * Fetch the top-of-page summary figures.
+ *
+ * The summary endpoint only exposes overall totals (no per-source breakdown),
+ * so the source splits are derived by re-querying with each `filter.source`
+ * value. The base params keep the user's current search / date / vendor filters
+ * but drop any `purchasedFrom` source filter so the strip always shows the full
+ * breakdown regardless of the selected tab.
+ */
+export const getSummary = async (
+  baseParams: Record<string, any>,
+): Promise<PoSummaryCounts> => {
+  const userId = AuthService.getLoggedInUserId();
+
+  const rangeDays =
+    baseParams.startDate && baseParams.endDate
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(baseParams.endDate).getTime() -
+              new Date(baseParams.startDate).getTime()) /
+              86400000,
+          ),
+        )
+      : 0;
+
+  const buildParams = (source?: string) => {
+    const { groupByType, groupByCond, ...rest } = baseParams;
+    const params: Record<string, any> = {
+      ...rest,
+      filter: { ...(baseParams.filter || {}) },
+    };
+    if (source) {
+      params.filter.source = source;
+    } else {
+      delete params.filter.source;
+    }
+    return params;
+  };
+
+  const fetchSlice = async (source?: string): Promise<PoSummarySlice> => {
+    try {
+      const response = await PurchaseOrderService.getPoDashboardSummary(
+        userId,
+        buildParams(source),
+      );
+      const overall = response.data?.data?.overallSummary || {};
+      return {
+        count: overall.totalPO || 0,
+        value: overall.totalPOValue || 0,
+      };
+    } catch (error) {
+      console.error(error);
+      return { count: 0, value: 0 };
+    }
+  };
+
+  const [total, localVendor, storeKing, stockAdded] = await Promise.all([
+    fetchSlice(),
+    fetchSlice("manual"),
+    fetchSlice("sk_order"),
+    fetchSlice("add_stock_inventory"),
+  ]);
+
+  return { total, localVendor, storeKing, stockAdded, rangeDays };
 };
 
 export const getCount = async (params: Record<string, any>) => {

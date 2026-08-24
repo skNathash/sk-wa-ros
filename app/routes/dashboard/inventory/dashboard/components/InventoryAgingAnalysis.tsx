@@ -27,8 +27,8 @@ const InventoryAgingAnalysis = ({
   loading: boolean;
 }) => {
   return (
-    <AppCard bodyClassName="tw:p-4">
-      <h3 className="tw:text-sm tw:font-semibold tw:mb-4">
+    <AppCard className="app-chart-card" bodyClassName="tw:p-4">
+      <h3 className="tw:text-sm tw:font-semibold tw:mb-4 app-chart-title">
         Inventory Aging Analysis
       </h3>
       {loading ? (

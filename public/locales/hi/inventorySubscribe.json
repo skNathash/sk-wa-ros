@@ -7,6 +7,7 @@
     "top": "शीर्ष उत्पाद",
     "history": "सदस्यता इतिहास",
     "brands": "ब्रांड ब्राउज़ करें",
+    "menus": "मेनू ब्राउज़ करें",
     "un-brands": "बिना ब्रांड"
   },
   "header": {
@@ -189,6 +190,7 @@
     "heroSubtitle": "अपने वर्तमान स्टॉक के लिए सबसे कुशल तरीका चुनकर अपनी इन्वेंटरी को व्यवस्थित करें।",
     "quickLinksHeading": "त्वरित लिंक",
     "subscriptionCart": "सब्सक्रिप्शन कार्ट ({{count}})",
+    "cartLabel": "सब्सक्रिप्शन कार्ट",
     "tiles": {
       "scan": {
         "label": "बारकोड स्कैन करें",
@@ -233,6 +235,8 @@
         "description": "एक साथ कई जोड़ें"
       }
     },
-    "aiPoweredBadge": "AI powered"
+    "aiPoweredBadge": "AI powered",
+    "cartHint": "समीक्षा करें और सब्सक्राइब करें",
+    "cartEmptyHint": "अभी तक कुछ नहीं जोड़ा गया"
   }
 }

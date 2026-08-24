@@ -1,4 +1,4 @@
-import { Phone, BarChart3, Zap } from "lucide-react";
+import { Phone, BarChart3, Zap, Users } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
@@ -123,7 +123,7 @@ const Stores: React.FC = () => {
       const params = prepareParams(
         filterRef.current,
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
       const total = await getCount(params);
       paginationRef.current.totalRecords = total;
@@ -146,7 +146,7 @@ const Stores: React.FC = () => {
       const params = prepareParams(
         filterRef.current,
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
       const data = await getData(params);
       setStores((prev) => [...prev, ...data]);
@@ -224,6 +224,10 @@ const Stores: React.FC = () => {
     appNav.to("/master/analytics/network/dashboard");
   };
 
+  const handleViewCrmDashboard = () => {
+    appNav.to("/master/crm/dashboard");
+  };
+
   return (
     <div>
       <AppSimpleHeader title="Master Login - Access Store" />
@@ -276,15 +280,15 @@ const Stores: React.FC = () => {
             across your network.
           </div>
 
-          <div className="tw:mb-6">
-            <div className="tw:bg-gradient-to-r tw:from-blue-600 tw:to-blue-700 tw:rounded-lg tw:p-5 tw:flex tw:items-center tw:justify-between tw:shadow-sm tw:border tw:border-blue-500">
+          <div className="tw:mb-6 tw:grid tw:grid-cols-2 tw:gap-4">
+            <div className="tw:bg-gradient-to-r tw:from-blue-600 tw:to-blue-700 tw:rounded-lg tw:p-5 tw:flex tw:flex-col tw:shadow-sm tw:border tw:border-blue-500">
               <div className="tw:flex tw:items-start tw:space-x-4">
-                <div className="tw:bg-blue-500 tw:rounded-full tw:p-3 tw:flex-shrink-0">
+                <div className="tw:bg-blue-500 tw:rounded-full tw:p-3 tw:flex-shrink-0 tw:hidden tw:sm:block">
                   <BarChart3 className="tw:w-5 tw:h-5 tw:text-white" />
                 </div>
                 <div>
                   <div className="tw:text-white tw:text-sm tw:font-semibold tw:flex tw:items-center tw:space-x-1">
-                    <Zap className="tw:w-4 tw:h-4" />
+                    <Zap className="tw:w-4 tw:h-4 tw:shrink-0" />
                     <span>Master Analytics Dashboard</span>
                   </div>
                   <div className="tw:text-blue-100 tw:text-xs tw:mt-1">
@@ -296,7 +300,32 @@ const Stores: React.FC = () => {
               <AppButton
                 onClick={handleViewDashboard}
                 size="small"
-                className="tw:flex-shrink-0 tw:ml-4 tw:bg-white tw:text-blue-700 tw:font-semibold tw:hover:bg-blue-50"
+                className="tw:self-start tw:mt-4 tw:bg-white tw:text-blue-700 tw:font-semibold tw:hover:bg-blue-50"
+              >
+                Explore Now
+              </AppButton>
+            </div>
+
+            <div className="tw:bg-gradient-to-r tw:from-emerald-600 tw:to-emerald-700 tw:rounded-lg tw:p-5 tw:flex tw:flex-col tw:shadow-sm tw:border tw:border-emerald-500">
+              <div className="tw:flex tw:items-start tw:space-x-4">
+                <div className="tw:bg-emerald-500 tw:rounded-full tw:p-3 tw:flex-shrink-0 tw:hidden tw:sm:block">
+                  <Users className="tw:w-5 tw:h-5 tw:text-white" />
+                </div>
+                <div>
+                  <div className="tw:text-white tw:text-sm tw:font-semibold tw:flex tw:items-center tw:space-x-1">
+                    <Zap className="tw:w-4 tw:h-4 tw:shrink-0" />
+                    <span>CRM Follow-ups Dashboard</span>
+                  </div>
+                  <div className="tw:text-emerald-100 tw:text-xs tw:mt-1">
+                    Track lead follow-ups across employees, retailers and
+                    regions to keep your network engaged.
+                  </div>
+                </div>
+              </div>
+              <AppButton
+                onClick={handleViewCrmDashboard}
+                size="small"
+                className="tw:self-start tw:mt-4 tw:bg-white tw:text-emerald-700 tw:font-semibold tw:hover:bg-emerald-50"
               >
                 Explore Now
               </AppButton>

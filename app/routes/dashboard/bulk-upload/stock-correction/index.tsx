@@ -2,17 +2,16 @@ import {
   CalendarClock,
   QrCode,
   PackageMinus,
-  Download,
+  Package,
   IndianRupee,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import AppTab from "~/components/core/tab/AppTab";
-import AppButton from "~/components/core/button/AppButton";
-import type { TabItem } from "~/types/CommonTypes";
 import PageAccessService from "~/services/PageAccessService";
 import DownloadInventoryModal from "../modals/DownloadInventoryModal";
+import { BulkUploadInfo } from "../components";
 import UpdateMfgExp from "./components/update-mfg-exp/UpdateMfgExp";
 import UpdateBarcode from "./components/update-barcode/UpdateBarcode";
 import StockAdjustment from "./components/stock-adjustment/StockAdjustment";
@@ -29,48 +28,102 @@ const stockCorrectionFeatureMap: Record<string, string> = {
   "stock-adjustment": "adjustment",
 };
 
-const subTabs: TabItem[] = [
+/* Picking a correction is the same kind of choice bulk pricing's "Upload by"
+   row makes — one small, mutually exclusive switch that reshapes the sheet
+   below it — so it wears the same segmented control (`app-mode-seg`) rather
+   than a second tab strip under the page's own. `name` is the segment's label;
+   `fullName` is what assistive tech and the info card read out. */
+const CORRECTIONS: {
+  key: string;
+  name: string;
+  fullName: string;
+  icon: LucideIcon;
+}[] = [
   {
-    name: "Update MFG & Expiry",
     key: "update-mfg-exp",
-    icon: <CalendarClock size={16} />,
+    name: "MFG & Expiry",
+    fullName: "Update MFG & Expiry",
+    icon: CalendarClock,
   },
   {
-    name: "Update Barcode",
     key: "update-barcode",
-    icon: <QrCode size={16} />,
+    name: "Barcode",
+    fullName: "Update Barcode",
+    icon: QrCode,
   },
   {
-    name: "MRP Updates",
     key: "update-mrp",
-    icon: <IndianRupee size={16} />,
+    name: "MRP",
+    fullName: "MRP Updates",
+    icon: IndianRupee,
   },
   {
-    name: "Stock Adjustment",
     key: "stock-adjustment",
-    icon: <PackageMinus size={16} />,
+    name: "Stock",
+    fullName: "Stock Adjustment",
+    icon: PackageMinus,
   },
 ];
+
+/* Stock correction has no separate Excel template: the downloaded inventory
+   sheet IS the template, so each tab states which of its columns to fill in
+   and hands the download off to the inventory modal (which filters to the rows
+   that tab can correct). Same info-card + upload-card shape the pricing tab
+   uses, so the two flows read alike. */
+const tabInfo: Record<string, { fields: string[]; description: string }> = {
+  "update-mfg-exp": {
+    fields: ["MFG Date", "Expiry Date", "Remarks"],
+    description:
+      "Download the inventory of products with no shelf life recorded, fill in the manufacturing and expiry dates, then upload the sheet back.",
+  },
+  "update-barcode": {
+    fields: ["Barcode"],
+    description:
+      "Download the inventory of products with no barcode, fill in the barcode against each product, then upload the sheet back.",
+  },
+  "update-mrp": {
+    fields: ["New MRP"],
+    description:
+      "Download the inventory, set the revised MRP against each product, then upload the sheet back.",
+  },
+  "stock-adjustment": {
+    fields: ["New Quantity"],
+    description:
+      "Download the inventory, enter the physically counted quantity against each product, then upload the sheet back.",
+  },
+};
+
+const DEFAULT_CORRECTION = "update-mfg-exp";
 
 const StockCorrectionTab = () => {
   const { t } = useTranslation(["common"]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<string>(
-    searchParams.get("tab") || "update-mfg-exp",
+    searchParams.get("tab") || DEFAULT_CORRECTION,
   );
   const [downloadModal, setDownloadModal] = useState({ show: false });
+  const segRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const tabFromUrl = searchParams.get("tab") || "update-mfg-exp";
+    const tabFromUrl = searchParams.get("tab") || DEFAULT_CORRECTION;
     if (tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
   }, [activeTab, searchParams]);
 
-  const handleTabChange = (tab: TabItem) => {
-    setActiveTab(tab.key);
+  // Phones scroll the track instead of splitting it four ways, so the chosen
+  // segment can start off screen — pull it into view whenever it changes.
+  useEffect(() => {
+    segRef.current
+      ?.querySelector('[aria-checked="true"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeTab]);
+
+  const handleTabChange = (key: string) => {
+    if (key === activeTab) return;
+    setActiveTab(key);
     const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("tab", tab.key);
+    nextParams.set("tab", key);
     setSearchParams(nextParams);
   };
 
@@ -80,56 +133,75 @@ const StockCorrectionTab = () => {
     }
   };
 
+  const correction =
+    CORRECTIONS.find((c) => c.key === activeTab) || CORRECTIONS[0];
+  const info = tabInfo[activeTab] || tabInfo[DEFAULT_CORRECTION];
+
+  /* Rendered by the active tab above its upload box, so it goes away with it
+     once a file is in preview — a standing "download the sheet" card over a
+     table of parsed rows is just noise. */
+  const infoCard = (
+    <BulkUploadInfo
+      title={correction.fullName}
+      icon={<Package className="app-accent-icon tw:text-blue-600" size={20} />}
+      description={info.description}
+      formatTitle="Columns to fill"
+      columns={info.fields}
+      limitNote="Leave every other column as it is"
+      requiredFormat={`Fill in ${info.fields.join(
+        ", ",
+      )} in the downloaded sheet and leave every other column as it is.`}
+      templateLabel="Inventory"
+      onDownloadTemplate={() => setDownloadModal({ show: true })}
+    />
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
-      case "update-mfg-exp":
-        return <UpdateMfgExp />;
       case "update-barcode":
-        return <UpdateBarcode />;
+        return <UpdateBarcode info={infoCard} />;
       case "update-mrp":
-        return <UpdateMrp />;
+        return <UpdateMrp info={infoCard} />;
       case "stock-adjustment":
-        return <StockAdjustment />;
+        return <StockAdjustment info={infoCard} />;
       default:
-        return <UpdateMfgExp />;
+        return <UpdateMfgExp info={infoCard} />;
     }
   };
 
   return (
     <>
-      <div className="tw:bg-blue-50 tw:border tw:border-blue-200 tw:rounded-lg tw:p-3 tw:mb-4 tw:flex tw:flex-col tw:sm:flex-row tw:items-start tw:sm:items-center tw:justify-between tw:gap-3">
-        <div className="tw:flex tw:items-start tw:gap-2 tw:min-w-0">
-          <Download
-            size={18}
-            className="tw:text-blue-600 tw:mt-0.5 tw:shrink-0"
-          />
-          <div className="tw:text-sm">
-            <p className="tw:font-medium tw:text-blue-900">
-              Download Inventory
-            </p>
-            <p className="tw:text-blue-700 tw:text-xs tw:mt-0.5">
-              All product data can be downloaded and updated.
-            </p>
-          </div>
+      {/* Same segmented switch bulk pricing uses for "Upload by" — same page
+          background, same right-hand parking from sm up — captioned for the
+          choice it makes here. `-scroll` keeps the four segments at their
+          natural width on phones, where pricing's two can split the row. */}
+      <div
+        className="app-mode-seg-row app-mode-seg-scroll tw:sm:justify-end"
+        role="radiogroup"
+        aria-label="Correction type"
+      >
+        <span className="app-mode-seg-label">Correction</span>
+        <div className="app-mode-seg" ref={segRef}>
+          {CORRECTIONS.map(({ key, name, fullName, icon: Icon }) => {
+            const isActive = key === activeTab;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                aria-label={fullName}
+                className={`app-mode-seg-btn ${
+                  isActive ? "app-mode-seg-btn-active" : ""
+                }`}
+                onClick={() => handleTabChange(key)}
+              >
+                <Icon size={15} />
+                <span>{name}</span>
+              </button>
+            );
+          })}
         </div>
-        <AppButton
-          size="small"
-          color="primary"
-          onClick={() => setDownloadModal({ show: true })}
-          className="tw:shrink-0"
-        >
-          <Download size={14} />
-          <span>Download</span>
-        </AppButton>
-      </div>
-
-      <div className="tw:mb-4">
-        <AppTab
-          tabs={subTabs}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          variant="tabs"
-        />
       </div>
 
       {renderTabContent()}

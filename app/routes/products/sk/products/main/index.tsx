@@ -20,6 +20,8 @@ import SkProductsTab from "../../components/SkProductsTab";
 import Footer from "../components/Footer";
 import MenuList from "../components/menu-list/MenuList";
 import Menus from "../components/Menus";
+import Brands from "../components/Brands";
+import ProductsBanner from "../components/ProductsBanner";
 import SearchWithVoice from "../components/SearchWithVoice";
 import TopBrandsCategory from "../components/top-brands-category/TopBrandsCategory";
 import MenuData from "./components/menu-data/MenuData";
@@ -163,7 +165,12 @@ const SkProductsMainPage = () => {
 
     const id = data?.data?.data?.id;
     const showOtherDeals = data?.data?.data?.showOtherDeals;
-    if (action === "add" && id && showOtherDeals && !AuthService.isBuyerUser()) {
+    if (
+      action === "add" &&
+      id &&
+      showOtherDeals &&
+      !AuthService.isBuyerUser()
+    ) {
       setOtherDealModal({ show: true, dealId: id });
     }
   };
@@ -182,7 +189,11 @@ const SkProductsMainPage = () => {
       <AppHeader
         title={
           <span className="tw:flex tw:items-center tw:gap-2">
-            <ImgRender src="logo.svg" alt="StoreKing" className="tw:h-5 tw:w-5" />
+            <ImgRender
+              src="logo.svg"
+              alt="StoreKing"
+              className="tw:h-5 tw:w-5"
+            />
             {t("buyFromSK")}
           </span>
         }
@@ -210,81 +221,89 @@ const SkProductsMainPage = () => {
 
           <div className="section-content">
             <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
-            <SkProductsTab activeTab="products" className="tw:mb-3" />
+            <SkProductsTab
+              activeTab="products"
+              className="tw:mb-3 hide-in-theme-2"
+            />
             <div className="tw:flex tw:gap-4">
-          {/* Left column — menus (desktop only) */}
-          <aside className="tw:hidden tw:lg:block tw:w-56 tw:shrink-0 tw:sticky tw:top-20 tw:self-start tw:max-h-[calc(100vh-11rem)]">
-            <MenuList menus={allMenus} loading={loading} />
-          </aside>
+              {/* Left column — menus (desktop only) */}
+              <aside className="tw:hidden tw:lg:block tw:w-56 tw:shrink-0 tw:sticky tw:top-20 tw:self-start tw:max-h-[calc(100vh-11rem)]">
+                <MenuList menus={allMenus} loading={loading} />
+              </aside>
 
-          {/* Center column — search and main content */}
-          <div className="tw:flex-1 tw:min-w-0">
-            <div className="tw:mb-4 tw:sticky tw:top-16 tw:z-10 tw:py-2 tw:bg-[var(--page-bg,white)]">
-              <SearchWithVoice
-                value={search}
-                onSearch={setSearch}
-                readOnly
-                onInputClick={() => appNav.to("/products/sk/list")}
-                onVoiceSearch={(term) =>
-                  appNav.to("/products/sk/list", { search: term, title: term })
-                }
-              />
-              <p className="tw:mt-1.5 tw:text-xs tw:text-gray-500">
-                Discover and purchase products from the StoreKing catalog.
-              </p>
-            </div>
-            {isSearching ? (
-              <ProductsList
-                search={search}
-                title="Search Results"
-                callback={handleAddToCart}
-              />
-            ) : (
-              <>
-                <div className="tw:lg:hidden">
-                  <Menus menus={allMenus} loading={loading} />
+              {/* Center column — search and main content */}
+              <div className="tw:flex-1 tw:min-w-0">
+                <div className="search-sticky tw:mb-4 tw:sticky tw:top-29 tw:lg:top-15 tw:z-10 tw:pt-1 tw:pb-2 tw:bg-[var(--page-bg,white)]">
+                  <SearchWithVoice
+                    value={search}
+                    onSearch={setSearch}
+                    readOnly
+                    onInputClick={() => appNav.to("/products/sk/list")}
+                    onVoiceSearch={(term) =>
+                      appNav.to("/products/sk/list", {
+                        search: term,
+                        title: term,
+                      })
+                    }
+                  />
                 </div>
-                {/* Render MenuData for each displayed menu */}
-                {displayedMenus.map((m) => (
-                  <div key={m._id} className="tw:mt-4 tw:pb-2">
-                    <MenuData
-                      menuId={m._id}
-                      menuName={m._displayName || m.name}
-                      callback={handleAddToCart}
-                    />
-                  </div>
-                ))}
-                {displayedMenus.length < menus.length && !loading && (
-                  <div className="tw:flex tw:justify-center tw:mt-4">
-                    <LoadMoreButton
-                      loadMore={loadMore}
-                      loading={loadingMore}
-                      totalCount={menus.length}
-                      loadedCount={displayedMenus.length}
-                    />
-                  </div>
+                {isSearching ? (
+                  <ProductsList
+                    search={search}
+                    title="Search Results"
+                    callback={handleAddToCart}
+                  />
+                ) : (
+                  <>
+                    <ProductsBanner />
+                    <div className="tw:lg:hidden">
+                      <Menus menus={allMenus} loading={loading} />
+                      <Brands />
+                    </div>
+                    {/* Render MenuData for each displayed menu */}
+                    {displayedMenus.map((m) => (
+                      <div key={m._id} className="tw:mt-4 tw:pb-2">
+                        <MenuData
+                          menuId={m._id}
+                          menuName={m._displayName || m.name}
+                          callback={handleAddToCart}
+                        />
+                      </div>
+                    ))}
+                    {displayedMenus.length < menus.length && !loading && (
+                      <div className="tw:flex tw:justify-center tw:mt-4">
+                        <LoadMoreButton
+                          loadMore={loadMore}
+                          loading={loadingMore}
+                          totalCount={menus.length}
+                          loadedCount={displayedMenus.length}
+                        />
+                      </div>
+                    )}
+                    {displayedMenus.length >= menus.length && !loading && (
+                      <ProductsList
+                        title="All Products"
+                        callback={handleAddToCart}
+                      />
+                    )}
+                  </>
                 )}
-                {displayedMenus.length >= menus.length && !loading && (
-                  <ProductsList title="All Products" callback={handleAddToCart} />
-                )}
-              </>
-            )}
-          </div>
+              </div>
 
-          {/* Right column — top brands & categories (desktop only) */}
-          <aside
-            className={clsx(
-              "tw:hidden tw:lg:block tw:w-64 tw:shrink-0 tw:sticky tw:top-20 tw:self-start tw:max-h-[calc(100vh-11rem)]",
-              {
-                "tw:lg:hidden": open,
-              },
-            )}
-          >
-            <div className="tw:h-full tw:overflow-y-auto tw:pr-1">
-              <TopBrandsCategory />
+              {/* Right column — top brands & categories (desktop only) */}
+              <aside
+                className={clsx(
+                  "tw:hidden tw:lg:block tw:w-64 tw:shrink-0 tw:sticky tw:top-20 tw:self-start tw:max-h-[calc(100vh-11rem)]",
+                  {
+                    "tw:lg:hidden": open,
+                  },
+                )}
+              >
+                <div className="tw:h-full tw:overflow-y-auto tw:pr-1">
+                  <TopBrandsCategory />
+                </div>
+              </aside>
             </div>
-          </aside>
-          </div>
           </div>
         </div>
       </div>

@@ -1,3 +1,1078 @@
+/* ============================================================
+   StoreKing — Retailer login
+   Scoped entirely under .login-page so nothing leaks into the app.
+   Every rule uses at least one class so it wins over the global
+   `* { font-family: Open Sans }` reset in app.css.
+   ============================================================ */
+
+/* The global reset paints `body` white. On iOS the URL/tool bar collapse
+   makes the visual viewport taller than the 100dvh the browser reported, so
+   that white shows through as a band under the page. Painting the cream on
+   the root/body instead lets it propagate to the canvas, which always covers
+   the full viewport (and any overscroll). Android reflows on toolbar change,
+   which is why it never showed there. */
+html:has(.login-page),
+body:has(.login-page) {
+  background: #f7f2e8;
+}
+
 .login-page {
-  /* background: #feeac7; */
+  --sk-cream: #f7f2e8;
+  --sk-cream-2: #efe7d6;
+  --sk-ink: #0e1626;
+  --sk-muted: #5b6478;
+  --sk-line: rgba(14, 22, 38, 0.08);
+
+  --sk-cyan: #00e5d1;
+  --sk-teal: #0aafa1;
+  --sk-teal-dark: #0a544f;
+
+  --sk-whatsapp: #25d366;
+
+  --sk-gold: #e6b84a;
+  --sk-saffron: #f26a21;
+  --sk-danger: #d64545;
+
+  --sk-display: "Inter", "Open Sans", system-ui, sans-serif;
+  --sk-body: "Open Sans", system-ui, sans-serif;
+  --sk-mono: "Inter", ui-monospace, monospace;
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--sk-cream);
+  color: var(--sk-ink);
+  font-family: var(--sk-body);
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient teal glow behind everything */
+.login-page::before {
+  content: "";
+  position: fixed;
+  top: -10%;
+  right: -15%;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(0, 229, 209, 0.1), transparent 65%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.login-page :where(button) {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+.login-page :where(input) {
+  font-family: inherit;
+}
+
+/* ============================================
+   NAV
+   ============================================ */
+.sk-nav {
+  position: relative;
+  z-index: 5;
+  background: rgba(247, 242, 232, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--sk-line);
+}
+
+.sk-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Full horizontal lockup — the asset already contains the wordmark,
+   so no adjacent "StoreKing" text. */
+.sk-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Matches the help pill's 36px height so the two nav items sit on the
+   same optical baseline — the lockup's crown + ® eat into the ink height,
+   so anything smaller reads as subordinate to the support link. */
+.sk-logo img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+.sk-nav-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 13px 6px 6px;
+  border: 1px solid var(--sk-line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.sk-nav-help:hover {
+  transform: translateY(-1px);
+}
+
+.sk-nav-help-icon {
+  width: 22px;
+  height: 22px;
+  background: var(--sk-whatsapp);
+  color: #fff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   LAYOUT — brand panel | form canvas
+   ============================================ */
+.sk-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(340px, 1fr) minmax(380px, 440px);
+  gap: 28px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 18px 20px 26px;
+  min-height: calc(100dvh - 51px);
+  align-content: center;
+  align-items: stretch;
+}
+
+/* ---------- Brand panel ---------- */
+.sk-brand {
+  position: relative;
+  background: var(--sk-ink);
+  color: var(--sk-cream);
+  border-radius: 22px;
+  overflow: hidden;
+  /* Don't let the panel stretch to the full height of the (much taller)
+     form column — cap it and centre it against the form instead. */
+  align-self: center;
+  height: min(560px, 100%);
+  min-height: 440px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sk-brand-photo-frame {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #1a2438 0%,
+    #0f1a2e 60%,
+    var(--sk-ink) 100%
+  );
+  overflow: hidden;
+}
+
+.sk-brand-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  opacity: 0.7;
+  mix-blend-mode: luminosity;
+  filter: contrast(0.95) saturate(0.85);
+}
+
+.sk-brand-photo-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(14, 22, 38, 0.3) 0%,
+      rgba(14, 22, 38, 0.45) 40%,
+      rgba(14, 22, 38, 0.9) 78%,
+      var(--sk-ink) 100%
+    ),
+    radial-gradient(circle at 90% 10%, rgba(0, 229, 209, 0.28), transparent 55%);
+  pointer-events: none;
+}
+
+.sk-brand-photo-frame::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border: 1px dashed rgba(247, 242, 232, 0.15);
+  border-radius: 16px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sk-brand-content {
+  position: relative;
+  z-index: 3;
+  padding: 26px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  height: 100%;
+}
+
+.sk-os-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px 7px 7px;
+  background: rgba(247, 242, 232, 0.08);
+  border: 1px solid rgba(247, 242, 232, 0.15);
+  border-radius: 999px;
+  font-family: var(--sk-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sk-cream);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.sk-os-badge strong {
+  color: var(--sk-cyan);
+  font-weight: 600;
+}
+
+.sk-os-badge-mark {
+  width: 22px;
+  height: 22px;
+  background: var(--sk-ink);
+  color: var(--sk-cyan);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 2px rgba(0, 229, 209, 0.2);
+  flex-shrink: 0;
+}
+
+.sk-brand-headline {
+  font-family: var(--sk-display);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+  font-size: clamp(24px, 2.2vw, 30px);
+  margin-top: 14px;
+  max-width: 320px;
+}
+
+.sk-brand-headline em {
+  font-style: normal;
+  color: var(--sk-cyan);
+}
+
+.sk-brand-sub {
+  font-size: 13px;
+  color: rgba(247, 242, 232, 0.7);
+  margin-top: 10px;
+  max-width: 300px;
+}
+
+.sk-brand-modules-label {
+  font-family: var(--sk-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(247, 242, 232, 0.5);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sk-brand-modules-label::before {
+  content: "";
+  width: 18px;
+  height: 1px;
+  background: rgba(0, 229, 209, 0.5);
+}
+
+.sk-module-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sk-module-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  background: rgba(247, 242, 232, 0.06);
+  border: 1px solid rgba(247, 242, 232, 0.1);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(247, 242, 232, 0.85);
+}
+
+.sk-module-chips-stat {
+  margin-top: 6px;
+}
+
+.sk-module-chips-stat .sk-module-chip strong {
+  color: var(--sk-cream);
+  font-weight: 700;
+}
+
+.sk-module-chip::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--sk-cyan);
+  box-shadow: 0 0 6px var(--sk-cyan);
+  flex-shrink: 0;
+}
+
+/* Floating "live storefront" proof card */
+.sk-brand-storefront {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 260px;
+  padding: 8px 14px 8px 8px;
+  background: var(--sk-cream);
+  color: var(--sk-ink);
+  border-radius: 14px;
+  box-shadow: 0 16px 32px -20px rgba(0, 0, 0, 0.7);
+}
+
+.sk-brand-storefront-icon {
+  width: 30px;
+  height: 30px;
+  background: var(--sk-ink);
+  color: var(--sk-cyan);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sk-brand-storefront-body {
+  min-width: 0;
+}
+
+.sk-brand-storefront-label {
+  display: block;
+  font-family: var(--sk-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sk-muted);
+}
+
+.sk-brand-storefront-url {
+  display: block;
+  font-family: var(--sk-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sk-teal-dark);
+  background: rgba(0, 229, 209, 0.14);
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Canvas ---------- */
+.sk-canvas {
+  width: 100%;
+  padding-top: 6px;
+}
+
+/* ============================================
+   HEAD
+   ============================================ */
+.sk-head {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.sk-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: #fff;
+  border: 1px solid var(--sk-line);
+  border-radius: 999px;
+  font-family: var(--sk-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sk-teal);
+  margin-bottom: 12px;
+}
+
+.sk-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--sk-teal);
+  border-radius: 50%;
+  animation: sk-pulse-teal 2s infinite;
+}
+
+@keyframes sk-pulse-teal {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(10, 175, 161, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(10, 175, 161, 0.05);
+  }
+}
+
+.sk-h1 {
+  font-family: var(--sk-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-size: clamp(26px, 2.6vw, 34px);
+  margin-bottom: 8px;
+}
+
+.sk-h1 em {
+  font-style: normal;
+  color: var(--sk-teal);
+}
+
+.sk-sub {
+  font-size: 13px;
+  color: var(--sk-muted);
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.sk-sub strong {
+  color: var(--sk-ink);
+  font-weight: 600;
+}
+
+/* ============================================
+   CARD + FIELDS
+   ============================================ */
+.sk-card {
+  background: #fff;
+  border: 1px solid var(--sk-line);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 18px 36px -22px rgba(14, 22, 38, 0.18);
+}
+
+.sk-field {
+  margin-bottom: 12px;
+}
+
+.sk-field-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.sk-input-wrap {
+  display: flex;
+  align-items: stretch;
+  background: var(--sk-cream);
+  border: 1.5px solid var(--sk-line);
+  border-radius: 12px;
+  overflow: hidden;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+
+.sk-input-wrap:focus-within {
+  border-color: var(--sk-teal);
+  box-shadow: 0 0 0 4px rgba(10, 175, 161, 0.12);
+  background: #fff;
+}
+
+.sk-input-wrap input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--sk-ink);
+}
+
+.sk-input-wrap input::placeholder {
+  color: rgba(14, 22, 38, 0.28);
+}
+
+.sk-input-wrap input::-webkit-outer-spin-button,
+.sk-input-wrap input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.sk-phone-cc {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  background: #fff;
+  border-right: 1px solid var(--sk-line);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.sk-flag {
+  width: 22px;
+  height: 16px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: linear-gradient(
+    to bottom,
+    #ff9933 33%,
+    #ffffff 33%,
+    #ffffff 66%,
+    #138808 66%
+  );
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.sk-flag::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  border: 1px solid #000080;
+  box-sizing: border-box;
+}
+
+.sk-phone-input input {
+  font-family: var(--sk-mono);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.sk-input-icon {
+  display: grid;
+  place-items: center;
+  padding: 0 12px;
+  color: var(--sk-muted);
+  border-right: 1px solid var(--sk-line);
+  background: #fff;
+}
+
+.sk-input-toggle {
+  padding: 0 14px;
+  color: var(--sk-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sk-input-toggle:hover {
+  color: var(--sk-ink);
+}
+
+.sk-field-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sk-danger);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.sk-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  margin-top: 6px;
+  background: var(--sk-teal);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  text-align: left;
+  box-shadow: 0 2px 6px -2px rgba(10, 84, 79, 0.3);
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.sk-btn-primary:hover:not(:disabled) {
+  background: #099b8f;
+  box-shadow: 0 4px 10px -3px rgba(10, 84, 79, 0.35);
+}
+
+.sk-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sk-btn-primary-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sk-btn-primary-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sk-btn-primary-main {
+  display: block;
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.sk-btn-primary-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.sk-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sk-btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--sk-line);
+  border-radius: 12px;
+  background: var(--sk-cream);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sk-ink);
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.15s;
+}
+
+.sk-btn-ghost:hover {
+  border-color: var(--sk-ink);
+  background: #fff;
+}
+
+/* ============================================
+   NEW-USER CARD
+   ============================================ */
+.sk-new-card {
+  margin-top: 14px;
+  background: var(--sk-ink);
+  color: var(--sk-cream);
+  border-radius: 18px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sk-new-card::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(0, 229, 209, 0.18), transparent 65%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.sk-new-card-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.sk-new-card-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--sk-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sk-cyan);
+  margin-bottom: 6px;
+}
+
+.sk-new-card-eyebrow::before {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: var(--sk-cyan);
+}
+
+.sk-new-card-title {
+  font-family: var(--sk-display);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+
+.sk-new-card-title em {
+  font-style: normal;
+  color: var(--sk-cyan);
+}
+
+.sk-new-card-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  background: var(--sk-whatsapp);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: left;
+  transition: transform 0.15s;
+}
+
+.sk-new-card-cta:hover {
+  transform: translateY(-1px);
+}
+
+.sk-new-card-cta-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sk-new-card-cta-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sk-new-card-cta-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.sk-new-card-cta-sub {
+  display: block;
+  font-family: var(--sk-mono);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  margin-top: 1px;
+}
+
+.sk-new-card-alt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(247, 242, 232, 0.62);
+}
+
+.sk-new-card-alt button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sk-cyan);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.sk-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--sk-muted);
+}
+
+.sk-foot-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sk-ink);
+  font-weight: 600;
+  border-bottom: 1px solid var(--sk-line);
+  padding-bottom: 1px;
+}
+
+.sk-foot-link:hover {
+  border-bottom-color: var(--sk-ink);
+}
+
+.sk-powered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--sk-muted);
+}
+
+/* ============================================
+   RESPONSIVE
+   ------------------------------------------------------------
+   Mobile decision: the tall photo panel is a desktop-only
+   device. Below 900px it collapses into a short branded strip
+   that keeps the identity (badge + headline + hero photo)
+   without pushing the form under the fold once the keyboard
+   opens. Module chips / sub-copy are dropped there — they are
+   reassurance copy, not something a returning retailer reads.
+   ============================================ */
+@media (max-width: 1100px) {
+  .sk-shell {
+    grid-template-columns: minmax(300px, 1fr) minmax(340px, 420px);
+    gap: 20px;
+  }
+  .sk-brand-content {
+    padding: 22px 20px 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .sk-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 14px 14px 28px;
+    max-width: 560px;
+  }
+
+  /* relative, not static — the photo frame is absolutely positioned
+     and would otherwise escape to .login-page and cover the page */
+  .sk-brand {
+    position: relative;
+    top: auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    border-radius: 20px;
+  }
+
+  .sk-brand-content {
+    padding: 18px 18px 16px;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 140px;
+  }
+
+  .sk-brand-headline {
+    font-size: 22px;
+    margin-top: 12px;
+    max-width: none;
+  }
+
+  .sk-brand-headline br {
+    display: none;
+  }
+
+  .sk-brand-sub,
+  .sk-brand-modules,
+  .sk-brand-storefront {
+    display: none;
+  }
+
+  .sk-brand-photo {
+    object-position: center 25%;
+    opacity: 0.5;
+  }
+
+  .sk-brand-photo-frame::after {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(14, 22, 38, 0.5) 0%,
+        rgba(14, 22, 38, 0.75) 60%,
+        var(--sk-ink) 100%
+      ),
+      radial-gradient(
+        circle at 90% 10%,
+        rgba(0, 229, 209, 0.25),
+        transparent 55%
+      );
+  }
+
+  .sk-brand-photo-frame::before {
+    inset: 10px;
+    border-radius: 12px;
+  }
+
+  .sk-canvas {
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .sk-nav-inner {
+    padding: 12px 16px;
+  }
+
+  /* Compact help pill: icon + number only */
+  .sk-nav-help {
+    font-size: 0;
+    gap: 8px;
+    padding: 6px 12px 6px 6px;
+  }
+
+  .sk-nav-help-num {
+    font-size: 12px;
+    font-family: var(--sk-mono);
+    font-weight: 600;
+  }
+
+  .sk-logo img {
+    height: 30px;
+  }
+
+  .sk-head {
+    margin-bottom: 18px;
+  }
+
+  .sk-h1 {
+    font-size: 27px;
+    line-height: 1.05;
+  }
+
+  .sk-sub {
+    font-size: 14px;
+  }
+
+  .sk-eyebrow {
+    padding: 5px 12px;
+    font-size: 10px;
+    margin-bottom: 14px;
+  }
+
+  .sk-card {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .sk-brand-content {
+    min-height: 124px;
+    padding: 14px 14px 12px;
+  }
+
+  .sk-brand-headline {
+    font-size: 20px;
+  }
+
+  .sk-os-badge {
+    padding: 5px 11px 5px 5px;
+    font-size: 10px;
+  }
+
+  .sk-btn-ghost {
+    font-size: 12px;
+    padding: 10px 8px;
+    white-space: nowrap;
+  }
+
+  .sk-new-card {
+    padding: 14px 16px;
+    border-radius: 16px;
+  }
+
+  .sk-new-card-title {
+    font-size: 16px;
+  }
+}
+
+/* Very short viewports (keyboard open on small phones) */
+@media (max-width: 900px) and (max-height: 620px) {
+  .sk-brand {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page *,
+  .login-page *::before,
+  .login-page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

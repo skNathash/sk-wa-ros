@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import useAppNav from "~/hooks/useAppNav";
-import AuthService from "~/services/AuthService";
-import CartService from "~/services/CartService";
-import SellerCatalogService from "~/services/SellerCatalogService";
+// import AuthService from "~/services/AuthService";
+// import CartService from "~/services/CartService";
+// import SellerCatalogService from "~/services/SellerCatalogService";
 
 const CartCheck = () => {
   const appNav = useAppNav();
@@ -14,41 +14,46 @@ const CartCheck = () => {
   const redirectTo = searchParams.get("redirectTo") || "";
 
   useEffect(() => {
-    const fetchData = async () => {
-      const promises = [
-        CartService.fetchCartDetails({
-          type: "B2B",
-          id: AuthService.getLoggedInUserId(true) || "",
-        }),
-        SellerCatalogService.getMultiCarts({ outputType: "count" }),
-      ];
+    // Skip SK cart check — redirect directly to seller cart
+    appNav.replace(
+      redirectTo || "/products/buy-from-other-retailer/products/cart",
+    );
 
-      const responses = await Promise.all(promises);
+    // const fetchData = async () => {
+    //   const promises = [
+    //     CartService.fetchCartDetails({
+    //       type: "B2B",
+    //       id: AuthService.getLoggedInUserId(true) || "",
+    //     }),
+    //     SellerCatalogService.getMultiCarts({ outputType: "count" }),
+    //   ];
 
-      const cartDetails = responses[0].data?.count || 0;
-      const multiCarts = responses[1].data?.count || 0;
+    //   const responses = await Promise.all(promises);
 
-      const hasSKCart = cartDetails > 0;
-      const hasMultiCarts = multiCarts > 0;
+    //   const cartDetails = responses[0].data?.count || 0;
+    //   const multiCarts = responses[1].data?.count || 0;
 
-      let redirectData = {
-        url: "",
-        params: {},
-      };
+    //   const hasSKCart = cartDetails > 0;
+    //   const hasMultiCarts = multiCarts > 0;
 
-      if (hasSKCart && hasMultiCarts) {
-        redirectData.url = redirectTo || "/products/cart";
-        redirectData.params = { tab: 1 };
-      } else if (hasSKCart && !hasMultiCarts) {
-        redirectData.url = "/products/cart";
-      } else if (!hasSKCart && hasMultiCarts) {
-        redirectData.url = "/products/buy-from-other-retailer/products/cart";
-      }
+    //   let redirectData = {
+    //     url: "",
+    //     params: {},
+    //   };
 
-      appNav.replace(redirectData.url, redirectData.params);
-    };
+    //   if (hasSKCart && hasMultiCarts) {
+    //     redirectData.url = redirectTo || "/products/cart";
+    //     redirectData.params = { tab: 1 };
+    //   } else if (hasSKCart && !hasMultiCarts) {
+    //     redirectData.url = "/products/cart";
+    //   } else if (!hasSKCart && hasMultiCarts) {
+    //     redirectData.url = "/products/buy-from-other-retailer/products/cart";
+    //   }
 
-    fetchData();
+    //   appNav.replace(redirectData.url, redirectData.params);
+    // };
+
+    // fetchData();
   }, [redirectTo]);
 
   return (

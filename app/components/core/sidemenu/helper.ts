@@ -18,6 +18,7 @@ async function fetchCatalogSubscribePendingCount(): Promise<
       outputType: "count",
       filter: {
         status: "Synced",
+        isSubscribed: false,
       },
     };
     const resp =

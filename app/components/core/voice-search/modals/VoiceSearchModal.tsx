@@ -13,6 +13,13 @@ import ImgRender from "../../img/ImgRender";
 type Props = {
   show: boolean;
   callback: (a: { action: string; data?: any }) => void;
+  /**
+   * `product` (default) runs the transcript through the catalog keyword
+   * lookup and only closes on a match. `raw` hands the transcript straight
+   * back — for callers that dictate something other than a product, e.g.
+   * onboarding a customer by name + mobile.
+   */
+  mode?: "product" | "raw";
 };
 
 const voiceLanguages: Array<{ key: string; label: string }> =
@@ -49,7 +56,7 @@ const stopCordovaListening = () => {
   });
 };
 
-const VoiceSearchModal = ({ show, callback }: Props) => {
+const VoiceSearchModal = ({ show, callback, mode = "product" }: Props) => {
   const recRef = useRef<any | null>(null);
   const suppressCloseRef = useRef(false);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -118,7 +125,16 @@ const VoiceSearchModal = ({ show, callback }: Props) => {
         try {
           const w = (e.results[e.resultIndex][0]?.transcript || "").trim();
           setWord(w);
-          if (w) {
+          if (w && mode === "raw") {
+            // Raw mode: no catalog lookup, the transcript itself is the result.
+            try {
+              recRef.current.stop();
+            } catch (err) {
+              console.debug("stop error", err);
+            }
+            setWord("");
+            callback({ action: "close", data: { search: w } });
+          } else if (w) {
             isSearchingRef.current = true;
             setLoading(true);
 
@@ -148,7 +164,7 @@ const VoiceSearchModal = ({ show, callback }: Props) => {
     } catch (error) {
       console.log(error);
     }
-  }, [callback, lang]);
+  }, [callback, lang, mode]);
 
   const startListening = useCallback(async () => {
     // Reset state when (re)starting recognition
@@ -183,7 +199,10 @@ const VoiceSearchModal = ({ show, callback }: Props) => {
               async (result: any) => {
                 const raw = result?.[0]?.trim();
                 setWord(raw || "");
-                if (raw) {
+                if (raw && mode === "raw") {
+                  setWord("");
+                  callback({ action: "close", data: { search: raw } });
+                } else if (raw) {
                   setLoading(true);
                   try {
                     const r =
@@ -238,7 +257,7 @@ const VoiceSearchModal = ({ show, callback }: Props) => {
       // Not a Cordova app -> use web SpeechRecognition flow
       init();
     }
-  }, [appToast, callback, init, lang]);
+  }, [appToast, callback, init, lang, mode]);
 
   useEffect(() => {
     if (show) {

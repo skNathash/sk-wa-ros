@@ -7,7 +7,9 @@ import Amount from "~/components/core/amount/Amount";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import { prepareParams } from "../helper";
 import OmsDashboardService from "~/services/OmsDashboardService";
+import useTheme from "~/hooks/useTheme";
 import OrdersListModal from "../modals/orders-list/OrdersListModal";
+import StatusCard from "./theme2/StatusCard";
 
 type Props = {
   search: string;
@@ -39,6 +41,7 @@ const CompletedOrdersCard = ({
   callback,
 }: Props) => {
   const [loading, setLoading] = useState(true);
+  const isTheme2 = useTheme() === "theme-2";
 
   const abortRef1 = useRef<AbortController | null>(null);
   const abortRef2 = useRef<AbortController | null>(null);
@@ -155,55 +158,95 @@ const CompletedOrdersCard = ({
 
   return (
     <>
-      <AppCard
-        title="Completed Orders"
-        icon={<CheckCircle />}
-        iconClassName="tw:text-green-500"
-        className="tw:mb-0"
-      >
-        <div className="tw:grid tw:grid-cols-2 tw:gap-1.5 tw:mb-2">
-          <StatItem
-            label="Shipped"
-            value={loading ? <AppSpinner /> : summary.shipped}
-          />
-          <StatItem
-            label="Delivered"
-            value={loading ? <AppSpinner /> : summary.delivered}
-          />
-        </div>
+      {isTheme2 ? (
+        <StatusCard
+          title="Completed Orders"
+          icon={<CheckCircle />}
+          iconWrapClass="tw:bg-emerald-50 tw:text-emerald-600"
+          loading={loading}
+          stats={[
+            {
+              label: "Shipped",
+              value: summary.shipped,
+              barClass: "tw:bg-emerald-400",
+            },
+            {
+              label: "Delivered",
+              value: summary.delivered,
+              barClass: "tw:bg-emerald-600",
+            },
+          ]}
+          totalLabel="Sales Value"
+          totalValue={Number(summary.orderValue)}
+          actions={[
+            {
+              label: "View shipped",
+              onClick: onShowShipped,
+              disabled: summary.shipped === 0,
+            },
+            {
+              label: "View delivered",
+              onClick: onShowDelivered,
+              color: "secondary",
+              disabled: summary.delivered === 0,
+            },
+          ]}
+        />
+      ) : (
+        <AppCard
+          title="Completed Orders"
+          icon={<CheckCircle />}
+          iconClassName="tw:text-green-500"
+          noPadding
+          headerClassName="tw:px-3 tw:pt-3"
+          className="tw:mb-0"
+        >
+          <div className="tw:px-3 tw:pb-3">
+            <div className="tw:grid tw:grid-cols-2 tw:gap-1.5 tw:mb-2">
+              <StatItem
+                label="Shipped"
+                value={loading ? <AppSpinner /> : summary.shipped}
+              />
+              <StatItem
+                label="Delivered"
+                value={loading ? <AppSpinner /> : summary.delivered}
+              />
+            </div>
 
-        <div className="tw:flex tw:justify-between tw:items-center tw:px-1.5 tw:py-1.5 tw:bg-secondary/30 tw:rounded-md tw:mb-2">
-          <div className="tw:text-xs tw:text-muted-foreground tw:uppercase tw:tracking-wide tw:leading-tight">
-            Sales Value
-          </div>
-          <div className="tw:text-sm tw:font-semibold tw:text-foreground">
-            {loading ? (
-              <AppSpinner />
-            ) : (
-              <Amount value={Number(summary.orderValue)} />
-            )}
-          </div>
-        </div>
+            <div className="tw:flex tw:justify-between tw:items-center tw:px-1.5 tw:py-1.5 tw:bg-secondary/30 tw:rounded-md tw:mb-2">
+              <div className="tw:text-xs tw:text-muted-foreground tw:uppercase tw:tracking-wide tw:leading-tight">
+                Sales Value
+              </div>
+              <div className="tw:text-sm tw:font-semibold tw:text-foreground">
+                {loading ? (
+                  <AppSpinner />
+                ) : (
+                  <Amount value={Number(summary.orderValue)} />
+                )}
+              </div>
+            </div>
 
-        <div className="tw:flex tw:justify-end tw:gap-2">
-          <AppButton
-            onClick={onShowShipped}
-            color="primary"
-            size="small"
-            disabled={summary.shipped === 0}
-          >
-            View shipped
-          </AppButton>
-          <AppButton
-            onClick={onShowDelivered}
-            color="secondary"
-            size="small"
-            disabled={summary.delivered === 0}
-          >
-            View delivered
-          </AppButton>
-        </div>
-      </AppCard>
+            <div className="tw:flex tw:justify-end tw:gap-2">
+              <AppButton
+                onClick={onShowShipped}
+                color="primary"
+                size="small"
+                disabled={summary.shipped === 0}
+              >
+                View shipped
+              </AppButton>
+              <AppButton
+                onClick={onShowDelivered}
+                color="secondary"
+                size="small"
+                disabled={summary.delivered === 0}
+              >
+                View delivered
+              </AppButton>
+            </div>
+          </div>
+        </AppCard>
+      )}
 
       <OrdersListModal
         show={ordersListModal.show}

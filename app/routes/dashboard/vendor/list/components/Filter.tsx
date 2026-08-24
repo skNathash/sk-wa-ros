@@ -7,6 +7,7 @@ import AppButton from "~/components/core/button/AppButton";
 import { Filter as FilterIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import FilterModal from "../modals/FilterModal";
+import useScreenView from "~/hooks/useScreenView";
 
 interface FilterProps {
   callback: (value: any) => void;
@@ -16,6 +17,8 @@ const Filter = ({ callback }: FilterProps) => {
   const { t } = useTranslation(["common"]);
 
   const { register, getValues, control, setValue } = useFormContext();
+
+  const { isMobile } = useScreenView();
 
   const [filterModal, setFilterModal] = React.useState({
     show: false,
@@ -51,7 +54,7 @@ const Filter = ({ callback }: FilterProps) => {
 
   return (
     <>
-      <div className="tw:flex tw:flex-col tw:gap-4 tw:mb-4">
+      <div className="tw:flex tw:flex-col tw:gap-2 tw:mb-3">
         <div className="tw:flex tw:items-center tw:gap-2">
           <AppInput
             name="search"
@@ -76,7 +79,13 @@ const Filter = ({ callback }: FilterProps) => {
           </div>
         </div>
       </div>
-      <Alpha callback={onAlphaChange} selected={alpha} className="tw:mb-4" />
+      {/* Horizontal A–Z strip — desktop only. Mobile uses a sticky vertical
+          alpha rail beside the card list (see index.tsx). */}
+      <Alpha
+        callback={onAlphaChange}
+        selected={alpha}
+        className="tw:hidden md:tw:block tw:mb-3 tw:[&_span]:my-0"
+      />
 
       <FilterModal
         show={filterModal.show}

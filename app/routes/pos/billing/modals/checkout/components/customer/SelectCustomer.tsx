@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import AppButton from "~/components/core/button/AppButton";
 import SearchCustomer from "./SearchCustomer";
 import useAppToast from "~/hooks/useAppToast";
 import CommonService from "~/services/CommonService";
@@ -177,17 +178,17 @@ const SelectCustomer = ({ callback, assisted }: SelectCustomerProps) => {
 
   return (
     <div>
-      <div className="wa-section-label tw:mb-4">
+      <div className="tw:text-sm tw:font-semibold tw:mb-4">
         {t("checkoutModal.customer.title")}
       </div>
 
       {options.map((opt) => (
         <div
           className={clsx(
-            "tw:border tw:border-border tw:rounded-xl tw:p-4 tw:flex tw:gap-4 tw:items-center tw:cursor-pointer tw:mb-4 tw:transition-all tw:duration-300",
+            "tw:border tw:border-gray-200 tw:rounded-md tw:p-4 tw:flex tw:gap-4 tw:items-center tw:cursor-pointer tw:mb-4 tw:hover:bg-gray-100 tw:hover:shadow-sm tw:transition-all tw:duration-300",
             option === opt.key
-              ? "wa-incart tw:border-transparent tw:shadow-sm"
-              : "tw:bg-card tw:hover:bg-muted/40 tw:hover:shadow-sm",
+              ? "tw:bg-gray-800 tw:text-white tw:hover:bg-gray-800"
+              : "",
           )}
           key={opt.id}
           onClick={() => {
@@ -202,18 +203,12 @@ const SelectCustomer = ({ callback, assisted }: SelectCustomerProps) => {
               name={opt.icon as any}
               size={16}
               className={clsx(
-                option === opt.key
-                  ? ""
-                  : "tw:text-muted-foreground",
+                "tw:text-gray-600",
+                option === opt.key ? "tw:text-white" : "",
               )}
-              style={
-                option === opt.key
-                  ? { color: "var(--wa-bubble-text)" }
-                  : undefined
-              }
             />
           </div>
-          <div className="tw:text-sm tw:font-semibold">{opt.name}</div>
+          <div className="tw:text-sm tw:font-medium">{opt.name}</div>
         </div>
       ))}
 
@@ -221,13 +216,13 @@ const SelectCustomer = ({ callback, assisted }: SelectCustomerProps) => {
 
       <div className="tw:mt-4">
         {canShowContinue && (
-          <button
-            type="button"
+          <AppButton
+            className="tw:w-full"
+            color="success"
             onClick={handleContinue}
-            className="wa-cta tw:w-full tw:flex tw:items-center tw:justify-center tw:h-10 tw:rounded-xl tw:text-sm tw:font-bold tw:cursor-pointer tw:transition-all"
           >
             {t("checkoutModal.customer.actions.continue")}
-          </button>
+          </AppButton>
         )}
       </div>
     </div>

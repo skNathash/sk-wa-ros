@@ -41,7 +41,7 @@ const getSellerProducts = async (
       filter: {
         ...(query ? { search: query } : {}),
       },
-      sort: { "_id.categoryName": 1 },
+      sort: { dealName: 1 },
     },
     params,
   );

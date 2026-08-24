@@ -16,6 +16,10 @@ import AuthService from "~/services/AuthService";
 import BulkCatalogCartService from "~/services/BulkCatalogCartService";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import ReserveCartSidePane from "./components/ReserveCartSidePane";
 import MobileView from "./components/MobileView";
 import DesktopView from "./components/DesktopView";
 import Summary from "./components/Summary";
@@ -315,7 +319,7 @@ const ProductSelectCartReserve = () => {
         itemId,
       );
 
-        if (response.statusCode === 200) {
+      if (response.statusCode === 200) {
         appToast.show({
           msg:
             response.data?.message || "Product removed from cart successfully",
@@ -394,49 +398,82 @@ const ProductSelectCartReserve = () => {
     <>
       <AppHeader title="Cart - Reserve Configuration" />
       <div className="tw:p-4 app-page page-bg">
-        <div className="app-container">
-          {!loading && totalProducts === 0 ? (
-            <NoData />
-          ) : (
-            <>
-              <div className="tw:mb-4 tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:gap-4">
-                <AppBreadcrumbs data={breadcrumbs} className="tw:mb-0!" />
-                <div className="tw:flex tw:items-center tw:gap-2">
-                  <ViewToggle viewType={view} callback={setView} />
-                  <AppButton
-                    color="primary"
-                    fill="outline"
-                    onClick={() => setShowGlobalApplyModal(true)}
-                    disabled={totalProducts === 0}
-                  >
-                    <Wand2 size={16} />
-                    Apply Global
-                  </AppButton>
-                </div>
-              </div>
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs sectionKey="catalog" activeTab="pricing" noShadow sticky />
 
-              <FormProvider {...formMethods}>
-                <Summary loading={loading} />
-                {isMobile || view === "card" ? (
-                    <MobileView
-                      callback={itemCallback}
-                      loading={loading}
-                      animateApply={globalConfigAnimate}
-                      products={products}
-                    />
+        <div className="section-layout">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="pricing"
+                title="Manage Catalog"
+              />
+            </div>
+          </aside>
+
+          <div className="section-content app-container">
+            {/* The form wraps both columns — the side pane reads the same live
+                values the table edits. */}
+            <FormProvider {...formMethods}>
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  {!loading && totalProducts === 0 ? (
+                    <NoData />
                   ) : (
-                    <AppCard noPadding={true}>
-                      <DesktopView
-                        callback={itemCallback}
-                        loading={loading}
-                        animateApply={globalConfigAnimate}
-                        products={products}
-                      />
-                    </AppCard>
+                    <>
+                      <div className="tw:mb-4 tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:gap-4">
+                        <AppBreadcrumbs
+                          data={breadcrumbs}
+                          className="tw:mb-0! theme-2-mobile-hide"
+                        />
+                        <div className="tw:flex tw:items-center tw:justify-end tw:gap-2 tw:ml-auto">
+                          <ViewToggle viewType={view} callback={setView} />
+                          <AppButton
+                            color="primary"
+                            onClick={() => setShowGlobalApplyModal(true)}
+                            disabled={totalProducts === 0}
+                          >
+                            <Wand2 size={16} />
+                            Apply Global
+                          </AppButton>
+                        </div>
+                      </div>
+
+                      <div className="app-pane-hide">
+                        <Summary loading={loading} />
+                      </div>
+                      {isMobile || view === "card" ? (
+                        <MobileView
+                          callback={itemCallback}
+                          loading={loading}
+                          animateApply={globalConfigAnimate}
+                          products={products}
+                        />
+                      ) : (
+                        <AppCard noPadding={true}>
+                          <DesktopView
+                            callback={itemCallback}
+                            loading={loading}
+                            animateApply={globalConfigAnimate}
+                            products={products}
+                          />
+                        </AppCard>
+                      )}
+                    </>
                   )}
-              </FormProvider>
-            </>
-          )}
+                </AppPaneMain>
+
+                {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed pane
+                  beside the icon rail. */}
+                <AppPaneSide className="app-pane-only">
+                  <ReserveCartSidePane />
+                </AppPaneSide>
+              </div>
+            </FormProvider>
+          </div>
         </div>
       </div>
 

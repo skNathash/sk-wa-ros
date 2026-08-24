@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import Amount from "~/components/core/amount/Amount";
 import AppBadge from "~/components/core/badge/AppBadge";
 import AppButton from "~/components/core/button/AppButton";
+import AppCard from "~/components/core/card/AppCard";
 import DateFormat from "~/components/core/date/DateFormat";
 import Divider from "~/components/core/divider/Divider";
 import AppLink from "~/components/core/link/AppLink";
@@ -24,7 +25,7 @@ const MobileView = ({ data, callback }: Props) => {
   const formattedData = PurchaseOrderService.formatPurchaseOrderData(data);
 
   return (
-    <div className="tw:border tw:border-gray-200 tw:rounded-md tw:p-4 tw:text-sm tw:mb-4">
+    <AppCard className="tw:text-sm">
       <div className="tw:flex tw:justify-between tw:items-start tw:mb-3">
         <div className="tw:flex tw:flex-col tw:gap-1">
           <AppBadge variant="light">
@@ -138,7 +139,7 @@ const MobileView = ({ data, callback }: Props) => {
             )}
         </Rbac>
       </div>
-    </div>
+    </AppCard>
   );
 };
 

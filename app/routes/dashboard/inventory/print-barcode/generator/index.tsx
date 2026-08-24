@@ -2,6 +2,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { CircleAlert, Download } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
@@ -9,10 +10,15 @@ import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
+import useTheme from "~/hooks/useTheme";
 import CommonService from "~/services/CommonService";
 import PageAccessService from "~/services/PageAccessService";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import StorageService from "~/services/StorageService";
+import BarcodeSidePane from "~/shared/catalog/components/barcode-side-pane/BarcodeSidePane";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import ProductInfoCard, {
   type ProductInfo,
@@ -21,6 +27,7 @@ import PrintSettingsForm, {
   type PrintSettingsValue,
 } from "./components/PrintSettingsForm";
 import { sizeOptionsMap } from "~/services/PrintBarcodeService";
+import BarcodePrintHistoryService from "~/services/BarcodePrintHistoryService";
 import { PRINT_BARCODE_BULK_STORAGE_KEY } from "~/constants";
 import { buildPayload, type BulkBarcodeItem } from "./helper";
 import BulkSummary from "./components/BulkSummary";
@@ -89,13 +96,18 @@ const toSingleItem = (values: BarcodeFormState): BulkBarcodeItem => ({
 });
 
 const BarcodeGeneratorPage = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
 
   const bulkMode = searchParams.get("bulk") === "1";
 
   const [bulkItems, setBulkItems] = useState<BulkBarcodeItem[]>(() =>
     bulkMode
-      ? StorageService.get<BulkBarcodeItem[]>(PRINT_BARCODE_BULK_STORAGE_KEY) || []
+      ? StorageService.get<BulkBarcodeItem[]>(PRINT_BARCODE_BULK_STORAGE_KEY) ||
+        []
       : [],
   );
 
@@ -160,6 +172,9 @@ const BarcodeGeneratorPage = () => {
   // The preview endpoint only returns inline HTML, so remember the payload that
   // produced the current preview to fetch the actual PDF on download.
   const previewPayloadRef = useRef<Record<string, any> | null>(null);
+  // The payload carries ids and copies but no product names, so keep the items
+  // that produced it too — the print log reads back as a list of names.
+  const previewItemsRef = useRef<BulkBarcodeItem[]>([]);
   const [downloading, setDownloading] = useState(false);
 
   const hasRequiredFields = useMemo(
@@ -168,95 +183,40 @@ const BarcodeGeneratorPage = () => {
         ? bulkItems.length > 0
         : Boolean(
             productInfo.name.trim() &&
-              productInfo.id.trim() &&
-              productInfo.barcode.trim(),
+            productInfo.id.trim() &&
+            productInfo.barcode.trim(),
           ),
-    [bulkMode, bulkItems.length, productInfo.barcode, productInfo.id, productInfo.name],
+    [
+      bulkMode,
+      bulkItems.length,
+      productInfo.barcode,
+      productInfo.id,
+      productInfo.name,
+    ],
   );
 
   const fetchPreview = useCallback(
     async (values: BarcodePreviewState) => {
-    if (bulkMode) {
-      if (bulkItems.length === 0) {
-        setPreview({
-          loading: false,
-          error: "No products selected for bulk printing.",
-          html: "",
-          url: "",
-          downloadUrl: "",
-          fileName: "",
-        });
-        return;
-      }
-    } else if (
-      !values.name.trim() ||
-      !values.id.trim() ||
-      !values.barcode.trim()
-    ) {
-      setPreview({
-        loading: false,
-        error: "Fill name, id and barcode to see the live preview.",
-        html: "",
-        url: "",
-        downloadUrl: "",
-        fileName: "",
-      });
-      return;
-    }
-
-    const seq = ++requestSeq.current;
-    setPreview((prev) => ({ ...prev, loading: true, error: "" }));
-
-    try {
-      const payload = buildPayload(
-        values,
-        bulkMode ? bulkItems : [toSingleItem(values)],
-      );
-      const resp = await SellerCatalogService.barcodePrintPreview(payload);
-      if (seq !== requestSeq.current) return;
-
-      if (resp?.statusCode === 200) {
-        const result = resp.data?.data;
-        // viewUrl renders inline; downloadUrl forces the browser to save the file.
-        const previewUrl: string | undefined = result?.viewUrl;
-        const downloadUrl: string = result?.downloadUrl
-          ? SellerCatalogService.barcodeAbsoluteUrl(result.downloadUrl)
-          : "";
-        const fileName: string = result?.fileName || "";
-        const html: string | undefined =
-          typeof resp.data === "string" ? resp.data : resp.data?.html;
-
-        if (previewUrl) {
-          previewPayloadRef.current = payload;
+      if (bulkMode) {
+        if (bulkItems.length === 0) {
           setPreview({
             loading: false,
-            error: "",
+            error: "No products selected for bulk printing.",
             html: "",
-            url: SellerCatalogService.barcodeAbsoluteUrl(previewUrl),
-            downloadUrl,
-            fileName,
-          });
-          return;
-        }
-
-        if (html) {
-          previewPayloadRef.current = payload;
-          setPreview({
-            loading: false,
-            error: "",
-            html,
             url: "",
-            downloadUrl,
-            fileName,
+            downloadUrl: "",
+            fileName: "",
           });
           return;
         }
-
-        previewPayloadRef.current = null;
-
+      } else if (
+        !values.name.trim() ||
+        !values.id.trim() ||
+        !values.barcode.trim()
+      ) {
         setPreview({
           loading: false,
-          error: "Preview is not available for the current barcode.",
+          error: "Fill name, id and barcode to see the live preview.",
           html: "",
           url: "",
           downloadUrl: "",
@@ -265,28 +225,90 @@ const BarcodeGeneratorPage = () => {
         return;
       }
 
-      setPreview({
-        loading: false,
-        error: resp?.data?.message || "Failed to generate preview.",
-        html: "",
-        url: "",
-        downloadUrl: "",
-        fileName: "",
-      });
-    } catch (error: unknown) {
-      if (seq !== requestSeq.current) return;
-      setPreview({
-        loading: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to generate preview.",
-        html: "",
-        url: "",
-        downloadUrl: "",
-        fileName: "",
-      });
-    }
+      const seq = ++requestSeq.current;
+      setPreview((prev) => ({ ...prev, loading: true, error: "" }));
+
+      try {
+        const items = bulkMode ? bulkItems : [toSingleItem(values)];
+        const payload = buildPayload(values, items);
+        const resp = await SellerCatalogService.barcodePrintPreview(payload);
+        if (seq !== requestSeq.current) return;
+
+        if (resp?.statusCode === 200) {
+          const result = resp.data?.data;
+          // viewUrl renders inline; downloadUrl forces the browser to save the file.
+          const previewUrl: string | undefined = result?.viewUrl;
+          const downloadUrl: string = result?.downloadUrl
+            ? SellerCatalogService.barcodeAbsoluteUrl(result.downloadUrl)
+            : "";
+          const fileName: string = result?.fileName || "";
+          const html: string | undefined =
+            typeof resp.data === "string" ? resp.data : resp.data?.html;
+
+          if (previewUrl) {
+            previewPayloadRef.current = payload;
+            previewItemsRef.current = items;
+            setPreview({
+              loading: false,
+              error: "",
+              html: "",
+              url: SellerCatalogService.barcodeAbsoluteUrl(previewUrl),
+              downloadUrl,
+              fileName,
+            });
+            return;
+          }
+
+          if (html) {
+            previewPayloadRef.current = payload;
+            previewItemsRef.current = items;
+            setPreview({
+              loading: false,
+              error: "",
+              html,
+              url: "",
+              downloadUrl,
+              fileName,
+            });
+            return;
+          }
+
+          previewPayloadRef.current = null;
+          previewItemsRef.current = [];
+
+          setPreview({
+            loading: false,
+            error: "Preview is not available for the current barcode.",
+            html: "",
+            url: "",
+            downloadUrl: "",
+            fileName: "",
+          });
+          return;
+        }
+
+        setPreview({
+          loading: false,
+          error: resp?.data?.message || "Failed to generate preview.",
+          html: "",
+          url: "",
+          downloadUrl: "",
+          fileName: "",
+        });
+      } catch (error: unknown) {
+        if (seq !== requestSeq.current) return;
+        setPreview({
+          loading: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to generate preview.",
+          html: "",
+          url: "",
+          downloadUrl: "",
+          fileName: "",
+        });
+      }
     },
     [bulkMode, bulkItems],
   );
@@ -306,6 +328,12 @@ const BarcodeGeneratorPage = () => {
         CommonService.windowOpenHandler(
           SellerCatalogService.barcodeAbsoluteUrl(downloadUrl),
           () => {},
+        );
+        // The print endpoints keep no history, so log the sheet locally — the
+        // generator's side pane reads the month's totals back out of it.
+        BarcodePrintHistoryService.recordPrint(
+          previewItemsRef.current,
+          payload.size || "",
         );
       }
     } finally {
@@ -351,117 +379,165 @@ const BarcodeGeneratorPage = () => {
   return (
     <>
       <AppHeader title="Barcode Generator" />
-      <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <AppBreadcrumbs
-            data={bulkMode ? bulkBreadcrumbs : breadcrumbs}
-            className="tw:mb-4"
-          />
+      <div className="page-bg app-page page-padding barcode-gen-page">
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs
+          sectionKey="catalog"
+          activeTab="barcode-generator"
+          noShadow
+          sticky
+        />
 
-          <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] tw:xl:items-start tw:xl:gap-6">
-            <AppCard
-              className="tw:xl:sticky tw:xl:top-4 tw:xl:self-start tw:border-slate-200 tw:bg-white"
-              noPadding
-              noShadow
-              bodyClassName="tw:p-4"
-            >
-              <div className="tw:space-y-3">
-                {bulkMode ? (
-                  <BulkSummary
-                    items={bulkItems}
-                    onRemove={handleRemoveBulkItem}
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="barcode-generator"
+                title={t("manageCatalog", { ns: "menu" })}
+              />
+            </div>
+          </aside>
+
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid; the side pane only exists in
+                  theme-2 desktop, where the CSS lifts it out into the fixed
+                  list pane (see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                {/* The theme-2 pane header carries this context instead. */}
+                {!isTheme2 && (
+                  <AppBreadcrumbs
+                    data={bulkMode ? bulkBreadcrumbs : breadcrumbs}
+                    className="tw:mb-4"
                   />
-                ) : (
-                  <ProductInfoCard productInfo={productInfo} />
                 )}
 
-                <FormProvider {...methods}>
-                  <PrintSettingsForm
-                    className="tw:space-y-0"
-                    compact
-                    hideQuantity={bulkMode}
-                    callback={({ action, data }) => {
-                      if (action === "change" && data) {
-                        schedulePreview({ ...productInfo, ...data });
-                      }
-                    }}
-                  />
-                </FormProvider>
-              </div>
-            </AppCard>
-
-            <div>
-              {!hasRequiredFields ? (
-                <div className="tw:flex tw:min-h-[640px] tw:flex-col tw:items-center tw:justify-center tw:rounded-[28px] tw:bg-slate-50 tw:px-6 tw:text-center">
-                  <div className="tw:flex tw:items-center tw:justify-center tw:rounded-full tw:bg-rose-50 tw:p-3 tw:text-rose-600">
-                    <CircleAlert size={22} />
-                  </div>
-                  <div className="tw:mt-4 tw:text-sm tw:font-semibold tw:text-slate-900">
-                    Preview is waiting for the required fields
-                  </div>
-                  <div className="tw:mt-1 tw:max-w-md tw:text-xs tw:leading-5 tw:text-slate-500">
-                    Add the name, id and barcode above. The canvas will update
-                    automatically once they are present.
-                  </div>
-                </div>
-              ) : preview.error ? (
-                <div className="tw:flex tw:min-h-[640px] tw:flex-col tw:items-center tw:justify-center tw:rounded-[28px] tw:bg-slate-50 tw:px-6 tw:text-center">
-                  <div className="tw:flex tw:items-center tw:justify-center tw:rounded-full tw:bg-rose-50 tw:p-3 tw:text-rose-600">
-                    <CircleAlert size={22} />
-                  </div>
-                  <div className="tw:mt-4 tw:text-sm tw:font-semibold tw:text-slate-900">
-                    Preview unavailable
-                  </div>
-                  <div className="tw:mt-1 tw:max-w-md tw:text-xs tw:leading-5 tw:text-slate-500">
-                    {preview.error}
-                  </div>
-                </div>
-              ) : preview.loading ? (
-                <div className="tw:flex tw:min-h-[640px] tw:flex-col tw:items-center tw:justify-center tw:rounded-[28px] tw:bg-slate-50 tw:px-6">
-                  <AppSpinner size="lg" />
-                  <div className="tw:mt-3 tw:text-sm tw:text-slate-500">
-                    Generating preview...
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {(preview.url || preview.html) && (
-                    <div className="tw:mb-3 tw:flex tw:justify-end">
-                      <AppButton
-                        size="small"
-                        color="primary"
-                        onClick={handleDownload}
-                        disabled={downloading}
-                        className="tw:gap-2"
-                      >
-                        <Download size={14} />
-                        {downloading ? "Preparing..." : "Download PDF"}
-                      </AppButton>
-                    </div>
-                  )}
-                  {/* Direct preview canvas: zoom plugin wraps the iframe without extra stage chrome. */}
-                  <TransformWrapper
-                    initialScale={1}
-                    minScale={1}
-                    maxScale={5}
-                    centerOnInit
-                    doubleClick={{ mode: "toggle" }}
+                <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] tw:xl:items-start tw:xl:gap-6">
+                  <AppCard
+                    className="tw:xl:sticky tw:xl:top-4 tw:xl:self-start tw:border-slate-200 tw:bg-white"
+                    noPadding
+                    noShadow
+                    bodyClassName="tw:p-4"
                   >
-                    <TransformComponent
-                      wrapperStyle={{ width: "100%", height: "100%" }}
-                      contentStyle={{ width: "100%", height: "100%" }}
-                    >
-                      <iframe
-                        title="Barcode preview"
-                        src={preview.url || undefined}
-                        srcDoc={preview.html || undefined}
-                        sandbox="allow-scripts allow-modals"
-                        className="tw:block tw:h-[72vh] tw:min-h-[640px] tw:w-full tw:rounded-[28px] tw:border tw:border-slate-200 tw:bg-white"
-                      />
-                    </TransformComponent>
-                  </TransformWrapper>
-                </>
-              )}
+                    <div className="tw:space-y-3">
+                      {bulkMode ? (
+                        <BulkSummary
+                          items={bulkItems}
+                          onRemove={handleRemoveBulkItem}
+                        />
+                      ) : (
+                        <ProductInfoCard productInfo={productInfo} />
+                      )}
+
+                      <FormProvider {...methods}>
+                        <PrintSettingsForm
+                          className="tw:space-y-0"
+                          compact
+                          hideQuantity={bulkMode}
+                          callback={({ action, data }) => {
+                            if (action === "change" && data) {
+                              schedulePreview({ ...productInfo, ...data });
+                            }
+                          }}
+                        />
+                      </FormProvider>
+                    </div>
+                  </AppCard>
+
+                  <div>
+                    {!hasRequiredFields ? (
+                      <div className="tw:flex tw:min-h-[640px] tw:flex-col tw:items-center tw:justify-center tw:rounded-[28px] tw:bg-slate-50 tw:px-6 tw:text-center">
+                        <div className="tw:flex tw:items-center tw:justify-center tw:rounded-full tw:bg-rose-50 tw:p-3 tw:text-rose-600">
+                          <CircleAlert size={22} />
+                        </div>
+                        <div className="tw:mt-4 tw:text-sm tw:font-semibold tw:text-slate-900">
+                          Preview is waiting for the required fields
+                        </div>
+                        <div className="tw:mt-1 tw:max-w-md tw:text-xs tw:leading-5 tw:text-slate-500">
+                          Add the name, id and barcode above. The canvas will
+                          update automatically once they are present.
+                        </div>
+                      </div>
+                    ) : preview.error ? (
+                      <div className="tw:flex tw:min-h-[640px] tw:flex-col tw:items-center tw:justify-center tw:rounded-[28px] tw:bg-slate-50 tw:px-6 tw:text-center">
+                        <div className="tw:flex tw:items-center tw:justify-center tw:rounded-full tw:bg-rose-50 tw:p-3 tw:text-rose-600">
+                          <CircleAlert size={22} />
+                        </div>
+                        <div className="tw:mt-4 tw:text-sm tw:font-semibold tw:text-slate-900">
+                          Preview unavailable
+                        </div>
+                        <div className="tw:mt-1 tw:max-w-md tw:text-xs tw:leading-5 tw:text-slate-500">
+                          {preview.error}
+                        </div>
+                      </div>
+                    ) : preview.loading ? (
+                      <div className="tw:flex tw:min-h-[640px] tw:flex-col tw:items-center tw:justify-center tw:rounded-[28px] tw:bg-slate-50 tw:px-6">
+                        <AppSpinner size="lg" />
+                        <div className="tw:mt-3 tw:text-sm tw:text-slate-500">
+                          Generating preview...
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {(preview.url || preview.html) && (
+                          <div className="tw:mb-3 tw:flex tw:justify-end">
+                            <AppButton
+                              size="small"
+                              color="primary"
+                              onClick={handleDownload}
+                              disabled={downloading}
+                              className="tw:gap-2"
+                            >
+                              <Download size={14} />
+                              {downloading ? "Preparing..." : "Download PDF"}
+                            </AppButton>
+                          </div>
+                        )}
+                        {/* Direct preview canvas: zoom plugin wraps the iframe without extra stage chrome. */}
+                        <TransformWrapper
+                          initialScale={1}
+                          minScale={1}
+                          maxScale={5}
+                          centerOnInit
+                          doubleClick={{ mode: "toggle" }}
+                        >
+                          <TransformComponent
+                            wrapperStyle={{ width: "100%", height: "100%" }}
+                            contentStyle={{ width: "100%", height: "100%" }}
+                          >
+                            <iframe
+                              title="Barcode preview"
+                              src={preview.url || undefined}
+                              srcDoc={preview.html || undefined}
+                              sandbox="allow-scripts allow-modals"
+                              className="tw:block tw:h-[72vh] tw:min-h-[640px] tw:w-full tw:rounded-[28px] tw:border tw:border-slate-200 tw:bg-white"
+                            />
+                          </TransformComponent>
+                        </TransformWrapper>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <BarcodeSidePane
+                  queued={
+                    bulkMode
+                      ? {
+                          count: bulkItems.length,
+                          title: `${bulkItems.length} on this sheet`,
+                          hint: "Ready to print",
+                        }
+                      : undefined
+                  }
+                />
+              </AppPaneSide>
             </div>
           </div>
         </div>

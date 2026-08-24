@@ -7,6 +7,7 @@ import { Box, CheckCircle, Eye } from "lucide-react";
 import AppLink from "~/components/core/link/AppLink";
 import InvoiceDownload from "~/shared/orders/invoice-download/InvoiceDownload";
 import KeyValue from "~/components/core/key-value/KeyValue";
+import ReceiveBoxFlow from "~/shared/purchase-order/components/receive-box-flow/ReceiveBoxFlow";
 import VendorTypeBadge from "~/shared/vendor/components/vendor-type-badge/VendorTypeBadge";
 
 type Props = {
@@ -189,16 +190,18 @@ const MobileView = ({ data, callback, loading }: Props) => {
                     <Eye />
                   </AppButton>
 
-                  <AppButton
-                    size="small"
-                    color="success"
-                    onClick={() =>
-                      callback({ action: "receive", data: row, index: idx })
+                  <ReceiveBoxFlow
+                    data={row}
+                    index={idx}
+                    onReceived={() =>
+                      callback({ action: "received", data: row, index: idx })
                     }
                   >
-                    <CheckCircle />
-                    {t("receive")}
-                  </AppButton>
+                    <AppButton size="small" color="primary">
+                      <CheckCircle />
+                      {t("receive")}
+                    </AppButton>
+                  </ReceiveBoxFlow>
                 </div>
               </div>
             </AppCard>

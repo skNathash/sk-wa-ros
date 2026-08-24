@@ -558,7 +558,12 @@ const UnBrandsSubscribe = () => {
 
   return (
     <>
-      <div className="tw:sticky tw:top-16 tw:z-30  tw:pt-2 tw:pb-2">
+      {/* Filter bar. Uses the shared full-bleed sticky strip so it carries an
+          opaque background once pinned — without it the grid scrolled through
+          the transparent bar. `catalog-search-flush` cancels the page's top
+          gutter (this is the first block in the column on the unbrand flow,
+          where the layout hides the tab row). */}
+      <div className="catalog-search-sticky catalog-search-flush">
         <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-2">
           {/* Menu and Toggle - always visible */}
           <div className="tw:flex tw:gap-2 tw:items-end">

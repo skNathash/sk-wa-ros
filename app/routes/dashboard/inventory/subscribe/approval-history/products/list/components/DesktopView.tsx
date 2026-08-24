@@ -1,4 +1,4 @@
-import { Eye, User, Percent } from "lucide-react";
+import { Eye, Percent } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import AppBadge from "~/components/core/badge/AppBadge";
@@ -49,7 +49,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
     { label: t("product"), key: "productName", width: "35%", enableSort: true },
     { label: t("status"), key: "status", width: "15%", enableSort: true },
     { label: t("adminNotes"), key: "remarks", width: "20%" },
-    { label: t("reviewedBy"), key: "updatedBy", width: "16%" },
+    { label: t("reviewedOn"), key: "updatedAt", width: "16%" },
     { label: t("action"), key: "action", width: "8%" },
   ];
 
@@ -139,31 +139,14 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                 {/* Admin Notes Column */}
                 <AppTable.Cell>{item.remarks || "-"}</AppTable.Cell>
 
-                {/* Updated By Column */}
+                {/* Reviewed On Column */}
                 <AppTable.Cell>
-                  {item.updatedByName ? (
+                  {item.updatedByName && item.updatedAt ? (
                     <div className="tw:text-sm tw:text-slate-700">
-                      {item.updatedByName && (
-                        <div className="tw:flex tw:items-center tw:gap-1 tw:mb-1">
-                          <User className="tw:w-3 tw:h-3 tw:text-slate-500" />
-                          <span>{item.updatedByName}</span>
-                        </div>
-                      )}
-
-                      {item.updatedAt && (
-                        <div className="tw:text-xs tw:text-slate-500">
-                          <DateFormat
-                            value={item.updatedAt}
-                            formatStr="dd MMM yyy"
-                          />
-                          <div className="tw:text-xs tw:text-slate-500">
-                            <DateFormat
-                              value={item.updatedAt}
-                              formatStr="hh:mm a"
-                            />
-                          </div>
-                        </div>
-                      )}
+                      <DateFormat
+                        value={item.updatedAt}
+                        formatStr="dd MMM yyyy"
+                      />
                     </div>
                   ) : (
                     <span>-</span>

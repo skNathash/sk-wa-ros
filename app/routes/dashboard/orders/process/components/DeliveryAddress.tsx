@@ -1,5 +1,4 @@
-import { MapPin } from "lucide-react";
-import AppButton from "~/components/core/button/AppButton";
+import { Map, MapPin } from "lucide-react";
 import AuthService from "~/services/AuthService";
 import CommonService from "~/services/CommonService";
 
@@ -41,36 +40,40 @@ const DeliveryAddress = ({ shippingAddress, deliveryDistance }: Props) => {
 
   if (!addrText && !canViewOnMap) return null;
 
+  const areaTag = shippingAddress.landmark || shippingAddress.city;
+
   return (
-    <div className="tw:mt-3 tw:pt-3 tw:border-t tw:border-gray-200">
-      <div className="tw:text-xs tw:font-semibold tw:text-amber-700 tw:uppercase tw:tracking-wide tw:mb-1">
-        Delivery Address
+    <div className="tw:flex tw:gap-2.5">
+      <div className="tw:w-8 tw:h-8 tw:rounded-lg tw:bg-slate-100 tw:text-slate-500 tw:flex tw:items-center tw:justify-center tw:shrink-0">
+        <Map size={16} />
       </div>
-      <div className="tw:flex tw:gap-1.5 tw:text-xs tw:text-gray-700">
-        <MapPin size={12} className="tw:text-gray-400 tw:mt-0.5 tw:shrink-0" />
-        <div className="tw:flex-1">
-          <div className="tw:leading-relaxed">
-            {addrText}
-            {shippingAddress.pincode ? ` - ${shippingAddress.pincode}` : ""}
-          </div>
-          <div className="tw:flex tw:items-center tw:gap-2 tw:mt-2">
-            {typeof deliveryDistance === "number" && (
-              <span className="tw:text-xs tw:text-orange-600 tw:font-medium">
-                {CommonService.roundedByDecimalPlace(deliveryDistance, 2)} km
-              </span>
-            )}
-            {canViewOnMap && (
-              <AppButton
-                size="small"
-                color="light"
-                fill="outline"
-                className="tw:h-6 tw:text-xs tw:px-2"
-                onClick={() => CommonService.viewOnMap(origin, dest)}
-              >
-                View Map
-              </AppButton>
-            )}
-          </div>
+      <div className="tw:flex-1 tw:min-w-0">
+        <div className="op-eyebrow tw:text-gray-400!">Deliver To</div>
+        <div className="tw:text-sm tw:text-gray-800 tw:leading-snug tw:mt-0.5">
+          {addrText}
+          {shippingAddress.pincode ? ` ${shippingAddress.pincode}` : ""}
+        </div>
+        <div className="tw:flex tw:items-center tw:flex-wrap tw:gap-1.5 tw:mt-1.5">
+          {typeof deliveryDistance === "number" && (
+            <span className="op-chip">
+              {CommonService.roundedByDecimalPlace(deliveryDistance, 2)} km
+            </span>
+          )}
+          {areaTag && (
+            <span className="op-chip op-chip-neutral">
+              <MapPin size={10} />
+              {areaTag}
+            </span>
+          )}
+          {canViewOnMap && (
+            <button
+              type="button"
+              className="op-chip op-chip-neutral tw:cursor-pointer hover:tw:bg-slate-200"
+              onClick={() => CommonService.viewOnMap(origin, dest)}
+            >
+              View Map
+            </button>
+          )}
         </div>
       </div>
     </div>

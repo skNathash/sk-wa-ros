@@ -216,11 +216,7 @@ const Customers = () => {
 
   return (
     <div>
-      <div className="tw:mb-4">
-        <Alpha selected={alpha || ""} callback={handleAlphaSelect} />
-      </div>
-
-      <div className="tw:mb-4">
+      <div className="tw:mb-4 tw:w-full tw:bg-white tw:p-4 tw:md:bg-transparent tw:md:p-0 app-bleed-x tw:-mt-4 tw:md:mt-0">
         <AppInput
           name="search"
           placeholder="Search by name/mobile"
@@ -228,6 +224,9 @@ const Customers = () => {
           onChange={onSearchChange}
           leftIcon={<Search size={16} className="tw:text-gray-400" />}
         />
+        <div className="tw:mt-4">
+          <Alpha selected={alpha || ""} callback={handleAlphaSelect} />
+        </div>
       </div>
 
       <div className="tw:flex tw:items-center tw:justify-between tw:mb-4">

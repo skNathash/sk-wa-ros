@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import type { SwiperOptions } from "swiper/types";
 import AppSwiper from "~/components/core/swiper";
-import ImgRender from "~/components/core/img/ImgRender";
+import EntityThumb from "~/components/core/img/EntityThumb";
 import useAppNav from "~/hooks/useAppNav";
+import useTheme from "~/hooks/useTheme";
 import { DEFAULT_BROWSE_DISTANCE } from "~/constants";
 
 interface CategoriesProps {
@@ -28,7 +29,7 @@ const swiperOptions: SwiperOptions = {
     768: {
       slidesPerView: 5.2,
     },
-    // desktop
+    // desktop (theme-aware — see the config override below)
     1024: {
       slidesPerView: 6.5,
     },
@@ -42,6 +43,19 @@ const Categories: React.FC<CategoriesProps> = ({
   distance = DEFAULT_BROWSE_DISTANCE,
 }) => {
   const appNav = useAppNav();
+  const theme = useTheme();
+  // theme-2 hides the side rails, so the content column is wider — show more
+  // category tiles per view on desktop; the default theme keeps 6.5.
+  const config = useMemo<SwiperOptions>(
+    () => ({
+      ...swiperOptions,
+      breakpoints: {
+        ...swiperOptions.breakpoints,
+        1024: { slidesPerView: theme === "theme-2" ? 8 : 6.5 },
+      },
+    }),
+    [theme],
+  );
 
   const handleCategoryClick = (category: any) => {
     if (!category) return;
@@ -59,28 +73,40 @@ const Categories: React.FC<CategoriesProps> = ({
 
   return (
     <div className="tw:mb-6">
-      <AppSwiper config={swiperOptions}>
-        {categories.map((c: any) => (
-          <AppSwiper.Slide key={c._id}>
-            <button
-              type="button"
-              onClick={() => handleCategoryClick(c)}
-              className="tw:group tw:flex tw:w-full tw:flex-col tw:items-center tw:gap-2 tw:cursor-pointer tw:bg-transparent tw:border-0 tw:p-0"
-            >
-              <div className="tw:aspect-square tw:w-full tw:overflow-hidden tw:rounded-2xl tw:bg-slate-50 tw:transition tw:duration-200 tw:group-hover:ring-2 tw:group-hover:ring-primary/40 tw:group-hover:shadow-sm">
-                <ImgRender
-                  assetId={c._displayImg}
-                  alt={c.name}
-                  className="tw:h-full tw:w-full tw:object-cover tw:transition-transform tw:duration-200 tw:group-hover:scale-105"
-                  width={300}
-                />
-              </div>
-              <div className="tw:line-clamp-2 tw:text-center tw:text-xs tw:font-medium tw:leading-tight tw:text-slate-600 tw:group-hover:text-primary">
-                {c.name}
-              </div>
-            </button>
-          </AppSwiper.Slide>
-        ))}
+      <AppSwiper config={config}>
+        {categories.map((c: any) => {
+          const label = c._displayName || c.name;
+          return (
+            <AppSwiper.Slide key={c._id}>
+              <button
+                type="button"
+                onClick={() => handleCategoryClick(c)}
+                title={label}
+                aria-label={label}
+                className="tw:group tw:flex tw:w-full tw:cursor-pointer tw:flex-col tw:text-center focus:tw:outline-none"
+              >
+                {/* White category tile with the name inside — soft neutral
+                    border and a gentle shadow to match the shared marketplace
+                    card look. */}
+                <div className="tw:flex tw:aspect-square tw:w-full tw:flex-col tw:overflow-hidden tw:rounded-2xl tw:border tw:border-black/5 tw:bg-white tw:transition-all tw:duration-200 tw:group-hover:-translate-y-0.5 tw:group-hover:border-primary/30 tw:group-hover:shadow-md tw:group-active:scale-95 tw:group-focus-visible:ring-2 tw:group-focus-visible:ring-primary/50">
+                  <EntityThumb
+                    assetId={c._displayImg}
+                    name={label}
+                    fit="contain"
+                    boxClassName="tw:min-h-0 tw:flex-1 tw:w-full tw:p-2.5"
+                    imgClassName="tw:transition-transform tw:duration-200 tw:group-hover:scale-105"
+                    initialClassName="tw:text-lg"
+                  />
+                  <div className="tw:flex tw:h-6 tw:shrink-0 tw:items-center tw:justify-center tw:px-1 tw:pb-2">
+                    <span className="tw:line-clamp-1 tw:text-xs tw:font-semibold tw:leading-tight tw:text-gray-800 tw:transition-colors tw:group-hover:text-primary">
+                      {label}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </AppSwiper.Slide>
+          );
+        })}
       </AppSwiper>
     </div>
   );

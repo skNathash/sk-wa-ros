@@ -1,15 +1,24 @@
+import clsx from "clsx";
 import { debounce } from "lodash";
 import { useCallback } from "react";
 import type { DayPickerProps } from "react-day-picker";
 import { Controller, useFormContext } from "react-hook-form";
 import { AppInput } from "~/components/core/form";
 import AppDateInput from "~/components/core/form/AppDateInput";
+import useTheme from "~/hooks/useTheme";
 
 const dateConfig: DayPickerProps = {
   mode: "range",
 };
 
-const Filter = ({ callback }: { callback: (data: any) => void }) => {
+const Filter = ({
+  callback,
+  className,
+}: {
+  callback: (data: any) => void;
+  className?: string;
+}) => {
+  const isTheme2 = useTheme() === "theme-2";
   // Use the form provided via FormProvider from the parent so parent can set values
   const { register, getValues, control } = useFormContext();
 
@@ -31,7 +40,14 @@ const Filter = ({ callback }: { callback: (data: any) => void }) => {
     };
 
   return (
-    <div className="tw:mb-4 tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+    <div
+      className={clsx(
+        "tw:mb-4 tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4",
+        isTheme2 &&
+          "app-bleed-x tw:sticky tw:top-15 tw:z-20 tw:bg-white tw:p-4 tw:rounded-none tw:border-b tw:border-gray-100",
+        className
+      )}
+    >
       <AppInput
         name="search"
         placeholder="Search by Vendor Name"

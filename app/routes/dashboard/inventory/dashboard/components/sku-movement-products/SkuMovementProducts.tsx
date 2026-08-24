@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSearchParams } from "react-router";
 import type { PaginationState, ViewToggleType } from "~/types/CommonTypes";
-import type { FastMovingProduct } from "../../helper";
 import useScreenView from "~/hooks/useScreenView";
 import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
@@ -24,6 +23,8 @@ import {
   getCount,
   downloadExport,
   prepareParams,
+  prepareRows,
+  type SkuMovementRow,
   type SkuMovementType,
 } from "./helper";
 
@@ -53,7 +54,7 @@ const SkuMovementProducts = ({ type }: SkuMovementProductsProps) => {
 
   const [viewType, setViewType] = useState<ViewToggleType>("list");
   const [sort, setSort] = useState<SortValue>(defaultSort);
-  const [data, setData] = useState<FastMovingProduct[]>([]);
+  const [data, setData] = useState<SkuMovementRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
@@ -83,9 +84,11 @@ const SkuMovementProducts = ({ type }: SkuMovementProductsProps) => {
         paginationRef.current,
         sort,
       );
-      const result = await getData(params);
-      setData(result || []);
-      const totalRecords = await getCount(params);
+      const result = await getData(type, params);
+      // Cell values are derived once, off the response — the views below only
+      // read the `_`-prefixed keys.
+      setData(prepareRows(result || [], type));
+      const totalRecords = await getCount(type, params);
       paginationRef.current.totalRecords = totalRecords;
       setHasMoreData(result.length >= paginationRef.current.rowsPerPage);
     } catch (error) {
@@ -109,8 +112,11 @@ const SkuMovementProducts = ({ type }: SkuMovementProductsProps) => {
         paginationRef.current,
         sort,
       );
-      const result = await getData(params);
-      setData((prev) => [...prev, ...(result || [])]);
+      const result = await getData(type, params);
+      setData((prev) => [
+        ...prev,
+        ...prepareRows(result || [], type, prev.length),
+      ]);
       setHasMoreData(
         (result || []).length >= paginationRef.current.rowsPerPage,
       );
@@ -131,7 +137,7 @@ const SkuMovementProducts = ({ type }: SkuMovementProductsProps) => {
         undefined,
         sort,
       );
-      const result = await downloadExport(params);
+      const result = await downloadExport(type, params);
       if (result?.fileName) {
         CommonService.downloadExportFile(result.service, result.fileName);
       } else {

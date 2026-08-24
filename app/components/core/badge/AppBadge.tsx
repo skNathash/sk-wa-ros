@@ -7,9 +7,21 @@ interface AppBadgeProps {
   children: React.ReactNode;
   variant?: VariantColor;
   className?: string;
+  /**
+   * "sm" renders a tighter, lower-profile badge (less padding, smaller
+   * text/icons); "xs" is smaller still — a metadata tag meant to sit inline in
+   * a caption row without outweighing the text beside it.
+   */
+  size?: "default" | "sm" | "xs";
   showClose?: boolean;
   onClose?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
+
+const sizeClassMap: Record<string, string> = {
+  default: "",
+  sm: "tw:px-1.5! tw:py-0.5! tw:text-[10px]! tw:leading-3.5! tw:font-medium! tw:gap-1! tw:rounded! tw:[&>svg]:size-2.5!",
+  xs: "tw:px-1! tw:py-0! tw:text-[9px]! tw:leading-4! tw:font-semibold! tw:gap-0.5! tw:rounded-sm! tw:border-0! tw:[&>svg]:size-2!",
+};
 
 const variantClassMap: Record<string, string> = {
   default: "tw:bg-gray-50 tw:text-gray-700 tw:border-gray-200",
@@ -28,6 +40,7 @@ const AppBadge: React.FC<AppBadgeProps> = ({
   children,
   variant = "default",
   className = "",
+  size = "default",
   showClose = false,
   onClose,
 }) => {
@@ -37,6 +50,7 @@ const AppBadge: React.FC<AppBadgeProps> = ({
     ["success", "warning", "primary", "white", "danger"].includes(variant)
       ? variantClassMap[variant]
       : undefined;
+  const sizeClass = sizeClassMap[size] || "";
   return (
     <Badge
       variant={
@@ -49,7 +63,9 @@ const AppBadge: React.FC<AppBadgeProps> = ({
           ? "secondary"
           : variant
       }
-      className={customClass ? `${customClass} ${className}` : className}
+      className={[customClass, sizeClass, className]
+        .filter(Boolean)
+        .join(" ")}
     >
       {children}
       {showClose ? (

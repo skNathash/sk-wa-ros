@@ -9,12 +9,14 @@ import AppPopover from "~/components/core/popover/AppPopover";
 import DealSummaryPopover from "~/components/feature/inventory/popover/deal-sales-summary/DealSummaryPopover";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
 import { Skeleton } from "~/components/ui/skeleton";
-import { isLooseStockUom, type FastMovingProduct } from "../../../helper";
-import type { SkuMovementType } from "../helper";
-import { getPeriods } from "./DesktopView";
+import {
+  showLastOrder,
+  type SkuMovementRow,
+  type SkuMovementType,
+} from "../helper";
 
 type Props = {
-  data: FastMovingProduct[];
+  data: SkuMovementRow[];
   loading: boolean;
   loadMore: () => void;
   loadingMore: boolean;
@@ -36,10 +38,7 @@ const MobileView = ({
   callback,
   type,
 }: Props) => {
-  // Last Order is hidden for the Non Moving tab.
-  const showOrder = type !== "NON_MOVING";
-  // Slow Moving surfaces the longer 45/60/90-day windows.
-  const periods = getPeriods(type);
+  const showOrder = showLastOrder(type);
   if (loading) {
     return (
       <div className="tw:grid tw:grid-cols-1 tw:lg:grid-cols-3 tw:gap-2">
@@ -67,7 +66,7 @@ const MobileView = ({
       <div className="tw:grid tw:grid-cols-1 tw:lg:grid-cols-3 tw:gap-2">
         {data.map((p, idx) => (
           <AppCard
-            key={idx}
+            key={p._key}
             noPadding
             className="tw:h-full"
             bodyClassName="tw:flex tw:flex-col tw:h-full"
@@ -75,7 +74,9 @@ const MobileView = ({
             {/* Header */}
             <div className="tw:px-4 tw:py-3">
               <div className="tw:flex tw:items-start tw:gap-2">
-                <span className="tw:text-xs tw:text-gray-400 tw:mt-0.5">#{idx + 1}</span>
+                <span className="tw:text-xs tw:text-gray-400 tw:mt-0.5">
+                  #{idx + 1}
+                </span>
                 <div className="tw:flex-1 tw:min-w-0">
                   <AppLink
                     asLink
@@ -101,28 +102,23 @@ const MobileView = ({
               <div className="tw:flex tw:justify-between tw:items-center">
                 <span className="tw:text-xs tw:text-gray-500">Qty Sold</span>
                 <div className="tw:flex tw:items-center tw:gap-2 tw:text-xs">
-                  {periods.slice(0, -1).map((days) => (
+                  {p._periods.slice(0, -1).map((period) => (
                     <span
-                      key={days}
+                      key={period.days}
                       className="tw:inline-flex tw:items-center tw:gap-1"
                     >
-                      <span className="tw:text-gray-500">{days}d</span>
-                      <span className="tw:font-semibold">
-                        {(p.salesAnalytics as any)?.[`last${days}Days`]
-                          ?.quantity ?? 0}
-                      </span>
+                      <span className="tw:text-gray-500">{period.days}d</span>
+                      <span className="tw:font-semibold">{period.qty}</span>
                     </span>
                   ))}
                   <AppPopover
                     triggerContent={
                       <span className="tw:inline-flex tw:items-center tw:gap-1 tw:cursor-pointer">
                         <span className="tw:text-gray-500">
-                          {periods[periods.length - 1]}d
+                          {p._periods[p._periods.length - 1]?.days}d
                         </span>
                         <span className="tw:font-semibold">
-                          {(p.salesAnalytics as any)?.[
-                            `last${periods[periods.length - 1]}Days`
-                          ]?.quantity ?? 0}
+                          {p._periods[p._periods.length - 1]?.qty ?? 0}
                         </span>
                         <span className="tw:inline-flex tw:items-center tw:gap-0.5 tw:text-[10px] tw:text-slate-400">
                           More
@@ -131,7 +127,9 @@ const MobileView = ({
                       </span>
                     }
                   >
-                    <DealSummaryPopover salesAnalytics={p.salesAnalytics as any} />
+                    <DealSummaryPopover
+                      salesAnalytics={p.salesAnalytics as any}
+                    />
                   </AppPopover>
                 </div>
               </div>
@@ -143,7 +141,9 @@ const MobileView = ({
               </div>
               {showOrder && (
                 <div className="tw:flex tw:justify-between tw:items-center">
-                  <span className="tw:text-xs tw:text-gray-500">Last Order</span>
+                  <span className="tw:text-xs tw:text-gray-500">
+                    Last Order
+                  </span>
                   {p.lastOrderDate ? (
                     <span className="tw:flex tw:items-center tw:gap-2 tw:text-xs">
                       <DateFormat
@@ -152,7 +152,7 @@ const MobileView = ({
                         className="tw:font-semibold tw:text-slate-700"
                       />
                       <span className="tw:font-semibold">
-                        <Amount value={p.lastOrderValue ?? 0} />
+                        <Amount value={p._lastOrderValue} />
                       </span>
                     </span>
                   ) : (
@@ -161,12 +161,11 @@ const MobileView = ({
                 </div>
               )}
               <div className="tw:flex tw:justify-between tw:items-center">
-                <span className="tw:text-xs tw:text-gray-500">Current Stock</span>
+                <span className="tw:text-xs tw:text-gray-500">
+                  Current Stock
+                </span>
                 <span className="tw:text-sm tw:font-medium">
-                  <DisplayQty
-                    qty={p.availableQuantity ?? 0}
-                    isLooseQty={isLooseStockUom(p.selectedStockUom)}
-                  />
+                  <DisplayQty qty={p._stockQty} isLooseQty={p._isLooseQty} />
                 </span>
               </div>
               <div className="tw:flex tw:justify-between tw:items-center">

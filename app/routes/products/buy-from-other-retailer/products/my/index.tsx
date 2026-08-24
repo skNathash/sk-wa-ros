@@ -24,7 +24,7 @@ import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
 import BrandFilter from "../list/components/filters/BrandFilter";
 import CategoryFilter from "../list/components/filters/CategoryFilter";
-import SellerListModal from "../modals/seller-list/SellerListModal";
+import SellerListModal from "~/shared/catalog/modals/seller-list/SellerListModal";
 import Filter from "./components/Filter";
 import {
   defaultFilter,
@@ -374,7 +374,7 @@ const MyInventoryPage: React.FC = () => {
       <div className="page-bg app-page tw:p-4">
         <SectionTabs
           sectionKey="supply"
-          activeTab="buy-from-network"
+          activeTab="sellers"
           noShadow
           sticky
         />
@@ -384,7 +384,7 @@ const MyInventoryPage: React.FC = () => {
             <div className="tw:sticky tw:top-20">
               <SectionMenu
                 sectionKey="supply"
-                activeTab="buy-from-network"
+                activeTab="sellers"
                 title={t("manageSupply", { ns: "menu" })}
               />
             </div>

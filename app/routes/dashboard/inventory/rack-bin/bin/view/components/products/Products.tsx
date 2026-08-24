@@ -180,7 +180,13 @@ const Products = ({
         ) : (
           data.map((item, idx) => (
             <div data-deal-id={item.dealId} key={idx}>
-              <AppCard>
+              {/* Left accent rule marks each product block in a long bin list. */}
+              {/* Padding is dropped here and supplied by Item, so its section
+                  rules can run the full width of the card. */}
+              <AppCard
+                noPadding
+                className="tw:border-l-4 tw:border-l-emerald-700"
+              >
                 <Item
                   callback={handleItemCallback}
                   item={item}

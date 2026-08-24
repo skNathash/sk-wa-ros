@@ -1,6 +1,7 @@
+import { withTileDecor, type TileDecor } from "~/components/core/tint/tints";
 import SellerCatalogService from "~/services/SellerCatalogService";
 
-export type GroupedItem = {
+type GroupedItemBase = {
   _id: string;
   name: string;
   _displayName: string;
@@ -9,6 +10,9 @@ export type GroupedItem = {
   /** number of top-selling products that fall under this brand/category */
   count: number;
 };
+
+/** What the tiles consume — the grouped entity plus its tile decoration. */
+export type GroupedItem = GroupedItemBase & TileDecor;
 
 export type TopBrandsCategoryData = {
   brands: GroupedItem[];
@@ -38,11 +42,11 @@ export const getTopBrandsAndCategories = async (
 const groupByBrandAndCategory = (
   products: any[],
 ): TopBrandsCategoryData => {
-  const brands = new Map<string, GroupedItem>();
-  const categories = new Map<string, GroupedItem>();
+  const brands = new Map<string, GroupedItemBase>();
+  const categories = new Map<string, GroupedItemBase>();
 
   const collect = (
-    bucket: Map<string, GroupedItem>,
+    bucket: Map<string, GroupedItemBase>,
     entry: any,
     image?: string,
   ) => {
@@ -69,10 +73,12 @@ const groupByBrandAndCategory = (
     collect(categories, product?.category, image);
   }
 
-  const byCountDesc = (a: GroupedItem, b: GroupedItem) => b.count - a.count;
+  const byCountDesc = (a: GroupedItemBase, b: GroupedItemBase) =>
+    b.count - a.count;
 
+  // Label, initial, tint and ink ride along from here — the tiles just print them.
   return {
-    brands: Array.from(brands.values()).sort(byCountDesc),
-    categories: Array.from(categories.values()).sort(byCountDesc),
+    brands: withTileDecor(Array.from(brands.values()).sort(byCountDesc)),
+    categories: withTileDecor(Array.from(categories.values()).sort(byCountDesc)),
   };
 };

@@ -9,6 +9,7 @@ import NoData from "~/components/core/no-data/NoData";
 import { TableSkeletonLoader } from "~/components/core/table";
 import AppTable from "~/components/core/table/AppTable";
 import TableHeader from "~/components/core/table/TableHeader";
+import useTheme from "~/hooks/useTheme";
 import type { SortValue, TableHeaderItem } from "~/types/CommonTypes";
 import { useTranslation } from "react-i18next";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
@@ -99,10 +100,10 @@ const getHeaders = (activeTab?: string, t?: any): TableHeaderItem[] => {
     {
       label: t("payment"),
       key: "paymentMethod",
-      width: "12%",
+      width: "10%",
       enableSort: true,
     },
-    { label: t("status"), key: "status", width: "12%", enableSort: true },
+    { label: t("status"), key: "status", width: "14%", enableSort: true },
     { label: t("createdBy"), key: "createdBy.name", width: "10%" },
     { label: t("action"), key: "action", width: "8%" },
   );
@@ -129,6 +130,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
   hasMoreData,
 }) => {
   const { t } = useTranslation(["common"]);
+  const isTheme2 = useTheme() === "theme-2";
   const headers = getHeaders(activeTab, t);
 
   if (!loading && data.length === 0) {
@@ -142,6 +144,8 @@ const DesktopView: React.FC<DesktopViewProps> = ({
       fixedLayout
       container
       containerStyle={containerStyle}
+      // theme-2 packs the list pane tighter, so the rows go condensed there.
+      condensed={isTheme2}
     >
       <AppTable.Header>
         <TableHeader
@@ -292,41 +296,42 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                 </span>
               </AppTable.Cell>
               <AppTable.Cell>
-                <AppButton
-                  color="light"
-                  fill="outline"
-                  size="small"
-                  className="tw:mr-2"
-                  onClick={() =>
-                    callback && callback({ action: "view-order", data: row })
-                  }
-                >
-                  <Eye />
-                </AppButton>
+                <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2">
+                  <AppButton
+                    color="light"
+                    fill="outline"
+                    size="small"
+                    onClick={() =>
+                      callback && callback({ action: "view-order", data: row })
+                    }
+                  >
+                    <Eye />
+                  </AppButton>
 
-                {row.invoices && row.invoices.length > 0 && (
-                  <>
-                    {row.orderType === "B2C" ? (
-                      <PrintReceipt
-                        orderId={row.orderId}
-                        size="small"
-                        onlyIcon={true}
-                      />
-                    ) : (
-                      <AppButton
-                        color="light"
-                        fill="outline"
-                        size="small"
-                        onClick={() =>
-                          callback &&
-                          callback({ action: "download-invoice", data: row })
-                        }
-                      >
-                        <Download />
-                      </AppButton>
-                    )}
-                  </>
-                )}
+                  {row.invoices && row.invoices.length > 0 && (
+                    <>
+                      {row.orderType === "B2C" ? (
+                        <PrintReceipt
+                          orderId={row.orderId}
+                          size="small"
+                          onlyIcon={true}
+                        />
+                      ) : (
+                        <AppButton
+                          color="light"
+                          fill="outline"
+                          size="small"
+                          onClick={() =>
+                            callback &&
+                            callback({ action: "download-invoice", data: row })
+                          }
+                        >
+                          <Download />
+                        </AppButton>
+                      )}
+                    </>
+                  )}
+                </div>
               </AppTable.Cell>
             </AppTable.Row>
           ))

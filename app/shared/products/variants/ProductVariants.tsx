@@ -51,6 +51,7 @@ const ProductVariants = ({ dealId, cartType, sellerId }: Props) => {
     const deal: Record<string, any> = d?._id
       ? SellerCatalogService.formatProductResponse([d], {
           view: "buyer",
+          sellerId,
         })?.[0]
       : {};
 
@@ -94,6 +95,7 @@ const ProductVariants = ({ dealId, cartType, sellerId }: Props) => {
     const t = Array.isArray(varDealsResp.data?.data)
       ? SellerCatalogService.formatProductResponse(varDealsResp.data?.data, {
           view: "buyer",
+          sellerId,
         })
       : [];
     // t.unshift({ ...d, variants: [] });

@@ -3,10 +3,12 @@ import {
   Barcode,
   CaseSensitive,
   CircleHelp,
+  CornerDownLeft,
   Funnel,
   Keyboard,
   Mic,
   Scan,
+  ScanLine,
   Search,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -16,9 +18,13 @@ import AppCard from "~/components/core/card/AppCard";
 import { AppCheckbox } from "~/components/core/form";
 import { AppInput } from "~/components/core/form/AppInput";
 import AppPopover from "~/components/core/popover/AppPopover";
+import AppScrollArea from "~/components/core/scroll-area/AppScrollArea";
 import VoiceSearch from "~/components/core/voice-search/VoiceSearch";
 import { POS_CART_ITEM_ADDED } from "~/constants";
+import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import MiscService from "~/services/MiscService";
+import FnKeys, { type FnKeyItem } from "../fn-keys/FnKeys";
 import FilterModal from "./FilterModal";
 
 interface FilterProps {
@@ -26,6 +32,27 @@ interface FilterProps {
   cartId?: string;
   onKeypadClick?: () => void;
   hideAutoAdd?: boolean;
+  /** Nothing searched/filtered yet — theme-2 shows its "Ready to bill" panel. */
+  idle?: boolean;
+  /**
+   * Theme-2 mobile only: content (window chips + customer switch row) that
+   * shares the sticky green dock with the scan rail. When present the rail and
+   * its meta line are wrapped in `.app-billing-dock` with this above them; the
+   * idle panel stays outside so only the controls stick.
+   */
+  dock?: React.ReactNode;
+  /**
+   * Search results, rendered inside the dock directly under the field so the
+   * matches read as an extension of what was typed. Only used in the docked
+   * layout — elsewhere the caller keeps them below the block.
+   */
+  results?: React.ReactNode;
+  /**
+   * Page-level function keys (new bill, customer, pay…). The rail contributes
+   * the two it owns — voice and keypad — and prints the merged legend under
+   * itself on the desktop till, where there is a keyboard to press them on.
+   */
+  fnKeys?: FnKeyItem[];
 }
 
 // Search modes surfaced as tabs. "scan" searches by exact barcode and shows the
@@ -37,14 +64,32 @@ const MODE_TABS: { key: SearchMode; label: string; icon: typeof Scan }[] = [
   { key: "name", label: "Name", icon: CaseSensitive },
 ];
 
+/* Theme-2 runs the same two modes as a segmented rail above the input, sitting
+   beside a third momentary "Voice" option. Its own list because the labels and
+   glyphs are sized for that rail — the default layout keeps MODE_TABS. */
+const SCAN_TABS: { key: SearchMode; label: string; icon: typeof Scan }[] = [
+  { key: "scan", label: "Scan", icon: Barcode },
+  { key: "name", label: "Search", icon: Search },
+];
+
 const Filter = ({
   callback,
   cartId,
   onKeypadClick,
   hideAutoAdd = false,
+  idle = false,
+  dock,
+  results,
+  fnKeys,
 }: FilterProps) => {
   const { t } = useTranslation(["common"]);
   const { register, getValues, setValue } = useForm();
+  const isTheme2 = useTheme() === "theme-2";
+  const { isMobile } = useScreenView();
+  // Theme-2 on a desktop till: one unified scan/search bar (green SCAN tile,
+  // wide field, Enter hint + voice). Mobile keeps the mode rail + scan card,
+  // where screen width can't carry both jobs in a single line.
+  const unified = isTheme2 && !isMobile;
 
   // Auto-add is no longer a user-facing toggle. It's derived from the search
   // mode: ON while scanning (a barcode resolves to one exact deal → straight to
@@ -53,6 +98,10 @@ const Filter = ({
   const autoAddFor = (m: SearchMode) => !hideAutoAdd && m === "scan";
   // Active search tab. Defaults to "scan" so billing opens on the scan panel.
   const [mode, setMode] = useState<SearchMode>("scan");
+  // Scan mode's field only reads as "waiting for a barcode" while nobody is
+  // typing in it. Once it takes focus the operator is the input source, so the
+  // waiting copy and its dots step aside.
+  const [scanFocused, setScanFocused] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filterData, setFilterData] = useState<{
     category: any[];
@@ -92,7 +141,10 @@ const Filter = ({
         (r: any) => {
           if (r?.text) {
             setValue("search", r.text);
-            triggerCallback({ searchBy: "barcode", autoAddToCart: autoAddFor("scan") });
+            triggerCallback({
+              searchBy: "barcode",
+              autoAddToCart: autoAddFor("scan"),
+            });
           }
         },
         () => {},
@@ -102,6 +154,8 @@ const Filter = ({
 
   const handleModeChange = (m: SearchMode) => {
     setMode(m);
+    // The field unmounts with the mode it belonged to, so its blur never fires.
+    setScanFocused(false);
     // Clear the search input when switching search tabs so the previous term
     // doesn't carry over into a different search mode.
     setValue("search", "");
@@ -123,7 +177,10 @@ const Filter = ({
         // Voice input is a spoken product name — switch to name search.
         setMode("name");
         setValue("search", term);
-        triggerCallback({ searchBy: "name", autoAddToCart: autoAddFor("name") });
+        triggerCallback({
+          searchBy: "name",
+          autoAddToCart: autoAddFor("name"),
+        });
       }
     }
   };
@@ -222,11 +279,295 @@ const Filter = ({
       ? t("searchProductsPlaceholder")
       : "Type barcode or product…";
 
+  // The search field is shared by both layouts — same registration, same
+  // handlers — only its chrome differs, so it is built once here.
+  const searchField = (chrome: {
+    className?: string;
+    inputClassName?: string;
+    placeholder?: string;
+    leftIcon?: React.ReactNode;
+    rightIcon?: React.ReactNode;
+    onFocus?: () => void;
+    onBlur?: () => void;
+  }) => (
+    <AppInput
+      name="search"
+      label=""
+      placeholder={chrome.placeholder ?? placeholder}
+      register={register}
+      className={chrome.className}
+      inputClassName={chrome.inputClassName}
+      onChange={handleSearchChange}
+      onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
+      onFocus={chrome.onFocus}
+      onBlur={chrome.onBlur}
+      leftIcon={chrome.leftIcon}
+      rightIcon={chrome.rightIcon}
+    />
+  );
+
+  const voiceButton = (className: string) => (
+    <VoiceSearch callback={handleVoiceCallback} className={className}>
+      <Mic size={18} />
+    </VoiceSearch>
+  );
+
+  /* Theme-2 reads the block as a till terminal rather than a search card: one
+     wide scan rail (tap the green tile to fire the device camera), a mono
+     status line under it carrying the scan/name switch, and — while nothing is
+     searched yet — a dashed "ready" panel where the product grid will appear.
+     Every control is the same one the default layout renders; only the chrome
+     changes. */
+  if (isTheme2) {
+    const keypadButton = onKeypadClick && (
+      <button
+        type="button"
+        onClick={onKeypadClick}
+        className="app-scan-action"
+        aria-label="Open keypad"
+      >
+        <Keyboard size={18} />
+      </button>
+    );
+
+    /* Input-method rail. Scan and Search are the two states of the field below
+       it; Voice is momentary — it opens the dictation sheet and hands its
+       result to Search, so it never latches on. Both layouts carry it: the tab
+       is what says which search the typed term will run. */
+    const modeRail = (
+      <div
+        className={`app-scan-modes app-scan-modes-track app-scan-modes-rail${
+          unified ? " app-scan-modes-rail-inline" : ""
+        }`}
+        role="group"
+        aria-label="Search by"
+      >
+        {SCAN_TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => handleModeChange(key)}
+            aria-pressed={mode === key}
+            className="app-scan-mode"
+          >
+            <Icon size={15} />
+            {label}
+          </button>
+        ))}
+        <VoiceSearch
+          callback={handleVoiceCallback}
+          className="app-scan-mode app-scan-mode-voice"
+        >
+          <Mic size={15} />
+          Voice
+        </VoiceSearch>
+      </div>
+    );
+
+    /* Desktop till: one bar takes both inputs — the solid green tile on the
+       left is the camera trigger and the standing "this is where a scan lands"
+       marker, and the right edge carries the Enter hint the hardware scanner
+       ends every read with. The mode rail sits above it. */
+    const unifiedRail = (
+      <div className="app-scan-rail app-scan-rail-unified">
+        <button
+          type="button"
+          onClick={triggerNativeScan}
+          className="app-scan-tile"
+          aria-label="Scan with camera"
+        >
+          <span className="app-scan-tile-icon" aria-hidden="true">
+            <Barcode size={22} strokeWidth={1.5} />
+          </span>
+          <span className="app-scan-tile-label">Scan</span>
+        </button>
+
+        {searchField({
+          className: "app-scan-field",
+          inputClassName: "app-scan-input",
+          /* The tab above decides what the field searches, so the placeholder
+             names that one job rather than both. */
+          placeholder:
+            mode === "scan"
+              ? 'Scan barcode · or type the code · try "AB1234"…'
+              : 'Type product name · try "Maggi" or "Amul butter"…',
+        })}
+
+        <div className="app-scan-actions">
+          <span className="app-scan-enter" aria-hidden="true">
+            <CornerDownLeft size={12} />
+            Enter
+          </span>
+          {keypadButton}
+          {voiceButton("app-scan-action app-scan-action-outline")}
+        </div>
+      </div>
+    );
+
+    const scanControls = unified ? (
+      <>
+        {modeRail}
+        {unifiedRail}
+      </>
+    ) : (
+      <>
+        {modeRail}
+
+        {mode === "scan" ? (
+          /* Scan mode has no typing to show, so the field stops looking like a
+             search box and becomes a status card: the till is armed and the
+             hardware scanner (which types into the field below) is what fills
+             it. The field is still a real input — a scanner's keystrokes and
+             the keypad both land in it — it just wears the waiting pill. */
+          <div
+            className="app-scan-card"
+            /* The whole card is the field. The waiting pill alone is far too
+               small a target to discover, and "Scanner ready" is the part the
+               eye lands on — clicking anywhere that isn't one of the two action
+               buttons puts the caret in the input. */
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest("button")) return;
+              const input = (
+                e.currentTarget as HTMLElement
+              ).querySelector<HTMLInputElement>('input[name="search"]');
+              input?.focus();
+              input?.select();
+            }}
+          >
+            <span className="app-scan-card-icon" aria-hidden="true">
+              <Barcode size={22} strokeWidth={1.5} />
+              <span className="app-scan-beam" />
+            </span>
+
+            <div className="app-scan-card-body">
+              <span className="app-scan-card-title">Scanner ready</span>
+              <div className="app-scan-wait">
+                {!scanFocused && (
+                  <span className="app-scan-dots" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                )}
+                {searchField({
+                  className: "app-scan-wait-field",
+                  inputClassName: "app-scan-wait-input",
+                  placeholder: scanFocused
+                    ? ""
+                    : "Waiting for barcode · tap to type",
+                  onFocus: () => setScanFocused(true),
+                  onBlur: () => setScanFocused(false),
+                })}
+              </div>
+            </div>
+
+            <div className="app-scan-card-actions">
+              {keypadButton}
+              <button
+                type="button"
+                onClick={triggerNativeScan}
+                className="app-scan-test"
+                aria-label="Scan with camera"
+              >
+                <ScanLine size={18} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="app-scan-rail">
+            <span className="app-scan-rail-icon" aria-hidden="true">
+              <Search size={18} />
+            </span>
+
+            {searchField({
+              className: "app-scan-field",
+              inputClassName: "app-scan-input",
+              placeholder,
+            })}
+
+            <div className="app-scan-actions">
+              <span className="app-scan-enter" aria-hidden="true">
+                <CornerDownLeft size={12} />
+                Enter
+              </span>
+              {keypadButton}
+            </div>
+          </div>
+        )}
+      </>
+    );
+
+    /* Function-key legend. Only the desktop till gets it — the mobile dock has
+       no keyboard to press these on, and the row would cost the scan rail the
+       space it needs. Voice and keypad belong to this rail; everything else is
+       handed down by the billing page. Sorted by key number so the strip reads
+       in the order the keys sit on the board. */
+    const fnKeyItems: FnKeyItem[] = unified
+      ? [
+          ...(fnKeys || []),
+          { key: "F4", label: "Voice", voice: { callback: handleVoiceCallback } },
+          ...(onKeypadClick
+            ? [{ key: "F5", label: "Keypad", onPress: onKeypadClick }]
+            : []),
+        ].sort(
+          (a, b) => Number(a.key.slice(1) || 0) - Number(b.key.slice(1) || 0),
+        )
+      : [];
+
+    return (
+      <div className="app-scan-block">
+        {/* Theme-2 mobile docks the chips + switch row on top of the scan rail
+            inside one sticky primary-coloured, full-bleed bar. Everywhere else
+            the rail keeps its plain inline placement. */}
+        {dock ? (
+          <div className="app-billing-dock app-bleed-x">
+            {dock}
+            {scanControls}
+            {/* Matches hang off the field inside the dock: one green block that
+                carries the query and what it found, so the eye never leaves it
+                between typing and picking. */}
+            {results && (
+              <AppScrollArea className="app-billing-results">
+                {results}
+              </AppScrollArea>
+            )}
+          </div>
+        ) : (
+          scanControls
+        )}
+
+        <FnKeys items={fnKeyItems} />
+
+        {idle && (
+          <button
+            type="button"
+            onClick={triggerNativeScan}
+            className="app-scan-idle"
+          >
+            <span className="app-scan-idle-icon">
+              <Barcode size={26} strokeWidth={1.5} />
+            </span>
+            <span className="app-scan-idle-title">Ready to bill</span>
+            <span className="app-scan-idle-sub">
+              Scan an item · type its name · call out with voice
+            </span>
+          </button>
+        )}
+
+        <FilterModal
+          show={showFilterModal}
+          callback={handleFilterModalCallback}
+          initialData={filterData}
+        />
+      </div>
+    );
+  }
+
   return (
-    <AppCard noPadding={true} className="tw:overflow-visible">
-      <div className="tw:px-3 tw:pt-3 tw:pb-3">
+    <AppCard noPadding={true}>
+      <div className="tw:px-4 tw:pt-3 tw:pb-3">
         {/* Search-mode tabs — Scan / Name */}
-        <div className="tw:mb-3 tw:flex tw:gap-1 tw:rounded-xl tw:bg-muted tw:p-1">
+        <div className="tw:mb-3 tw:flex tw:gap-1 tw:rounded-full tw:bg-muted tw:p-1">
           {MODE_TABS.map(({ key, label, icon: Icon }) => {
             const active = mode === key;
             return (
@@ -234,9 +575,9 @@ const Filter = ({
                 key={key}
                 type="button"
                 onClick={() => handleModeChange(key)}
-                className={`tw:flex tw:flex-1 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-lg tw:px-3 tw:py-2 tw:text-sm tw:font-bold tw:transition-colors tw:cursor-pointer ${
+                className={`tw:flex tw:flex-1 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-full tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:transition-colors tw:cursor-pointer ${
                   active
-                    ? "tw:bg-card tw:text-foreground tw:shadow-sm"
+                    ? "tw:bg-card tw:text-primary tw:shadow-sm"
                     : "tw:text-muted-foreground tw:hover:text-foreground"
                 }`}
               >
@@ -252,55 +593,45 @@ const Filter = ({
           <button
             type="button"
             onClick={triggerNativeScan}
-            className="tw:mb-3 tw:w-full tw:rounded-xl tw:bg-gradient-to-b tw:from-muted/60 tw:to-transparent tw:p-4 tw:text-center tw:cursor-pointer tw:transition-colors tw:hover:bg-muted/40"
+            className="tw:mb-3 tw:w-full tw:rounded-xl tw:bg-primary/[0.04] tw:p-4 tw:text-center tw:cursor-pointer tw:transition-colors tw:hover:bg-primary/[0.07]"
           >
-            <div className="wa-scan-target tw:relative tw:mx-auto tw:flex tw:h-24 tw:w-full tw:max-w-[220px] tw:items-center tw:justify-center tw:rounded-lg tw:border-2 tw:border-dashed tw:border-primary/30 tw:bg-card">
+            <div className="tw:relative tw:mx-auto tw:flex tw:h-28 tw:w-full tw:max-w-[220px] tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-lg tw:border-2 tw:border-dashed tw:border-primary/30 tw:bg-card">
               <Scan
                 className="tw:text-primary/40"
-                size={36}
+                size={40}
                 strokeWidth={1.25}
               />
+              <span className="tw:absolute tw:left-4 tw:right-4 tw:h-0.5 tw:bg-primary tw:shadow-[0_0_8px] tw:shadow-primary/60 tw:animate-pulse" />
             </div>
-            <p className="tw:mt-3 tw:text-sm tw:font-bold tw:text-foreground">
+            <p className="tw:mt-3 tw:text-sm tw:font-semibold tw:text-foreground">
               Point camera at barcode
             </p>
-            <p className="tw:text-xs tw:text-muted-foreground tw:mt-0.5">
+            <p className="tw:text-xs tw:text-muted-foreground">
               or type barcode / name below
             </p>
           </button>
         )}
 
         <div className="tw:flex tw:gap-2 tw:items-center">
-          <AppInput
-            name="search"
-            label=""
-            placeholder={placeholder}
-            register={register}
-            className="tw:flex-1 tw:min-w-0"
-            inputClassName="tw:bg-muted focus:tw:bg-white tw:rounded-full tw:pl-10"
-            onChange={handleSearchChange}
-            onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
-            leftIcon={
+          {searchField({
+            className: "tw:flex-1 tw:min-w-0",
+            inputClassName:
+              "tw:bg-gray-50 focus:tw:bg-white tw:rounded-full tw:pl-10",
+            leftIcon:
               mode === "name" ? (
-                <Search className="tw:text-muted-foreground" size={16} />
+                <Search className="tw:text-gray-500" size={16} />
               ) : (
-                <Barcode className="tw:text-muted-foreground" size={16} />
-              )
-            }
-            rightIcon={
-              <VoiceSearch
-                callback={handleVoiceCallback}
-                className="tw:mt-1 tw:text-muted-foreground tw:cursor-pointer tw:hover:text-primary"
-              >
-                <Mic size={18} />
-              </VoiceSearch>
-            }
-          />
+                <Barcode className="tw:text-gray-500" size={16} />
+              ),
+            rightIcon: voiceButton(
+              "tw:mt-1 tw:text-gray-500 tw:cursor-pointer tw:hover:text-gray-700",
+            ),
+          })}
           {onKeypadClick && (
             <button
               type="button"
               onClick={onKeypadClick}
-              className="tw:p-2.5 tw:rounded-full tw:border tw:border-border tw:bg-card tw:text-muted-foreground tw:cursor-pointer tw:transition-colors tw:hover:border-primary tw:hover:text-primary"
+              className="tw:p-2.5 tw:rounded-full tw:border tw:border-border tw:bg-card tw:text-muted-foreground tw:cursor-pointer tw:transition-colors tw:hover:bg-muted tw:hover:text-foreground"
               aria-label="Open keypad"
             >
               <Keyboard size={20} />

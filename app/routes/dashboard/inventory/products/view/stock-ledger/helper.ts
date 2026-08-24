@@ -24,7 +24,7 @@ const icons = {
 // Prepare params for stock ledger fetch (DealStockLedger style)
 export const prepareParams = (
   filter: Record<string, any>,
-  pagination: PaginationState
+  pagination: PaginationState,
 ) => {
   const p: Record<string, any> = {
     page: pagination.activePage,
@@ -75,14 +75,14 @@ export const getData = async (params: Record<string, any>) => {
   try {
     const response = await RackBinService.getLedgerList(
       AuthService.getLoggedInUserId() || "",
-      params
+      params,
     );
     return {
       data: RackBinService.formatLedgerResponse(response?.data?.data || []).map(
         (item: any) => ({
           ...item,
           icon: icons[item.referenceType as keyof typeof icons],
-        })
+        }),
       ),
     };
   } catch (error) {
@@ -99,7 +99,7 @@ export const getCount = async (params: Record<string, any>) => {
   try {
     const response = await RackBinService.getLedgerList(
       AuthService.getLoggedInUserId() || "",
-      p
+      p,
     );
 
     return response.data?.data || 0;

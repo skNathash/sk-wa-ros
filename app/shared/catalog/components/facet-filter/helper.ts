@@ -1,5 +1,14 @@
 import type { AxiosRequestConfig } from "axios";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
+import SellerCatalogService from "~/services/SellerCatalogService";
+
+/**
+ * Which catalog endpoint to source the facets from:
+ * - "popular"     → catalog/deals/popular (subscribe search page)
+ * - "seller-deal" → catalog/seller-deals (inventory products list)
+ * - "network"     → catalog/seller-deals/network (buy-from-other-retailer search)
+ */
+export type FacetSource = "popular" | "seller-deal" | "network";
 
 export type FacetItem = {
   id: string;
@@ -66,19 +75,55 @@ const normalizeMenus = (list: any[]): FacetItem[] =>
  */
 export const getFacets = async (
   search: string,
-  config?: AxiosRequestConfig,
+  source: FacetSource = "popular",
+  config?: AxiosRequestConfig & {
+    distance?: number | string;
+    sellerId?: string;
+  },
 ): Promise<Facets> => {
   try {
-    const params: Record<string, any> = {
-      filter: { status: "Active" },
-      includeVariants: true,
-    };
     const term = (search || "").trim();
-    if (term) {
-      params.search = term;
-    }
 
-    const response = await InventorySubscribeService.getDeals(params, config);
+    let response;
+    if (source === "seller-deal") {
+      // Inventory products list — sourced from the seller-deals endpoint.
+      // When a sellerId is provided (buy-from-other-retailer catalog), scope
+      // the facets to that seller's buyable catalog.
+      const params: Record<string, any> = {
+        filter: { status: "Active" },
+        includeVariants: true,
+        showAllDeals: true,
+      };
+      if (config?.sellerId) {
+        params.sellerId = config.sellerId;
+        params.parent = true;
+        params.filter.isLocalDeal = false;
+      }
+      if (term) params.filter.search = term;
+      response = await SellerCatalogService.getProducts(params, {}, config);
+    } else if (source === "network") {
+      // Buy-from-other-retailer search — sourced from the network deals endpoint.
+      const params: Record<string, any> = {
+        filter: { status: "Active" },
+        includeVariants: true,
+        showAllDeals: true,
+      };
+      if (term) params.filter.search = term;
+      response = await SellerCatalogService.getNetworkDeals(
+        params,
+        config?.distance,
+        {},
+        config,
+      );
+    } else {
+      // Subscribe search — sourced from the popular deals endpoint.
+      const params: Record<string, any> = {
+        filter: { status: "Active" },
+        includeVariants: true,
+      };
+      if (term) params.search = term;
+      response = await InventorySubscribeService.getDeals(params, config);
+    }
 
     const facets = response?.data?.facets || {};
 

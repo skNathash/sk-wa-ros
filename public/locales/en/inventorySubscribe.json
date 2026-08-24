@@ -1,10 +1,12 @@
 {
   "tabs": {
+    "discover": "Discover",
     "single": "Single Item",
     "bulk": "Bulk Upload",
     "search": "Search Items",
     "categories": "Browse Categories",
     "brands": "Browse Brands",
+    "menus": "Browse Menus",
     "top": "In and Around",
     "history": "Approval History",
     "un-brands": "Un-Branded"
@@ -20,7 +22,7 @@
     "createProduct": "Create Item"
   },
   "actions": {
-    "addProduct": "Add Item",
+    "addProduct": "Create Item",
     "createProduct": "Create Item"
   },
   "form": {
@@ -89,6 +91,41 @@
     "validationFailed": "Validation failed",
     "productSubmitted": "Item submitted for review!",
     "failedToSubmit": "Failed to submit item"
+  },
+  "discover": {
+    "add": "Add",
+    "seeAll": "See all",
+    "mrp": "MRP",
+    "subscribed": "Subscribed",
+    "intro": "See what retailers around you have subscribed to, and add it to your catalog in a tap.",
+    "storesStocking_one": "retailer subscribed",
+    "storesStocking_other": "retailers subscribed",
+    "storesShort_one": "store",
+    "storesShort_other": "stores",
+    "storesSubscribed_one": "{{count}} retailer subscribed",
+    "storesSubscribed_other": "{{count}} retailers subscribed",
+    "beFirst": "Be the first to subscribe",
+    "trending": {
+      "title": "Trending near you",
+      "subtitle": "Top-selling products in the SK Library"
+    },
+    "justLaunched": {
+      "title": "Just launched",
+      "subtitle": "New to the catalog this month"
+    },
+    "forYourStore": {
+      "title": "For your store",
+      "subtitle": "Picked for your business category"
+    },
+    "browse": {
+      "title": "Or browse this way",
+      "tiles": {
+        "brands": "Brands",
+        "categories": "Categories",
+        "menu": "Menu · aisle",
+        "azList": "A–Z list"
+      }
+    }
   },
   "search": {
     "searchedViaAI": "Searched via StoreKing AI",
@@ -188,8 +225,10 @@
     "headerTitle": "Create My Catalog",
     "heroTitle": "How would you like to add products?",
     "heroSubtitle": "Streamline your inventory by choosing the most efficient method for your current stock arrival.",
+    "sectionEyebrow": "Six ways to add",
     "quickLinksHeading": "Quick Links",
     "subscriptionCart": "Subscription Cart ({{count}})",
+    "cartLabel": "Subscription Cart",
     "tiles": {
       "scan": {
         "label": "Scan Barcode",
@@ -212,7 +251,7 @@
         "description": "Find products common in your area."
       },
       "create": {
-        "label": "Create New",
+        "label": "Create Item",
         "description": "For unique or local items."
       }
     },
@@ -234,6 +273,8 @@
         "description": "Add many at once"
       }
     },
-    "aiPoweredBadge": "AI powered"
+    "aiPoweredBadge": "AI powered",
+    "cartHint": "Review & subscribe",
+    "cartEmptyHint": "Nothing added yet"
   }
 }

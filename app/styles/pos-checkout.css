@@ -1,0 +1,557 @@
+/* ==========================================================================
+   POS checkout page
+   Scoped to `.pos-checkout`, the wrapper shared by the B2C/quick checkout
+   route (app/routes/pos/b2c-checkout/index.tsx) and the B2B checkout route
+   (app/routes/pos/b2b-checkout/index.tsx); the latter also carries
+   `.pos-checkout-b2b` for the handful of rules that only make sense when the
+   pane leads with a retailer card instead of a cart listing. Keyed on
+   [data-theme="theme-2"] because these rules are that theme's reading of the
+   page.
+
+   Imported from app.css after pos-billing.css.
+   ========================================================================== */
+
+/* The item count beside the summary title only earns its place in the theme-2
+   dark panel, where the head is a receipt strap rather than a plain label. */
+.app-osum-count {
+  display: none;
+}
+
+/* Order summary sidebar (components/CheckoutSummaryPanel.tsx, variant
+   "sidebar") — desktop only. It is the checkout's answer to the billing cart
+   pane: the same dark receipt terminal welded to the right edge of the
+   viewport, so the money keeps one home across the two screens. The mobile
+   drawer variant has no `.app-osum` root and is untouched.
+   -------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  /* Match the billing cart pane's width exactly rather than picking a number:
+     there the cart column is `md:w-1/3` of a row that spans the content area
+     (viewport minus the 1rem page gutters), plus the 1rem it bleeds past the
+     right gutter. Same arithmetic here, so the two panes line up when you move
+     from the cart to checkout. */
+  [data-theme="theme-2"] .pos-checkout {
+    --sum-w: calc((100vw - 2rem) / 3 + 1rem);
+  }
+
+  /* The column is lifted out of the flow entirely rather than pinned with
+     negative margins: on this page the row starts below a back-to-cart bar, so
+     a sticky column could never reach the header without hard-coding that
+     bar's height. Fixed, it runs from the underside of the sticky app header
+     (3.75rem) to the bottom edge, flush right. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-col {
+    position: fixed;
+    top: 3.75rem;
+    right: 0;
+    bottom: 0;
+    width: var(--sum-w);
+    z-index: 20;
+  }
+
+  /* The inner wrapper only exists to carry the sticky offset the fixed pane
+     now supplies. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-col > div {
+    position: static;
+    height: 100%;
+  }
+
+  /* With the pane out of flow, the step card owns the whole row — hold it
+     clear of the pane. */
+  [data-theme="theme-2"] .pos-checkout .app-checkout-body {
+    margin-right: var(--sum-w);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum {
+    /* Same palette as .app-cart-pane in pos-billing.css — the two panes are
+       the same object at two moments of the sale. */
+    --sum-bg: #0b1210;
+    --sum-surface: #111b18;
+    --sum-line: rgb(255 255 255 / 0.08);
+    --sum-line-strong: rgb(255 255 255 / 0.16);
+    --sum-text: #eef4f1;
+    --sum-muted: #7f948c;
+    --sum-accent: #10b981;
+
+    /* Flush against the viewport's right edge, square-cornered and
+       full-height: the pane is a wall of the app shell, not a card floating in
+       the page gutter — exactly how the cart pane reads on the billing page. */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 0;
+    border: 0;
+    border-left: 1px solid var(--sum-line);
+    background-color: var(--sum-bg);
+    color: var(--sum-text);
+    box-shadow: -8px 0 24px -20px rgb(0 0 0 / 0.8);
+  }
+
+  /* Head: title plus a mono item count, divided by the same dashed tear line
+     the cart pane uses under its title bar. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-head {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+    padding: 1rem 1.125rem;
+    border-bottom: 1px dashed var(--sum-line-strong);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.625rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--sum-text);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-count {
+    display: inline;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sum-muted);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-edit {
+    color: var(--sum-accent);
+    transition: color 0.15s ease;
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-edit:hover {
+    color: color-mix(in srgb, var(--sum-accent) 80%, white);
+  }
+
+  /* Line items: printed rows on the dark track, each on its own faint rule so
+     a long cart still scans line by line. */
+  /* The pane owns the full viewport height, so the item list takes whatever is
+     left between the head and the totals block and scrolls inside it. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-items {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    margin-bottom: 0;
+    padding: 0.5rem 1.125rem;
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-item {
+    padding-block: 0.4375rem;
+    border-bottom: 1px solid var(--sum-line);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-item:last-child {
+    border-bottom: 0;
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-item-name {
+    color: var(--sum-text);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-item-qty {
+    font-family: var(--font-mono);
+    color: var(--sum-muted);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-item-amt {
+    font-family: var(--font-mono);
+    color: var(--sum-text);
+  }
+
+  /* Subtotal / discount rows sit on the barely-lifted surface, the way cart
+     line items do — the arithmetic reads as one block, apart from the items. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-rows {
+    flex: 0 0 auto;
+    padding: 0.75rem 1.125rem;
+    border-top: 1px dashed var(--sum-line-strong);
+    background-color: var(--sum-surface);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-row {
+    color: var(--sum-muted);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-row > span:first-child {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-row > span:last-child {
+    font-family: var(--font-mono);
+    color: var(--sum-text);
+  }
+  /* Deductions stay green — money coming off the bill is the good news. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-row.tw\:text-emerald-600,
+  [data-theme="theme-2"]
+    .pos-checkout
+    .app-osum-row.tw\:text-emerald-600
+    > span {
+    color: var(--sum-accent);
+  }
+
+  /* Total payable is the loudest thing in the panel, on the accent. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-total {
+    flex: 0 0 auto;
+    margin-top: 0;
+    padding: 0.875rem 1.125rem;
+    border-top: 1px dashed var(--sum-line-strong);
+    background-color: var(--sum-surface);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-total-label {
+    font-size: 0.8125rem;
+    color: var(--sum-text);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-total-sub {
+    font-family: var(--font-mono);
+    letter-spacing: 0.12em;
+    color: var(--sum-muted);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-total-value {
+    font-size: 1.75rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--sum-accent);
+  }
+
+  /* Reassurance line: a quiet footer strip, not part of the arithmetic. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-secure {
+    flex: 0 0 auto;
+    margin-top: 0;
+    padding: 0.625rem 1.125rem calc(0.625rem + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--sum-line);
+    color: var(--sum-muted);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-osum-secure svg {
+    color: var(--sum-accent);
+  }
+
+  /* B2B pane
+     ------------------------------------------------------------------------
+     Same terminal, one difference: the B2B sidebar stacks a retailer card on
+     top of the payment summary, and there is no line-item list to fill the
+     middle. So the pane chrome moves up to the column wrapper — the two cards
+     read as one continuous wall — and the arithmetic is pushed to the foot,
+     where it sits against the bottom edge of the screen like the drawer total
+     on the billing page. */
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum-col {
+    --sum-bg: #0b1210;
+    --sum-surface: #111b18;
+    --sum-line: rgb(255 255 255 / 0.08);
+    --sum-line-strong: rgb(255 255 255 / 0.16);
+    --sum-text: #eef4f1;
+    --sum-muted: #7f948c;
+    --sum-accent: #10b981;
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum-col > div {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 1px solid var(--sum-line);
+    background-color: var(--sum-bg);
+    color: var(--sum-text);
+    box-shadow: -8px 0 24px -20px rgb(0 0 0 / 0.8);
+  }
+
+  /* The stacked cards butt up against each other; their own rules draw the
+     divisions. (Tailwind's space-y sets margin-block-end on every child but
+     the last.) */
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum-col > div > * {
+    margin-block: 0;
+  }
+
+  /* Retailer card: a header strap on the dark pane rather than a tinted card
+     floating in the gutter. */
+  [data-theme="theme-2"] .pos-checkout-b2b .app-oret {
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-oret-strap {
+    padding: 0.75rem 1.125rem 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    background-color: transparent;
+    color: var(--sum-muted);
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-oret > div:last-child {
+    padding: 0 1.125rem 0.875rem;
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-oret-avatar {
+    background-color: color-mix(in srgb, var(--sum-accent) 18%, transparent);
+    color: var(--sum-accent);
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-oret-name {
+    color: var(--sum-text);
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-oret-id {
+    font-family: var(--font-mono);
+    color: var(--sum-muted);
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-oret-line,
+  [data-theme="theme-2"] .pos-checkout-b2b .app-oret-line svg {
+    color: var(--sum-muted);
+  }
+
+  /* The summary card takes the rest of the pane; the wrapper now carries the
+     wall, so it drops its own edge and shadow. */
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    border-left: 0;
+    box-shadow: none;
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum-head {
+    border-top: 1px dashed var(--sum-line-strong);
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Nothing scrolls here, so the totals fall to the bottom of the pane
+     instead of hanging off the head. */
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum-rows {
+    margin-top: auto;
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum-row:last-child {
+    margin-bottom: 0;
+  }
+
+  [data-theme="theme-2"] .pos-checkout-b2b .app-osum-total {
+    margin-top: 0;
+    padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* At lg+ the fixed 4.5rem section rail eats into the content area, so the
+   row the cart column is a third of is that much narrower. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .pos-checkout {
+    --sum-w: calc((100vw - 6.5rem) / 3 + 1rem);
+  }
+}
+
+/* Payment step (B2B) — the mode picker and the panels that open under it ship
+   with a hard-coded blue selection state, which reads as a foreign accent
+   beside theme-2's green shell. Re-key the whole block to the brand instead.
+   Tints are the brand mixed into white rather than a translucent fill: over
+   the theme's cream page a transparent green goes olive (same reason as
+   .app-stock-chip-all in theme-2.css). All widths — the picker is the same
+   control on mobile.
+   -------------------------------------------------------------------------- */
+[data-theme="theme-2"] .pos-checkout .app-pay-opt-active {
+  border-color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 8%, #fff);
+  color: var(--primary);
+  /* Overrides Tailwind's `ring-1 ring-blue-500`, which paints through
+     box-shadow. */
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+[data-theme="theme-2"] .pos-checkout .app-pay-panel {
+  border-color: color-mix(in srgb, var(--primary) 22%, transparent);
+  background-color: color-mix(in srgb, var(--primary) 6%, #fff);
+}
+
+[data-theme="theme-2"] .pos-checkout .app-pay-panel-tag {
+  background-color: color-mix(in srgb, var(--primary) 14%, #fff);
+  color: var(--primary);
+}
+
+[data-theme="theme-2"]
+  .pos-checkout
+  :is(
+    .app-pay-panel-amt,
+    .app-pay-panel-label,
+    .app-pay-panel-note,
+    .app-pay-panel-edit
+  ) {
+  color: var(--primary);
+}
+
+[data-theme="theme-2"] .pos-checkout .app-pay-panel-edit:hover {
+  color: color-mix(in srgb, var(--primary) 75%, #000);
+}
+
+/* The limit figure carries the weight of the panel, so it stays the darkest
+   step of the ramp rather than sharing the label's tone. */
+[data-theme="theme-2"] .pos-checkout .app-pay-panel-value {
+  color: color-mix(in srgb, var(--primary) 80%, #000);
+}
+
+[data-theme="theme-2"] .pos-checkout .app-pay-panel-dot {
+  background-color: color-mix(in srgb, var(--primary) 55%, #fff);
+}
+
+/* Mobile step track — one segment per step instead of a single filled bar, so
+   the strip says how many steps are left as well as how far along you are.
+   Theme-agnostic base; theme-2 recolours it below.
+   -------------------------------------------------------------------------- */
+.app-ck-track {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.app-ck-seg {
+  flex: 1 1 0;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background-color: var(--muted, #e5e7eb);
+  transition: background-color 0.25s ease;
+}
+
+.app-ck-seg-on {
+  background-color: var(--primary);
+}
+
+/* ==========================================================================
+   Theme-2 — the checkout read as a chat
+   The billing screen hands the sale over to this page, and theme-2 dresses the
+   whole app as a messaging client, so checkout follows: the page sits on the
+   chat paper, each step is a card floating on it the way a message bubble
+   does, and the head of that card is the contact strap — avatar, name, status
+   line. All of it is chrome; the step components inside are untouched.
+
+   Mobile only for the shell rules (the desktop half of this page is already the
+   dark receipt pane above, which is the same idea in the other direction).
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* Chat paper under the cards. The rest of theme-2 runs the cool grey page
+     tint; this screen is the one place the sale is a conversation. */
+  [data-theme="theme-2"] .pos-checkout.page-bg,
+  [data-theme="theme-2"] main:has(> .app-page.pos-checkout.page-bg) {
+    --page-bg: var(--wa-cream);
+  }
+
+  /* Back to cart reads as the client's back affordance: a white pill on the
+     paper rather than a text link that disappears into it. */
+  [data-theme="theme-2"] .pos-checkout .app-ck-back {
+    gap: 0.375rem;
+    padding: 0.375rem 0.875rem;
+    border-radius: 9999px;
+    background-color: #fff;
+    color: var(--primary);
+    box-shadow: 0 1px 2px rgb(11 20 26 / 0.13);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-ck-back:hover {
+    background-color: color-mix(in srgb, var(--primary) 6%, #fff);
+  }
+  [data-theme="theme-2"] .pos-checkout .app-ck-back svg {
+    color: var(--primary);
+  }
+
+  /* The step card: a bubble on the paper. WhatsApp's cards carry no hairline —
+     the drop shadow alone lifts them off the ground — and their corners are
+     softer than the app default. */
+  [data-theme="theme-2"] .pos-checkout .app-ck-card,
+  [data-theme="theme-2"] .pos-checkout .app-osum-drawer {
+    border: 0;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgb(11 20 26 / 0.13);
+  }
+
+  /* Status strip: the filled segments carry the brand green over a track mixed
+     from the same green, so the strip belongs to the card rather than sitting
+     on a foreign grey. */
+  [data-theme="theme-2"] .pos-checkout .app-ck-steps {
+    border-bottom: 0;
+    padding-bottom: 0.5rem;
+    background-color: transparent;
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-ck-seg {
+    height: 0.1875rem;
+    background-color: color-mix(in srgb, var(--primary) 14%, #fff);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-ck-seg-on {
+    background-color: var(--primary);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-ck-step-count {
+    letter-spacing: 0.08em;
+    color: var(--primary);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-ck-step-next {
+    color: var(--ink-3, #667781);
+  }
+
+  /* Contact strap: the tinted band a chat header wears, with the step number
+     standing in for the avatar. The divider under it is the only rule the card
+     keeps — inside, the step body is one continuous surface. */
+  [data-theme="theme-2"] .pos-checkout .app-ck-head {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom-color: color-mix(in srgb, var(--primary) 12%, transparent);
+    background-color: color-mix(in srgb, var(--wa-bubble) 45%, #fff);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-ck-badge {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.8125rem;
+    background-color: var(--primary);
+    box-shadow: 0 1px 2px rgb(11 20 26 / 0.18);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-ck-title {
+    font-size: 0.9375rem;
+    letter-spacing: -0.005em;
+    color: var(--ink-1, #111b21);
+  }
+
+  /* The helper line is the "last seen" line under a contact name: present, one
+     line, and never competing with the title. */
+  [data-theme="theme-2"] .pos-checkout .app-ck-help {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--ink-3, #667781);
+  }
+
+  /* Quick-checkout retailer card — a quoted-message block: tinted, flush
+     rounded, marked by a green rule down its leading edge. */
+  [data-theme="theme-2"] .pos-checkout .app-ck-retailer {
+    border: 0;
+    border-radius: 0.5rem;
+    padding-left: 0.75rem;
+    background-color: color-mix(in srgb, var(--wa-bubble) 55%, #fff);
+    box-shadow: inset 3px 0 0 0 var(--primary);
+  }
+
+  /* Summary drawer: the composer bar at the foot of the thread. The collapsed
+     row carries the money, so the total takes the green and tabular figures
+     the rest of the app uses for amounts. */
+  [data-theme="theme-2"] .pos-checkout .app-osum-drawer-total {
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-drawer-bar svg {
+    color: var(--primary);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-drawer-body {
+    border-top-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    background-color: color-mix(in srgb, var(--wa-bubble) 22%, #fff);
+  }
+
+  [data-theme="theme-2"] .pos-checkout .app-osum-total-value {
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+  }
+}

@@ -15,6 +15,11 @@ import Products from "./components/products/Products";
 import Brands from "./components/brands/Brands";
 import Category from "./components/category/Category";
 import { Box, Layers, Tag } from "lucide-react";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import PricingSidePane from "~/shared/inventory/components/pricing-side-pane/PricingSidePane";
+import useTheme from "~/hooks/useTheme";
 
 const tabItems: TabItem[] = [
   { key: "products", name: "My Products", icon: <Box size={18} /> },
@@ -24,6 +29,7 @@ const tabItems: TabItem[] = [
 
 const ProductSelect = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const isTheme2 = useTheme() === "theme-2";
   const feature = searchParams.get("feature");
   const activeTab = searchParams.get("tab") || "products";
   const source = searchParams.get("source") || "";
@@ -135,78 +141,117 @@ const ProductSelect = () => {
     <>
       <AppHeader title={getTitle(feature ?? "")} />
       <div className="app-page page-bg tw:p-4">
-        <div className="app-container">
-          <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs sectionKey="catalog" activeTab="pricing" noShadow sticky />
 
-          <div className="tw:mb-4">
-            <InfoBlock size="sm" variant="info" bordered>
-              {feature === "PriceUpdate" ? (
-                <>
-                  Add products to update B2B scheme. Finalize and apply changes
-                  from the cart. <br />
-                  <span className="tw:text-xs tw:font-medium">
-                    Note: This is applicable only for B2B customers.
-                  </span>
-                </>
-              ) : feature === "PackUpdate" ? (
-                <>Select products to configure case and inner-case packaging.</>
-              ) : feature === "ReserveConfig" ? (
-                <>
-                  Select products to manage and update stock reservation rules.
-                </>
-              ) : feature === "PromotionDealUpdate" ? (
-                <>Select products to configure and manage promotional deals.</>
-              ) : (
-                <>Select products to add to cart or perform related actions.</>
-              )}
-            </InfoBlock>
-          </div>
+        <div className="section-layout">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="pricing"
+                title="Manage Catalog"
+              />
+            </div>
+          </aside>
 
-          <AppTab
-            tabs={tabItems}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            variant="tabs"
-            className="tw:mb-4"
-          />
-
-          <FormProvider {...formMethods}>
-            <Filter callback={handleFilterChange} />
-
-            {(feature === "PackUpdate" || feature === "PriceUpdate") && (
-              <label
-                className={`tw:flex tw:items-center tw:gap-2.5 tw:mb-3 tw:px-3.5 tw:py-2.5 tw:rounded-xl tw:border-2 tw:cursor-pointer tw:select-none tw:transition-all tw:text-sm tw:font-semibold ${
-                  searchParams.get("notConfiguredOnly") === "1"
-                    ? "tw:bg-amber-50 tw:border-amber-400 tw:text-amber-900 tw:shadow-sm"
-                    : "tw:bg-white tw:border-dashed tw:border-gray-300 tw:text-gray-500 tw:hover:border-amber-300 tw:hover:bg-amber-50/50"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={searchParams.get("notConfiguredOnly") === "1"}
-                  onChange={(e) => {
-                    const next = new URLSearchParams(searchParams);
-                    if (e.target.checked) {
-                      next.set("notConfiguredOnly", "1");
-                    } else {
-                      next.delete("notConfiguredOnly");
-                    }
-                    setSearchParams(next, { replace: true });
-                  }}
-                  className="tw:w-4 tw:h-4 tw:accent-amber-600 tw:rounded"
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              <AppPaneMain className="tw:lg:col-span-12">
+                <AppBreadcrumbs
+                  data={breadcrumbs}
+                  className="tw:mb-4 theme-2-mobile-hide"
                 />
-                {feature === "PackUpdate"
-                  ? "Show only not configured Sell In"
-                  : "Show only not configured B2B Scheme"}
-              </label>
-            )}
 
-            <AppliedFilters callback={handleFilterChange} />
+                <div className="tw:mb-4">
+                  <InfoBlock size="sm" variant="info" bordered>
+                    {feature === "PriceUpdate" ? (
+                      <>
+                        Add products to update B2B scheme. Finalize and apply
+                        changes from the cart. <br />
+                        <span className="tw:text-xs tw:font-medium">
+                          Note: This is applicable only for B2B customers.
+                        </span>
+                      </>
+                    ) : feature === "PackUpdate" ? (
+                      <>
+                        Choose how each product is sold
+                      </>
+                    ) : feature === "ReserveConfig" ? (
+                      <>
+                        Select products to manage and update stock reservation
+                        rules.
+                      </>
+                    ) : feature === "PromotionDealUpdate" ? (
+                      <>
+                        Select products to configure and manage promotional
+                        deals.
+                      </>
+                    ) : (
+                      <>
+                        Select products to add to cart or perform related
+                        actions.
+                      </>
+                    )}
+                  </InfoBlock>
+                </div>
 
-            {activeTab === "products" && <Products />}
-            {activeTab === "brands" && <Brands />}
-            {activeTab === "categories" && <Category />}
-          </FormProvider>
+                <AppTab
+                  tabs={tabItems}
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
+                  variant={isTheme2 ? "pills" : "tabs"}
+                  className="tw:mb-4"
+                />
+
+                <FormProvider {...formMethods}>
+                  <Filter callback={handleFilterChange} />
+
+                  {(feature === "PackUpdate" || feature === "PriceUpdate") && (
+                    <label
+                      className={`tw:flex tw:items-center tw:gap-2.5 tw:mb-3 tw:px-3.5 tw:py-2.5 tw:rounded-xl tw:border-2 tw:cursor-pointer tw:select-none tw:transition-all tw:text-sm tw:font-semibold ${
+                        searchParams.get("notConfiguredOnly") === "1"
+                          ? "tw:bg-amber-50 tw:border-amber-400 tw:text-amber-900 tw:shadow-sm"
+                          : "tw:bg-white tw:border-dashed tw:border-gray-300 tw:text-gray-500 tw:hover:border-amber-300 tw:hover:bg-amber-50/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={searchParams.get("notConfiguredOnly") === "1"}
+                        onChange={(e) => {
+                          const next = new URLSearchParams(searchParams);
+                          if (e.target.checked) {
+                            next.set("notConfiguredOnly", "1");
+                          } else {
+                            next.delete("notConfiguredOnly");
+                          }
+                          setSearchParams(next, { replace: true });
+                        }}
+                        className="tw:w-4 tw:h-4 tw:accent-amber-600 tw:rounded"
+                      />
+                      {feature === "PackUpdate"
+                        ? "Not configured only"
+                        : "Show only not configured B2B Scheme"}
+                    </label>
+                  )}
+
+                  <AppliedFilters callback={handleFilterChange} />
+
+                  {activeTab === "products" && <Products />}
+                  {activeTab === "brands" && <Brands />}
+                  {activeTab === "categories" && <Category />}
+                </FormProvider>
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed pane
+                  beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <PricingSidePane title={getTitle(feature ?? "")} />
+              </AppPaneSide>
+            </div>
+          </div>
         </div>
       </div>
     </>

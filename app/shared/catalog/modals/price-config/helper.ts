@@ -36,6 +36,31 @@ export const updateDiscount = async (payload: Record<string, any>) => {
   return { status: "error", msg: response.data?.message || "Failed to update" };
 };
 
+/**
+ * Group-scoped B2B price — written on the seller-deal document itself rather
+ * than through the RSP config API.
+ * @param sellerDealObjId - Seller-deal document id from the formatted deal
+ * @param groupId - Buyer group the price applies to
+ */
+export const updateGroupPrice = async (
+  sellerDealObjId: string,
+  groupId: string,
+  payload: Record<string, any>,
+) => {
+  const response = await SellerCatalogService.updateNetworkGroupSellingPrice(
+    sellerDealObjId,
+    groupId,
+    payload,
+  );
+  if (response.statusCode === 200) {
+    return {
+      status: "success",
+      msg: response.data?.message || "Group price updated successfully",
+    };
+  }
+  return { status: "error", msg: response.data?.message || "Failed to update" };
+};
+
 export const getPruchasePrice = (
   deal: any,
   type: "network" | "customer" = "customer",

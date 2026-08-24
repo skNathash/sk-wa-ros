@@ -82,6 +82,7 @@ const Alpha = ({
                   ? "tw:bg-gray-900 tw:text-white"
                   : "tw:bg-white"
               }`}
+              data-item={item}
               onClick={() => callback(item)}
             >
               {item}

@@ -3,10 +3,16 @@ import {
   FileText,
   Hash,
   PackagePlus,
+  Plus,
   ShoppingCart,
   Upload,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import Rbac from "~/components/core/rbac/Rbac";
+import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
+import AuthService from "~/services/AuthService";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppButton from "~/components/core/button/AppButton";
@@ -18,6 +24,10 @@ import useAppToast from "~/hooks/useAppToast";
 import CommonService from "~/services/CommonService";
 import PageAccessService from "~/services/PageAccessService";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
+import SubscribeSidePane from "~/shared/inventory/components/subscribe-side-pane/SubscribeSidePane";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import SuccessModal from "../../modals/SuccessModal";
 import BulkUploadMainTab from "../components/BulkUploadMainTab";
@@ -64,7 +74,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const BulkUpload = () => {
+  const { t } = useTranslation(["inventorySubscribe"]);
   const appToast = useAppToast();
+  const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
   const [display, setDisplay] = useState<"upload" | "preview">("upload");
   const [uploadMode, setUploadMode] = useState<UploadMode>("detailed");
   const [uploadedFile, setUploadedFile] = useState<any>(null);
@@ -360,268 +373,323 @@ const BulkUpload = () => {
     }
   };
 
-  // Show preview mode
-  if (display === "preview") {
-    return (
-      <>
-        <AppHeader title="Product Subscription" />
-        <div className="page-bg app-page tw:p-4">
-          <div className="app-container">
-            <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
-            <BulkUploadMainTab activeTab={activeTab} className="tw:mb-4" />
-            <div className="tw:space-y-6">
-              <Steps activeKey="preview" mode={previewMode} />
-              <Preview
-                products={products}
-                fileName={uploadedFile?.fileName || ""}
-                callback={handleSubmissionCallback}
-                commission={previewMode === "dealId" ? undefined : commission}
-                mode={previewMode}
-              />
-            </div>
-          </div>
-        </div>
+  const isPreview = display === "preview";
 
-        <AppAlertDialog
-          show={appAlertDialog.show}
-          title={appAlertDialog.title}
-          description={appAlertDialog.description}
-          onConfirm={appAlertDialog.successCb}
-          onCancel={appAlertDialog.cancelCb}
-        />
-        <SuccessModal
-          show={showSuccessModal}
-          callback={handleSuccessModal}
-          {...successModalConfig}
-        />
-      </>
-    );
-  }
-
-  // Show upload mode
   return (
     <>
-      <AppHeader title="Bulk Product Upload" />
-      <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4">
-            <AppBreadcrumbs data={breadcrumbs} />
-            <div>
+      <AppHeader
+        // Matches the "Bulk Upload" chip that leads here from the catalog side
+        // pane / nav strip; the preview step titles itself for what it shows.
+        title={isPreview ? "Bulk Upload Preview" : "Bulk Upload"}
+        renderActions={
+          isTheme2 && !isMobile ? (
+            <Rbac
+              roles={["CATALOG.ADD-PRODUCTS"]}
+              forceDisplay={AuthService.isMasterLogin()}
+            >
               <AppButton
                 onClick={() =>
-                  appNav.to(
-                    "/dashboard/inventory/subscribe/approval-history/products",
-                  )
+                  appNav.to("/dashboard/inventory/subscribe/add-product")
                 }
-                color="light"
+                color="primary"
                 size="small"
-                fill="outline"
+                className="tw:flex tw:items-center tw:gap-1"
               >
-                Subscription History
-                <ChevronRight />
+                <Plus />
+                {t("inventorySubscribe:actions.addProduct")}
               </AppButton>
+            </Rbac>
+          ) : undefined
+        }
+      />
+      <div className="page-bg app-page tw:p-4">
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs sectionKey="catalog" activeTab="library" noShadow sticky />
+
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title="Manage Catalog"
+              />
             </div>
-          </div>
-          <BulkUploadMainTab activeTab={activeTab} className="tw:mb-4" />
-          {/* <BulkUploadSubTab activeTab="product" className="tw:mb-4" /> */}
-          <Steps activeKey="upload" mode={uploadMode} />
+          </aside>
 
-          <div className="tw:space-y-6">
-            {/* ── Flow 1: Subscribe to existing catalog products via Deal IDs ── */}
-            <div className="tw:rounded-xl tw:border tw:border-emerald-200 tw:bg-emerald-50/40 tw:overflow-hidden">
-              <div className="tw:flex tw:items-start tw:gap-3 tw:p-4 tw:border-b tw:border-emerald-100 tw:bg-emerald-50">
-                <div className="tw:shrink-0 tw:w-10 tw:h-10 tw:rounded-lg tw:bg-emerald-100 tw:flex tw:items-center tw:justify-center">
-                  <ShoppingCart className="tw:w-5 tw:h-5 tw:text-emerald-700" />
-                </div>
-                <div className="tw:flex-1">
-                  <div className="tw:flex tw:items-center tw:gap-2">
-                    <h3 className="tw:text-sm tw:font-bold tw:text-emerald-900">
-                      Subscribe to existing products
-                    </h3>
-                    <span className="tw:px-1.5 tw:py-0.5 tw:rounded tw:bg-emerald-200/70 tw:text-emerald-800 tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-wide">
-                      Deal IDs
-                    </span>
-                  </div>
-                  <p className="tw:text-xs tw:text-emerald-800/80 tw:mt-1">
-                    Already know the deal IDs of catalog products? Add them to
-                    your subscription cart instantly — no approval needed.
-                  </p>
-                </div>
-              </div>
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                {isPreview ? (
+                  <>
+                    <AppBreadcrumbs
+                      data={breadcrumbs}
+                      className="tw:mb-4 hide-in-theme-2"
+                    />
+                    <BulkUploadMainTab
+                      activeTab={activeTab}
+                      className="tw:mb-4"
+                    />
+                    <div className="tw:space-y-6">
+                      <Steps activeKey="preview" mode={previewMode} />
+                      <Preview
+                        products={products}
+                        fileName={uploadedFile?.fileName || ""}
+                        callback={handleSubmissionCallback}
+                        commission={
+                          previewMode === "dealId" ? undefined : commission
+                        }
+                        mode={previewMode}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Whole row is hidden in theme-2 (breadcrumbs are off and
+                        the side pane owns the secondary navigation) — otherwise
+                        its bottom margin leaves a page-bg strip above the
+                        sticky tab band. */}
+                    <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4 hide-in-theme-2">
+                      <AppBreadcrumbs data={breadcrumbs} />
+                      <div>
+                        <AppButton
+                          onClick={() =>
+                            appNav.to(
+                              "/dashboard/inventory/subscribe/approval-history/products",
+                            )
+                          }
+                          color="light"
+                          size="small"
+                          fill="outline"
+                        >
+                          Subscription History
+                          <ChevronRight />
+                        </AppButton>
+                      </div>
+                    </div>
+                    <BulkUploadMainTab
+                      activeTab={activeTab}
+                      className="tw:mb-4"
+                    />
+                    {/* <BulkUploadSubTab activeTab="product" className="tw:mb-4" /> */}
+                    <Steps activeKey="upload" mode={uploadMode} />
 
-              <div className="tw:p-4 tw:space-y-4 tw:bg-white">
-                {/* Option A: paste deal IDs */}
-                <div>
-                  <div className="tw:flex tw:items-center tw:gap-2 tw:mb-2">
-                    <Hash className="tw:w-4 tw:h-4 tw:text-emerald-600" />
-                    <span className="tw:text-sm tw:font-semibold tw:text-gray-800">
-                      Paste Deal IDs
-                    </span>
-                    <span className="tw:text-[11px] tw:text-gray-500">
-                      Comma or newline separated (max{" "}
-                      {SUBSCRIBE_MAX_PRODUCTS_COUNT} items)
-                    </span>
-                  </div>
-                  <textarea
-                    value={dealIdInput}
-                    onChange={(e) => setDealIdInput(e.target.value)}
-                    rows={3}
-                    placeholder="e.g. D1, D2, D3"
-                    className="tw:w-full tw:border tw:border-gray-300 tw:rounded-md tw:p-3 tw:text-sm tw:font-mono focus:tw:border-emerald-400 focus:tw:outline-none"
-                  />
-                  <div className="tw:flex tw:justify-end tw:mt-2">
-                    <AppButton
-                      onClick={handleDealIdSubmit}
-                      isLoading={dealIdSubmitting}
-                      disabled={!dealIdInput.trim() || dealIdSubmitting}
-                      size="small"
-                    >
-                      Submit Deal IDs
-                    </AppButton>
-                  </div>
-                </div>
+                    <div className="tw:space-y-6">
+                      {/* ── Flow 1: Subscribe to existing catalog products via Deal IDs ── */}
+                      <div className="tw:rounded-xl tw:border tw:border-emerald-200 tw:bg-emerald-50/40 tw:overflow-hidden">
+                        <div className="tw:flex tw:items-start tw:gap-3 tw:p-4 tw:border-b tw:border-emerald-100 tw:bg-emerald-50">
+                          <div className="tw:shrink-0 tw:w-10 tw:h-10 tw:rounded-lg tw:bg-emerald-100 tw:flex tw:items-center tw:justify-center">
+                            <ShoppingCart className="tw:w-5 tw:h-5 tw:text-emerald-700" />
+                          </div>
+                          <div className="tw:flex-1">
+                            <div className="tw:flex tw:items-center tw:gap-2">
+                              <h3 className="tw:text-sm tw:font-bold tw:text-emerald-900">
+                                Subscribe to existing products
+                              </h3>
+                              <span className="tw:px-1.5 tw:py-0.5 tw:rounded tw:bg-emerald-200/70 tw:text-emerald-800 tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-wide">
+                                Deal IDs
+                              </span>
+                            </div>
+                            <p className="tw:text-xs tw:text-emerald-800/80 tw:mt-1">
+                              Already know the deal IDs of catalog products? Add
+                              them to your subscription cart instantly — no
+                              approval needed.
+                            </p>
+                          </div>
+                        </div>
 
-                <div className="tw:flex tw:items-center tw:gap-3">
-                  <div className="tw:flex-1 tw:h-px tw:bg-gray-200" />
-                  <span className="tw:text-[11px] tw:font-medium tw:text-gray-400 tw:uppercase tw:tracking-wide">
-                    or
-                  </span>
-                  <div className="tw:flex-1 tw:h-px tw:bg-gray-200" />
-                </div>
+                        <div className="tw:p-4 tw:space-y-4 tw:bg-white">
+                          {/* Option A: paste deal IDs */}
+                          <div>
+                            <div className="tw:flex tw:items-center tw:gap-2 tw:mb-2">
+                              <Hash className="tw:w-4 tw:h-4 tw:text-emerald-600" />
+                              <span className="tw:text-sm tw:font-semibold tw:text-gray-800">
+                                Paste Deal IDs
+                              </span>
+                              <span className="tw:text-[11px] tw:text-gray-500">
+                                Comma or newline separated (max{" "}
+                                {SUBSCRIBE_MAX_PRODUCTS_COUNT} items)
+                              </span>
+                            </div>
+                            <textarea
+                              value={dealIdInput}
+                              onChange={(e) => setDealIdInput(e.target.value)}
+                              rows={3}
+                              placeholder="e.g. D1, D2, D3"
+                              className="tw:w-full tw:border tw:border-gray-300 tw:rounded-md tw:p-3 tw:text-sm tw:font-mono focus:tw:border-emerald-400 focus:tw:outline-none"
+                            />
+                            <div className="tw:flex tw:justify-end tw:mt-2">
+                              <AppButton
+                                onClick={handleDealIdSubmit}
+                                isLoading={dealIdSubmitting}
+                                disabled={
+                                  !dealIdInput.trim() || dealIdSubmitting
+                                }
+                                size="small"
+                              >
+                                Submit Deal IDs
+                              </AppButton>
+                            </div>
+                          </div>
 
-                {/* Option B: deal-id file upload */}
-                <div>
-                  <div className="tw:flex tw:items-center tw:gap-2 tw:mb-2">
-                    <FileText className="tw:w-4 tw:h-4 tw:text-emerald-600" />
-                    <span className="tw:text-sm tw:font-semibold tw:text-gray-800">
-                      Upload Deal ID file
-                    </span>
-                  </div>
-                  <FileUpload
-                    allowedExtensions={["xlsx", "xls", "csv"]}
-                    accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                    dontUseNative={true}
-                    maxSizeMB={20}
-                    onFileUpload={handleDealIdFileUpload}
-                    uploadUrl={`${API}purchase/inventory/excel/deal-upload`}
-                  >
-                    <div className="tw:flex tw:flex-col tw:sm:flex-row tw:items-center tw:justify-between tw:gap-3 tw:w-full tw:border tw:border-dashed tw:border-emerald-300 tw:rounded-lg tw:p-4 tw:bg-emerald-50/30 hover:tw:bg-emerald-50">
-                      <div className="tw:flex tw:items-center tw:gap-3">
-                        <FileText className="tw:w-6 tw:h-6 tw:text-emerald-600" />
-                        <div>
-                          <p className="tw:text-sm tw:font-medium tw:text-gray-800">
-                            Upload an Excel/CSV with deal IDs
-                          </p>
-                          <p className="tw:text-[11px] tw:text-gray-500">
-                            Supported: .xlsx, .xls, .csv (max 20MB, up to{" "}
-                            {SUBSCRIBE_MAX_PRODUCTS_COUNT} items)
-                          </p>
+                          <div className="tw:flex tw:items-center tw:gap-3">
+                            <div className="tw:flex-1 tw:h-px tw:bg-gray-200" />
+                            <span className="tw:text-[11px] tw:font-medium tw:text-gray-400 tw:uppercase tw:tracking-wide">
+                              or
+                            </span>
+                            <div className="tw:flex-1 tw:h-px tw:bg-gray-200" />
+                          </div>
+
+                          {/* Option B: deal-id file upload */}
+                          <div>
+                            <div className="tw:flex tw:items-center tw:gap-2 tw:mb-2">
+                              <FileText className="tw:w-4 tw:h-4 tw:text-emerald-600" />
+                              <span className="tw:text-sm tw:font-semibold tw:text-gray-800">
+                                Upload Deal ID file
+                              </span>
+                            </div>
+                            <FileUpload
+                              allowedExtensions={["xlsx", "xls", "csv"]}
+                              accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                              dontUseNative={true}
+                              maxSizeMB={20}
+                              onFileUpload={handleDealIdFileUpload}
+                              uploadUrl={`${API}purchase/inventory/excel/deal-upload`}
+                            >
+                              <div className="tw:flex tw:flex-col tw:sm:flex-row tw:items-center tw:justify-between tw:gap-3 tw:w-full tw:border tw:border-dashed tw:border-emerald-300 tw:rounded-lg tw:p-4 tw:bg-emerald-50/30 hover:tw:bg-emerald-50">
+                                <div className="tw:flex tw:items-center tw:gap-3">
+                                  <FileText className="tw:w-6 tw:h-6 tw:text-emerald-600" />
+                                  <div>
+                                    <p className="tw:text-sm tw:font-medium tw:text-gray-800">
+                                      Upload an Excel/CSV with deal IDs
+                                    </p>
+                                    <p className="tw:text-[11px] tw:text-gray-500">
+                                      Supported: .xlsx, .xls, .csv (max 20MB, up
+                                      to {SUBSCRIBE_MAX_PRODUCTS_COUNT} items)
+                                    </p>
+                                  </div>
+                                </div>
+                                <AppButton
+                                  size="small"
+                                  className="tw:flex tw:items-center tw:gap-1"
+                                >
+                                  <Upload className="tw:w-4 tw:h-4" />
+                                  Choose File
+                                </AppButton>
+                              </div>
+                            </FileUpload>
+                            <div className="tw:mt-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setUploadMode("dealId");
+                                  handleDownloadTemplate("dealId");
+                                }}
+                                className="tw:text-xs tw:text-emerald-700 tw:underline tw:cursor-pointer"
+                              >
+                                Download deal-ID sample template
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <AppButton
-                        size="small"
-                        className="tw:flex tw:items-center tw:gap-1"
-                      >
-                        <Upload className="tw:w-4 tw:h-4" />
-                        Choose File
-                      </AppButton>
-                    </div>
-                  </FileUpload>
-                  <div className="tw:mt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUploadMode("dealId");
-                        handleDownloadTemplate("dealId");
-                      }}
-                      className="tw:text-xs tw:text-emerald-700 tw:underline tw:cursor-pointer"
-                    >
-                      Download deal-ID sample template
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* ── Flow 2: Request new products (not in the catalog) ── */}
-            <div className="tw:rounded-xl tw:border tw:border-blue-200 tw:bg-blue-50/40 tw:overflow-hidden">
-              <div className="tw:flex tw:items-start tw:gap-3 tw:p-4 tw:border-b tw:border-blue-100 tw:bg-blue-50">
-                <div className="tw:shrink-0 tw:w-10 tw:h-10 tw:rounded-lg tw:bg-blue-100 tw:flex tw:items-center tw:justify-center">
-                  <PackagePlus className="tw:w-5 tw:h-5 tw:text-blue-700" />
-                </div>
-                <div className="tw:flex-1">
-                  <div className="tw:flex tw:items-center tw:gap-2">
-                    <h3 className="tw:text-sm tw:font-bold tw:text-blue-900">
-                      Request new products
-                    </h3>
-                    <span className="tw:px-1.5 tw:py-0.5 tw:rounded tw:bg-blue-200/70 tw:text-blue-800 tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-wide">
-                      Needs approval
-                    </span>
-                  </div>
-                  <p className="tw:text-xs tw:text-blue-800/80 tw:mt-1">
-                    Product not in our catalog yet? Upload a detailed file with
-                    name, brand, MRP, barcode etc. Our team will review and add
-                    them.
-                  </p>
-                </div>
-              </div>
+                      {/* ── Flow 2: Request new products (not in the catalog) ── */}
+                      <div className="tw:rounded-xl tw:border tw:border-blue-200 tw:bg-blue-50/40 tw:overflow-hidden">
+                        <div className="tw:flex tw:items-start tw:gap-3 tw:p-4 tw:border-b tw:border-blue-100 tw:bg-blue-50">
+                          <div className="tw:shrink-0 tw:w-10 tw:h-10 tw:rounded-lg tw:bg-blue-100 tw:flex tw:items-center tw:justify-center">
+                            <PackagePlus className="tw:w-5 tw:h-5 tw:text-blue-700" />
+                          </div>
+                          <div className="tw:flex-1">
+                            <div className="tw:flex tw:items-center tw:gap-2">
+                              <h3 className="tw:text-sm tw:font-bold tw:text-blue-900">
+                                Request new products
+                              </h3>
+                              <span className="tw:px-1.5 tw:py-0.5 tw:rounded tw:bg-blue-200/70 tw:text-blue-800 tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-wide">
+                                Needs approval
+                              </span>
+                            </div>
+                            <p className="tw:text-xs tw:text-blue-800/80 tw:mt-1">
+                              Product not in our catalog yet? Upload a detailed
+                              file with name, brand, MRP, barcode etc. Our team
+                              will review and add them.
+                            </p>
+                          </div>
+                        </div>
 
-              <div className="tw:p-4 tw:bg-white">
-                <FileUpload
-                  allowedExtensions={["xlsx", "xls", "csv"]}
-                  accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                  dontUseNative={true}
-                  maxSizeMB={20}
-                  onFileUpload={handleFileUpload}
-                  uploadUrl={`${API}purchase/catalog-subscriptions/bulk-upload-seller-import-products`}
-                >
-                  <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:gap-4 tw:w-full tw:border-2 tw:border-dashed tw:border-blue-300 tw:rounded-lg tw:p-8 tw:bg-blue-50/30 hover:tw:bg-blue-50 tw:transition-colors">
-                    <div className="tw:text-blue-400">
-                      <FileText className="tw:w-12 tw:h-12" />
-                    </div>
-                    <div className="tw:text-center">
-                      <h3 className="tw:text-base tw:font-semibold tw:text-gray-800 tw:mb-1">
-                        Upload product details file
-                      </h3>
-                      <p className="tw:text-sm tw:text-gray-500">
-                        Include: Product Name, Barcode, MRP, Purchase Price,
-                        Quantity, Unit, Description, Brand, Category.
-                      </p>
-                      <p className="tw:text-xs tw:text-gray-400 tw:mt-1">
-                        Supported: .xlsx, .xls, .csv
-                      </p>
-                    </div>
-                    <AppButton className="tw:flex tw:items-center tw:gap-2">
-                      <Upload className="tw:w-4 tw:h-4" />
-                      Choose File
-                    </AppButton>
-                  </div>
-                </FileUpload>
+                        <div className="tw:p-4 tw:bg-white">
+                          <FileUpload
+                            allowedExtensions={["xlsx", "xls", "csv"]}
+                            accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                            dontUseNative={true}
+                            maxSizeMB={20}
+                            onFileUpload={handleFileUpload}
+                            uploadUrl={`${API}purchase/catalog-subscriptions/bulk-upload-seller-import-products`}
+                          >
+                            <div className="tw:flex tw:flex-col tw:items-center tw:justify-center tw:gap-4 tw:w-full tw:border-2 tw:border-dashed tw:border-blue-300 tw:rounded-lg tw:p-8 tw:bg-blue-50/30 hover:tw:bg-blue-50 tw:transition-colors">
+                              <div className="tw:text-blue-400">
+                                <FileText className="tw:w-12 tw:h-12" />
+                              </div>
+                              <div className="tw:text-center">
+                                <h3 className="tw:text-base tw:font-semibold tw:text-gray-800 tw:mb-1">
+                                  Upload product details file
+                                </h3>
+                                <p className="tw:text-sm tw:text-gray-500">
+                                  Include: Product Name, Barcode, MRP, Purchase
+                                  Price, Quantity, Unit, Description, Brand,
+                                  Category.
+                                </p>
+                                <p className="tw:text-xs tw:text-gray-400 tw:mt-1">
+                                  Supported: .xlsx, .xls, .csv
+                                </p>
+                              </div>
+                              <AppButton className="tw:flex tw:items-center tw:gap-2">
+                                <Upload className="tw:w-4 tw:h-4" />
+                                Choose File
+                              </AppButton>
+                            </div>
+                          </FileUpload>
 
-                <div className="tw:mt-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadMode("detailed");
-                      handleDownloadTemplate("detailed");
-                    }}
-                    className="tw:text-xs tw:text-blue-700 tw:underline tw:cursor-pointer"
-                  >
-                    Download detailed product sample template
-                  </button>
-                </div>
+                          <div className="tw:mt-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUploadMode("detailed");
+                                handleDownloadTemplate("detailed");
+                              }}
+                              className="tw:text-xs tw:text-blue-700 tw:underline tw:cursor-pointer"
+                            >
+                              Download detailed product sample template
+                            </button>
+                          </div>
 
-                {uploadedFile && uploadMode === "detailed" && (
-                  <div className="tw:mt-4 tw:p-3 tw:bg-green-50 tw:border tw:border-green-200 tw:rounded-md">
-                    <div className="tw:flex tw:items-center tw:gap-2 tw:text-green-700">
-                      <FileText className="tw:w-4 tw:h-4" />
-                      <span className="tw:text-sm tw:font-medium">
-                        File uploaded successfully
-                      </span>
+                          {uploadedFile && uploadMode === "detailed" && (
+                            <div className="tw:mt-4 tw:p-3 tw:bg-green-50 tw:border tw:border-green-200 tw:rounded-md">
+                              <div className="tw:flex tw:items-center tw:gap-2 tw:text-green-700">
+                                <FileText className="tw:w-4 tw:h-4" />
+                                <span className="tw:text-sm tw:font-medium">
+                                  File uploaded successfully
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
-              </div>
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeSidePane scopeLabel="Bulk Upload" />
+              </AppPaneSide>
             </div>
           </div>
         </div>

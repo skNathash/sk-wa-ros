@@ -7,6 +7,7 @@ import AppBadge from "~/components/core/badge/AppBadge";
 import AppButton from "~/components/core/button/AppButton";
 import ImgRender from "~/components/core/img/ImgRender";
 import AppLink from "~/components/core/link/AppLink";
+import { Checkbox } from "~/components/ui/checkbox";
 import LocationsBlock from "~/components/feature/inventory/location-block/LocationsBlock";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
 import DisplayPrice from "~/shared/products/display-price/DisplayPrice";
@@ -19,12 +20,17 @@ const Mobile = ({
   type,
   isFirst,
   showOnlinePrices = true,
+  selected = false,
+  onSelectChange,
 }: {
   item: any;
   callback: (a: { action: string; data?: any; event?: any }) => void;
   type: "network" | "customer";
   isFirst?: boolean;
   showOnlinePrices?: boolean;
+  /** Bulk-select state; the checkbox only renders when `onSelectChange` is given. */
+  selected?: boolean;
+  onSelectChange?: (item: any, checked: boolean) => void;
 }) => {
   const { t } = useTranslation(["common"]);
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -56,6 +62,17 @@ const Mobile = ({
     >
       {/* Identity row — image, name, id/velocity, and the collapse toggle */}
       <div className="tw:flex tw:gap-3 tw:p-4 tw:pb-3">
+        {onSelectChange && (
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(checked) =>
+              onSelectChange(item, checked === true)
+            }
+            aria-label={`Select ${item.name}`}
+            className="tw:mt-1 tw:shrink-0 tw:border-gray-400"
+          />
+        )}
+
         {/* Product Image */}
         <div className="tw:shrink-0 tw:relative">
           {item.images?.[0] ? (
@@ -81,7 +98,7 @@ const Mobile = ({
           <div className="tw:text-sm tw:font-semibold tw:text-gray-900 tw:leading-snug tw:line-clamp-2">
             <AppLink
               asLink
-              href={`/dashboard/inventory/products/view/${item._id}`}
+              href={`/dashboard/inventory/products/view/${item._id}/pricing`}
               className="hover:tw:text-blue-600"
             >
               {item.name}

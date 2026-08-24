@@ -1,44 +1,96 @@
-/* theme-2 — activated via `data-theme="theme-2"` on <html>.
-   Overrides the design-token variables and applies a few app-wide layout
-   tweaks (primary-colored header, hidden breadcrumbs/page descriptions). */
+/* ============================================================================
+   THEME-2
+   Organised in three groups, in cascade order:
 
-/* theme-2 uses Plus Jakarta Sans (loaded via a Google Fonts <link> in root.tsx)
-   in place of the app-wide Open Sans. app.css sets font-family on `*` (0,0,0);
-   `[data-theme="theme-2"] *` (0,1,0) outranks it, so it overrides everywhere
-   under a theme-2 root. Redeclare --font-sans too so Tailwind's `font-sans`
-   utility follows. */
+     1. COMMON   — breakpoint-independent (tokens, base, components)
+     2. MOBILE   — @media (max-width: …)  — mobile + tablet overrides
+     3. DESKTOP  — @media (min-width: …)  — tablet-up / lg-up overrides
+
+   Common comes first so the media-query groups can override it at equal
+   specificity.
+   ========================================================================= */
+
+/* ============================================================================
+   1. COMMON
+   ========================================================================= */
+
+/* ── Tokens & typography ───────────────────────────────────────────────── */
+
+/* Native system stack, no webfont. This is what WhatsApp Web itself renders
+   in, so it's the faithful match rather than an approximation — and a POS
+   terminal on a weak connection pays nothing for it and never reflows on
+   font swap. Resolves to San Francisco (Apple), Segoe UI (Windows),
+   Roboto (Android). */
 [data-theme="theme-2"],
 [data-theme="theme-2"] * {
-  font-family:
-    "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: var(--font-system);
+}
+
+/* Tabular figures theme-wide. The old mono cut was carrying the column
+   alignment for amounts, quantities and counts; the system faces default to
+   proportional digits (San Francisco's `1` is visibly narrow), so cart totals
+   and summary rows would ragged out without this. Inherited rather than set
+   at each of the ~18 numeric call sites. */
+[data-theme="theme-2"] {
+  font-variant-numeric: tabular-nums;
+
+  /* Split-layout metrics. The fixed section icon rail and the list pane that
+     sits flush after it; every offset that has to clear them (content column
+     reservation, header, footer) is derived from these instead of repeating
+     the numbers, so the pane can be resized in one place. */
+  --app-rail-w: 4.5rem;
+  --app-pane-w: 21rem;
+}
+
+/* One notch lighter across the board. The system stack renders heavier than
+   the old cut at the same nominal weight — screens built with `font-semibold`
+   /`font-bold` came out shouting, and WhatsApp itself carries hierarchy with
+   500/600 rather than 600/700. Tailwind v4 emits `font-weight:
+   var(--font-weight-*)` for every weight utility, so re-pointing the scale
+   here shifts every `tw:font-medium|semibold|bold` inside the theme at once —
+   no per-call-site edits, and theme-1 is untouched. `strong`/`b` get the same
+   treatment because preflight leaves them on the UA's `bolder`. */
+[data-theme="theme-2"] {
+  --tw-font-weight-medium: 400;
+  --tw-font-weight-semibold: 500;
+  --tw-font-weight-bold: 600;
+  --tw-font-weight-extrabold: 700;
+  --tw-font-weight-black: 800;
 }
 
 [data-theme="theme-2"] {
-  --font-sans:
-    "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-}
-
-[data-theme="theme-2"] {
-  --background: oklch(0.939 0.012 79.78);
+  /* White, not the warm page tint: `--background` is the control/surface color
+     (outline buttons, dialogs, sheets, popovers, switch thumbs). The warm tint
+     is the *page* background and is set via `--page-bg` below. */
+  --background: oklch(1 0 0);
   --foreground: oklch(0.215 0.019 235.13);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.215 0.019 235.13);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.215 0.019 235.13);
+
+  /* WhatsApp's two brand greens. `--primary` is the surface/action green (the
+     rail, mobile header, section bar, filled buttons); `--primary-2` is the
+     lighter companion used for accents that need to lift off it — focus rings,
+     active marks, the check/tick green. */
   --primary: #075e54;
+  --primary-2: #00a884;
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.957 0.067 141.12);
+
+  --secondary: #e7f4d7;
   --secondary-foreground: oklch(0.215 0.019 235.13);
   --muted: oklch(0.944 0.005 228.82);
-  --muted-foreground: oklch(0.559 0.025 233.72);
-  --accent: oklch(0.946 0.072 131.55);
+  /* Secondary/label text. Thin UI-face strokes plus a light gray read as
+     washed-out for the muted meta rows (ratings, timestamps, "in stock" lines),
+     so this is a few steps darker than a typical muted gray for legibility. */
+  --muted-foreground: oklch(0.472 0.028 233.72);
+
+  --accent: #e7f4d7;
   --accent-foreground: oklch(0.215 0.019 235.13);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.876 0.009 236.58);
   --input: oklch(0.876 0.009 236.58);
-  --ring: #075e54;
+  --ring: #00a884;
   --chart-1: oklch(0.761 0.201 149.74);
   --chart-2: oklch(0.651 0.128 170.43);
   --chart-3: oklch(0.535 0.102 174.23);
@@ -48,59 +100,192 @@
   --sidebar-foreground: oklch(0.215 0.019 235.13);
   --sidebar-primary: #075e54;
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.957 0.067 141.12);
+  --sidebar-accent: #e7f4d7;
   --sidebar-accent-foreground: oklch(0.215 0.019 235.13);
   --sidebar-border: oklch(0.876 0.009 236.58);
-  --sidebar-ring: #075e54;
+  --sidebar-ring: #00a884;
 }
 
-/* theme-2: primary-colored app header with light content */
-[data-theme="theme-2"] .app-header {
-  background-color: var(--primary);
-  border-color: transparent;
-}
-[data-theme="theme-2"] .app-header,
-[data-theme="theme-2"] .app-header h1,
-[data-theme="theme-2"] .app-header button,
-[data-theme="theme-2"] .app-header a,
-[data-theme="theme-2"] .app-header svg {
-  color: var(--primary-foreground);
-}
-/* Header buttons (e.g. Record Payment) use the outline/ghost variants whose
-   light background would render the now-light icon invisible on the primary
-   header. Make them transparent with a light border so they read correctly. */
-[data-theme="theme-2"] .app-header button {
-  background-color: transparent;
-  border-color: color-mix(in srgb, var(--primary-foreground) 40%, transparent);
-}
-[data-theme="theme-2"] .app-header button:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--primary-foreground) 15%,
-    transparent
-  );
-}
-/* SVG-image icons (e.g. hamburger) are rendered as <img>; recolor to light */
-[data-theme="theme-2"] .app-header img[src*="hamburger"] {
-  filter: brightness(0) invert(1);
-}
-
-/* theme-2 uses the WhatsApp chat "cream" as the page background on mobile, where
-   it reads as the familiar WhatsApp canvas. On desktop the large flat expanse of
-   cream muddies the white cards/inputs sitting on it, so switch to a clean light
-   neutral there to keep cards, borders and the primary header standing out. */
-[data-theme="theme-2"] .page-bg {
-  --page-bg: #ece5dd;
-}
+/* Desktop runs the lighter WhatsApp Web green instead of the mobile app's deep
+   teal. Overriding the token on the theme root is enough — the rail, header,
+   filled buttons and every `color-mix(… var(--primary) …)` below re-resolve
+   from it, so there are no per-rule desktop variants to keep in sync. */
 @media (min-width: 1024px) {
-  [data-theme="theme-2"] .page-bg {
-    --page-bg: #f7f8fa;
+  [data-theme="theme-2"] {
+    --primary: #008069;
+    --sidebar-primary: #008069;
   }
 }
 
-/* theme-2: form controls default to a transparent fill and so pick up the cream
-   page background. Give the text-entry controls (input, textarea, select) and the
-   toggle controls an explicit white surface so fields read as distinct inputs. */
+[data-theme="theme-2"] {
+  --accent-in: #1f8a4f;
+  --accent-in-bg: #e7f4d7;
+  --accent-in-dark: #0f5a2e;
+  --accent-out: #c85a1d;
+  --accent-out-bg: #fbe4d3;
+  --accent-out-dark: #5a2506;
+  --accent-b2c: #2e5aa8;
+
+  /* No "Roboto" in this stack on purpose. Android already resolves it through
+     `system-ui`, and naming it outright is a trap on desktop: the Google Maps
+     API prepends a Google Fonts stylesheet for Roboto to <head>, so the family
+     goes from unmatched to a loaded webfont the moment a map appears — and the
+     whole app reflows out of Segoe UI / system-ui into Roboto behind it. */
+  --font-system:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
+
+  /* Both aliases resolve to the system stack — theme-2 ships a single face.
+     The vars stay so the amount/label call sites keep one place to retune
+     from. Numerals get `font-variant-numeric: tabular-nums` at the call sites
+     instead of a separate mono cut. */
+  --font-serif: var(--font-system);
+  --font-mono: var(--font-system);
+}
+
+[data-theme="theme-2"] {
+  --wa-bubble: #e7f4d7;
+  --wa-bubble-text: #0a6b57;
+
+  --wa-cream: #efeae2;
+
+  --success: #1da851;
+  --success-fill: #25d366;
+}
+
+/* ── Page shell & layout ───────────────────────────────────────────────── */
+
+/* Desktop keeps a cool grey page tint. The `main` half keeps the tint on the
+   scroll area below the page box (see page-bg.css) — without it the theme
+   overrides here would leave a white patch under the last block. */
+[data-theme="theme-2"] .page-bg,
+[data-theme="theme-2"] main:has(> .app-page.page-bg) {
+  --page-bg: #f7f8fa;
+}
+
+/* Mobile uses the WhatsApp cream background for the chat-like feel. */
+@media (max-width: 1023.98px) {
+  [data-theme="theme-2"] .page-bg,
+  [data-theme="theme-2"] main:has(> .app-page.page-bg) {
+    --page-bg: var(--wa-cream);
+  }
+}
+
+[data-theme="theme-2"] .app-container {
+  max-width: 100%;
+}
+
+[data-theme="theme-2"] .app-breadcrumbs,
+[data-theme="theme-2"] .app-page-description,
+[data-theme="theme-2"] .hide-in-theme-2 {
+  display: none;
+}
+
+[data-theme="theme-2"] .app-page-heading {
+  display: block;
+}
+
+[data-theme="theme-2"] .app-footer {
+  bottom: calc(4rem + env(safe-area-inset-bottom));
+  /* Below `.bottom-tab` (z-40): the centre Bill FAB overhangs the tab bar by
+     1.5rem, which lands exactly in the footer's strip. The footer's default
+     z-50 would bury the top of the button. */
+  z-index: 39;
+}
+[data-theme="theme-2"] .app-page.has-footer {
+  padding-bottom: calc(100px + 4rem + env(safe-area-inset-bottom));
+}
+
+[data-theme="theme-2"] .app-page.theme-2-no-footer.has-footer {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+[data-theme="theme-2"] .app-page.theme-2-no-footer + .app-footer {
+  display: none;
+}
+
+/* Top gap for content sitting below the app header or the sticky section tabs.
+   On desktop `.page-padding` already supplies it, so collapse it there. */
+[data-theme="theme-2"] .page-content-gap {
+  margin-top: 1rem;
+}
+
+/* Mobile keeps a horizontal gutter plus a top gutter clearing the sticky app
+   header; the sticky section tabs break out of both (see
+   `.section-menu-container`) so the tab bar still runs edge to edge. */
+[data-theme="theme-2"] .page-padding {
+  padding: 1rem 1rem 0;
+}
+
+/* Bottom tab bar — the primary navigation in theme-2, which has no side menu.
+   Desktop navigates via the section icon rail and the header instead. */
+[data-theme="theme-2"] .bottom-tab {
+  display: block;
+}
+
+/* Floating add-item button (theme-2 mobile). Pinned above the bottom tab bar
+   (~4rem) with a gap, clearing the device safe-area inset. */
+[data-theme="theme-2"] .theme-2-fab {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(4rem + 1rem + env(safe-area-inset-bottom));
+  /* Below the z-50 dialog/sheet overlay so it doesn't float over it. */
+  z-index: 40;
+}
+
+/* ── Visibility helpers ────────────────────────────────────────────────── */
+
+/* Theme-2 visibility helpers. */
+.theme-2-only {
+  display: none;
+}
+
+[data-theme="theme-2"] .theme-2-only {
+  display: block;
+}
+
+/* Header section nav chips (HeaderNavChips) — rendered by AppHeader by
+   default, but visible only in theme-2 desktop; mobile navigates via the
+   bottom tab and other themes via the side menu. */
+.header-nav-chips {
+  display: none;
+}
+
+.theme-2-mobile-only {
+  display: none;
+}
+
+/* Hidden in theme-2 at every breakpoint (unlike `.theme-2-mobile-hide`, which
+   only applies below 768px). */
+[data-theme="theme-2"] .theme-2-hide {
+  display: none;
+}
+
+/* Pages that opt out of the theme-2 section tabs entirely (mobile + desktop).
+   Wins over the `.theme-2-mobile-only` mobile rule on specificity. */
+[data-theme="theme-2"] .theme-2-mobile-only.hide-in-theme-2 {
+  display: none;
+}
+
+/* Hidden in theme-2 at desktop breakpoints (lg+), where the WhatsApp-style
+   split layout is active and the side pane owns navigation/create actions. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .theme-2-desktop-hide {
+    display: none;
+  }
+}
+
+/* Split-pane visibility helpers, keyed to when the WhatsApp-style split layout
+   is active (theme-2 at lg+ — see the `.app-pane-side` rules below).
+   `.app-pane-only` content renders only inside the active pane layout;
+   `.app-pane-hide` content hides there (e.g. a feed copy of a card that moved
+   into the pane). Everywhere else both render/hide the opposite way. */
+.app-pane-only {
+  display: none;
+}
+
+/* ── Form controls & tabs ──────────────────────────────────────────────── */
+
 [data-theme="theme-2"] [data-slot="input"],
 [data-theme="theme-2"] [data-slot="textarea"],
 [data-theme="theme-2"] [data-slot="select-trigger"],
@@ -110,12 +295,6 @@
   background-color: #fff;
 }
 
-/* theme-2: the default (segmented) tab bar uses a translucent grey track that
-   reads as the cream page background. Rework it as a WhatsApp-style segmented
-   control — a white track lifted off the cream page with a hairline border, quiet
-   muted labels, and the active tab painted as a WhatsApp "sent bubble" green pill
-   so the selection reads clearly (the base `--secondary` tint was too washed out
-   against white to register as selected). */
 [data-theme="theme-2"] [data-slot="app-tab"][data-variant="tabs"] {
   background-color: #fff;
   border: 1px solid var(--border);
@@ -125,6 +304,9 @@
   [data-slot="app-tab"][data-variant="tabs"]
   [data-slot="app-tab-item"] {
   color: var(--muted-foreground);
+  /* Transparent hairline so the active pill's 1px border (theme-2 mobile)
+     doesn't nudge the tab width and shift its neighbours. */
+  border: 1px solid transparent;
   transition:
     color 0.15s ease,
     background-color 0.15s ease;
@@ -142,9 +324,16 @@
   box-shadow: 0 1px 2px rgb(7 94 84 / 0.12);
 }
 
-/* Count / badge chips on the tabs default to indigo / green, which clash with
-   the teal-green theme. Repaint them in the WhatsApp palette: the count uses the
-   teal primary, the badge keeps a lighter accent. */
+/* Opt-in: give a tab bar an opaque white fill. The `pills` and `underline`
+   variants carry no card background of their own, so a sticky bar using them
+   would let the page scroll through it — this paints the strip white. */
+[data-theme="theme-2"] [data-slot="app-tab"].app-tabs-solid {
+  background-color: #fff;
+  /* Breathing room so the tabs don't sit flush against the white edges.
+     Vertical only — the horizontal gutter comes from `edge-tabs`. */
+  padding-block: 0.5rem;
+}
+
 [data-theme="theme-2"] [data-slot="app-tab"] [data-slot="app-tab-count"] {
   background-color: var(--primary);
 }
@@ -155,323 +344,498 @@
   background-color: var(--wa-bubble-text);
 }
 
-/* theme-2 mobile: let a segmented tab track break out of the page's `p-4`
-   padding (negative x-margins) so it runs edge to edge / corner to corner on
-   small screens. Square off the corners since they'd sit flush to the viewport.
-   Everywhere else the tab keeps its normal inset + rounding. */
-@media (max-width: 767px) {
-  [data-theme="theme-2"] .theme-2-edge-tabs {
-    /* Override the track's `w-full` (width:100%): a fixed width can't be
-       stretched by negative margins, so the right margin would leave a gap.
-       `width:auto` lets both negative margins expand it to touch both edges. */
-    width: auto;
-    margin-left: -1rem;
-    margin-right: -1rem;
-    border-radius: 0;
-    /* Keep the track flush to the viewport but inset the tab labels so they
-       line up with the page content (search / cards) instead of touching the
-       edge. */
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
+/* Search field wears the WhatsApp cream fill instead of the default white. */
+[data-theme="theme-2"] [data-slot="input"].app-search-field {
+  background-color: var(--wa-cream);
+}
+[data-theme="theme-2"] [data-slot="input"].app-search-field:hover,
+[data-theme="theme-2"] [data-slot="input"].app-search-field:focus {
+  background-color: var(--wa-cream);
 }
 
-/* theme-2 removes the drop shadow from cards app-wide for a flatter look */
+/* ── Cards, chips & rows ───────────────────────────────────────────────── */
+
 [data-theme="theme-2"] [data-slot="card"] {
   box-shadow: none;
+  /* Soften the default Card hairline — theme-2's --border reads too heavy
+     on white AppCards against the warm page tint. */
+  border-color: oklch(0.93 0.005 236.58);
 }
 
-/* theme-2 lets page content span the full width — drop the app-wide
-   `.app-container` max-width (max-w-7xl) so sections use the available space. */
-[data-theme="theme-2"] .app-container {
-  max-width: 100%;
+/* ── Table header ──────────────────────────────────────────────────────────
+   Column labels are the table's eyebrow, not a row of content, so they take
+   the same uppercase/letterspaced treatment `.app-label` gives every other
+   label in the theme — one size smaller than the rows and a step lighter in
+   colour, so the eye lands on the data first.
+
+   The band itself is a flat wash a shade off white with a single hairline
+   closing it, replacing the `bg-slate-50` each call site sets inline (a class
+   selector, so these two-attribute rules override it without `!important`).
+   Styling the slot means every table that renders `TableHeader` inherits it
+   with no per-page edit. */
+[data-theme="theme-2"] [data-slot="table-head"] {
+  height: 2.5rem;
+  padding-inline: 0.75rem;
+  background-color: color-mix(in srgb, var(--muted) 40%, #fff);
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
 }
 
-/* theme-2 hides breadcrumbs and page descriptions app-wide (applied at the
-   component root, so every page picks this up automatically). Add
-   `hide-in-theme-2` to any other element that should follow the same rule. */
-[data-theme="theme-2"] .app-breadcrumbs,
-[data-theme="theme-2"] .app-page-description,
-[data-theme="theme-2"] .hide-in-theme-2 {
-  display: none;
+/* Sort chevrons ride at the label's weight, not the body's — they'd otherwise
+   read darker than the text they belong to. */
+[data-theme="theme-2"] [data-slot="table-head"] svg {
+  color: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
 }
 
-/* theme-2 replaces the hidden breadcrumbs/description with a PageHeading
-   (title + description) so the space above the page content isn't left empty.
-   PageHeading is hidden everywhere else. */
-[data-theme="theme-2"] .app-page-heading {
-  display: block;
+/* …except the chevron for the column actually being sorted, which has to win
+   against the rule above (a utility class alone loses on specificity). */
+[data-theme="theme-2"] [data-slot="table-head"] svg[data-active="true"] {
+  color: var(--primary-2);
+  opacity: 1;
 }
 
-/* theme-2 shows the sticky bottom tab bar (height 4rem + safe-area inset).
-   Both it and the page's `.app-footer` are sticky at bottom:0, so without this
-   the footer sits behind the bottom tab. Lift the footer above the tab bar and
-   pad the page so content isn't hidden behind either. */
-[data-theme="theme-2"] .app-footer {
-  bottom: calc(4rem + env(safe-area-inset-bottom));
-}
-[data-theme="theme-2"] .app-page.has-footer {
-  padding-bottom: calc(100px + 4rem + env(safe-area-inset-bottom));
+/* Grouping band above the labels (the `groups` row): same wash one step
+   stronger so the two header rows read as a stack, not as a header plus a
+   data row. */
+[data-theme="theme-2"] thead tr:first-child [data-slot="table-head"][colspan] {
+  background-color: color-mix(in srgb, var(--muted) 70%, #fff);
+  border-color: var(--border);
 }
 
-/* Opt-in per page: add `theme-2-no-footer` to the `.app-page` element to hide
-   the page's (adjacent) sticky footer in theme-2 and drop the footer padding,
-   leaving only the room needed for the bottom tab bar. */
-[data-theme="theme-2"] .app-page.theme-2-no-footer.has-footer {
-  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
-}
-[data-theme="theme-2"] .app-page.theme-2-no-footer + .app-footer {
-  display: none;
+/* The first data row sits directly under the hairline above it; the row
+   border the header already draws is enough. */
+[data-theme="theme-2"] thead [data-slot="table-row"] {
+  border-bottom: 0;
 }
 
-/* Elements that should appear ONLY in theme-2 on mobile viewports (< md).
-   Hidden everywhere by default; shown only when data-theme="theme-2" AND the
-   viewport is mobile. Add `theme-2-mobile-only` to any element that follows
-   this rule so the visibility logic stays in this one file. */
-.theme-2-mobile-only {
-  display: none;
+[data-theme="theme-2"] .statement-toolbar {
+  margin-bottom: 1rem;
 }
-@media (max-width: 767px) {
-  [data-theme="theme-2"] .theme-2-mobile-only {
-    display: block;
+[data-theme="theme-2"] .statement-search [data-slot="input"] {
+  border-radius: 9999px;
+}
+[data-theme="theme-2"] .statement-toolbar-btn {
+  min-height: 2.25rem;
+  border-radius: 9999px;
+  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
+  background-color: color-mix(in srgb, var(--primary) 6%, #fff);
+  color: var(--primary);
+}
+[data-theme="theme-2"] .statement-toolbar-btn:hover {
+  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
+  background-color: color-mix(in srgb, var(--primary) 12%, #fff);
+  color: var(--primary);
+}
+[data-theme="theme-2"] .statement-toolbar-btn svg {
+  color: var(--primary);
+}
+
+/* Active "All" stock chip. Over the cream page a translucent brand fill
+   (bg-primary/10) turns olive, so we mix the brand into white for a clean,
+   opaque tint that matches the sibling tone chips. */
+[data-theme="theme-2"] .app-stock-chip-all {
+  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
+  background-color: color-mix(in srgb, var(--primary) 8%, #fff);
+  color: var(--primary);
+}
+[data-theme="theme-2"] .app-stock-chip-all > span {
+  background-color: color-mix(in srgb, var(--primary) 14%, #fff);
+  color: var(--primary);
+}
+
+/* Selected row in a flat pane list (vendor pane, catalog overview). Same
+   reasoning as the chip above: a translucent brand fill (bg-primary/5) reads
+   grey-teal and shifts with whatever sits behind the row, so mix the brand
+   into white for the clean, opaque mint the design uses. The left rule marks
+   the selection without needing a coloured label. */
+[data-theme="theme-2"] .app-list-row-active {
+  background-color: color-mix(in srgb, var(--primary) 8%, #fff);
+  box-shadow: inset 3px 0 0 0 var(--primary);
+}
+
+[data-theme="theme-2"] [data-slot="applied-filter-label"] {
+  color: var(--ink-3);
+}
+[data-theme="theme-2"] [data-slot="applied-filter-chip"] {
+  height: 1.625rem;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--primary) 8%, #fff);
+  border-color: color-mix(in srgb, var(--primary) 26%, transparent);
+}
+[data-theme="theme-2"] [data-slot="applied-filter-chip"]:hover {
+  background-color: color-mix(in srgb, var(--primary) 14%, #fff);
+}
+[data-theme="theme-2"] [data-slot="applied-filter-chip-label"] {
+  color: color-mix(in srgb, var(--primary) 55%, #475569);
+}
+[data-theme="theme-2"] [data-slot="applied-filter-chip-value"] {
+  color: var(--primary);
+}
+[data-theme="theme-2"] [data-slot="applied-filter-remove"] {
+  color: color-mix(in srgb, var(--primary) 50%, transparent);
+}
+[data-theme="theme-2"] [data-slot="applied-filter-remove"]:hover {
+  background-color: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+
+/* Inventory nav chips: only the active chip carries the brand green (in place
+   of the base slate/black), filled solid so it reads as the one anchor in the
+   strip. Resting chips sit on a light grey wash rather than white, so the
+   unselected set recedes behind the active pill. */
+[data-theme="theme-2"] .app-nav-chip {
+  border-color: transparent;
+  background-color: #f1f3f4;
+  color: #3c4043;
+}
+[data-theme="theme-2"] .app-nav-chip:not(.app-nav-chip-active):hover {
+  background-color: #e5e7e9;
+}
+[data-theme="theme-2"] .app-nav-chip.app-nav-chip-active {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: #fff;
+}
+
+/* Cart seller card header sits on a very light grey — enough to separate the
+   contact bar from the white item rows it introduces, without putting the
+   seller's name and basket total on a coloured field. */
+[data-theme="theme-2"] .app-seller-header {
+  background-image: none;
+  background-color: color-mix(in srgb, var(--foreground) 4%, var(--card));
+  border-bottom-color: color-mix(in srgb, var(--primary) 12%, var(--border));
+}
+
+/* The grey ledge closing the thread (payable on phones, coupon and warnings
+   everywhere) picks up the chat wallpaper rather than plain grey. */
+[data-theme="theme-2"] .app-thread-footer {
+  background-color: var(--wa-cream);
+}
+
+/* …except where the ledge is a ledger line (the cart's phone subtotal): the
+   cream read as a third surface colour next to the white rows and the grey
+   payment strip, so that footer keeps plain grey. */
+[data-theme="theme-2"] .app-thread-footer.app-thread-footer-neutral {
+  background-color: #f9fafb;
+}
+
+/* ── Cart thread ───────────────────────────────────────────────────────────
+   The network cart reads as one chat thread per seller: the card is the
+   thread, the seller header is its contact bar, the item rows are incoming
+   message bubbles on the chat wallpaper, and the seller's payable total is the
+   outgoing bubble that closes it.
+
+   Every seam below is a theme-neutral class the markup already carries with a
+   plain flat treatment; only theme-2 turns it into chat furniture, so the base
+   theme is untouched. */
+
+/* Thread card: WhatsApp's panel radius, no outline. The base theme's 4px left
+   accent rail is cancelled too — the card's own fill against the page ground,
+   plus the hairlines between its sections, are enough to bound it. */
+[data-theme="theme-2"] .app-thread {
+  border-width: 0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+/* Item rows float as bubbles on the chat wallpaper instead of running together
+   as a table: the list supplies the tint and the gaps, the rows drop their
+   separators and pick up a bubble radius and lift. Padding/gap live here (not
+   in the markup) so the base theme keeps its flush divided rows. */
+[data-theme="theme-2"] .app-msg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  background-color: var(--wa-cream);
+}
+[data-theme="theme-2"] .app-msg-list > .app-msg-row {
+  border-bottom: 0;
+  border-radius: 0.5rem 0.5rem 0.5rem 0;
+  box-shadow: 0 1px 1px rgb(11 20 26 / 0.13);
+}
+
+/* "View more / less" reads as WhatsApp's centred date divider: a floating
+   capsule on the wallpaper tint rather than a bar welded to the list. */
+[data-theme="theme-2"] .app-divider-chip {
+  background-color: var(--wa-cream);
+  border-top: 0;
+}
+[data-theme="theme-2"] .app-divider-chip > button {
+  width: fit-content;
+  margin-inline: auto;
+  padding-inline: 0.875rem;
+  border-radius: 9999px;
+  background-color: #fff;
+  box-shadow: 0 1px 1px rgb(11 20 26 / 0.13);
+}
+
+/* The seller's payable total, as the thread's outgoing bubble: bubble green,
+   square top-right corner where the tail would attach. */
+[data-theme="theme-2"] .app-bubble-out {
+  background-color: var(--wa-bubble);
+  border-color: color-mix(in srgb, var(--wa-bubble-text) 18%, transparent);
+  border-radius: 0.5rem 0 0.5rem 0.5rem;
+}
+
+/* Informational callouts (bulk upload's "Required Format", its upload-zone
+   icon) ship in stock blue, which reads as a foreign accent here. Bubble green
+   is worse — it claims the emphasis of an outgoing message for what is just
+   reference text. So theme-2 states them in the neutral cream instead and
+   spends no colour on them at all. */
+/* The panel only has chrome from sm up — below that it is flat inside its
+   card, so there is nothing to repaint. */
+@media (min-width: 640px) {
+  [data-theme="theme-2"] .app-note-panel {
+    background-color: var(--wa-cream);
+    border-color: rgb(11 20 26 / 0.08);
+  }
+
+  [data-theme="theme-2"] .app-note-title,
+  [data-theme="theme-2"] .app-note-text {
+    color: #54656f;
   }
 }
 
-/* Opposite of the above: hide an element ONLY in theme-2 on mobile viewports
-   (< md). Useful for rows whose content is entirely hidden on theme-2 mobile
-   (e.g. breadcrumbs + desktop-only actions) but whose margins would otherwise
-   leave an empty gap. Visible everywhere else. */
-@media (max-width: 767px) {
-  [data-theme="theme-2"] .theme-2-mobile-hide {
+/* Same reasoning as .app-note-panel, for callouts that carry their chrome at
+   every width (branding's "what customers see" note). They sit directly on the
+   cream page, so cream-on-cream would erase them — these take the white card
+   surface of the sections below and stay quiet through muted text instead. */
+[data-theme="theme-2"] .app-note-block {
+  background-color: #fff;
+  border-color: rgb(11 20 26 / 0.08);
+  color: #54656f;
+}
+
+[data-theme="theme-2"] .app-note-block-icon {
+  color: #54656f;
+}
+
+[data-theme="theme-2"] .app-accent-icon {
+  color: #54656f;
+}
+
+[data-theme="theme-2"] .app-upload-icon {
+  background-color: var(--wa-cream);
+  color: #54656f;
+}
+
+/* Network cart: the sticky checkout footer carries the payable and the proceed
+   action. Below md it is the only place they appear; from md up the
+   order-summary rail states them instead, so the footer stands down. */
+@media (min-width: 768px) {
+  .cart-checkout-footer {
     display: none;
   }
+  .app-page.cart-has-checkout-footer {
+    padding-bottom: 1rem;
+  }
 }
 
-/* theme-2 drops the white fill on the AppModal title/header block so it blends
-   with the modal surface (the modal body itself is not white in theme-2). */
+/* Theme-2 desktop: the order-summary rail is dropped (`.theme-2-desktop-hide`
+   on both of its cells), so the thread column takes the full width and the
+   footer comes back to close the cart. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .cart-thread-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  [data-theme="theme-2"] .cart-checkout-footer {
+    display: block;
+  }
+  [data-theme="theme-2"] .app-page.cart-has-checkout-footer {
+    padding-bottom: 100px;
+  }
+}
+
+/* Delivered-style ticks on confirmations (coupon applied, payment chosen). */
+[data-theme="theme-2"] .app-tick {
+  color: #53bdeb;
+}
+
+/* Selectable chips (payment modes) become capsules, the chosen one filled in
+   the action green rather than the dark rail green. */
+[data-theme="theme-2"] .app-choice-chip {
+  border-radius: 9999px;
+  padding: 0.3125rem 0.75rem;
+}
+[data-theme="theme-2"] .app-choice-chip-active {
+  background-color: var(--primary-2);
+  border-color: var(--primary-2);
+  color: #fff;
+}
+
+/* ── Overlays ──────────────────────────────────────────────────────────── */
+
+/* Modals stay white in theme-2 (the shell otherwise inherits the cream
+   --background). The title sits transparent on top of this white shell. */
+[data-theme="theme-2"] [data-slot="dialog-content"],
+[data-theme="theme-2"] [data-slot="drawer-content"] {
+  background-color: #fff;
+}
+
 [data-theme="theme-2"] .app-modal-title {
   background-color: transparent;
 }
 
-/* Desktop section-menu rail (theme-2, lg+): a fixed, full-height left rail.
-
-   The `.section-menu-aside` stays in flow as a 14rem spacer (so `.section-content`
-   keeps its offset), while its inner wrapper (the `.sticky top-20` div in the page
-   JSX) is lifted out of flow and pinned as a fixed panel spanning from just below
-   the sticky app header down to the sticky bottom tab bar. The `SectionMenu` card
-   inside has `h-full`, so it fills the panel.
-
-   `left: 0` is safe here because theme-2 renders no in-flow app side menu
-   (`showSideMenu` is false — it uses an overlay menu), the container is full width
-   (`.app-container` max-width:100%), and the page runs edge to edge horizontally
-   (`.page-padding` left/right is 0). So the aside's left edge is the viewport left edge and
-   the fixed panel lands exactly over its spacer. */
-@media (min-width: 1024px) {
-  [data-theme="theme-2"] .section-menu-aside > div {
-    position: fixed;
-    top: 3.75rem; /* clears the sticky app header (h-15 = 3.75rem) */
-    bottom: calc(
-      4rem + env(safe-area-inset-bottom)
-    ); /* clears the bottom tab */
-    left: 0;
-    width: 14rem; /* matches the aside spacer (tw:w-56) */
-    z-index: 30; /* below the header/bottom-tab (z-50), above page content */
-    overflow-y: auto; /* long menus scroll within the rail */
-  }
-
-  /* Square off the menu card so the full-height rail reads as a side rail rather
-     than a rounded floating card (drops SectionMenu's `rounded-xl`). */
-  [data-theme="theme-2"] .section-menu-aside > div > nav {
-    border-radius: 0;
-  }
-
-  /* Shorten the first-column menu list so it doesn't run the full viewport
-     height in theme-2 (base is calc(100vh - 11rem)). */
-  [data-theme="theme-2"] .network-menu-list {
-    height: calc(100vh - 14rem);
-  }
+/* Header section switcher (theme-2 mobile): the sheet listing every
+   destination inside the current section, opened from the header title.
+   See SectionSwitchSheet.tsx. */
+.section-switch-sheet {
+  /* The sheet drops below the header, so keep the app's rounded card look
+     only at the bottom edge. */
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+/* Radix's built-in close button — the sheet renders its own circular one in
+   the header row, so hide the default (always the last direct child). */
+.section-switch-sheet > button:last-child {
+  display: none;
 }
 
-/* ============================================================
-   theme-2 → WhatsApp look (POS Billing)
+/* ── Sticky bars ───────────────────────────────────────────────────────── */
 
-   theme-2 already carries WhatsApp's identity through the tokens above:
-   `--primary: #075e54` (the teal header/accent) and the `#ece5dd` chat-wallpaper
-   page background. Components get the WhatsApp look purely from `primary`
-   utilities (`bg-primary`, `text-primary`, …) — no extra classes needed.
-
-   The only rules below are for the two things `primary` can't express:
-   1. `wa-incart` — the "in cart" chip painted as a WhatsApp sent-message bubble,
-      a lighter green than the teal primary.
-   2. `wa-above-tabbar` / `wa-above-cartbar` — positioning (not color) that lifts
-      floating billing controls above the sticky bottom tab bar, which only
-      exists in theme-2. In other themes the bar is absent and the controls keep
-      their base `bottom-*` offset.
-   ============================================================ */
-[data-theme="theme-2"] {
-  --wa-bubble: #d9fdd3; /* WhatsApp "sent message" green */
-  --wa-bubble-text: #0a6b57;
-  /* Bright WhatsApp call-to-action green (distinct from the deep teal
-     `--primary`) — used for the "final action" buttons in the billing flow
-     (Take payment, Pay, Checkout CTA) so the single most important tap per
-     screen reads as unmistakably primary against the teal chrome. */
-  --wa-accent: #25d366;
-  --wa-accent-foreground: #ffffff;
-  /* Chat-wallpaper cream — same value as the mobile page background,
-     exposed as a token so cards/sheets can paint sub-panels in it. */
-  --wa-paper: #ece5dd;
-  --wa-paper-2: #e6ddcc;
-}
-
-/* IBM Plex Mono — theme-2 "receipt" typography: SKU/barcode strings,
-   timestamps, quantities, quick-add chip prices, tab counters. Anything that
-   reads as a scanned/printed data point rather than UI copy. Same specificity
-   trick as `.wa-amount` (0,2,0) to outrank the app-wide `*` font-family rule. */
-[data-theme="theme-2"] .wa-mono {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Reusable "quick action" chip — quantity/discount presets, quick-add tiles,
-   filter chips. White fill, hairline border, pill/rounded corners; the
-   selected state flips to the WhatsApp sent-bubble green. */
-[data-theme="theme-2"] .wa-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
+/* Sticky search bar (browse-products page): white bar pinned flush under the
+   app header (header height 3.75rem), breaking out of the p-4 page padding so
+   it runs edge to edge. */
+[data-theme="theme-2"] .search-sticky {
+  top: 3.75rem;
   background-color: #fff;
-  color: var(--foreground);
-  font-weight: 700;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-[data-theme="theme-2"] .wa-chip:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-[data-theme="theme-2"] .wa-chip[data-active="true"],
-[data-theme="theme-2"] .wa-chip.wa-chip-active {
-  background-color: var(--wa-bubble);
-  border-color: transparent;
-  color: var(--wa-bubble-text);
+  margin: -1rem -1rem 1rem;
+  padding: 0.5rem 1rem;
 }
 
-/* Bright-green CTA button — the single "final action" per billing screen
-   (Take payment, Pay ₹, primary checkout submit). Distinct from `--primary`
-   (teal chrome) so the one tap that matters is unmistakable, matching the
-   reference design's `waAccent` filled buttons. */
-[data-theme="theme-2"] .wa-cta {
-  background-color: var(--wa-accent);
-  color: var(--wa-accent-foreground);
-  box-shadow: 0 6px 14px -2px rgb(37 211 102 / 0.35);
-}
-[data-theme="theme-2"] .wa-cta:hover {
-  background-color: #1ebc59;
-}
-[data-theme="theme-2"] .wa-cta:disabled {
-  opacity: 0.55;
-  box-shadow: none;
+/* Vendor Catalog search bar: pins below the vendor tab bar (.vendor-tab-sticky),
+   not just the header — offset = tab bar top + its ~2.75rem height, else the
+   search slides behind the z-30 tab card on scroll. The white backdrop is
+   mobile-only; on desktop it stays transparent over the page background. */
+[data-theme="theme-2"] .vendor-search-sticky {
+  top: 6.5rem;
+  background-color: transparent;
 }
 
-/* Scan-capture card — the dashed-border camera target on the Scan tab, with
-   an animated laser line. Shared by Filter's scan panel. */
-[data-theme="theme-2"] .wa-scan-target {
-  position: relative;
-  overflow: hidden;
-}
-[data-theme="theme-2"] .wa-scan-target::after {
-  content: "";
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  top: 50%;
-  height: 2px;
-  background-color: var(--primary);
-  box-shadow: 0 0 8px var(--primary);
-  animation: wa-scanline 1.8s ease-in-out infinite;
-}
-@keyframes wa-scanline {
-  0%,
-  100% {
-    top: 20%;
-    opacity: 0.9;
-  }
-  50% {
-    top: 80%;
-    opacity: 0.4;
-  }
+/* ── Detail hero (seller / vendor detail pages) ───────────────────────────
+   The party identity band (BasicInfo, on its plate) and the page's tab bar
+   travel together: on desktop they pin under the app header as one block and
+   run full bleed, so the plate touches both screen edges instead of floating
+   inside the page gutter.
+
+   Below md the wrapper stays `display: contents` — it must not become a box,
+   or it would cap the tab bar's own sticky travel to the band's height and
+   the tabs would scroll away immediately. */
+[data-theme="theme-2"] .detail-hero {
+  display: contents;
 }
 
-/* Section label — the small letter-spaced mono caption above a group of
-   controls ("QUICK ADD", "PAYMENT METHOD", "QUICK OFF" …). */
-[data-theme="theme-2"] .wa-section-label {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
+/* ── Typography helpers ────────────────────────────────────────────────── */
+
+[data-theme="theme-2"]
+  :is(
+    .tw\:text-green-500,
+    .tw\:text-green-600,
+    .tw\:text-green-700,
+    .tw\:text-green-800,
+    .tw\:text-emerald-500,
+    .tw\:text-emerald-600,
+    .tw\:text-emerald-700,
+    .tw\:text-emerald-800
+  ) {
+  color: var(--success);
+}
+[data-theme="theme-2"]
+  :is(
+    .tw\:bg-green-500,
+    .tw\:bg-green-600,
+    .tw\:bg-green-700,
+    .tw\:bg-emerald-500,
+    .tw\:bg-emerald-600,
+    .tw\:bg-emerald-700
+  ) {
+  background-color: var(--success-fill);
+}
+[data-theme="theme-2"] :is(.tw\:border-green-500, .tw\:border-emerald-500) {
+  border-color: var(--success-fill);
 }
 
-/* Sticky bottom cart/checkout bar — white surface lifted off the page with a
-   hairline top border, used for the persistent total+CTA footer inside cart
-   panels and checkout steps. */
-[data-theme="theme-2"] .wa-sticky-foot {
-  background-color: #fff;
-  border-top: 1px solid var(--border);
-}
-
-/* Amount figures (ledger bubbles, summary strip) are set in Fraunces — a
-   high-contrast serif that gives the money a "printed receipt" weight and sets
-   it apart from the Plus Jakarta Sans UI text.
-
-   `[data-theme="theme-2"] *` (0,1,0) above forces Plus Jakarta Sans on every
-   descendant, so this needs the extra class to outrank it — hence
-   `[data-theme="theme-2"] .wa-amount` (0,2,0) rather than a bare `.wa-amount`.
-   Amounts are also tabular so digits stay column-aligned down the feed. */
-[data-theme="theme-2"] .wa-amount {
-  font-family: "Fraunces", ui-serif, Georgia, Cambria, serif;
+[data-theme="theme-2"] .app-amount,
+[data-theme="theme-2"] .app-amount * {
+  font-family: var(--font-serif);
   font-variant-numeric: tabular-nums;
   font-optical-sizing: auto;
   letter-spacing: -0.01em;
 }
 
-/* "In cart" indicator styled as a WhatsApp sent-message bubble. */
-[data-theme="theme-2"] .wa-incart {
-  background-color: var(--wa-bubble);
-  color: var(--wa-bubble-text);
+[data-theme="theme-2"] .app-label,
+[data-theme="theme-2"] .app-label * {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
 }
 
-[data-theme="theme-2"] .wa-above-tabbar {
-  bottom: calc(4rem + env(safe-area-inset-bottom) + 0.5rem);
-}
-/* Sits one step higher, so a right-aligned FAB clears the cart summary bar. */
-[data-theme="theme-2"] .wa-above-cartbar {
-  bottom: calc(4rem + env(safe-area-inset-bottom) + 4rem);
-}
-
-/* Recent-transactions FAB is hidden in theme-2 — recent orders are reached
-   through the section navigation instead of a floating button. */
-[data-theme="theme-2"] .wa-recent-fab {
-  display: none;
-}
-
-/* theme-2 mobile pins the section-tab bar directly above the page content (the
-   page description that normally separates them is hidden). Add
-   `theme-2-mobile-gap-top` to the first content row to restore breathing room
-   between the sticky tabs and the content (e.g. the billing "Window" chips). */
-@media (max-width: 767px) {
-  [data-theme="theme-2"] .theme-2-mobile-gap-top {
-    margin-top: 0.75rem;
-  }
+/* Section heading above a card group ("Analytics", …). Theme-2 renders it as
+    the mono eyebrow used by the dashboard's own card groups (movement buckets,
+    money on the shelf) instead of a bold sans sub-heading, so a page mixing
+    hand-built theme-2 blocks with shared sections reads as one system. */
+[data-theme="theme-2"] .app-section-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--muted-foreground);
 }
 
-/* Voice-search "listening" mic — recolor the blue/indigo gradient to the
-   WhatsApp teal→green palette so the voice modal matches the theme. */
+/* Pane section labels — small mono eyebrows above side-pane blocks.
+    Replaces the per-pane PANE_LABEL_CLASS / PANE_LABEL_STYLE constants so the
+    styling lives in one theme-2 rule instead of being rebuilt inline. */
+[data-theme="theme-2"] .app-pane-label,
+[data-theme="theme-2"] .app-pane-label * {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+  color: var(--muted-foreground);
+  padding-inline: 0.25rem;
+}
+
+/* Chart panels sit flat next to the theme-2 stat cards: same 1rem radius and
+    hairline border, no elevation, and a mono eyebrow for the chart title. */
+[data-theme="theme-2"] .app-chart-card {
+  border-radius: 1rem;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+[data-theme="theme-2"] .app-chart-title {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--muted-foreground);
+}
+
+[data-theme="theme-2"] .app-heading-serif,
+[data-theme="theme-2"] .app-heading-serif * {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+
+[data-theme="theme-2"] .wa-amt-in {
+  color: var(--accent-in-dark);
+}
+[data-theme="theme-2"] .wa-amt-out {
+  color: var(--accent-out-dark);
+}
+
 [data-theme="theme-2"] .listening-gradient {
   background:
     radial-gradient(
@@ -490,22 +854,1532 @@
   box-shadow: inset 0 6px 20px rgba(7, 94, 84, 0.08);
 }
 
-/* Cart view (mobile theme-2) sits above the sticky bottom tab bar and no longer
-   shows the switch block, so shrink the cart's scroll area to remove the tall
-   empty gap and pull the total/checkout footer up. */
-@media (max-width: 767px) {
-  [data-theme="theme-2"] .wa-cart-scroll {
-    /* Fit the cart body to its items instead of a fixed height, so a short
-       cart is compact and doesn't leave a tall empty gap. It still scrolls
-       once the items exceed the available space above the bottom tab bar. */
-    height: auto;
-    max-height: calc(100vh - 330px - 5rem - env(safe-area-inset-bottom));
+/* ============================================================================
+   2. MOBILE  (max-width)
+   ========================================================================= */
+
+/* ── Below lg (mobile + tablet) ────────────────────────────────────────── */
+
+/* Teal header is mobile-only. On desktop (lg+) the header keeps its base
+   white styling and sits to the right of the fixed rail/pane (see the lg
+   media block below), matching the WhatsApp-style split layout. */
+@media (max-width: 1023.98px) {
+  [data-theme="theme-2"] .app-header {
+    background-color: var(--primary);
+    border-color: transparent;
+  }
+  [data-theme="theme-2"] .app-header,
+  [data-theme="theme-2"] .app-header h1,
+  [data-theme="theme-2"] .app-header button,
+  [data-theme="theme-2"] .app-header a,
+  [data-theme="theme-2"] .app-header svg {
+    color: var(--primary-foreground);
   }
 
-  /* Breathing room around the mobile cart view so the card doesn't butt
-     against the header at the top or the sticky bottom tab bar at the base. */
-  [data-theme="theme-2"] .wa-cart-view {
-    margin-top: 0.75rem;
-    margin-bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
+  [data-theme="theme-2"] .app-header button {
+    background-color: transparent;
+    border-color: color-mix(
+      in srgb,
+      var(--primary-foreground) 40%,
+      transparent
+    );
   }
+  [data-theme="theme-2"] .app-header button:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--primary-foreground) 15%,
+      transparent
+    );
+  }
+
+  [data-theme="theme-2"] .app-header img[src*="hamburger"] {
+    filter: brightness(0) invert(1);
+  }
+}
+
+/* Bin view: with the section tab bar hidden there, the overview header is the
+   first block under the sticky app header. That page's gutter comes from the
+   wrapper's own `tw:p-4` (not `.page-padding`, which desktop zeroes out), so
+   the 1rem top pad shows as a page-bg band at every breakpoint — cancel it. */
+[data-theme="theme-2"] .bin-overview-flush {
+  margin-top: -1rem;
+}
+
+/* Opt-in for blocks that must sit flush under the sticky header: cancels the
+   page's 1rem top gutter so no page-bg band shows between the header and the
+   first card. Tablet only — below 768px the sticky section tab bar
+   (`.section-menu-container`) already cancels that same gutter, so applying it
+   here too pulled the first row up *behind* the tab bar; above 1023px the
+   gutter comes from `.section-content` and is left alone. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  [data-theme="theme-2"] .page-flush-top {
+    margin-top: -1rem;
+  }
+}
+
+/* ── Below md (phones) ─────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  /* Visibility helpers */
+  [data-theme="theme-2"] .theme-2-mobile-only {
+    display: block;
+  }
+
+  [data-theme="theme-2"] .theme-2-mobile-hide {
+    display: none;
+  }
+
+  /* Spacing helpers */
+  [data-theme="theme-2"] .theme-2-mobile-gap-top {
+    margin-top: 0.75rem;
+  }
+
+  /* Subscribe layout: pulls the content column up over the page's 1rem top
+     gutter so the sub-nav chip strip sits flush under the sticky header on
+     mobile, with no page-bg band between them. The grid's
+     `.theme-2-mobile-gap-top` is left in place — `.app-tabs-flush:first-child`
+     cancels it — so the tab block lands flush and doesn't jump when it sticks. */
+  [data-theme="theme-2"] .subscribe-flush-top {
+    margin-top: -1rem;
+  }
+
+  /* Opt-in for a sub-nav chip strip that is the first visible block on its
+     page (the blocks above it — breadcrumbs, page description — are hidden in
+     theme-2 mobile). Cancels the page gutter's top padding (1rem) and the
+     content grid's top gap (`.theme-2-mobile-gap-top`, 0.75rem) so the strip
+     sits flush under the sticky header instead of floating on a page-bg band,
+     and doesn't jump by that gap the moment it pins. */
+  [data-theme="theme-2"] [data-slot="app-tab"].app-nav-chips-flush {
+    margin-top: -1.75rem;
+  }
+
+  /* …and the other case: a chip strip on a page that DOES render the sticky
+     section tab bar (expenses). It pins below that bar rather than the header
+     alone, and only the content grid's top gap (0.75rem) has to go so the two
+     white bands touch — the page gutter is spent on the bar above. Both bands
+     are white pill rows, so a hairline rule between them keeps the sub-nav
+     reading as its own row instead of a second line inside the section bar. */
+  [data-theme="theme-2"] [data-slot="app-tab"].app-nav-chips-under-tabs {
+    top: 6.67rem;
+    margin-top: -0.75rem;
+    border-top: 1px solid var(--color-gray-200, #e5e7eb);
+  }
+
+  /* Opt-in: an `.app-top-bar` that is the first block in its content column on
+     a page with no chip strip above it (the subscribe cart). Its own -1rem only
+     cancels the page gutter; the content grid's top gap
+     (`.theme-2-mobile-gap-top`, 0.75rem) is still between it and the header, so
+     it would float on a page-bg band and then jump by that gap the moment it
+     pins. Take the extra 0.75rem here. */
+  [data-theme="theme-2"] .app-top-bar.app-top-bar-flush {
+    margin-top: -1.75rem;
+  }
+
+  /* With the section tab strip hidden on the pricing screens, the command bar
+     (channel cards + tab row) is the first block under the app header. Cancel
+     the page gutter's top padding (1rem) and the grid's top gap (0.75rem) so
+     it sits flush against the header instead of floating on a page-bg band. */
+  [data-theme="theme-2"] .pricing-command-bar {
+    margin-top: -1.75rem;
+  }
+
+  /* Opt-in: a titled card whose body is already a stack of cards, so the outer
+     surface is a second box around boxes. Theme-2 mobile drops that chrome and
+     lets the title sit straight on the page ground; the inner blocks keep their
+     own borders and gutter. No-op on desktop and on other themes. */
+  [data-theme="theme-2"] .app-flat-sheet[data-slot="card"] {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  /* With the card gone, its inner gutters are double-counted: the header's own
+     px-6 and the body blocks' mx-3 / px-3 were insets from the card edge, and
+     they now stack on top of the page gutter. Zero them so the title and the
+     blocks below it all line up on the page gutter. */
+  [data-theme="theme-2"] .app-flat-sheet > [data-slot="card-header"] {
+    padding-inline: 0;
+  }
+
+  [data-theme="theme-2"] .app-flat-sheet [data-slot="card-content"] > * {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  [data-theme="theme-2"] .edge-tabs {
+    width: auto;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Full-bleed opt-in for theme-2 mobile: pulls a block out of the page gutter
+     (`.page-padding`, 1rem each side) so it runs edge to edge, and drops the
+     corner radius since the sides now touch the screen. Override the gutter
+     with `--app-bleed-x` when the block sits inside extra padding. No-op on
+     desktop and on other themes. */
+  [data-theme="theme-2"] .app-bleed-x {
+    --app-bleed-x: 1rem;
+    width: auto;
+    margin-left: calc(-1 * var(--app-bleed-x));
+    margin-right: calc(-1 * var(--app-bleed-x));
+    border-radius: 0;
+  }
+
+  /* Bottom action bar (mobile): pinned just above the bottom tab bar so it
+     stays reachable while the page scrolls. `position: sticky` can't do this
+     here — the bar is the last block in its container, so it has no travel
+     left to stick against. Fixed also means the side bleed comes from
+     `left/right: 0` rather than the negative margins of `app-bleed-x`, which
+     are cancelled below. */
+  [data-theme="theme-2"] .app-action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(4rem + env(safe-area-inset-bottom));
+    width: auto;
+    margin-left: 0;
+    margin-right: 0;
+    /* Sink the bar's surface half a rem behind the tab bar (which sits a layer
+       above at z-40) so the page background can't show through the seam, and
+       add the same amount back as padding to keep the buttons centred. */
+    margin-bottom: -0.5rem;
+    padding-bottom: 1.25rem;
+    border-radius: 0;
+    /* Same band as `.app-footer`: under the bottom tab bar's centre FAB. */
+    z-index: 39;
+    box-shadow: 0 -1px 6px rgb(0 0 0 / 6%);
+  }
+
+  /* Reserves the fixed bar's height at the end of the content so the last row
+     isn't buried under it. */
+  [data-theme="theme-2"] .app-action-bar-spacer {
+    height: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  /* Opt-in: a sub-nav tab row that continues the white surface of the chip
+     strip above it, instead of floating on the cream page-bg. Full-bleed, and
+     it cancels the chip strip's own bottom margin (0.5rem) so the two bands
+     read as one sheet. */
+  [data-theme="theme-2"] .app-tabs-band {
+    width: auto;
+    margin-top: -0.5rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    margin-bottom: 0;
+    /* No horizontal padding — the pill row itself runs edge to edge, so the
+       first/last tab sits flush with the screen sides instead of leaving a
+       1rem strip of white on either side. Tight bottom edge: the filter band
+       below continues the same white sheet, so only its own top padding
+       separates the two rows. */
+    padding: 0.625rem 0 0.125rem;
+    background-color: #fff;
+  }
+
+  /* Opt-in: a page's filter block (search field, filter button, alpha strip …)
+     sits on a full-bleed WHITE band instead of floating on the page-bg, so the
+     controls read as one surface under the sub-nav above them. Not sticky —
+     the chip strip and sub-tabs already own the pinned area. No-op on desktop
+     and on other themes. */
+  [data-theme="theme-2"] .app-filter-band {
+    width: auto;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding: 0.5rem 1rem 0.75rem;
+    background-color: #fff;
+    border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+  }
+}
+
+/* Sticky bars — mobile offsets */
+@media (max-width: 767px) {
+  /* On theme-2 mobile the sticky section tab bar sits under the header, so pin
+     the search bar just below it (header ~3.75rem + the tab bar) instead of
+     under the header alone. Cancel the grid's top gap (`.theme-2-mobile-gap-top`)
+     so the white bar sits flush against the tab bar with no page-bg band. */
+  [data-theme="theme-2"] .catalog-search-sticky {
+    top: 3.9rem;
+    margin-top: -2.5rem;
+  }
+
+  /* Subscribe pages sit under the `SubscribeNavChips` strip instead of the
+     section tab bar, and that strip is taller. Pin the search bar below it
+     (header 3.75rem + the ~3.15rem chip strip) so the two sticky bars stack
+     instead of the search bar parking on top of the chips, and drop the
+     pull-up above — there is a real bar to sit under here. */
+  [data-theme="theme-2"] .has-subscribe-nav .catalog-search-sticky {
+    top: 6.9rem;
+    margin-top: 0;
+  }
+
+  /* …except when the strip is the first block in the page (`catalog-search-flush`):
+     cancel the chip strip's own bottom margin (0.5rem) so the two bands touch. */
+  [data-theme="theme-2"]
+    .has-subscribe-nav
+    .catalog-search-sticky.catalog-search-flush {
+    margin-top: -0.5rem;
+  }
+
+  /* Sticky sub-nav tabs pin just below the sticky section tab bar (header
+     ~3.75rem + the tab bar) rather than under the header alone, so the two
+     sticky bars stack cleanly instead of overlapping on theme-2 mobile. */
+  [data-theme="theme-2"] [data-slot="app-tab"].subscribe-tabs-sticky,
+  [data-theme="theme-2"] [data-slot="app-tab"].app-tabs-sticky {
+    top: 6.67rem;
+  }
+
+  /* Opt-in: pages that render no section tab bar on mobile (inventory
+     dashboard) have nothing above their sub-nav tabs, so those pin directly
+     under the app header instead of leaving a strip the page scrolls through. */
+  [data-theme="theme-2"] [data-slot="app-tab"].app-tabs-sticky-header {
+    top: 3.75rem;
+  }
+
+  /* Mobile: the sticky section tab bar also pins under the header, so the
+     search bar must stick below both — flush against the green bar's bottom
+     edge (same tuned offset as .vendor-tab-sticky; a larger value parks it
+     lower and opens a strip where scrolling content shows through near the
+     header). */
+  [data-theme="theme-2"] .search-sticky {
+    top: 6.75rem;
+  }
+
+  /* Opt-in: pages that render no section tab bar on mobile (browse products
+     list) have nothing between the app header and the search band, so it pins
+     directly under the 3.75rem header. Cancel any extra top padding the page
+     adds as well — together with the base rule's -1rem gutter bleed the white
+     band then touches the green header instead of floating on a page-bg
+     strip, and it doesn't jump the moment it sticks. */
+  [data-theme="theme-2"] .search-sticky.search-sticky-header {
+    top: 3.75rem;
+    margin-top: -1rem;
+    padding-top: 0.5rem;
+  }
+
+  /* Opt-in: primary-filled sticky search band (browse main) — green under the
+     section tabs so the white search control sits on brand green while stuck.
+     Drop the generic .search-sticky negative top margin (it slides this band
+     under the section tabs and clips the top padding) and give the bar room. */
+  [data-theme="theme-2"] .search-sticky.search-sticky-primary {
+    background-color: var(--primary);
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    padding: 0.875rem 1rem;
+  }
+
+  [data-theme="theme-2"] .party-sticky-bar {
+    top: 7.3rem;
+  }
+
+  /* Vendor detail tab bar: the seller page renders no sticky section tab bar,
+     so the tabs pin directly under the 3.75rem app header. A larger value parks
+     them lower and opens a strip where the page scrolls through between the
+     green header and the tab card. */
+  [data-theme="theme-2"] .vendor-tab-sticky {
+    top: 3.75rem;
+  }
+
+  /* …and the catalog search bar pins right below the tab card
+     (header 3.75rem + ~2.75rem of tab bar). */
+  [data-theme="theme-2"] .vendor-search-sticky {
+    top: 6.5rem;
+    background-color: #fff;
+  }
+}
+
+/* Sub-nav tab trays — mobile look */
+@media (max-width: 767px) {
+  /* Opt-in: a sub-nav tray block flagged `app-tabs-flush` that is the first
+     thing in its content column sits directly under the sticky section tab
+     bar. Cancel the grid's top gap (`.theme-2-mobile-gap-top`) so there's no
+     page-bg band between the two bars — and so the tray doesn't jump by that
+     gap the moment it sticks (its `top` above assumes flush). Scoped to
+     `:first-child` so a block rendered above it (e.g. the seller-deal card)
+     keeps its normal spacing. */
+  [data-theme="theme-2"] .app-tabs-flush:first-child {
+    margin-top: -0.75rem;
+  }
+
+  /* Sub-nav tray (subscribe sub-nav, bin view tabs, …): a WHITE outer card that
+     spans edge to edge (keeps the `edge-tabs` full-bleed so there's no page-bg
+     gap at the screen sides), with a wider left/right padding so the CREAM inner
+     track sits inset at the page gutter (aligned with the section bar tabs
+     above) and a slim top/bottom frame. */
+  [data-theme="theme-2"] .edge-tabs.subscribe-tabs-sticky,
+  [data-theme="theme-2"] .edge-tabs.app-tabs-tray {
+    /* Extra room below the sub-tab row (matches the section bar above) so the
+       cream card doesn't sit flush against the content beneath it. */
+    /* padding: 0.375rem 1rem 0.75rem; */
+    border-radius: 0;
+  }
+
+  /* Standalone tray (not a sticky sub-nav): even top/bottom frame — the extra
+     bottom room above is there to separate the sticky bar from the list
+     scrolling under it, which a static tray doesn't need. */
+  [data-theme="theme-2"]
+    .edge-tabs.app-tabs-tray:not(.subscribe-tabs-sticky, .app-tabs-sticky) {
+    padding-bottom: 0.375rem;
+  }
+
+  /* Inner cream track — the swiper container fills the card inside its padding,
+     so the tab row sits on the cream fill with the white card showing as a thin
+     frame around it. Inactive tabs are transparent, letting the cream show. */
+  [data-theme="theme-2"] .subscribe-tabs-sticky .swiper,
+  [data-theme="theme-2"] .app-tabs-tray .swiper {
+    background-color: #e6ddcc;
+    border-radius: 0.625rem;
+    padding: 0.1875rem;
+  }
+
+  /* Active sub-tab lifts onto a white pill with a hairline border + soft shadow
+     and bold near-black text — an iOS-style segmented thumb that pops off the
+     cream track — instead of the desktop green bubble. */
+  [data-theme="theme-2"]
+    [data-slot="app-tab"][data-variant="tabs"]
+    [data-slot="app-tab-item"][aria-selected="true"] {
+    background-color: #fff;
+    color: var(--foreground);
+    font-weight: 600;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  }
+
+  /* Count chip on the active white pill: keep the brand-green fill so it stays
+     legible (the desktop rule flips it to light for the green bubble). */
+  [data-theme="theme-2"]
+    [data-slot="app-tab"][data-variant="tabs"]
+    [data-slot="app-tab-item"][aria-selected="true"]
+    [data-slot="app-tab-count"] {
+    background-color: var(--primary);
+    color: #fff;
+  }
+
+  /* Slightly compact the segmented tab bar on theme-2 mobile: trim just the
+     tab vertical padding so the control loses a little height, keeping the
+     default track padding and text size. */
+  [data-theme="theme-2"]
+    [data-slot="app-tab"][data-variant="tabs"]
+    [data-slot="app-tab-item"] {
+    padding-top: 0.375rem;
+    padding-bottom: 0.4375rem;
+  }
+}
+
+/* Detail hero — mobile */
+@media (max-width: 767px) {
+  /* Mobile: the band is bled out of the page gutter by `app-bleed-x` on the
+     wrapper, so the plate inside it has to drop its corner radius too — its
+     sides now touch the screen edges. It also closes the vertical gaps the same
+     way desktop does: cancel the page's 1rem top gutter so the plate sits flush
+     under the app header, and drop the wrapper's bottom margin so the tab bar
+     sits flush against the plate. */
+  [data-theme="theme-2"] .detail-hero-bleed {
+    margin-top: -1rem;
+    margin-bottom: 0;
+  }
+
+  [data-theme="theme-2"] .app-bleed-x > .detail-hero-plate {
+    border-radius: 0;
+  }
+
+  /* Same top-gutter cancel as `.detail-hero-bleed`, but keeps the wrapper's
+     bottom margin — for pages where the plate is followed by cards rather than
+     a tab band sitting flush against it. */
+  [data-theme="theme-2"] .detail-hero-flush {
+    margin-top: -1rem;
+  }
+}
+
+/* Chat thread — mobile */
+@media (max-width: 767px) {
+  /* The screen's identity row (who this record is with, its state, one action)
+     becomes the thread's contact bar: a full-bleed white band sitting flush
+     under the app header, closed by a hairline. Nothing above it on theme-2
+     mobile — breadcrumbs and page descriptions are hidden — so it can cancel
+     the page's 1rem top gutter. */
+  [data-theme="theme-2"] .app-chat-topbar {
+    width: auto;
+    /* Flush at the top: cancels the page gutter's top padding (1rem) *and* the
+       content grid's top gap (`.page-content-gap`, 1rem) so the band sits
+       against the app header. The bottom keeps a gap so the summary plate below
+       reads as its own block on the page tint — the band's own edge closes it,
+       no hairline needed. */
+    margin: -2rem -1rem 0.75rem;
+    padding: 0.75rem 1rem;
+    background-color: #fff;
+    /* Faint lift, the way a chat's contact bar sits above the thread. */
+    box-shadow: 0 1px 2px rgb(11 20 26 / 0.06);
+  }
+
+  /* Bubbles carry their own hairline and lift, so a heavier card shadow would
+     read as a stack of panels rather than a thread. */
+  [data-theme="theme-2"] .app-msg-bubble[data-slot="card"] {
+    box-shadow: 0 1px 1.5px rgb(11 20 26 / 0.07);
+  }
+
+  /* A bled bubble touches both screen edges and stacks flush against the next
+     one, so it keeps a single hairline at its foot: no side borders to sit
+     half-off the screen, no doubled rule between neighbours, and no lift —
+     the rows read as one continuous sheet. */
+  [data-theme="theme-2"] .app-msg-bubble.app-bleed-x {
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    box-shadow: none;
+  }
+
+  /* The cart's sticky action bar sits where the chat composer does: a white
+     strip lifted off the thread below it. The total and the action sit on that
+     strip directly — capsuling the total made it read as a second summary
+     plate rather than a footer. */
+  [data-theme="theme-2"] .app-composer {
+    background-color: #fff;
+    box-shadow: 0 -1px 3px rgb(11 20 26 / 0.08);
+  }
+}
+
+/* ── Record detail — mobile ────────────────────────────────────────────────
+   A record's detail screen (purchase order view, …) stops looking like a
+   dashboard of floating cards and reads like WhatsApp: an identity band pinned
+   under the app header, then the record's facts as settings-style groups —
+   full-bleed white blocks separated by the cream page tint, hairline top and
+   bottom, no radius, no lift, no help copy.
+
+   Both seams are theme-neutral classes the markup carries with no styling of
+   their own; only theme-2 mobile turns them into chat furniture, so the base
+   theme and every desktop breakpoint are untouched. */
+@media (max-width: 767px) {
+  /* Identity band: what this record is, and the one or two things you can do
+     with it, on a white strip flush under the green header. It only cancels
+     the page's 1rem top gutter when it really is the first block in the
+     column — a note rendered above it (SkSellerAvailableNote) keeps its
+     normal spacing. */
+  [data-theme="theme-2"] .app-detail-head {
+    width: auto;
+    margin: 0 -1rem 0.625rem;
+    padding: 0.625rem 1rem;
+    background-color: #fff;
+    /* Stack, not a row: three actions never fit beside a long order id, and
+       wrapping them left a ragged block hanging off the title's right edge.
+       The id owns its line; the actions get a strip of their own below it. */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    box-shadow: 0 1px 2px rgb(11 20 26 / 0.06);
+  }
+
+  [data-theme="theme-2"] .app-detail-head:first-child {
+    margin-top: -1rem;
+  }
+
+  /* The page description is desk furniture — a phone screen already arrived
+     here on purpose, and WhatsApp never explains a thread to you. */
+  [data-theme="theme-2"] .app-detail-head .app-page-heading p {
+    display: none;
+  }
+
+  [data-theme="theme-2"] .app-detail-head .app-page-heading h1 {
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* One strip, never two rows: the capsules share the band's full width and
+     each takes an equal slice, so their edges line up with the id above and
+     with each other. An unusually crowded record scrolls sideways rather than
+     squeezing the labels. */
+  [data-theme="theme-2"] .app-detail-head .app-detail-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  [data-theme="theme-2"]
+    .app-detail-head
+    .app-detail-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Actions ride as capsules, grown to fill the strip they sit in. */
+  [data-theme="theme-2"] .app-detail-head [data-slot="button"] {
+    flex: 1 0 auto;
+    border-radius: 9999px;
+    padding-inline: 0.75rem;
+  }
+
+  /* Fact groups: the card grid becomes a plain stack of full-bleed blocks. */
+  [data-theme="theme-2"] .app-detail-sheet {
+    display: block;
+    width: auto;
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+
+  [data-theme="theme-2"] .app-detail-sheet > [data-slot="card"] {
+    /* Sides touch the screen, so only the top and bottom edges are drawn —
+       the cream gap between blocks does the rest of the separating. */
+    border-width: 1px 0;
+    border-color: var(--border);
+    border-radius: 0;
+    box-shadow: none;
+    /* Beats the cards' own `tw:mb-0!` / `tw:pb-2!`. Vertical padding lives on
+       the header and the rows below, so a collapsed group is exactly its
+       header tall with no empty well under it. */
+    margin-bottom: 0.625rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    /* AppCard's `tw:gap-2` sits between the header and the body — dead space
+       under the title, and a visible well under a collapsed group where there
+       is no body at all. */
+    gap: 0 !important;
+  }
+
+  [data-theme="theme-2"] .app-detail-sheet > [data-slot="card"]:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  /* Group header is a tappable row, not a titled card top: no rule under it,
+     so the header and its rows read as one block. */
+  [data-theme="theme-2"]
+    .app-detail-sheet
+    > [data-slot="card"]
+    > [data-slot="card-header"] {
+    padding: 0.75rem 1rem;
+    border-bottom: 0;
+    /* CardHeader declares `grid-rows-[auto_auto]` for the title/subtitle pair.
+       With no subtitle the second track is still laid out, and its row-gap
+       (0.375rem) is still counted — dead space under every title, and the only
+       thing inside a collapsed group. `none` drops the explicit tracks so the
+       header's own `auto-rows-min` places whatever is actually there; a real
+       subtitle still gets its gap from the implicit second row. */
+    grid-template-rows: none;
+  }
+
+  [data-theme="theme-2"]
+    .app-detail-sheet
+    > [data-slot="card"]
+    > [data-slot="card-header"]
+    [data-slot="card-title"] {
+    font-size: 0.9375rem;
+  }
+
+  /* The group's own mark picks up the action green — the one bit of colour in
+     an otherwise grey-on-white list. */
+  [data-theme="theme-2"]
+    .app-detail-sheet
+    > [data-slot="card"]
+    > [data-slot="card-header"]
+    [data-slot="card-title"]
+    > span:first-child
+    svg {
+    color: var(--primary-2);
+  }
+
+  /* Side gutter only. The body's rows carry their own vertical padding, so a
+     collapsed group — whose body is `display:none` but whose content box still
+     renders — closes flush against its header with no well underneath. */
+  [data-theme="theme-2"]
+    .app-detail-sheet
+    > [data-slot="card"]
+    > [data-slot="card-content"] {
+    padding: 0 1rem;
+  }
+
+  /* A record's sub-nav pills sit under the same header as the section bar's
+     pills, so they wear the same chip: WhatsApp's neutral fill with no
+     outline, the active one filled in the brand green. Without this they
+     arrive as bordered grey capsules and the two rows read as two systems. */
+  [data-theme="theme-2"]
+    [data-slot="app-tab"][data-variant="pills"]
+    [data-slot="app-tab-item"][aria-selected="false"] {
+    background-color: #f0f2f5;
+    border-color: transparent;
+    color: #3b4a54;
+  }
+
+  [data-theme="theme-2"]
+    [data-slot="app-tab"][data-variant="pills"]
+    [data-slot="app-tab-item"][aria-selected="true"] {
+    box-shadow: none;
+  }
+}
+
+/* Pills sitting on a white sub-nav band (`app-nav-chips`) wear the same
+   WhatsApp chip at every width — neutral fill, no outline, the active one in
+   brand green — instead of the base bordered grey capsules. The mobile rules
+   above already do this for every pill row; this keeps the band's desktop row
+   from reading as a different system. */
+[data-theme="theme-2"]
+  [data-slot="app-tab"][data-variant="pills"].app-nav-chips
+  [data-slot="app-tab-item"][aria-selected="false"] {
+  background-color: #f0f2f5;
+  border-color: transparent;
+  color: #3b4a54;
+}
+
+[data-theme="theme-2"]
+  [data-slot="app-tab"][data-variant="pills"].app-nav-chips
+  [data-slot="app-tab-item"][aria-selected="true"] {
+  box-shadow: none;
+}
+
+/* Accounts — the pages that render no tab tray (overview). The page drops its
+   theme-2 top gutter so the edge-to-edge tray can sit flush under the sticky
+   bar above it; with no tray, the page's first block (the date range row) would
+   be left tight against — and scroll behind — that bar. Put the clearance back
+   on the content grid. */
+[data-theme="theme-2"] .accounts-no-tabs-gap {
+  padding-top: 1rem;
+}
+
+/* Accounts — mobile */
+@media (max-width: 767px) {
+  /* Plus the 0.5rem the header row pulls itself up by (below). */
+  [data-theme="theme-2"] .accounts-no-tabs-gap {
+    padding-top: 1.5rem;
+  }
+
+  [data-theme="theme-2"] .accounts-header-row {
+    margin-top: -0.5rem;
+  }
+
+  [data-theme="theme-2"] .accounts-date-btn {
+    border-radius: 9999px;
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+    background-color: color-mix(in srgb, var(--primary) 6%, #fff);
+    color: var(--primary);
+    font-weight: 500;
+  }
+  [data-theme="theme-2"] .accounts-date-btn svg {
+    color: var(--primary);
+  }
+}
+
+/* Section tab bar — mobile */
+@media (max-width: 767px) {
+  /* The sticky section tab bar is a plain white strip under the green header:
+     the tabs read as free-standing rounded pills on it — the active one filled
+     in the brand green, the rest on a light neutral fill. */
+  [data-theme="theme-2"] .section-menu-container {
+    background-color: #fff;
+    border-bottom-color: transparent;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    /* No side gutter — the pill track scrolls edge to edge, so a partially
+       visible pill at either end reads as "there's more this way". */
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Opt-in gap for pages whose first block sits flush under the pills. The
+     strip is its own surface there, not a header for the block beneath it.
+     Kept opt-in because most pages already space their own first block. */
+  [data-theme="theme-2"] .section-menu-container.section-menu-gap {
+    margin-bottom: 0.75rem;
+  }
+
+  /* The inner track is only a scroll rail here, not its own coloured surface.
+     Cancel its horizontal margin so the first/last pill align with the
+     container's 1rem gutter. */
+  [data-theme="theme-2"] .section-menu-container .section-menu-track,
+  [data-theme="theme-2"] .section-menu-container .app-section-tabs {
+    background-color: transparent;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Fully rounded pills, roomy enough to be a comfortable tap target. */
+  [data-theme="theme-2"] .section-menu-container [role="tab"] {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 500;
+  }
+
+  [data-theme="theme-2"]
+    .section-menu-container
+    [role="tab"][aria-selected="true"] {
+    background-color: var(--primary);
+    color: #fff;
+    box-shadow: none;
+  }
+
+  [data-theme="theme-2"]
+    .section-menu-container
+    [role="tab"][aria-selected="false"] {
+    /* WhatsApp's neutral chip fill — quiet against the white strip while still
+       reading as a tappable pill rather than bare text. */
+    background-color: #f0f2f5;
+    color: #3b4a54;
+  }
+
+  /* The AI pill keeps its violet fill in both states — it's a different kind of
+     destination, not another green section. Selector matches the specificity of
+     the state rules above and comes after them, so it wins either way. */
+  [data-theme="theme-2"]
+    .section-menu-container
+    [role="tab"][aria-selected].app-tab-ai {
+    background-image: linear-gradient(135deg, #c026d3 0%, #7c3aed 100%);
+    color: #fff;
+  }
+
+  /* Count/badge chips (e.g. "Reorder 43") are the one alert accent on the bar:
+     a solid red dot-pill in both states. */
+  [data-theme="theme-2"]
+    .section-menu-container
+    [role="tab"]
+    :is([data-slot="app-tab-count"], [data-slot="app-tab-badge"]) {
+    background-color: #ef4444;
+    color: #fff;
+    border-radius: 9999px;
+    font-weight: 600;
+  }
+}
+
+/* ============================================================================
+   3. DESKTOP  (min-width)
+   ========================================================================= */
+
+/* ── md and up ─────────────────────────────────────────────────────────── */
+
+/* Desktop: primary sticky band is mobile-only — drop sticky, fill, and the
+   full-bleed margins so the search sits in normal page flow. */
+@media (min-width: 768px) {
+  [data-theme="theme-2"] .search-sticky.search-sticky-primary {
+    position: static;
+    background-color: transparent;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+}
+
+/* Barcode scan sub-nav — desktop. theme-2 swaps the segmented bar for the
+   free-standing `pills` variant, which paints no background of its own; the row
+   is sticky, so it needs a fill or the content scrolling under it shows through
+   between the chips. Give it the WHITE card fill (plus the gutter bleed and a
+   hairline base) so the chips sit on their own band that reads apart from the
+   page-bg content below. */
+@media (min-width: 768px) {
+  [data-theme="theme-2"] [data-slot="app-tab"].barcode-tabs-pills {
+    background-color: var(--card);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+    width: calc(100% + 2rem);
+    margin-inline: -1rem;
+    /* Drop the caller's top margin (`tw:mt-2` / `tw:mt-3`) AND the page's own
+       1rem top gutter (`tw:p-4` on `.app-page`) — the band is the first block
+       on these pages and has to sit flush under the app header, not float on a
+       strip of page-bg. Same pull the lg rule below applies. */
+    margin-top: -1rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* …and from lg up the page gutter moves onto `.section-content` (1rem top), so
+   swallow that too or the strip comes back. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] [data-slot="app-tab"].barcode-tabs-pills {
+    margin-top: -1rem;
+  }
+
+  /* On split-pane pages (PayLater wallets) the content column also sits a
+     1.5rem `.section-layout` gap away from the fixed list pane, of which the
+     base -1rem bleed eats only two thirds — pull the remaining 0.5rem so the
+     band starts flush against the pane border instead of leaving a page-bg
+     strip there. */
+  [data-theme="theme-2"]
+    .section-layout:has(.app-pane-side)
+    [data-slot="app-tab"].barcode-tabs-pills {
+    margin-left: -1.5rem;
+  }
+}
+
+/* Mobile keeps the same white band: pages that hand the strip to a single
+   AppTab (the bulk upload sub-nav) have no separate chip strip below md, so the
+   band has to paint there too or the pills pin over see-through content. The
+   barcode scan page renders its md+ row as `tw:hidden tw:md:block`, so this is
+   inert there. */
+@media (max-width: 767px) {
+  [data-theme="theme-2"] [data-slot="app-tab"].barcode-tabs-pills {
+    background-color: var(--card);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+    width: auto;
+    margin-inline: -1rem;
+    margin-top: 0;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Step rail band (bulk upload) — the block directly under the sticky sub-nav.
+   It carries the tab band's white fill and gutter bleed so the two read as one
+   header stack rather than a floating strip on page-bg. Only the tab band
+   pins; this scrolls under it. */
+[data-theme="theme-2"] .app-steps-band {
+  width: calc(100% + 2rem);
+  margin-inline: -1rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+/* The two bands stack directly, so the tab band's own hairline would read as a
+   seam between them. Drop it when the step rail follows — whether as the next
+   sibling or as the first block of the wrapper after it — so the pair reads as
+   one continuous header. The band keeps its even 0.5rem top/bottom padding:
+   with the hairline gone the pills would otherwise sit flush against the step
+   rail's own padding and read as off-centre in their band.
+
+   `margin-bottom` goes too: the band sits in a `.app-pane-main` column, whose
+   `space-y-4` hands every child a 1rem bottom margin — that gap let a strip of
+   page-bg through between the two white bands. */
+[data-theme="theme-2"]
+  [data-slot="app-tab"].barcode-tabs-pills:has(+ .app-steps-band),
+[data-theme="theme-2"]
+  [data-slot="app-tab"].barcode-tabs-pills:has(+ * > .app-steps-band) {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .section-layout:has(.app-pane-side) .app-steps-band {
+    margin-left: -1.5rem;
+    width: calc(100% + 2.5rem);
+  }
+}
+
+/* Detail hero — desktop */
+@media (min-width: 768px) {
+  [data-theme="theme-2"] .detail-hero {
+    display: block;
+    position: sticky;
+    top: 3.75rem; /* app header height */
+    z-index: 30; /* under the z-50 header, over the page content */
+    margin-top: -1rem; /* cancel the page's top gutter — sit flush */
+    margin-bottom: 1rem;
+  }
+
+  /* Full bleed: grow past the 1rem page gutter on both sides, then slide back
+     over the left one so the band spans edge to edge. Transform (not negative
+     margins) keeps the block out of the flow calculation, so the sticky
+     wrapper's box stays exactly the content width. */
+  [data-theme="theme-2"] .detail-hero-bleed,
+  [data-theme="theme-2"] .detail-hero-tabs {
+    width: calc(100% + 2rem);
+    transform: translateX(-1rem);
+    /* The two halves of the band sit flush against each other. */
+    margin-bottom: 0;
+  }
+
+  /* Edge-to-edge plate: no corner radius, and a wider inner gutter so the
+     avatar and the action pills line up with the tabs below. Scoped to the
+     bled band — a plate that stays inside the page gutter (e.g. the product
+     detail hero) keeps its card radius. */
+  [data-theme="theme-2"] .detail-hero-bleed .detail-hero-plate {
+    border-radius: 0;
+    padding-inline: 1.25rem;
+  }
+
+  /* The wrapper does the pinning now — a second sticky on the tab bar would
+     fight it — and the bar drops its card look to read as the band's base. */
+  [data-theme="theme-2"] .detail-hero-tabs {
+    position: static;
+    border-radius: 0;
+    box-shadow: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* ── lg and up ─────────────────────────────────────────────────────────── */
+
+@media (min-width: 1024px) {
+  /* Desktop hides the bottom tab, so only the header needs subtracting for a
+     short page to fill the viewport. */
+  [data-theme="theme-2"] .app-page {
+    min-height: calc(100vh - 3.75rem - 1px);
+    min-height: calc(100dvh - 3.75rem - 1px);
+  }
+
+  [data-theme="theme-2"] .bottom-tab {
+    display: none;
+  }
+
+  /* Visibility helpers */
+  [data-theme="theme-2"] .header-nav-chips {
+    display: flex;
+  }
+  /* When the centered nav chips are visible, cap the title (left) block so a
+     long vendor/company name truncates instead of sliding under the chips.
+     The cap is half the pill group's width — the chips are absolutely centred
+     (out of flow), so nothing else can reserve that space for them.
+     Below 1280px the chips drop their labels (see HeaderNavChips), so half the
+     icon-only group is ~6rem. */
+  [data-theme="theme-2"] .app-header .header-lead {
+    max-width: calc(50% - 6.5rem);
+  }
+
+  [data-theme="theme-2"] .app-pane-only {
+    display: block;
+  }
+  [data-theme="theme-2"] .app-pane-hide {
+    display: none;
+  }
+}
+
+/* From 1280px the header chips show their text labels again, so the title cap
+   has to clear the wider pill group (~14.5rem is half of it). Keeping the two
+   caps in step with `HeaderNavChips` is what stops long titles such as
+   "Purchase from Network" clipping on mid-size laptops. */
+@media (min-width: 1280px) {
+  [data-theme="theme-2"] .app-header .header-lead {
+    max-width: calc(50% - 14.5rem);
+  }
+}
+
+/* Split-layout pages (list pane + detail) start the header after the rail and
+   the pane, so it is ~25.5rem narrower than the viewport and the labelled
+   chips would squeeze the title again between 1280px and 1400px. Hold the
+   icon-only chips (and their matching cap) until there is room for both. */
+@media (min-width: 1280px) and (max-width: 1399.98px) {
+  [data-theme="theme-2"] main:has(.app-pane-side) .header-chip-label {
+    display: none;
+  }
+  [data-theme="theme-2"] main:has(.app-pane-side) .app-header .header-lead {
+    max-width: calc(50% - 6.5rem);
+  }
+}
+
+/* Page gutters & grids — desktop.
+   The page wrapper goes edge to edge and the gutter moves down to
+   `.section-content`, so a section can opt out (`.no-padding`) and run full
+   bleed — e.g. split-pane layouts that manage their own spacing. Inside one,
+   `.section-content-inner` restores the standard gutter. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .page-content-gap {
+    margin-top: 0;
+  }
+
+  [data-theme="theme-2"] .page-padding {
+    padding: 0;
+  }
+
+  [data-theme="theme-2"] .page-padding .section-content {
+    padding: 1rem 1rem 0;
+  }
+
+  [data-theme="theme-2"] .page-padding .section-content.no-padding {
+    padding: 0;
+  }
+
+  [data-theme="theme-2"]
+    .page-padding
+    .section-content.no-padding
+    .section-content-inner {
+    padding: 1rem 1rem 0;
+  }
+
+  /* Pull left to sit flush with the header (clearing the 0.5rem pane-to-content
+     offset) and right to the viewport edge, and collapse the page's top gutter
+     so the strip sits flush under the sticky header. */
+  [data-theme="theme-2"] .summary-bleed {
+    margin-left: -0.5rem;
+    margin-top: -1rem;
+    margin-right: -1rem;
+  }
+
+  /* The band's base bleed only cancels the page's 1rem gutter; on desktop it
+     also has to clear the page's top gutter so it sits flush under the sticky
+     header. */
+  [data-theme="theme-2"] .pricing-command-bar {
+    margin-top: -1rem;
+  }
+
+  /* On split-pane pages the content column additionally sits a 1.5rem
+     `.section-layout` gap away from the fixed list pane, of which the base
+     -1rem bleed eats only two thirds — pull the remaining 0.5rem so the band
+     starts flush against the pane border. */
+  [data-theme="theme-2"]
+    .section-layout:has(.app-pane-side)
+    .pricing-command-bar {
+    margin-left: -1.5rem;
+  }
+
+  [data-theme="theme-2"] .section-menu-aside {
+    display: block;
+    /* The rail is `position: fixed; left: 0` (4.5rem) so it ignores the page's
+       1rem left padding, while the reserved flow column starts after it —
+       shrink the reservation by that 1rem so content sits flush after it. */
+    width: 3.5rem;
+  }
+
+  /* Three-column browse grids: the side rail eats the left column, so tighten
+     the list columns and cap the products column instead of letting it stretch
+     into the reduced content width. */
+  [data-theme="theme-2"] .browse-grid--brand {
+    grid-template-columns: 18rem 20rem minmax(0, 1fr);
+  }
+
+  [data-theme="theme-2"] .browse-grid--category {
+    grid-template-columns: 14rem 20rem minmax(0, 1fr);
+  }
+
+  /* Opt-in: search strips flagged `catalog-search-flush` are the first block in
+     their content column, so on theme-2 desktop the page's 1rem top gutter shows
+     as a page-bg band between the header and the white bar. Cancel it so the bar
+     sits flush under the header (mirrors the mobile rule above, which pins it
+     under the section tab bar). Below lg the mobile/tablet spacing is
+     unchanged. */
+  [data-theme="theme-2"] .catalog-search-sticky.catalog-search-flush {
+    margin-top: -1rem;
+  }
+
+  /* `.app-top-bar`'s -1rem side bleed assumes the page's 1rem gutter sits
+     immediately to its left. Inside `.section-layout--tight` it doesn't: the
+     content column starts after the fixed 4.5rem icon rail plus the layout's
+     0.75rem gap, so the bleed overshoots that gap and slides the white strip
+     under the rail. Bleed by the gap instead — the band still runs flush from
+     the rail to the right viewport edge — and re-add it as padding so the
+     strip's contents stay aligned with the content below. */
+  [data-theme="theme-2"] .section-layout--tight .app-top-bar {
+    margin-left: -0.75rem;
+    padding-left: 0.75rem;
+  }
+
+  /* Bin overview band: the component's own -1rem side bleed cancels the page
+     gutter, but inside `.section-layout--tight` the content column also starts
+     a 0.75rem gap after the fixed rail (or the bin list pane) — pull that too
+     so the band runs flush from the rail/pane border to the right viewport
+     edge. */
+  [data-theme="theme-2"] .section-layout--tight .bin-overview-flush {
+    margin-left: -0.75rem;
+  }
+
+  /* …and re-add the bled distance as padding on the band itself, so its
+     contents stay aligned with the cards below instead of hugging the rail. */
+  [data-theme="theme-2"] .section-layout--tight .bin-overview-flush > * {
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
+  }
+
+  /* Godown scope switch (Sellable / Non Sellable): the pill band is the first
+     block in its content column, so the page's 1rem top gutter would show as a
+     page-bg strip between the header and the white band. Cancel it. The side
+     bleed comes from `.app-nav-chips` (-1rem each side) in app.css. */
+  [data-theme="theme-2"] [data-slot="app-tab"].godown-scope-tabs {
+    margin-top: -1rem;
+  }
+
+  /* On this split-pane page the content column also sits a 1.5rem
+     `.section-layout` gap away from the fixed list pane, of which the base
+     -1rem bleed eats only two thirds — pull the remaining 0.5rem so the band
+     starts flush against the pane border. */
+  [data-theme="theme-2"]
+    .section-layout:has(.app-pane-side)
+    [data-slot="app-tab"].godown-scope-tabs {
+    margin-left: -1.5rem;
+  }
+
+  /* Section sub-nav bars (accounts money-in lanes / money-out views / P&L
+     periods, expenses records-vs-categories): on desktop the section tabs have
+     moved into the side rail, so this bar is the first block in the content
+     column and the page's 1rem top gutter would show as a page-bg band between
+     the header and the tabs (`app-tabs-sticky` in app.css already pins it at
+     3.75rem, the `underline` variant paints it white). Cancel the gutter and
+     bleed sideways — `edge-tabs` is mobile-only — so the white strip runs from
+     the pane border to the right viewport edge, with the bled distance re-added
+     as padding so the tabs stay aligned with the cards below. `app-tabs-bleed`
+     is the theme-neutral name; `accounts-tabs-sticky` predates it. */
+  [data-theme="theme-2"] [data-slot="app-tab"].accounts-tabs-sticky,
+  [data-theme="theme-2"] [data-slot="app-tab"].app-tabs-bleed {
+    /* The tab root carries `tw:w-full` — with an explicit width the negative
+       gutters below don't widen the box, they only shift it left, leaving a
+       1rem strip of page-bg at the right edge. `auto` lets it grow instead. */
+    width: auto;
+    margin-top: -1rem;
+    /* The tray is a sticky white strip, not a card — without a little air the
+        page's first block (range picker / stats) reads as part of it. */
+    margin-bottom: 2rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 0;
+  }
+
+  /* On this split-pane page the content column also sits a 1.5rem
+     `.section-layout` gap away from the fixed list pane, of which the -1rem
+     bleed eats only two thirds — pull the remaining 0.5rem so the strip starts
+     flush against the pane border. */
+  [data-theme="theme-2"]
+    .section-layout:has(.app-pane-side)
+    [data-slot="app-tab"].accounts-tabs-sticky,
+  [data-theme="theme-2"]
+    .section-layout:has(.app-pane-side)
+    [data-slot="app-tab"].app-tabs-bleed {
+    margin-left: -1.5rem;
+    padding-left: 1.5rem;
+  }
+}
+
+/* Icon rail, footer offsets & the WhatsApp-style split layout — desktop. */
+@media (min-width: 1024px) {
+  [data-theme="theme-2"] .section-menu-aside > div {
+    position: fixed;
+    /* Full viewport height: the header starts to the right of the rail on
+       desktop, and the bottom tab is hidden (see app.css). */
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4.5rem;
+    z-index: 30;
+    overflow-y: auto;
+  }
+
+  [data-theme="theme-2"] .section-menu-aside > div > nav {
+    border-radius: 0;
+  }
+
+  [data-theme="theme-2"] .network-menu-list {
+    height: calc(100vh - 14rem);
+  }
+
+  /* Keep the footer clear of the fixed 4.5rem sidebar rail, but only on
+     routes that actually render the section-menu rail. Use margin-left (not
+     left) so it shifts sticky and fixed elements alike. The bottom tab needs
+     no offset — it is hidden on desktop (see app.css). */
+  [data-theme="theme-2"] main:has(.section-menu-aside) .app-footer {
+    margin-left: var(--app-rail-w);
+    /* The margin shifts a full-width footer, so shrink it by the same offset
+       to keep the right edge inside the viewport. */
+    width: calc(100% - var(--app-rail-w));
+  }
+
+  /* The bottom tab is hidden on desktop, so fixed/sticky footers should sit
+     flush with the bottom of the viewport instead of floating above the
+     mobile tab-bar offset. Also remove the corresponding bottom-tab padding
+     from pages that reserve space for a footer. */
+  [data-theme="theme-2"] .app-footer {
+    bottom: 0;
+  }
+  [data-theme="theme-2"] .app-page.has-footer {
+    padding-bottom: 100px;
+  }
+  [data-theme="theme-2"] .app-page.theme-2-no-footer.has-footer {
+    padding-bottom: 0;
+  }
+
+  /* WhatsApp-style split layout. Pages that tag a content column with
+     `.app-pane-side` get that column lifted out of the grid into a fixed,
+     full-height white list pane sitting flush against the icon rail; the
+     `.app-pane-main` column then spans the full grid width. Content inside
+     both columns is untouched — this only re-homes the columns. */
+
+  /* The pane spans edge to edge vertically, so let the content use the full
+     remaining width instead of the centered max-w-7xl container. */
+  [data-theme="theme-2"] .app-container:has(.app-pane-side) {
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  [data-theme="theme-2"] .app-pane-side {
+    position: fixed;
+    top: 0; /* full height — the header starts to the right of the pane */
+    bottom: 0;
+    left: var(--app-rail-w); /* flush after the icon rail */
+    width: var(--app-pane-w);
+    z-index: 30;
+    /* No horizontal padding — the scroll viewport supplies the side gutters
+       (see below) so the scrollbar sits flush against the pane border and the
+       card rings/shadows aren't clipped at the viewport's left edge. */
+    padding: 1rem 0;
+    background-color: #fff;
+    border-right: 1px solid var(--border);
+  }
+
+  /* With the side column out of flow, the main column owns the whole grid. */
+  [data-theme="theme-2"] .app-pane-main {
+    grid-column: 1 / -1;
+  }
+
+  /* The Radix scroll-area viewport wraps the pane content in an inline-styled
+     `display: table` div that grows to fit its widest child (e.g. the payment
+     calendar swiper strip), pushing every card past the pane's right edge.
+     Pin it to the pane width so wide strips scroll inside their own rows
+     instead of widening the whole column. The right padding restores the
+     pane gutters dropped from `.app-pane-side` so the scrollbar can sit flush
+     against the pane border and card edges render inside the viewport.
+     Direct-child chain only — nested scroll areas inside pane cards (e.g. the
+     recent-events list) must not pick up a second gutter. */
+  [data-theme="theme-2"]
+    .app-pane-side
+    > [data-slot="scroll-area"]
+    > [data-slot="scroll-area-viewport"]
+    > div {
+    display: block !important;
+    width: 100%;
+    padding-inline: 1rem;
+  }
+
+  /* Full-bleed opt-in inside the pane: cancels the 1rem viewport gutter above
+     so a block (e.g. the menu list) runs edge to edge between the icon rail and
+     the pane border. Same contract as the mobile `.app-bleed-x`. */
+  [data-theme="theme-2"] .app-pane-side .app-bleed-x,
+  [data-theme="theme-2"] .app-pane-side .app-bleed {
+    --app-bleed-x: 1rem;
+    width: auto;
+    margin-left: calc(-1 * var(--app-bleed-x));
+    margin-right: calc(-1 * var(--app-bleed-x));
+    border-radius: 0;
+  }
+
+  /* Hero band opt-in: a coloured identity band that owns the pane's top-left
+     corner. Beyond the `app-bleed-x` side bleed it also drops the pane's own
+     top padding, so the band meets the icon rail and the viewport top with no
+     white seam — a negative top margin can't do it here, the pane's scroll
+     area clips anything above the viewport. */
+  [data-theme="theme-2"] .app-pane-side:has(.app-pane-hero) {
+    padding-top: 0;
+  }
+
+  /* Widen the aside flow reservation from rail-only (3.5rem) to rail + pane
+     so the content column starts after the fixed pane (same 1rem
+     double-count trick as `.section-menu-aside` in app.css). */
+  [data-theme="theme-2"]
+    .section-layout:has(.app-pane-side)
+    .section-menu-aside {
+    width: calc(var(--app-rail-w) + var(--app-pane-w) - 1rem);
+  }
+
+  /* The footer must clear the pane too (rail + pane). */
+  [data-theme="theme-2"] main:has(.app-pane-side) .app-footer {
+    margin-left: calc(var(--app-rail-w) + var(--app-pane-w));
+    /* Shrink the full-width footer by the same offset the margin introduces,
+       otherwise its right edge runs off the right of the viewport. */
+    width: calc(100% - var(--app-rail-w) - var(--app-pane-w));
+  }
+
+  /* The sticky white header starts to the right of the fixed rail (and of
+     the list pane on split-layout pages), instead of spanning the full
+     viewport width. */
+  [data-theme="theme-2"] main:has(.section-menu-aside) .app-header {
+    margin-left: var(--app-rail-w);
+  }
+  [data-theme="theme-2"] main:has(.app-pane-side) .app-header {
+    margin-left: calc(var(--app-rail-w) + var(--app-pane-w));
+  }
+}
+
+/* ── Prepaid payment settings page — flush shell ───────────────────────────
+   The page drops its own 1rem gutter (and the caller drops `.app-container`
+   with it, see prepaid-payment/index.tsx) at every width, so the section bar,
+   the sub-nav strip and the cards run edge to edge and own their spacing.
+   Every block on the page that bled *out* of that gutter has nothing left to
+   cancel now, so its negative margins are zeroed here — left in place they'd
+   push the block a gutter's width past the screen edge. */
+[data-theme="theme-2"] .app-page.settings-page-flush {
+  padding: 0;
+}
+
+/* Sticky section pill bar (app.css `.section-menu-container`). */
+[data-theme="theme-2"] .settings-page-flush .section-menu-container {
+  margin-top: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Sub-nav: the mobile tray (`edge-tabs`) and the desktop pill band
+   (`barcode-tabs-pills`). Both keep their inner padding — only the bleed goes,
+   so the tabs stay inset from the screen sides on their own full-width band. */
+[data-theme="theme-2"] .settings-page-flush .edge-tabs,
+[data-theme="theme-2"]
+  .settings-page-flush
+  [data-slot="app-tab"].barcode-tabs-pills {
+  width: auto;
+  margin-top: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* On the flush page the `edge-tabs` bleed is zeroed above, so the tray box
+   already spans the full screen width; the 1rem inline padding it keeps is
+   what leaves the left gap. Drop it (mobile only) so the underline sub-nav
+   runs truly edge to edge instead of inset from the screen sides. */
+@media (max-width: 767px) {
+  [data-theme="theme-2"]
+    .settings-page-flush
+    [data-slot="app-tab"].edge-tabs.app-tabs-tray {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Split-pane pages pull the pill band a further 0.5rem left to clear the
+     `.section-layout` gap; with the page gutter gone that rule (higher
+     specificity than the base cancel above) would still drag the band off the
+     content column, so restate it at zero here. */
+  [data-theme="theme-2"]
+    .settings-page-flush
+    .section-layout:has(.app-pane-side)
+    [data-slot="app-tab"].barcode-tabs-pills {
+    margin-left: 0;
+  }
+}
+
+/* Cards on the flush page take the `app-flat-sheet` treatment at every width
+   (the base rules for it are mobile-only): with the page gutter gone, a rounded
+   card sitting edge to edge shows a curve with page-bg leaking around it. Drop
+   the box, keep the title on the page ground. The 1rem inline padding is the
+   page gutter the shell no longer supplies — content lines up with the section
+   bar pills while the sticky bands above stay full bleed. */
+[data-theme="theme-2"] .settings-page-flush .app-flat-sheet[data-slot="card"] {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 1rem;
+}
+
+[data-theme="theme-2"]
+  .settings-page-flush
+  .app-flat-sheet
+  > [data-slot="card-header"] {
+  padding-inline: 0;
+}
+
+/* Without the card box, the header reads as a page section label rather than a
+   card title, so the inherited base size sits a step too loud above the 14px
+   rows below it. Pull it to 15px; the subtitle already runs at 13px. */
+[data-theme="theme-2"]
+  .settings-page-flush
+  .app-flat-sheet
+  > [data-slot="card-header"]
+  [data-slot="card-title"] {
+  font-size: 0.9375rem;
+}
+
+[data-theme="theme-2"]
+  .settings-page-flush
+  .app-flat-sheet
+  [data-slot="card-content"] {
+  padding-inline: 0;
+}
+
+[data-theme="theme-2"]
+  .settings-page-flush
+  .app-flat-sheet
+  [data-slot="card-content"]
+  > * {
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+/* The gutter-zeroing rules above are blanket `> *` selectors, so they also
+   cancel the negative margins of a block that opted into `app-bleed-x` inside
+   a flat sheet. Hand the bleed back: the sheet's only remaining inset is the
+   1rem it re-adds as padding, which is exactly what `--app-bleed-x` pulls off.
+   Mobile only — `app-bleed-x` itself is a no-op at wider widths. */
+@media (max-width: 767px) {
+  [data-theme="theme-2"]
+    .app-flat-sheet
+    [data-slot="card-content"]
+    > .app-bleed-x,
+  [data-theme="theme-2"]
+    .app-flat-sheet
+    [data-slot="card-content"]
+    > .app-bleed,
+  [data-theme="theme-2"]
+    .settings-page-flush
+    .app-flat-sheet
+    [data-slot="card-content"]
+    > .app-bleed-x,
+  [data-theme="theme-2"]
+    .settings-page-flush
+    .app-flat-sheet
+    [data-slot="card-content"]
+    > .app-bleed {
+    margin-left: calc(-1 * var(--app-bleed-x, 1rem));
+    margin-right: calc(-1 * var(--app-bleed-x, 1rem));
+  }
+}
+
+/* ── Delivery slot calendar ────────────────────────────────────────────────
+   FullCalendar draws its own bordered grid, so the AppCard around it is a box
+   around a box — a doubled hairline and a doubled inset at every width.
+   Theme-2 drops the outer surface and lets the grid sit straight on the page
+   ground; the card body's own 1rem inset goes with it so the calendar lines up
+   with the breadcrumbs above. No-op on other themes. */
+[data-theme="theme-2"] [data-slot="card"].delivery-slot-sheet {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+}
+
+[data-theme="theme-2"] .delivery-slot-sheet .delivery-slot-sheet-body {
+  padding: 0;
+  /* The grid itself keeps a white ground — without the card behind it the
+     warm page tint would show through FullCalendar's transparent cells. */
+  background: #fff;
+}
+
+/* The grid's own cell borders give it an edge, but the toolbar above them has
+   none, so with the card padding gone the title and the prev/next buttons ran
+   into the screen sides. Give the toolbar back the page gutter; the grid stays
+   edge to edge. */
+[data-theme="theme-2"] .delivery-slot-sheet .fc-header-toolbar {
+  padding-inline: 1rem;
+  padding-top: 0.75rem;
+}
+
+/* FullCalendar's stock buttons are a solid dark navy block — the loudest thing
+   on a page whose content is the grid. Quiet them to the theme's cream chip:
+   hairline, cream fill, green glyph, so they read as navigation rather than a
+   primary action. */
+[data-theme="theme-2"] .delivery-slot-sheet .fc-button-primary {
+  background-color: var(--wa-cream);
+  border-color: color-mix(in srgb, var(--wa-bubble-text) 14%, transparent);
+  color: var(--wa-bubble-text);
+  box-shadow: none;
+}
+
+[data-theme="theme-2"] .delivery-slot-sheet .fc-button-primary:hover,
+[data-theme="theme-2"] .delivery-slot-sheet .fc-button-primary:active,
+[data-theme="theme-2"] .delivery-slot-sheet .fc-button-primary:focus,
+[data-theme="theme-2"]
+  .delivery-slot-sheet
+  .fc-button-primary:not(:disabled):active {
+  background-color: color-mix(
+    in srgb,
+    var(--wa-bubble-text) 10%,
+    var(--wa-cream)
+  );
+  border-color: color-mix(in srgb, var(--wa-bubble-text) 24%, transparent);
+  color: var(--wa-bubble-text);
+  box-shadow: none;
+}
+
+/* ── Barcode generator (single + bulk) ─────────────────────────────────────
+   theme-2 draws surfaces with a hairline and a flat fill, so every lift these
+   pages inherited from theme-1 — the hero's soft card shadow, the printer
+   tile's coloured glow, the step chips, the row action buttons — reads as a
+   foreign flourish beside the section rail and the list pane. Flatten the lot
+   in one place: no page element inside the generator keeps a shadow. Scoped to
+   `.barcode-gen-page`, so it is a no-op everywhere else. */
+[data-theme="theme-2"] .barcode-gen-page [class*="shadow"] {
+  box-shadow: none;
+}
+
+/* The hero's tinted gradient and its two blurred blobs are the same depth
+   trick by another name. Give the block the flat card fill and let its
+   hairline carry the edge; the blobs go entirely. */
+[data-theme="theme-2"] .barcode-gen-page .barcode-gen-hero {
+  background: var(--card);
+  background-image: none;
+}
+
+[data-theme="theme-2"] .barcode-gen-page .barcode-gen-hero-glow {
+  display: none;
 }

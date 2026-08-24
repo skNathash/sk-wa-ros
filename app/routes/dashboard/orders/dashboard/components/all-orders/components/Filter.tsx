@@ -39,8 +39,11 @@ const Filter: React.FC<FilterProps> = ({ callback }) => {
   };
 
   return (
-    <div className="tw:flex tw:gap-2 tw:items-center tw:mb-3">
-      <div className="tw:flex-1">
+    // One row at every width: the search box takes whatever is left, the
+    // status select shrinks to its own content instead of a fixed 12rem —
+    // which on a phone left the search too narrow to read its placeholder.
+    <div className="tw:mb-3 tw:flex tw:items-center tw:gap-2">
+      <div className="tw:min-w-0 tw:flex-1">
         <AppInput
           name="search"
           label={undefined}
@@ -53,7 +56,7 @@ const Filter: React.FC<FilterProps> = ({ callback }) => {
         />
       </div>
 
-      <div className="tw:w-48">
+      <div className="tw:w-auto tw:shrink-0">
         <Controller
           name="status"
           render={({ field }) => (

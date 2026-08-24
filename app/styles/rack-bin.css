@@ -30,8 +30,9 @@
 
     .rack-container {
       display: flex;
-      /* gap: 5px; */
+      gap: 0.75rem;
       padding: 0.25rem;
+      align-items: flex-start;
     }
   }
 
@@ -41,40 +42,46 @@
     width: auto;
   }
 
+  /* One rack = one card. The bins stack inside it, so the card's border is the
+     only frame around the column and the tiles keep their own tinted borders. */
+  .rack-card {
+    background: #fff;
+    border: 1px solid var(--color-slate-200, #e2e8f0);
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+  }
+
   .cell {
     /* auto width so the cell shrinks/grows with its content */
     width: auto;
-    /* prevent cells from collapsing too small and keep layout consistent */
+    /* Keep every tile in the same size band: wide enough to read the bin code
+       and the product name, capped so a long product name can't stretch one
+       rack column past its neighbours (the name truncates instead). */
     min-width: 200px;
-    /* avoid wrapping inside the cell so width matches content; remove if wrapping desired */
-    white-space: nowrap;
-    border: 1px solid #e5e7eb;
-    border-bottom: none;
-    padding: 8px;
+    max-width: 260px;
+    /* The cell is only a spacer: the bin tile inside carries its own rounded
+       border, so a border here would read as a second frame around it. The
+       padding becomes the gutter between neighbouring tiles. */
+    padding: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-    /* font-size: 0.7vw; */
-
-    &:last-child {
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    /* previously had font-size comments for `a` and `.unit-lbl`; removed empty rulesets */
 
     &:hover {
       transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
     &.rack-lbl {
       height: auto;
-      /* background-color: #2c3e50; */
-      /* color: white; */
-      border: none;
-      border-radius: 4px 4px 0 0;
+      padding: 0.5rem 0.5rem 0.75rem;
+      cursor: default;
+      background: #fff;
       position: sticky;
       top: 0;
       z-index: 9;
+
+      &:hover {
+        transform: none;
+      }
     }
   }
 
@@ -143,6 +150,49 @@
       border-radius: 2px;
     }
   }
+}
+
+/* Bin fill states. Each state also publishes `--bin-accent`, the single hue the
+   bin card uses for its code, fill bar and status pill, so the card markup can
+   stay colour-agnostic (see BinItem).
+
+   The paired `.bin-accent-*` class publishes the same hue *without* the tinted
+   surface, for rows that keep their own background but still want the status
+   colour available to their children (see FilledBinList). */
+.bin-empty,
+.bin-accent-empty {
+  --bin-accent: #64748b;
+}
+.bin-low,
+.bin-accent-low {
+  --bin-accent: #16a34a;
+}
+.bin-medium,
+.bin-accent-medium {
+  --bin-accent: #b45309;
+}
+.bin-high,
+.bin-accent-high {
+  --bin-accent: #ea580c;
+}
+.bin-full,
+.bin-accent-full {
+  --bin-accent: #dc2626;
+}
+.bin-empty {
+  @apply tw:bg-slate-50 tw:text-slate-900 tw:border-slate-200;
+}
+.bin-low {
+  @apply tw:bg-green-50 tw:text-green-900 tw:border-green-200;
+}
+.bin-medium {
+  @apply tw:bg-yellow-50 tw:text-yellow-900 tw:border-yellow-200;
+}
+.bin-high {
+  @apply tw:bg-orange-50 tw:text-orange-900 tw:border-orange-200;
+}
+.bin-full {
+  @apply tw:bg-red-50 tw:text-red-900 tw:border-red-200;
 }
 
 .color-legend {

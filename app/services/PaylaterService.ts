@@ -278,6 +278,31 @@ class PaylaterService {
     );
   }
 
+  /**
+   * Portfolio dashboard — the book-level snapshot behind the analytics hero:
+   * wallet counts, the active/overdue/due-soon split, a health score, and the
+   * outstanding / overdue / recovered money blocks.
+   */
+  static getPortfolioDashboard(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/paylater/portfolio/dashboard`,
+      "GET",
+      this._withSalesEmpFilter(params),
+    );
+  }
+
+  /**
+   * Insights dashboard — one endpoint keyed by `type` ("aging", "cashflow", …);
+   * each type answers with its own slice under `data`.
+   */
+  static getInsightsDashboard(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${API}accounts/paylater/insights/dashboard`,
+      "GET",
+      this._withSalesEmpFilter(params),
+    );
+  }
+
   static getStatements(params: Record<string, any> = {}) {
     return AjaxService.request(
       `${API}accounts/paylater/statement`,

@@ -20,7 +20,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -71,7 +71,7 @@ class VendorService {
     const resp = await AjaxService.request(
       `${this.BASE_URL}/vendor/list`,
       "GET",
-      params
+      params,
     );
 
     if (
@@ -94,6 +94,16 @@ class VendorService {
     return resp;
   }
 
+  /**
+   * Round a distance value (km) to 2 decimals; returns undefined for
+   * null/empty/non-numeric input so views can fall back to "--".
+   */
+  private static parseDistance(value: any) {
+    return value != null && value !== "" && Number.isFinite(Number(value))
+      ? CommonService.roundedByDecimalPlace(Number(value), 2)
+      : undefined;
+  }
+
   public static async getDashboardVendorList(params: Record<string, any> = {}) {
     const resp = await this.getVendors(params);
 
@@ -101,10 +111,41 @@ class VendorService {
     if (resp.data?.data && params.outputType !== "count") {
       resp.data.data.forEach((vendor: any, idx: number) => {
         vendor._fullAddress = this.formatAddress(vendor.address);
-        vendor._distance = CommonService.roundedByDecimalPlace(
-          vendor.distance,
-          2
-        );
+        // Only compute when distance is a valid number — rounding
+        // undefined/null yields NaN which the views can't fall back from.
+        vendor._distance = this.parseDistance(vendor.distance);
+      });
+    }
+
+    return resp;
+  }
+
+  /**
+   * Get vendors list with aggregated stats in a single call.
+   * API: vendor/analytics/vendors-with-stats
+   * @param params - Query parameters for filtering
+   * @returns Promise with vendors data (formatted address/type/distance)
+   */
+  public static async getVendorsWithStats(params: Record<string, any> = {}) {
+    const resp = await AjaxService.request(
+      `${this.BASE_URL}/vendor/analytics/vendors-with-stats`,
+      "GET",
+      params,
+    );
+
+    // Skip formatting for count-only responses (no vendor rows returned).
+    if (resp.data?.data && params.outputType !== "count") {
+      resp.data.data = resp.data.data.map((vendor: any) => {
+        const { type, color, description } = this.getVendorType(vendor);
+
+        return {
+          ...vendor,
+          _fullAddress: this.formatAddress(vendor.address),
+          _vendorType: type,
+          _vendorTypeColor: color,
+          _vendorTypeInfo: description,
+          _distance: this.parseDistance(vendor.distanceKm ?? vendor.distance),
+        };
       });
     }
 
@@ -116,8 +157,33 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/dashboard/vendor/${id}`,
       "GET",
-      queryParams
+      queryParams,
     );
+  }
+
+  /**
+   * Money summary (alerts, payment pending, invoices) for a vendor
+   * API: purchase/report/money/vendor/{id}
+   * @param id - Vendor ID
+   * @returns Promise with money summary data
+   */
+  public static async getMoneySummary(
+    id: string,
+    params: Record<string, any> = {},
+  ) {
+    return AjaxService.request(
+      `${this.BASE_URL}purchase/report/money/vendor/${id}`,
+      "GET",
+      params,
+    );
+  }
+
+  /**
+   * Download URL for a money summary PDF generated via
+   * getMoneySummary(id, { outputType: "download" })
+   */
+  public static moneyReportDownloadUrl(fileName: string) {
+    return `${this.BASE_URL}purchase/report/money/download/${fileName}`;
   }
 
   /**
@@ -130,7 +196,7 @@ class VendorService {
     const resp = await AjaxService.request(
       `${this.BASE_URL}/vendor/${id}`,
       "GET",
-      params
+      params,
     );
 
     if (resp.data?.data) {
@@ -149,7 +215,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/count`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -162,7 +228,7 @@ class VendorService {
     const resp = await AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/getPosVendorsByLocation`,
       "GET",
-      params
+      params,
     );
 
     if (resp.data) {
@@ -184,7 +250,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/getPosVendorsByLocation/count`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -197,7 +263,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/getTopVendor`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -210,7 +276,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/getRecentVendor`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -220,12 +286,12 @@ class VendorService {
    * @returns Promise with vendors data
    */
   public static async getPosVendorsByCatBrand(
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ) {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/getVendorsByBrandAndCat`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -249,6 +315,18 @@ class VendorService {
   }
 
   /**
+   * Link (favorite) an existing vendor to the logged-in user's vendor list
+   * @param vendorId - Vendor ID to link
+   * @returns Promise with link response
+   */
+  public static async addToFavorites(vendorId: string) {
+    return AjaxService.request(`${this.BASE_URL}vendor/favorites`, "POST", {
+      vendorId,
+      franchiseId: AuthService.getLoggedInUserId(),
+    });
+  }
+
+  /**
    * Get vendor-based deals
    * @param params - Query parameters
    * @returns Promise with vendor deals data
@@ -257,7 +335,7 @@ class VendorService {
     const resp = await AjaxService.request(
       `${this.BASE_URL}/deal/${this.API_VERSION}/fetchVendorLinkedDeals`,
       "GET",
-      params
+      params,
     );
 
     if (Array.isArray(resp.data)) {
@@ -278,6 +356,45 @@ class VendorService {
   }
 
   /**
+   * Deals this retailer has purchased from a vendor.
+   * API: purchase/vendors/{vendorId}/purchased-deals
+   * The rows mirror the seller-deals list shape, so they can be run through
+   * `SellerCatalogService.formatProductResponse`.
+   * @param vendorId - Vendor ID
+   * @param params - Query params (e.g. `{ sortBy: "quantity", limit: 10 }`)
+   */
+  public static async getPurchasedDeals(
+    vendorId: string,
+    params: Record<string, any> = {},
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${this.BASE_URL}purchase/vendors/${vendorId}/purchased-deals`,
+      "GET",
+      params,
+      config,
+    );
+  }
+
+  /**
+   * Deals previously purchased from a vendor by the logged-in franchise.
+   * Used as the source list when assembling a purchase cart.
+   * API: purchase/vendors/{vendorId}/purchased-deals-by-franchise
+   */
+  public static async getPurchasedDealsByFranchise(
+    vendorId: string,
+    params: Record<string, any> = {},
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${this.BASE_URL}purchase/vendors/${vendorId}/purchased-deals-by-franchise`,
+      "GET",
+      params,
+      config,
+    );
+  }
+
+  /**
    * Format vendor data with additional computed properties
    * @param data - Raw vendor data
    * @returns Formatted vendor data
@@ -291,7 +408,7 @@ class VendorService {
     const _isCreatedByMe = Boolean(
       loggedInFid &&
       vendorFranchiseId &&
-      String(loggedInFid) === String(vendorFranchiseId)
+      String(loggedInFid) === String(vendorFranchiseId),
     );
 
     const { type, color, description } = this.getVendorType(data);
@@ -304,11 +421,12 @@ class VendorService {
       _primaryContact:
         data.contact?.find((c: any) => c.isOwner) || data.contact?.[0],
       _fullAddress: this.formatAddress(data.address),
+      _shortAddress: this.formatShortAddress(data.address),
       _isCreatedByMe,
       _vendorType: type,
       _vendorTypeColor: color,
       _vendorTypeInfo: description,
-      _distance: CommonService.roundedByDecimalPlace(data.distanceKm, 2),
+      _distance: this.parseDistance(data.distanceKm ?? data.distance),
       _lat: data.geoPoint?.coordinates?.[1],
       _lng: data.geoPoint?.coordinates?.[0],
     };
@@ -334,10 +452,23 @@ class VendorService {
     return parts.join(", ");
   }
 
+  /**
+   * Short, locality-level address used on headers/cards where the full
+   * door-no/street line is noise: state, district, town and pincode only.
+   */
+  private static formatShortAddress(address: any) {
+    const parts = [];
+    if (address?.state) parts.push(address.state);
+    if (address?.district) parts.push(address.district);
+    if (address?.city) parts.push(address.city);
+    if (address?.postcode) parts.push(address.postcode);
+    return parts.join(", ");
+  }
+
   public static async verifyOtp(
     vendorId: string,
     otp: string,
-    otpRequestId: string
+    otpRequestId: string,
   ) {
     return AjaxService.request(
       `${this.BASE_URL}vendor/${vendorId}/otp/verify`,
@@ -345,14 +476,14 @@ class VendorService {
       {
         otp,
         otpRequestId,
-      }
+      },
     );
   }
 
   public static async resendOtp(id: string) {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${id}/otp/resend`,
-      "POST"
+      "POST",
     );
   }
 
@@ -360,7 +491,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/request-otp`,
       "POST",
-      params
+      params,
     );
   }
 
@@ -368,7 +499,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/create-with-otp`,
       "POST",
-      params
+      params,
     );
   }
 
@@ -377,7 +508,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}vendor/${id}/resend-otp`,
       "POST",
-      body
+      body,
     );
   }
 
@@ -385,7 +516,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/dashboard/financial-overview`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -393,7 +524,25 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/dashboard/top-performers`,
       "GET",
-      params
+      params,
+    );
+  }
+
+  /**
+   * Analytics for a single vendor, sliced by `type`
+   * (e.g. `purchaseorder` → PO counts, paid/pending/overdue amounts).
+   * API: vendor/{vendorId}/analytics?type=purchaseorder
+   * @param vendorId - Vendor mongo id
+   * @param params - Query params, must include `type`
+   */
+  public static async getVendorAnalyticsByType(
+    vendorId: string,
+    params: Record<string, any> = {},
+  ) {
+    return AjaxService.request(
+      `${this.BASE_URL}vendor/${vendorId}/analytics`,
+      "GET",
+      params,
     );
   }
 
@@ -401,7 +550,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/dashboard/analytics`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -409,13 +558,13 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}vendor/catalog/${vendorId}/search`,
       "GET",
-      params
+      params,
     );
   }
 
   static async getProductsCount(
     vendorId: string,
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ) {
     let p = {
       outputType: "count",
@@ -426,7 +575,7 @@ class VendorService {
 
   public static async getVendorPayments(
     vendorId: string,
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ) {
     let p = {
       queryType: "Payments",
@@ -435,7 +584,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/${this.API_VERSION}/dashboard/vendor/${vendorId}`,
       "GET",
-      p
+      p,
     );
   }
 
@@ -443,7 +592,7 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/accounts/statements`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -451,41 +600,50 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/purchase/orders/${poId}/payment`,
       "POST",
-      data
+      data,
     );
   }
 
   static getCategories(
     vendorId: string,
     params: Record<string, any> = {},
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ) {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/catalog/${vendorId}/categories`,
       "GET",
       params,
-      config
+      config,
     );
   }
 
   static getBrands(
     vendorId: string,
     params: Record<string, any> = {},
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ) {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/catalog/${vendorId}/brands`,
       "GET",
       params,
-      config
+      config,
     );
+  }
+
+  /**
+   * Brands mapped to vendors — source for the "Vendors by brand" view.
+   * API: vendor/brands
+   * @param params - Query parameters (search / pagination / filters)
+   */
+  public static async getVendorBrands(params: Record<string, any> = {}) {
+    return AjaxService.request(`${this.BASE_URL}/vendor/brands`, "GET", params);
   }
 
   public static async getReceivablesList(params: Record<string, any> = {}) {
     return AjaxService.request(
       `${this.BASE_URL}/vendor/receivables/list`,
       "GET",
-      params
+      params,
     );
   }
 
@@ -493,14 +651,14 @@ class VendorService {
     return AjaxService.request(
       `${this.BASE_URL}/purchase/orders/statistics`,
       "GET",
-      params
+      params,
     );
   }
 
   public static async updateVendorBrands(
     vendorId: string,
     brands: Array<{ name: string; brandId: string; action: boolean }>,
-    sourceAllBrands?: boolean
+    sourceAllBrands?: boolean,
   ) {
     const payload: any = {
       brands,
@@ -513,8 +671,101 @@ class VendorService {
     return AjaxService.request(
       `${API}/vendor/${vendorId}/brands`,
       "PUT",
-      payload
+      payload,
     );
+  }
+
+  public static async getTopSkus(vendorId: string) {
+    return AjaxService.request(
+      `${this.BASE_URL}/purchase/vendors/${vendorId}/purchased-deals?sortBy=quantity`,
+      "GET",
+    );
+  }
+
+  /**
+   * SK catalog deals scoped to a vendor — same response shape as
+   * `InventorySubscribeService.getDeals` (catalog/deals/popular).
+   * API: vendor/{vendorId}/deal/popular
+   */
+  public static async getVendorDeals(
+    vendorId: string,
+    params: Record<string, any> = {},
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${this.BASE_URL}/vendor/${vendorId}/deal/popular`,
+      "GET",
+      { ...params, ignoreAsset: true },
+      config,
+    );
+  }
+
+  public static async getVendorDealsCount(
+    vendorId: string,
+    params: Record<string, any> = {},
+    config?: AxiosRequestConfig,
+  ) {
+    return this.getVendorDeals(
+      vendorId,
+      { ...params, outputType: "count" },
+      config,
+    );
+  }
+
+  public static async getVendorCatalog(
+    vendorId: string,
+    params: Record<string, any> = {},
+  ) {
+    return AjaxService.request(
+      `${this.BASE_URL}/purchase/vendors/${vendorId}/purchased-deals`,
+      "GET",
+      params,
+    );
+  }
+
+  public static async getVendorCatalogCount(
+    vendorId: string,
+    params: Record<string, any> = {},
+  ) {
+    return AjaxService.request(
+      `${this.BASE_URL}/purchase/vendors/${vendorId}/purchased-deals`,
+      "GET",
+      { ...params, outputType: "count" },
+    );
+  }
+
+  /**
+   * Normalize purchased-deal / vendor-catalog rows.
+   * Adds price, discount, and display-friendly fields used across vendor views.
+   */
+  static formatVendorCatalog(data: any[]) {
+    return (data || []).map((item: any) => {
+      const price = Number(item.purchasePrice ?? item.lastPurchasePrice) || 0;
+      const mrp = Number(item.mrp) || 0;
+      const brandName = item.applicableBrand?.brandName || "";
+      const rawUom = (item.uom || "piece").toLowerCase();
+      const displayUom =
+        rawUom === "piece" || rawUom === "pc" ? "pcs" : item.uom || "pcs";
+
+      return {
+        ...item,
+        id: item._id,
+        dealId: item.dealId || item.dealRefId,
+        name: item.name || item.productName || "",
+        brandName,
+        brandCode:
+          brandName.slice(0, 4) ||
+          (item.name || "").slice(0, 4).toUpperCase() ||
+          "SKU",
+        price,
+        mrp,
+        discount: CommonService.calculateDiscount(mrp, price),
+        totalQuantityPurchased: Number(item.totalQuantityPurchased) || 0,
+        totalPurchaseValue: Number(item.totalPurchaseValue) || 0,
+        orderCount: Number(item.orderCount) || 0,
+        displayUom,
+      };
+    });
   }
 }
 

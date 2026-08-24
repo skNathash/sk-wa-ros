@@ -12,6 +12,7 @@ import clubRoutes from "./route-groups/club";
 import cms from "./route-groups/cms";
 import configsRoutes from "./route-groups/configs";
 import deliveryRoutes from "./route-groups/delivery";
+import dashboardRoutes from "./route-groups/dashboard";
 import employeeRoutes from "./route-groups/employee";
 import fulfillmentRoutes from "./route-groups/fulfillment";
 import inventoryRoutes from "./route-groups/inventory";
@@ -32,10 +33,12 @@ import vendorRoutes from "./route-groups/vendor";
 import expense from "./route-groups/expense";
 import scanRoutes from "./route-groups/scan";
 import masterRoutes from "./route-groups/master";
-import osRoutes from "./route-groups/os";
+import crmRoutes from "./route-groups/crm";
+import runnerRoutes from "./route-groups/runner";
 
 const childRoutes = [
   ...accountRoutes,
+  ...dashboardRoutes,
   ...bulkUploadRoutes,
   ...vendorRoutes,
   ...clubRoutes,
@@ -60,14 +63,16 @@ const childRoutes = [
   ...userRoutes,
   ...expense,
   ...scanRoutes,
-  route("dashboard", "routes/dashboard/index.tsx"),
-  route("dashboard/main", "routes/dashboard/main/index.tsx"),
 ];
 
 const routes: RouteConfig = [
   index("routes/home.tsx"),
-  ...osRoutes,
-  layout("routes/layout.tsx", [...authRoutes, ...masterRoutes]),
+  layout("routes/layout.tsx", [
+    ...authRoutes,
+    ...masterRoutes,
+    ...crmRoutes,
+    ...runnerRoutes,
+  ]),
   layout("routes/sidebar-layout/layout.tsx", childRoutes),
 ];
 

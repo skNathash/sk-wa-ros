@@ -152,9 +152,9 @@ const UserSearchModal = ({ show, callback, type = "B2C" }: Props) => {
       return;
     }
 
-    if (!user.config?.cod && !user.config?.prepaid) {
+    if (!user.config?.prepaid) {
       appToast.show({
-        msg: "At least one payment option must be enabled",
+        msg: "Prepaid payment must be enabled",
         color: "error",
       });
       return;
@@ -163,10 +163,9 @@ const UserSearchModal = ({ show, callback, type = "B2C" }: Props) => {
     const res = await FranchiseService.updateUserPaymentConfig({
       businessType: type,
       buyerId: user._id,
-      codEnabled: user.config.cod,
       prepaidEnabled: user.config.prepaid,
       isActive: true,
-      remarks: "COD and Prepaid payment updated",
+      remarks: "Prepaid payment updated",
     });
 
     if (res?.statusCode === 200 || res?.statusCode === 201) {

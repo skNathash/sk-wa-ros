@@ -5,11 +5,10 @@ import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import AppHeader from "~/components/core/header/AppHeader";
-import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import NoData from "~/components/core/no-data/NoData";
+import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import useAppNav from "~/hooks/useAppNav";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import SellerCard from "./components/SellerCard";
 import SuccessBanner from "./components/SuccessBanner";
@@ -17,7 +16,7 @@ import { fetchOrders, groupBySeller, type SellerGroup } from "./helper";
 
 const breadcrumbs: BreadcrumbItem[] = [
   { label: "Home", redirect: { path: "/products/main" } },
-  { label: "Order Success" },
+  { label: "Order Placed" },
 ];
 
 const OrderSuccessPage = () => {
@@ -66,12 +65,12 @@ const OrderSuccessPage = () => {
           {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css).
               `sticky` pins them under the header and breaks out of the page
               padding so the underline runs edge to edge. */}
-          <SectionTabs
+          {/* <SectionTabs
             sectionKey="supply"
-            activeTab="buy-from-network"
+            activeTab="sellers"
             noShadow
             sticky
-          />
+          /> */}
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -79,7 +78,7 @@ const OrderSuccessPage = () => {
               <div className="tw:sticky tw:top-20">
                 <SectionMenu
                   sectionKey="supply"
-                  activeTab="buy-from-network"
+                  activeTab="sellers"
                   title={t("manageSupply", { ns: "menu" })}
                 />
               </div>
@@ -109,13 +108,13 @@ const OrderSuccessPage = () => {
                     totalSellers={groups.length}
                   />
 
-                  <div className="tw:space-y-3">
+                  <div className="tw:space-y-4">
                     {groups.map((group) => (
                       <SellerCard key={group.key} group={group} />
                     ))}
                   </div>
 
-                  <div className="tw:flex tw:flex-col tw:sm:flex-row tw:gap-2 tw:mt-4">
+                  <div className="tw:mt-6 tw:flex tw:flex-col tw:gap-3 tw:sm:flex-row tw:sm:gap-2">
                     <AppButton
                       fill="outline"
                       className="tw:flex-1"

@@ -1,482 +1,407 @@
-import {
-  Bell,
-  CheckCircle2,
-  Eye,
-  Info,
-  Layers,
-  Plus,
-  ShoppingCart,
-  Trash2,
-  Users,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+import { Barcode, LayoutDashboard, ListChecks, Store } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import Amount from "~/components/core/amount/Amount";
-import AppBadge from "~/components/core/badge/AppBadge";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
-import AppButton from "~/components/core/button/AppButton";
-import AppCard from "~/components/core/card/AppCard";
-import Divider from "~/components/core/divider/Divider";
 import AppHeader from "~/components/core/header/AppHeader";
-import AppScrollArea from "~/components/core/scroll-area/AppScrollArea";
+import InfoBlock from "~/components/core/info-blk/InfoBlock";
 import NoData from "~/components/core/no-data/NoData";
-import PageLoader from "~/components/core/page-loader/PageLoader";
+import ContentLoader from "~/components/core/page-loader/ContentLoader";
+import AppTab from "~/components/core/tab/AppTab";
+import { useIsMobile } from "~/hooks/use-mobile";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
-import RemoveSubscribeBtn from "~/shared/catalog/components/subscribe-buttons/RemoveSubscribeBtn";
-import SubscribeBtn from "~/shared/catalog/components/subscribe-buttons/SubscribeBtn";
-import type { BreadcrumbItem } from "~/types/CommonTypes";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import type { BreadcrumbItem, TabItem } from "~/types/CommonTypes";
+import ProductVariants from "../../products/view/components/product-variants/ProductVariants";
+import { getSubscribeHomeUrl } from "../helper";
 import VariantModal from "../modals/variant-modal/VariantModal";
-import Barcodes from "./components/Barcodes";
-import Images from "./components/Images";
+import SubscribeActions from "./components/SubscribeActions";
+import SubscribeBarcodes from "./components/SubscribeBarcodes";
+import SubscribeDetailSidePane from "./components/SubscribeDetailSidePane";
+import SubscribeHero from "./components/SubscribeHero";
+import SubscribePricingPanel from "./components/SubscribePricingPanel";
+import SubscribeSpecifications from "./components/SubscribeSpecifications";
+import SubscribedRetailers from "./components/SubscribedRetailers";
+import { getDeal } from "./helper";
 
-const breadcrumbs: BreadcrumbItem[] = [
-  {
-    label: "Dashboard",
-    redirect: { path: "/dashboard" },
-    langKey: "dashboard",
-  },
-  { label: "Product Details" },
+const SEARCH_PATH = "/dashboard/inventory/subscribe/search";
+
+const tabs: TabItem[] = [
+  { key: "overview", name: "Overview", icon: <LayoutDashboard /> },
+  { key: "retailers", name: "Retailers", icon: <Store /> },
+  { key: "barcodes", name: "Barcodes", icon: <Barcode /> },
 ];
 
-export default function ProductDetail() {
-  const { t } = useTranslation(["common", "inventorySubscribe"]);
-  const appNav = useAppNav();
+/**
+ * Mobile-only tab: the specifications block is dropped from the identity column
+ * on small screens (see the layout below) and comes back as its own tab.
+ */
+const SPEC_TAB: TabItem = { key: "spec", name: "Spec", icon: <ListChecks /> };
+
+/** WhatsApp system-message shape for the subscription-state notice: a centred,
+ *  self-sized pill with a soft lift, instead of a full-bleed banner. */
+const NOTICE_CLASS =
+  "tw:mx-auto tw:mb-4 tw:w-fit tw:max-w-full tw:rounded-lg tw:px-3 tw:text-center tw:leading-relaxed tw:shadow-xs";
+
+export default function SubscribeProductDetail() {
+  const { t } = useTranslation(["common", "menu", "inventorySubscribe"]);
   const { id } = useParams();
+  const appNav = useAppNav();
   const appToast = useAppToast();
+  const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
 
-  const [product, setProduct] = useState<any>(null);
+  const [deal, setDeal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [variantModal, setVariantModal] = useState<{
-    show: boolean;
-    data: any;
-  }>({ show: false, data: null });
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showVariantModal, setShowVariantModal] = useState(false);
 
-  const fetchProduct = async () => {
+  const version = searchParams.get("version");
+
+  const breadcrumbs: BreadcrumbItem[] = [
+    {
+      label: "Dashboard",
+      langKey: "dashboard",
+      redirect: { path: "/dashboard" },
+    },
+    {
+      label: t("inventorySubscribe:breadcrumbs.subscription"),
+      redirect: { path: getSubscribeHomeUrl(version) },
+    },
+    { label: "Product Details" },
+  ];
+
+  // The header names the item itself — "Item Details" alone never told the user
+  // which library item they had opened. The subtitle keeps the section framing
+  // (catalog library) plus the brand, so the page still places itself.
+  const headerTitle = deal?.name || t("productDetails");
+  const headerSubtitle = [
+    "SK Library",
+    deal?.brand?._displayName || deal?.brand?.name,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // Spec sits right after Overview so the two identity views stay adjacent.
+  const visibleTabs = useMemo(
+    () => (isMobile ? [tabs[0], SPEC_TAB, ...tabs.slice(1)] : tabs),
+    [isMobile],
+  );
+
+  const fetchDeal = async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const response = await InventorySubscribeService.getDeals({
-        filter: { _id: id },
-      });
-      if (response?.data?.data && response.data.data.length > 0) {
-        const formatted = InventorySubscribeService.formatDealResponse(
-          response.data.data,
-        )[0];
-
-        setProduct(formatted);
-      } else {
-        setProduct(null);
-      }
+      setDeal(await getDeal(id));
     } catch (error) {
       console.error("Failed to fetch product details", error);
       appToast.show({ msg: "Failed to load product details", color: "danger" });
+      setDeal(null);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProduct();
+    fetchDeal();
   }, [id]);
 
-  const handleVariantModalCallback = (params: {
+  // The spec tab only exists on mobile — fall back to overview when the layout
+  // widens out from under it.
+  useEffect(() => {
+    if (!isMobile && activeTab === SPEC_TAB.key) setActiveTab("overview");
+  }, [isMobile, activeTab]);
+
+  /** Opens the subscribe catalog scoped to one of the product's taxonomies. */
+  const handleFilter = (type: "brand" | "category" | "menu" | "company") => {
+    if (!deal) return;
+
+    const params: Record<string, any> = { tab: "search" };
+
+    if (type === "brand" && deal.brand?.id) {
+      params.brandId = deal.brand.id;
+      params.brandName = deal.brand.name;
+    } else if (type === "category" && deal.category?.id) {
+      params.categoryId = deal.category.id;
+      params.categoryName = deal.category.name;
+    } else if (type === "menu" && deal.menu?.id) {
+      params.menuId = deal.menu.id;
+      params.menuName = deal.menu.name;
+    } else if (type === "company" && deal.companyName) {
+      params.companyId = deal.companyName;
+      params.companyName = deal.companyName;
+    } else {
+      return;
+    }
+
+    appNav.to(SEARCH_PATH, params);
+  };
+
+  const handleSubscribed = (data: { action: string; data?: any }) => {
+    if (data?.action !== "subscribed") return;
+    setDeal((prev: any) =>
+      prev
+        ? { ...prev, isInCart: true, itemId: data?.data?.itemId || null }
+        : prev,
+    );
+  };
+
+  const handleRemoved = (data: { action: string; data?: any }) => {
+    if (data?.action !== "removed") return;
+    setDeal((prev: any) =>
+      prev ? { ...prev, isInCart: false, itemId: null } : prev,
+    );
+  };
+
+  const handleVariantModalCallback = ({
+    action,
+    data,
+  }: {
     action: string;
     data?: any;
   }) => {
-    if (params.action === "close") {
-      setVariantModal({ show: false, data: null });
-      // Check if any variant is in local cart and update isInCart and itemId
-      if (product?.groupDeals && product.groupDeals.length > 0) {
-        const variantIds = product.groupDeals
-          .flatMap((g: any) => (g.values || []).map((v: any) => v._id))
-          .filter(Boolean);
-        const localCart = InventorySubscribeService.getLocalCart() || [];
-        const cartItem = localCart.find((item: any) =>
-          variantIds.includes(item.dealId),
-        );
-        const isAnyVariantInCart = !!cartItem;
-        setProduct((prev: any) =>
-          prev
-            ? {
-                ...prev,
-                isInCart: isAnyVariantInCart,
-                itemId: cartItem?.itemId || null,
-              }
-            : prev,
-        );
-      }
-      return;
-    }
+    setShowVariantModal(false);
 
-    if (params.action === "subscribed" && params.data) {
-      setVariantModal({ show: false, data: null });
-      setProduct((prev: any) =>
+    if (action === "subscribed") {
+      setDeal((prev: any) =>
         prev
-          ? {
-              ...prev,
-              isInCart: true,
-              itemId: params.data?.itemId || prev.itemId,
-            }
+          ? { ...prev, isInCart: true, itemId: data?.itemId || prev.itemId }
           : prev,
       );
       return;
     }
 
-    if (params.action === "removed" && params.data) {
-      setVariantModal({ show: false, data: null });
-      setProduct((prev: any) =>
+    if (action === "removed") {
+      setDeal((prev: any) =>
         prev ? { ...prev, isInCart: false, itemId: null } : prev,
       );
       return;
     }
 
-    // Open subscribe cart (triggered from VariantModal footer)
-    if (params.action === "open_cart" || params.action === "openCart") {
-      setVariantModal({ show: false, data: null });
+    if (action === "open_cart" || action === "openCart") {
       appNav.to("/dashboard/inventory/subscribe/cart");
       return;
     }
-  };
 
-  const handleRedirectToSearch = (
-    type: "brand" | "category" | "company" | "menu",
-  ) => {
-    if (!product) return;
-    const params: Record<string, any> = {};
-    if (type === "brand" && product.brand) {
-      params.brandId = product.brand._id || product.brand.id;
-      params.brandName = product.brand.name;
-    }
-    if (type === "category" && product.category) {
-      params.categoryId = product.category._id || product.category.id;
-      params.categoryName = product.category.name;
-    }
-    if (type === "menu" && product.menu) {
-      params.menuId = product.menu._id || product.menu.id;
-      params.menuName = product.menu.name;
-    }
-    if (type === "company" && product.companyName) {
-      // subscribe/search expects companyId and companyName; product.companyName may be a string
-      params.companyId = product.companyId || product.companyName;
-      params.companyName = product.companyName;
-    }
-
-    // Preserve current tab as 'search' by default
-    params.tab = "search";
-
-    appNav.to("/dashboard/inventory/subscribe/search", params);
-
-    // Show toast to indicate filter applied
-    if (type === "brand") {
-      appToast.show({
-        msg: `Filtered by brand ${product.brand?.name}`,
-        color: "success",
-      });
-    }
-    if (type === "category") {
-      appToast.show({
-        msg: `Filtered by category ${product.category?.name}`,
-        color: "success",
-      });
-    }
-    if (type === "menu") {
-      appToast.show({
-        msg: `Filtered by menu ${product.menu?.name}`,
-        color: "success",
-      });
-    }
-    if (type === "company") {
-      appToast.show({
-        msg: `Filtered by company ${product.companyName}`,
-        color: "success",
-      });
-    }
-  };
-
-  const handleSubscribeCallback = (data: { action: string; data?: any }) => {
-    if (data?.action === "subscribed") {
-      setProduct((prev: any) =>
+    // Closed without an explicit result — a variant may still have been added
+    // or dropped inside the modal, so re-read the cart for this deal's group.
+    if (action === "close" && deal?.groupDeals?.length) {
+      const variantIds = deal.groupDeals
+        .flatMap((group: any) => (group.values || []).map((v: any) => v._id))
+        .filter(Boolean);
+      const cartItem = (InventorySubscribeService.getLocalCart() || []).find(
+        (item: any) => variantIds.includes(item.dealId),
+      );
+      setDeal((prev: any) =>
         prev
-          ? { ...prev, isInCart: true, itemId: data?.data?.itemId || null }
+          ? { ...prev, isInCart: !!cartItem, itemId: cartItem?.itemId || null }
           : prev,
       );
     }
   };
 
-  const handleRemoveCallback = (data: { action: string; data?: any }) => {
-    if (data?.action === "removed") {
-      setProduct((prev: any) =>
-        prev ? { ...prev, isInCart: false, itemId: null } : prev,
-      );
-    }
+  const description = String(deal?.description || "").trim();
+
+  const renderTabPanel = () => {
+    if (activeTab === SPEC_TAB.key)
+      return <SubscribeSpecifications deal={deal} />;
+
+    if (activeTab === "retailers")
+      return <SubscribedRetailers sellers={deal?.subscribedSellers || []} />;
+
+    if (activeTab === "barcodes")
+      return <SubscribeBarcodes barcodes={deal?.barcodes || []} />;
+
+    return (
+      <section>
+        <h3 className="app-section-label tw:mb-2 tw:px-1 tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-slate-400">
+          About this product
+        </h3>
+        <div className="tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-4 tw:py-3">
+          {description ? (
+            <div
+              className="rich-text tw:text-sm tw:leading-relaxed tw:text-slate-700"
+              dangerouslySetInnerHTML={{ __html: description }}
+            />
+          ) : (
+            <p className="tw:text-sm tw:text-slate-400">
+              StoreKing hasn't published a description for this product yet.
+            </p>
+          )}
+        </div>
+      </section>
+    );
   };
 
   return (
     <>
-      <AppHeader title={t("productDetails")} />
-      <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
+      <AppHeader
+        title={headerTitle}
+        subtitle={headerSubtitle}
+        sectionKey="catalog"
+        activeTab="library"
+      />
 
-          {loading ? (
-            <div className="tw:flex tw:items-center tw:justify-center tw:min-h-[400px]">
-              <PageLoader />
+      {/* Mobile keeps the subscribe action in the footer bar, so the page
+          reserves its strip. */}
+      <div className={`page-bg app-page tw:p-4 ${deal ? "has-footer" : ""}`}>
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title={t("menu:manageCatalog")}
+              />
             </div>
-          ) : !product ? (
-            <NoData />
-          ) : (
-            <div className="tw:flex tw:gap-4 tw:flex-col tw:md:flex-row ">
-              <div className="tw:md:w-1/2">
-                <Images images={product.images} />
-              </div>
-              <div className="tw:md:w-1/2">
-                <AppCard className="tw:h-full tw:mb-0">
-                  <div className="tw:flex tw:items-start tw:justify-between">
-                    <div>
-                      <div
-                        className="tw:text-xs tw:text-primary tw:font-semibold tw:mb-1 tw:cursor-pointer"
-                        onClick={() => handleRedirectToSearch("brand")}
-                      >
-                        {product.brand?.name || "No Brand"}
-                      </div>
-                      <div className="tw:text-2xl tw:font-bold tw:leading-tight">
-                        {product.name}
-                      </div>
-                      <div className="tw:text-xs tw:text-gray-500 tw:mt-1">
-                        Deal ID: {product.dealId || product._id}
-                      </div>
+          </aside>
 
-                      <div className="tw:flex tw:gap-2 tw:mt-3 tw:flex-wrap">
-                        <div
-                          className="tw:cursor-pointer"
-                          onClick={() => handleRedirectToSearch("category")}
-                        >
-                          <AppBadge
-                            variant="outline"
-                            className="tw:px-2 tw:py-1"
-                          >
-                            <Layers
-                              size={12}
-                              className="tw:inline-block tw:mr-1"
-                            />
-                            {product.category?.name}
-                          </AppBadge>
-                        </div>
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12 tw:space-y-0">
+                <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
 
-                        <div
-                          className="tw:cursor-pointer"
-                          onClick={() => handleRedirectToSearch("menu")}
-                        >
-                          <AppBadge variant="light" className="tw:px-2 tw:py-1">
-                            {product.menu?.name}
-                          </AppBadge>
-                        </div>
-
-                        {product.companyName && (
-                          <div
-                            className="tw:cursor-pointer"
-                            onClick={() => handleRedirectToSearch("company")}
-                          >
-                            <AppBadge
-                              variant="white"
-                              className="tw:px-2 tw:py-1"
-                            >
-                              {product.companyName}
-                            </AppBadge>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="tw:mt-4">
-                    <div className="tw:p-4 tw:bg-gray-50 tw:rounded-md">
-                      <div className="tw:flex tw:gap-1 tw:items-baseline tw:mb-1">
-                        <div className="tw:text-3xl tw:font-semibold">
-                          <Amount value={product.mrp || 0} />
-                        </div>
-                        <div className="tw:text-xs tw:text-gray-500">MRP</div>
-                      </div>
-                      <div className="tw:flex tw:gap-1">
-                        <AppBadge variant="outline" className="tw:text-xs">
-                          GST: {product.gst || 0}%
-                        </AppBadge>
-                        <AppBadge variant="outline" className="tw:text-xs">
-                          HSN: {product.hsn || "-"}
-                        </AppBadge>
-                      </div>
-                    </div>
-                  </div>
-
-                  {product.groupDeals && product.groupDeals.length > 0 && (
-                    <div
-                      className="tw:mt-4 tw:mb-2 tw:text-sm tw:text-blue-600 tw:font-semibold tw:cursor-pointer tw:flex tw:items-center tw:gap-1 tw:hover:text-blue-800"
-                      onClick={() =>
-                        setVariantModal({ show: true, data: product })
-                      }
-                    >
-                      <Plus size={14} />
-                      {product.groupDeals?.[0]?.values?.length} options
-                      available
-                    </div>
-                  )}
-
-                  {!product.isSubscribed ? (
-                    <>
-                      <div className="tw:mt-4 tw:bg-blue-50 tw:rounded tw:p-3">
-                        <div className="tw:text-sm tw:text-blue-800 tw:flex tw:items-center">
-                          <Info
-                            size={14}
-                            className="tw:mr-2 tw:flex-shrink-0"
-                          />
-                          <span>You have not subscribed for this product.</span>
-                        </div>
-                      </div>
-
-                      <div className="tw:flex tw:gap-3 tw:mt-4 tw:flex-wrap">
-                        {product.isInCart ? (
-                          <RemoveSubscribeBtn
-                            itemId={product.itemId}
-                            size="large"
-                            className="tw:w-full tw:md:flex-1"
-                            color="danger"
-                            fill="outline"
-                            callback={handleRemoveCallback}
-                          >
-                            <Trash2 size={16} className="tw:mr-2" /> Remove from
-                            Cart
-                          </RemoveSubscribeBtn>
-                        ) : product.groupDeals &&
-                          product.groupDeals.length > 0 ? (
-                          <AppButton
-                            size="large"
-                            className="tw:w-full tw:md:flex-1"
-                            color="primary"
-                            onClick={() =>
-                              setVariantModal({ show: true, data: product })
-                            }
-                          >
-                            <Plus size={16} className="tw:mr-2" /> Choose Option
-                          </AppButton>
-                        ) : (
-                          <SubscribeBtn
-                            dealId={product._id}
-                            dealName={product.name}
-                            mrp={product.mrp || 0}
-                            price={product.price || product.mrp || 0}
-                            images={product.images || []}
-                            size="large"
-                            className="tw:w-full tw:md:flex-1"
-                            color="primary"
-                            callback={handleSubscribeCallback}
-                          >
-                            <Bell size={16} className="tw:mr-2" /> Subscribe
-                          </SubscribeBtn>
-                        )}
-
-                        <AppButton
-                          size="large"
-                          fill="outline"
-                          className="tw:w-full tw:md:w-36"
-                          color="light"
-                          onClick={() =>
-                            appNav.to("/dashboard/inventory/subscribe/cart")
-                          }
-                        >
-                          <ShoppingCart size={16} className="tw:mr-2" /> View
-                          Cart
-                        </AppButton>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="tw:mt-4 tw:bg-purple-50 tw:rounded tw:p-3 tw:flex tw:items-center tw:justify-between">
-                        <div className="tw:text-sm tw:text-purple-800 tw:flex tw:items-center">
-                          <CheckCircle2
-                            size={14}
-                            className="tw:mr-2 tw:flex-shrink-0"
-                          />
-                          <span>You are subscribed for this product.</span>
-                        </div>
-                      </div>
-                      <div className="tw:mt-4 tw:flex tw:gap-3 tw:flex-wrap">
-                        <AppButton
-                          size="large"
-                          fill="outline"
-                          className="tw:w-full tw:md:w-36"
-                          color="light"
-                          onClick={() =>
-                            appNav.to(
-                              `/dashboard/inventory/products/view/${product._id}`,
-                            )
-                          }
-                        >
-                          <Eye size={16} className="tw:mr-2" /> View Product
-                        </AppButton>
-                      </div>
-                    </>
-                  )}
-
-                  <VariantModal
-                    show={variantModal.show}
-                    dealId={product._id}
-                    callback={handleVariantModalCallback}
-                    showAllDeals={true}
-                  />
-
-                  <Divider />
-
-                  <div className="tw:flex tw:items-center tw:gap-4 tw:bg-gray-50 tw:p-4 tw:rounded-md">
-                    <div className="tw:bg-primary tw:text-white tw:rounded-full tw:w-12 tw:h-12 tw:flex tw:items-center tw:justify-center">
-                      <Users size={20} />
-                    </div>
-                    <div>
-                      <div className="tw:text-2xl tw:font-bold">
-                        {product.totalSubscribed || 0}
-                      </div>
-                      <div className="tw:text-xs tw:text-gray-500">
-                        TOTAL SUBSCRIBED
-                      </div>
-                    </div>
-                  </div>
-                </AppCard>
-              </div>
-            </div>
-          )}
-
-          {!loading && product && (
-            <div className="tw:mt-4">
-              <Barcodes barcodes={product?.barcodes} />
-            </div>
-          )}
-
-          {!loading && product && (
-            <div className="tw:mt-4">
-              <AppCard title="Description">
-                <AppScrollArea className="tw:h-[400px]">
-                  <div className="tw:text-sm tw:text-gray-700 tw:pr-3">
-                    {product.description ? (
-                      <div
-                        className="rich-text"
-                        dangerouslySetInnerHTML={{
-                          __html: product.description,
-                        }}
+                {loading ? (
+                  <ContentLoader />
+                ) : !deal?._id ? (
+                  <NoData />
+                ) : (
+                  <div className="tw:grid tw:grid-cols-1 tw:lg:grid-cols-2 tw:gap-4 tw:items-start">
+                    {/* Left column — identity, variants and specifications.
+                        Sticks below the header while the right column scrolls
+                        (lg+ only, where the two-column split exists). */}
+                    <div className="tw:min-w-0 tw:lg:sticky tw:lg:top-16 tw:lg:self-start">
+                      <SubscribeHero
+                        deal={deal}
+                        className="detail-hero-flush tw:mb-4"
                       />
-                    ) : (
-                      <span className="tw:text-gray-400">
-                        No description available.
-                      </span>
-                    )}
+
+                      {/* Desktop keeps the subscribe action with the identity
+                          block; mobile carries it in the footer bar instead. */}
+                      <SubscribeActions
+                        deal={deal}
+                        onChooseVariant={() => setShowVariantModal(true)}
+                        onSubscribed={handleSubscribed}
+                        onRemoved={handleRemoved}
+                        className="tw:mb-4 tw:hidden tw:md:flex"
+                      />
+
+                      <ProductVariants deal={deal} className="tw:mb-4" />
+
+                      {/* Mobile moves specifications into its own "Spec" tab. */}
+                      <SubscribeSpecifications
+                        deal={deal}
+                        className="tw:mb-4 tw:hidden tw:md:block"
+                      />
+                    </div>
+
+                    {/* Right column — state, pricing, tabs and their content. */}
+                    <div className="tw:min-w-0">
+                      {/* State notice, shaped like a WhatsApp system message:
+                          a centred pill floating on the page tint rather than a
+                          full-width banner. Colour still carries the state. */}
+                      {deal.isSubscribed ? (
+                        <InfoBlock
+                          className={NOTICE_CLASS}
+                          variant="success"
+                          size="sm"
+                        >
+                          This product is already in your catalog — open it to
+                          manage price, stock and status.
+                        </InfoBlock>
+                      ) : deal.isInCart ? (
+                        <InfoBlock
+                          className={NOTICE_CLASS}
+                          variant="warning"
+                          size="sm"
+                        >
+                          Added to your catalog cart. Submit the cart to send
+                          the subscription for approval.
+                        </InfoBlock>
+                      ) : (
+                        <InfoBlock
+                          className={NOTICE_CLASS}
+                          variant="info"
+                          size="sm"
+                        >
+                          Subscribe to add this product to your catalog and
+                          start selling it.
+                        </InfoBlock>
+                      )}
+
+                      <SubscribePricingPanel
+                        deal={deal}
+                        onFilter={handleFilter}
+                        className="tw:mb-4"
+                      />
+
+                      <AppTab
+                        variant={isMobile ? "pills" : "underline"}
+                        tabs={visibleTabs}
+                        activeTab={activeTab}
+                        onTabChange={(tab: TabItem) => setActiveTab(tab.key)}
+                        className="tw:mb-4"
+                      />
+
+                      {renderTabPanel()}
+                    </div>
                   </div>
-                </AppScrollArea>
-              </AppCard>
+                )}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed pane
+                  beside the section icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeDetailSidePane deal={deal} onFilter={handleFilter} />
+              </AppPaneSide>
             </div>
-          )}
+          </div>
         </div>
       </div>
+
+      {/* Mobile footer bar — the price stays in view beside the primary action,
+          since the pricing panel scrolls away with the page. */}
+      {deal?._id && (
+        <div className="app-footer tw:md:hidden tw:p-4">
+          <div className="tw:flex tw:items-center tw:gap-3">
+            <div className="tw:min-w-0 tw:flex-1">
+              <div className="app-section-label tw:truncate tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-slate-400">
+                {deal.isSubscribed ? "In your catalog" : "Your price"}
+              </div>
+              <div className="tw:mt-0.5 tw:truncate tw:text-lg tw:font-bold tw:leading-none tw:text-slate-900">
+                <Amount value={deal.price || deal.mrp || 0} />
+              </div>
+            </div>
+
+            <SubscribeActions
+              deal={deal}
+              compact
+              onChooseVariant={() => setShowVariantModal(true)}
+              onSubscribed={handleSubscribed}
+              onRemoved={handleRemoved}
+              className="tw:shrink-0"
+            />
+          </div>
+        </div>
+      )}
+
+      {deal?._id && (
+        <VariantModal
+          show={showVariantModal}
+          dealId={deal._id}
+          callback={handleVariantModalCallback}
+          showAllDeals
+        />
+      )}
     </>
   );
 }

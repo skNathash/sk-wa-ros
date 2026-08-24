@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import AppButton from "~/components/core/button/AppButton";
 import PageAccessService from "~/services/PageAccessService";
-import type { PaginationState, TabItem } from "~/types/CommonTypes";
+import type { BreadcrumbItem, PaginationState } from "~/types/CommonTypes";
 import Item from "./components/Item";
+import CardView from "./components/CardView";
 import { getCount, getData, prepareParams } from "./helper";
 import MarkAsDeliveredModal from "~/shared/logistics/modals/mark-as-delivered/MarkAsDeliveredModal";
 import { useForm } from "react-hook-form";
 import { debounce } from "lodash";
 import { AppInput } from "~/components/core/form/AppInput";
-import AppCard from "~/components/core/card/AppCard";
 import NoData from "~/components/core/no-data/NoData";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import CommonService from "~/services/CommonService";
@@ -16,38 +15,41 @@ import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import { useTranslation } from "react-i18next";
 import AuthService from "~/services/AuthService";
 import useAppToast from "~/hooks/useAppToast";
+import useTheme from "~/hooks/useTheme";
 import { Search } from "lucide-react";
+import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
+import PageDescription from "~/components/core/page-description/PageDescription";
+import DeliveryTabs from "~/shared/delivery/components/delivery-tabs/DeliveryTabs";
+import PageTopBar from "~/shared/layout/page-top-bar/PageTopBar";
+
+const breadcrumbs: BreadcrumbItem[] = [
+  {
+    label: "Dashboard",
+    langKey: "dashboard",
+    redirect: {
+      path: "/dashboard",
+    },
+  },
+  {
+    label: "Delivery Management",
+    langKey: "deliveryManagement",
+  },
+];
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage(["DELIVERY.DISPATCH"]);
 }
 
-const tabs: TabItem[] = [
-  {
-    name: "In House Fleet",
-    key: "in-house-fleet",
-    icon: "truck",
-    langKey: "inHouseFleet",
-  },
-  {
-    name: "Courier Agencies",
-    key: "courier-agencies",
-    icon: "building-2",
-    langKey: "courierAgencies",
-  },
-];
-
 export default function InTransit() {
   const { t } = useTranslation(["common"]);
   const appToast = useAppToast();
+  const isTheme2 = useTheme() === "theme-2";
 
   const { register, getValues } = useForm({
     defaultValues: {
       search: "",
     },
   });
-
-  const [activeTab, setActiveTab] = useState<string>(tabs[0].key);
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -70,17 +72,13 @@ export default function InTransit() {
   });
   const filterRef = useRef<any>({});
 
-  const handleTabChange = (tab: TabItem) => {
-    setActiveTab(tab.key);
-  };
-
   // Item callback handler
   const handleItemCallback = ({
     action,
     data,
   }: {
     action: string;
-    data: any;
+    data?: any;
   }) => {
     if (AuthService.isMasterLogin()) {
       appToast.show({
@@ -180,23 +178,34 @@ export default function InTransit() {
   );
 
   return (
-    <div>
-      {/* <AppTab
-        activeTab={activeTab}
-        tabs={tabs}
-        onTabChange={handleTabChange}
-        className="tw:mb-4"
-        variant="underline"
-      /> */}
-
-      <AppInput
-        register={register}
-        name="search"
-        placeholder={t("searchByOrderIdCustomerNameMobile")}
-        className="tw:w-full tw:mb-4"
-        onChange={handleSearchChange}
-        leftIcon={<Search size={16} />}
+    <>
+      {/* Sub-nav + search on one full-bleed white strip pinned under the app
+          header — the top block every reworked section page opens with. */}
+      <PageTopBar
+        lead={
+          <DeliveryTabs
+            activeTab="in-transit"
+            variant={isTheme2 ? "pills" : undefined}
+          />
+        }
+        trail={
+          <AppInput
+            register={register}
+            name="search"
+            placeholder={t("searchByOrderIdCustomerNameMobile")}
+            className="tw:w-full"
+            onChange={handleSearchChange}
+            leftIcon={<Search size={16} />}
+          />
+        }
       />
+
+      {/* theme-2 drops the breadcrumb block; the strip above is the page's
+          whole top section there. */}
+      <div className="hide-in-theme-2">
+        <AppBreadcrumbs data={breadcrumbs} />
+        <PageDescription description="lastMileDelivery" className="tw:mb-4" />
+      </div>
 
       {!loading && data.length > 0 && (
         <div className="tw:mb-4">
@@ -209,7 +218,11 @@ export default function InTransit() {
         </div>
       )}
 
-      {loading ? (
+      {/* theme-2 runs one card everywhere — a single column on phones, three
+          across on desktop; every other theme keeps its own cards. */}
+      {isTheme2 ? (
+        <CardView data={data} loading={loading} callback={handleItemCallback} />
+      ) : loading ? (
         <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
@@ -244,24 +257,22 @@ export default function InTransit() {
       ) : data.length === 0 ? (
         <NoData />
       ) : (
-        <>
-          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
-            {data.map((item) => (
-              <Item key={item._id} item={item} callback={handleItemCallback} />
-            ))}
-          </div>
+        <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+          {data.map((item) => (
+            <Item key={item._id} item={item} callback={handleItemCallback} />
+          ))}
+        </div>
+      )}
 
-          {hasMoreData && (
-            <div className="tw:flex tw:justify-center tw:mt-4">
-              <LoadMoreButton
-                loadMore={loadMore}
-                loadedCount={data.length}
-                loading={loadingMore}
-                totalCount={paginationRef.current.totalRecords}
-              />
-            </div>
-          )}
-        </>
+      {hasMoreData && !loading && data.length > 0 && (
+        <div className="tw:flex tw:justify-center tw:mt-4">
+          <LoadMoreButton
+            loadMore={loadMore}
+            loadedCount={data.length}
+            loading={loadingMore}
+            totalCount={paginationRef.current.totalRecords}
+          />
+        </div>
       )}
 
       {/* Mark Delivery Modal */}
@@ -270,7 +281,7 @@ export default function InTransit() {
         callback={handleModalCallback}
         orderId={modal.data?.orderId || ""}
       />
-    </div>
+    </>
   );
 }
 

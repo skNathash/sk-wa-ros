@@ -24,7 +24,7 @@ export const defaultFilter: FilterFormData = {
  * @returns Object with query parameters ready for URL search params
  */
 export const prepareFilterQueryParams = (
-  formData: FilterFormData
+  formData: FilterFormData,
 ): Record<string, any> => {
   const dateFrom = formData.dateRange?.[0]
     ? format(formData.dateRange[0], "yyyy-MM-dd")
@@ -46,7 +46,7 @@ export const prepareFilterQueryParams = (
 export const prepareParams = (
   filters: Record<string, any>,
   pagination: PaginationState,
-  sort: SortProps
+  sort: SortProps,
 ) => {
   const params: Record<string, any> = {
     page: pagination.activePage,

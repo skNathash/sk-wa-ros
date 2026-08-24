@@ -1,14 +1,12 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+import clsx from "clsx";
+import { Calendar } from "lucide-react";
 import DateFormat from "~/components/core/date/DateFormat";
-import Amount from "~/components/core/amount/Amount";
 import AppBadge from "~/components/core/badge/AppBadge";
 import Divider from "~/components/core/divider/Divider";
 import AppCard from "~/components/core/card/AppCard";
 import AppLink from "~/components/core/link/AppLink";
-import clsx from "clsx";
-import { CircleArrowDown, CircleArrowUp } from "lucide-react";
-import KeyValue from "~/components/core/key-value/KeyValue";
+import NoData from "~/components/core/no-data/NoData";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import DisplayQty from "~/components/feature/products/display-qty/DisplayQty";
 
@@ -23,6 +21,14 @@ interface MobileViewProps {
   onView?: (item: any) => void;
 }
 
+// auto-fill keeps every card at least 280px wide, so the content never gets
+// squeezed into overlapping/one-character columns on any breakpoint.
+const gridClass =
+  "tw:grid tw:gap-3 tw:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]";
+
+const cardClass =
+  "tw:mb-0 tw:h-full tw:transition-shadow tw:hover:shadow-md tw:gap-0";
+
 const MobileView: React.FC<MobileViewProps> = ({
   data,
   loading,
@@ -33,98 +39,89 @@ const MobileView: React.FC<MobileViewProps> = ({
   loadedCount,
   onView,
 }) => {
-  const { t } = useTranslation(["common"]);
   const renderReference = (referenceHref?: string, refNo?: string) => {
     const hasValidReferenceLink = !!referenceHref && referenceHref !== "#";
 
     if (!hasValidReferenceLink) {
-      return <code>{refNo || "--"}</code>;
+      return (
+        <span className="tw:block tw:min-w-0 tw:flex-1 tw:truncate tw:text-sm tw:font-semibold tw:text-slate-900">
+          {refNo || "--"}
+        </span>
+      );
     }
 
     return (
       <AppLink
         asLink
         href={referenceHref}
-        showLinkColor
+        title={refNo}
+        className="tw:block tw:min-w-0 tw:flex-1 tw:truncate tw:text-sm tw:font-semibold tw:text-blue-600"
         onClick={(e) => e.stopPropagation()}
       >
-        <code>{refNo || "--"}</code>
+        {refNo || "--"}
       </AppLink>
     );
   };
 
+  // Loading state
   if (loading) {
-    return <div className="tw:text-center tw:py-4">{t("loading")}</div>;
-  }
-  if (!data || data.length === 0) {
     return (
-      <div className="tw:text-center tw:text-gray-400">
-        {t("noDataAvailable")}
+      <div className={gridClass}>
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <AppCard key={`skeleton-${idx}`} noPadding className={cardClass}>
+            <div className="tw:animate-pulse">
+              <div className="tw:flex tw:items-start tw:justify-between tw:gap-3 tw:px-3 tw:py-2.5">
+                <div className="tw:flex-1 tw:space-y-1.5">
+                  <div className="tw:h-4 tw:w-32 tw:rounded tw:bg-gray-200" />
+                  <div className="tw:h-3 tw:w-24 tw:rounded tw:bg-gray-100" />
+                </div>
+                <div className="tw:space-y-1.5">
+                  <div className="tw:h-4 tw:w-16 tw:rounded tw:bg-gray-200" />
+                  <div className="tw:h-3 tw:w-14 tw:rounded tw:bg-gray-100" />
+                </div>
+              </div>
+              <Divider className="tw:my-0!" />
+              <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:py-2">
+                <div className="tw:h-3.5 tw:w-28 tw:rounded tw:bg-gray-100" />
+                <div className="tw:h-5 tw:w-20 tw:rounded-full tw:bg-gray-100" />
+              </div>
+            </div>
+          </AppCard>
+        ))}
       </div>
     );
   }
+
+  // No data state
+  if (!data || data.length === 0) {
+    return (
+      <AppCard>
+        <NoData />
+      </AppCard>
+    );
+  }
+
+  // Data state
   return (
     <>
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4 tw:mt-3">
+      <div className={gridClass}>
         {data.map((item, idx) => (
           <div
             key={item._id || idx}
-            className="tw:cursor-pointer"
+            className="tw:h-full tw:cursor-pointer"
             onClick={() => onView?.(item)}
           >
-          <AppCard
-            noPadding
-            className="tw:mb-0"
-          >
-            <div className="tw:flex tw:justify-between tw:items-start tw:gap-2 tw:p-4">
-              <div className="tw:flex-1">
-                <div className="tw:font-medium tw:text-sm">
+            <AppCard noPadding className={cardClass}>
+              <div className="tw:px-3 tw:py-2.5">
+                {/* reference no + change qty */}
+                <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
                   {renderReference(item._tranRedirect?.path, item.refNo)}
-                </div>
-                <div className="tw:text-xs tw:text-gray-500 tw:mt-1">
-                  Ledger ID:
-                  <span className="tw:font-medium tw:text-gray-700 tw:ms-1">
-                    {item.stockLedgerId || "--"}
-                  </span>
-                </div>
-                <div className="tw:text-xs tw:text-gray-500">
-                  <DateFormat value={item.createdAt} />
-                </div>
-              </div>
-
-              <div className="tw:flex-none">
-                <AppBadge
-                  variant={item.referenceTypeColor || "light"}
-                  className="tw:uppercase tw:text-xs"
-                >
-                  <span className="tw:text-xs">
-                    {item.referenceType || "--"}
-                  </span>
-                </AppBadge>
-              </div>
-            </div>
-
-            <Divider className="tw:my-1!" />
-
-            <div className="tw:p-4">
-              <div className="tw:grid tw:grid-cols-3 tw:gap-4">
-                <KeyValue label={t("openingQty") || "Opening Qty"} size="sm">
-                  <span className="tw:font-medium">
-                    <DisplayQty
-                      qty={Number(item.effectiveOldQty) || 0}
-                      isLooseQty={false}
-                      uom={item.selectedStockUom}
-                    />
-                  </span>
-                </KeyValue>
-
-                <KeyValue label={t("changeQty") || "Change Qty"} size="sm">
                   <span
                     className={clsx(
-                      "tw:font-medium",
+                      "tw:shrink-0 tw:text-sm tw:font-semibold tw:whitespace-nowrap",
                       item.direction === "IN"
-                        ? "tw:text-green-500"
-                        : "tw:text-red-500"
+                        ? "tw:text-green-600"
+                        : "tw:text-red-600",
                     )}
                   >
                     {item.direction === "IN" ? "+" : "-"}
@@ -134,61 +131,69 @@ const MobileView: React.FC<MobileViewProps> = ({
                       uom={item.selectedStockUom}
                     />
                   </span>
-                </KeyValue>
+                </div>
 
-                <KeyValue label={t("closingQty") || "Closing Qty"} size="sm">
-                  <span className="tw:font-medium">
+                {/* date + opening → closing */}
+                <div className="tw:mt-1 tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-gray-500">
+                  <span className="tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-1">
+                    <Calendar
+                      size={12}
+                      className="tw:shrink-0 tw:text-slate-400"
+                    />
+                    <DateFormat
+                      value={item.createdAt}
+                      formatStr="dd MMM yy, hh:mm a"
+                      className="tw:truncate"
+                    />
+                  </span>
+                  <span className="tw:shrink-0 tw:whitespace-nowrap">
+                    <DisplayQty
+                      qty={Number(item.effectiveOldQty) || 0}
+                      isLooseQty={false}
+                      uom={item.selectedStockUom}
+                    />{" "}
+                    <span className="tw:text-gray-300">→</span>{" "}
                     <DisplayQty
                       qty={Number(item.effectiveNewQty) || 0}
                       isLooseQty={false}
                       uom={item.selectedStockUom}
                     />
                   </span>
-                </KeyValue>
+                </div>
               </div>
 
-              <div className="tw:grid tw:grid-cols-3 tw:gap-4 tw:mt-3">
-                <KeyValue label={t("mrp") || "MRP"} size="sm">
-                  <Amount value={item.mrp} decimalPlaces={2} />
-                </KeyValue>
+              <Divider className="tw:my-0!" />
 
-                <KeyValue
-                  label={t("purchasePrice") || "Purchase Price"}
-                  size="sm"
+              {/* ledger id + location + type */}
+              <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:px-3 tw:py-1.5">
+                <span
+                  className="tw:min-w-0 tw:flex-1 tw:truncate tw:text-xs tw:text-gray-500"
+                  title={item.stockLedgerId}
                 >
-                  <Amount value={item.purchasePrice} decimalPlaces={2} />
-                </KeyValue>
+                  {item.stockLedgerId || "--"}
+                </span>
 
-                <KeyValue label={t("updatedBy") || "Updated By"} size="sm">
-                  <span className="tw:font-medium">
-                    {item.createdBy?.name || "--"}
-                  </span>
-                  {item.createdAt && (
-                    <div className="tw:text-xs tw:text-gray-500">
-                      <DateFormat value={item.createdAt} formatStr="dd MMM yyyy" />
-                    </div>
-                  )}
-                </KeyValue>
-              </div>
-
-              {item.location?.name && (
-                <div className="tw:mt-3">
-                  <KeyValue label={t("location") || "Location"} size="sm">
+                <span className="tw:flex tw:shrink-0 tw:items-center tw:gap-1.5">
+                  {item.location?.name && (
                     <AppBadge
                       variant={
-                        item.location.name === "Sellable"
-                          ? "success"
-                          : "danger"
+                        item.location.name === "Sellable" ? "success" : "danger"
                       }
-                      className="tw:text-xs"
+                      size="sm"
                     >
                       {item.location.name}
                     </AppBadge>
-                  </KeyValue>
-                </div>
-              )}
-            </div>
-          </AppCard>
+                  )}
+                  <AppBadge
+                    variant={item.referenceTypeColor || "light"}
+                    size="sm"
+                    className="tw:uppercase"
+                  >
+                    {item.referenceType || "--"}
+                  </AppBadge>
+                </span>
+              </div>
+            </AppCard>
           </div>
         ))}
       </div>

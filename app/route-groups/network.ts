@@ -1,8 +1,20 @@
 import { route, layout } from "@react-router/dev/routes";
 
 const b2cViewRoutes = [
+  // Timeline is the landing tab, so the bare customer URL renders it. The
+  // explicit id keeps it distinct from the /timeline route below, which shares
+  // the same module.
   route(
     "dashboard/network/view/b2c/:id",
+    "routes/dashboard/network/view/b2c/timeline/index.tsx",
+    { id: "b2c-view-index" },
+  ),
+  route(
+    "dashboard/network/view/b2c/:id/timeline",
+    "routes/dashboard/network/view/b2c/timeline/index.tsx",
+  ),
+  route(
+    "dashboard/network/view/b2c/:id/overview",
     "routes/dashboard/network/view/b2c/overview/index.tsx",
   ),
   route(

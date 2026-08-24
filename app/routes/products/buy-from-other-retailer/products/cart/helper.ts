@@ -76,6 +76,9 @@ export const getData = async () => {
         availableStock,
         quantity,
         actualQuantity,
+        // Normalize SK cart min/step from API keys onto the shared minQty/incrQty shape.
+        minQty: item.b2bMinQuantity || 1,
+        incrQty: item.incrementQuantity || 1,
       };
     });
     const selectedRoute = seller.routeInfo
@@ -92,6 +95,11 @@ export const getData = async () => {
 
     return {
       ...seller,
+      // COD is not supported in this flow; drop it from the fetched options.
+      payments: (seller.payments || []).filter(
+        (payment) => payment.type !== "COD",
+      ),
+      isSkCart: Boolean(seller.isSkCart),
       items,
       selectedRoute,
       couponInfo,

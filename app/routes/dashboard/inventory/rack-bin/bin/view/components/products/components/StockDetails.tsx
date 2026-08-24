@@ -247,10 +247,8 @@ const StockDetails = ({
 
   return (
     <>
-      <div className="tw:flex tw:items-center tw:mb-3">
-        <div className="tw:flex tw:items-center tw:mr-2">
-          <Boxes className="tw:w-5 tw:h-5 tw:text-gray-600" />
-        </div>
+      <div className="tw:flex tw:items-center tw:gap-2 tw:mb-2">
+        <Boxes className="tw:w-4 tw:h-4 tw:text-gray-500" />
         <div className="tw:text-sm tw:font-medium tw:text-gray-800 tw:flex tw:items-center tw:gap-2 tw:justify-between tw:flex-1">
           <div className="tw:flex-1">{t("stockDetails")}</div>
           <AppSelect
@@ -261,16 +259,16 @@ const StockDetails = ({
           />
         </div>
       </div>
-      <div className="tw:text-xs tw:text-gray-700 tw:mt-2 tw:bg-blue-50 tw:rounded tw:p-3">
+      <div className="tw:text-xs tw:text-gray-700">
         {/* Header */}
 
         {!filteredData || filteredData.length === 0 ? (
-          <div className="tw:bg-gray-50 tw:p-2 tw:rounded">
+          <div className="tw:bg-gray-50 tw:border tw:border-gray-200 tw:rounded-xl tw:p-3 tw:text-gray-500">
             {t("noStockBatchesFound")}
           </div>
         ) : (
           <>
-            <div className="tw:font-semibold tw:mb-1">
+            <div className="tw:text-gray-500 tw:mb-2">
               {t("receivedStock")} ({filteredData.length})
             </div>
             <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-2">
@@ -285,111 +283,122 @@ const StockDetails = ({
                 return (
                   <div
                     key={batch._id || idx}
-                    className="tw:bg-white tw:rounded tw:p-3 tw:border tw:border-blue-100"
+                    className="tw:bg-white tw:rounded-xl tw:p-3 tw:border tw:border-gray-200"
                   >
-                    <div className="tw:flex tw:items-center tw:mb-2">
-                      <span className="tw:bg-blue-100 tw:text-blue-700 tw:font-semibold tw:px-2 tw:py-1 tw:rounded-full tw:mr-2">
+                    {/* Badge row: quantity + inventory type on the left, the
+                        batch barcode (or the shortcut to add one) on the right. */}
+                    <div className="tw:flex tw:items-center tw:gap-2 tw:mb-2 tw:flex-wrap">
+                      <span className="tw:bg-emerald-50 tw:text-emerald-700 tw:font-semibold tw:px-2 tw:py-0.5 tw:rounded-md">
                         <DisplayQty
                           qty={batch.quantity}
                           isLooseQty={false}
                           uom={selectedStockUom || batch.uom}
                         />
                       </span>
-                      {batch.barcode ? (
-                        <span className="tw:bg-gray-100 tw:text-gray-800 tw:font-mono tw:px-2 tw:py-1 tw:rounded tw:text-xs">
-                          {batch.barcode}
+                      {batch.inventoryType && (
+                        <span className="tw:bg-indigo-50 tw:text-indigo-600 tw:px-2 tw:py-0.5 tw:rounded-md tw:text-[10px] tw:uppercase tw:tracking-wide">
+                          {batch.inventoryType}
                         </span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="tw:bg-orange-100 tw:text-orange-700 tw:px-2 tw:py-1 tw:rounded tw:text-xs tw:font-medium hover:tw:bg-orange-200 focus:tw:outline-none tw:transition-colors tw:flex tw:items-center tw:gap-1 tw:cursor-pointer"
-                          onClick={() => handleAddBarcode(batch)}
-                        >
-                          <Barcode className="tw:w-3 tw:h-3" />
-                          {t("addBarcode")}
-                        </button>
                       )}
-                    </div>
-
-                    <div className="tw:flex tw:justify-between tw:items-center tw:mb-1">
-                      <span className="tw:text-gray-500">
-                        {t("snapshotId")}:
-                      </span>
-                      <span className="tw:font-semibold">
-                        {batch.stockMasterId}
-                      </span>
-                    </div>
-
-                    <div className="tw:flex tw:justify-between tw:items-center tw:mb-1">
-                      <span className="tw:text-gray-500">{t("mrp")}:</span>
-                      <span className="tw:font-semibold">
-                        <Amount value={batch.mrp} decimalPlaces={2} />
-                      </span>
-                    </div>
-
-                    <div className="tw:flex tw:justify-between tw:items-center tw:mb-1">
-                      <span className="tw:text-gray-500">{t("expiry")}:</span>
-                      <span className="tw:font-semibold">
-                        {batch.expiry ? (
-                          <DateFormat
-                            value={batch.expiry}
-                            formatStr="dd MMM yyyy"
-                          />
+                      <div className="tw:ml-auto">
+                        {batch.barcode ? (
+                          <span className="tw:bg-gray-100 tw:text-gray-800 tw:font-mono tw:px-2 tw:py-0.5 tw:rounded-md tw:text-xs">
+                            {batch.barcode}
+                          </span>
                         ) : (
-                          "-"
+                          <button
+                            type="button"
+                            className="tw:text-emerald-700 tw:text-xs tw:font-medium tw:flex tw:items-center tw:gap-1 tw:cursor-pointer hover:tw:underline focus:tw:outline-none"
+                            onClick={() => handleAddBarcode(batch)}
+                          >
+                            <Barcode className="tw:w-3 tw:h-3" />+{" "}
+                            {t("addBarcode")}
+                          </button>
                         )}
-                      </span>
+                      </div>
                     </div>
 
-                    <div className="tw:flex tw:justify-between tw:items-center tw:mb-1">
-                      <span className="tw:text-gray-500">
-                        {t("manufacture")}:
-                      </span>
-                      <span className="tw:font-semibold">
-                        {batch.manufactureDate ? (
-                          <DateFormat
-                            value={batch.manufactureDate}
-                            formatStr="dd MMM yyyy"
-                          />
-                        ) : (
-                          "-"
-                        )}
-                      </span>
+                    {/* Label-over-value columns — reads faster than stacked
+                        label/value rows at this density. */}
+                    <div className="tw:grid tw:grid-cols-3 tw:gap-2">
+                      <div>
+                        <div className="tw:text-[10px] tw:text-gray-500">
+                          {t("snapshotId")}
+                        </div>
+                        <div className="tw:font-semibold tw:truncate">
+                          {batch.stockMasterId || "-"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="tw:text-[10px] tw:text-gray-500">
+                          {t("mrp")}
+                        </div>
+                        <div className="tw:font-semibold">
+                          <Amount value={batch.mrp} decimalPlaces={2} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="tw:text-[10px] tw:text-gray-500">
+                          {t("expiry")}
+                        </div>
+                        <div className="tw:font-semibold">
+                          {batch.expiry ? (
+                            <DateFormat
+                              value={batch.expiry}
+                              formatStr="dd MMM yyyy"
+                            />
+                          ) : (
+                            "-"
+                          )}
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Row with View toggle on left and action buttons on right */}
-
-                    {/* Action Buttons placeholder - will render after collapsible area to preserve position */}
 
                     {/* Collapsible area - hidden by default */}
                     {isExpanded && (
                       <div id={`stock-details-${idKey}`} className="tw:mt-2">
-                        <div className="tw:flex tw:justify-between tw:items-center tw:mb-1">
-                          <span className="tw:text-gray-500">
-                            {t("purchasePrice")}:
-                          </span>
-                          <span className="tw:font-semibold">
-                            <Amount
-                              value={batch.purchasePrice}
-                              decimalPlaces={2}
-                            />
-                          </span>
-                        </div>
-
-                        <div className="tw:flex tw:justify-between tw:items-center tw:mb-1">
-                          <span className="tw:text-gray-500">
-                            {t("received")}:
-                          </span>
-                          <span className="tw:font-semibold">
-                            <DateFormat value={batch.intakeDate} />
-                          </span>
+                        <div className="tw:grid tw:grid-cols-3 tw:gap-2">
+                          <div>
+                            <div className="tw:text-[10px] tw:text-gray-500">
+                              {t("manufacture")}
+                            </div>
+                            <div className="tw:font-semibold">
+                              {batch.manufactureDate ? (
+                                <DateFormat
+                                  value={batch.manufactureDate}
+                                  formatStr="dd MMM yyyy"
+                                />
+                              ) : (
+                                "-"
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="tw:text-[10px] tw:text-gray-500">
+                              {t("purchasePrice")}
+                            </div>
+                            <div className="tw:font-semibold">
+                              <Amount
+                                value={batch.purchasePrice}
+                                decimalPlaces={2}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <div className="tw:text-[10px] tw:text-gray-500">
+                              {t("received")}
+                            </div>
+                            <div className="tw:font-semibold">
+                              <DateFormat value={batch.intakeDate} />
+                            </div>
+                          </div>
                         </div>
 
                         <div className="tw:mt-2">
-                          <span className="tw:font-semibold">
-                            {t("notes")}:
-                          </span>
-                          <div className="tw:mt-1 tw:text-gray-600">
+                          <div className="tw:text-[10px] tw:text-gray-500">
+                            {t("notes")}
+                          </div>
+                          <div className="tw:text-gray-600">
                             {batch.remarks && batch.remarks.trim()
                               ? batch.remarks
                               : "No specific receiving notes provided."}
@@ -399,7 +408,7 @@ const StockDetails = ({
                     )}
 
                     {/* Combined row: view toggle left, actions right */}
-                    <div className="tw:flex tw:justify-between tw:items-center tw:mt-3 tw:pt-2 tw:border-t tw:border-gray-100">
+                    <div className="tw:flex tw:justify-between tw:items-center tw:mt-2 tw:pt-2 tw:border-t tw:border-gray-100">
                       <div>
                         <button
                           type="button"
@@ -421,7 +430,7 @@ const StockDetails = ({
                         <Rbac roles={rbacRoles.editSnapshot}>
                           <button
                             type="button"
-                            className="tw:border tw:border-blue-600 tw:text-blue-600 tw:px-3 tw:py-1.5 tw:rounded tw:text-xs tw:font-medium hover:tw:bg-blue-50 focus:tw:outline-none tw:transition-colors tw:cursor-pointer"
+                            className="tw:border tw:border-gray-300 tw:text-gray-700 tw:px-3 tw:py-1 tw:rounded-lg tw:text-xs tw:font-medium hover:tw:bg-gray-50 focus:tw:outline-none tw:transition-colors tw:cursor-pointer"
                             onClick={() => handleEditBatch(batch, idx)}
                           >
                             {t("edit")}

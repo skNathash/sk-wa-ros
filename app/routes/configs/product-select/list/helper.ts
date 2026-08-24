@@ -112,7 +112,7 @@ export const prepareParams = (
 
 export const getTitle = (feature: string) => {
   if (feature === "PriceUpdate") return "Create B2B Schemes";
-  if (feature === "PackUpdate") return "Configure Sell In";
+  if (feature === "PackUpdate") return "Sell By";
   if (feature === "ReserveConfig") return "Configure Stock Reservation";
   if (feature === "PromotionDealUpdate") return "Configure Promotional Deals";
   return "Product Select";

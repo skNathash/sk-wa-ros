@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
+import { useDebouncedCallback } from "use-debounce";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AppButton from "~/components/core/button/AppButton";
@@ -21,7 +22,9 @@ import CommonService from "~/services/CommonService";
 import PageAccessService from "~/services/PageAccessService";
 import VendorService from "~/services/VendorService";
 import BrandSearchInput from "~/shared/catalog/components/search-input/brand/BrandSearchInput";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import VendorSidePane from "~/shared/vendor/components/vendor-side-pane/VendorSidePane";
 import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import type {
@@ -30,6 +33,7 @@ import type {
   VendorFormData,
 } from "~/types/VendorTypes";
 import ConfirmationModal from "./ConfirmationModal";
+import VendorExistsModal, { type ExistingVendor } from "./VendorExistsModal";
 import { defaultFormData, preparePayload, validateForm } from "./helper";
 import UploadForm from "./UploadForm";
 import PageDescription from "~/components/core/page-description/PageDescription";
@@ -129,6 +133,14 @@ const VendorManage = () => {
     pincodeData: { city: "", state: "", district: "" },
     brands: [],
   });
+
+  // Existing-vendor modal state (shown when the entered mobile/GST already
+  // exists). `source` tracks which field triggered it so we can clear it on close.
+  const [existsModal, setExistsModal] = useState<{
+    show: boolean;
+    vendor: ExistingVendor | null;
+    source: "contactMobile" | "gst" | null;
+  }>({ show: false, vendor: null, source: null });
 
   // Brand margins state - using the same structure as PosAdvanceFilterModal
   const [selectedBrands, setSelectedBrands] = useState<any[]>([]);
@@ -393,11 +405,77 @@ const VendorManage = () => {
   const handleGstChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const gst = CommonService.formatGst(e.target.value);
     setValue("gst", gst);
+    // Check for an existing vendor once a valid GST number is entered
+    if (CommonService.isValidGst(gst)) {
+      checkVendorExists(gst, "gst");
+    }
   };
+
+  // Debounced check to see whether a vendor with the entered term (mobile or
+  // GST) already exists. If found, surface the "already exists" modal with the
+  // option to link that vendor to the logged-in user's vendor list.
+  const checkVendorExists = useDebouncedCallback(
+    async (term: string, source: "contactMobile" | "gst") => {
+      // Only relevant while creating a new vendor
+      if (isEditing || !term) return;
+
+      try {
+        const response = await VendorService.getDashboardVendorList({
+          page: 1,
+          count: 1,
+          search: term,
+        });
+
+        const vendor = response?.data?.data?.[0];
+        if (response?.statusCode === 200 && vendor?._id) {
+          const contact =
+            vendor.contact?.find((c: any) => c.isOwner) ||
+            vendor.contact?.[0] ||
+            {};
+          setExistsModal({
+            show: true,
+            source,
+            vendor: {
+              _id: vendor._id,
+              name: vendor.name || "",
+              mobile: contact.mobile || "",
+              email: contact.email || "",
+              gst: vendor.gst_no || "",
+              address:
+                VendorService.formatVendorData(vendor)?._fullAddress || "",
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error checking existing vendor:", error);
+      }
+    },
+    600,
+  );
 
   const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const mobile = CommonService.formatMobileNo(e.target.value);
     setValue("contactMobile", mobile);
+    // Check for an existing vendor once a valid mobile number is entered
+    if (CommonService.isValidMobileNo(mobile)) {
+      checkVendorExists(mobile, "contactMobile");
+    }
+  };
+
+  const handleExistsModalCallback = ({
+    action,
+  }: {
+    action: "close" | "goToList";
+  }) => {
+    // When dismissed (not navigating away), clear the field that matched an
+    // existing vendor so the user can enter a different value.
+    if (action === "close" && existsModal.source) {
+      setValue(existsModal.source, "");
+    }
+    setExistsModal({ show: false, vendor: null, source: null });
+    if (action === "goToList") {
+      appNav.replace("/dashboard/vendor/list");
+    }
   };
 
   const handleBrandSelect = (item: any, action: "add" | "remove") => {
@@ -702,12 +780,12 @@ const VendorManage = () => {
           <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
 
           {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
-          <SectionTabs
+          {/* <SectionTabs
             sectionKey="supply"
             activeTab="vendors"
             variant="chips"
             sticky
-          />
+          /> */}
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -722,283 +800,288 @@ const VendorManage = () => {
             </aside>
 
             <div className="section-content">
-              <div className="tw:max-w-4xl tw:mx-auto">
-                <PageDescription
-                  description="manageVendor"
-                  className="tw:mb-4"
-                />
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Main column — spans the full grid (the side pane only
+                    exists in theme-2 desktop, where the CSS lifts it out of
+                    the grid into the fixed list pane; see AppPane). */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="tw:max-w-4xl tw:mx-auto">
+                    <PageDescription
+                      description="manageVendor"
+                      className="tw:mb-4"
+                    />
 
-                {loading ? (
-                  <div className="tw:flex tw:justify-center tw:items-center tw:py-12">
-                    <BusyLoader show={true} />
-                  </div>
-                ) : (
-                  <FormProvider {...formMethods}>
-                    <AppCard
-                      title={t("basicInformation")}
-                      subtitle={t("basicInformationSubtitle")}
-                    >
-                      <form onSubmit={handleSubmit(onSubmit)}>
-                        {/* Basic Info Tab */}
-
-                        <div>
-                          {/* Grid Layout for Basic Info Fields */}
-                          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-6 tw:space-y-4">
-                            <AppInput
-                              name="vendorName"
-                              label={t("vendorName")}
-                              placeholder={t("enterVendorName")}
-                              register={register}
-                              error={errors.vendorName?.message}
-                              isRequired
-                            />
-
-                            <AppInput
-                              name="contactName"
-                              label={t("contactPersonName")}
-                              placeholder={t("enterContactPersonName")}
-                              register={register}
-                              error={errors.contactName?.message}
-                              isRequired
-                            />
+                    {loading ? (
+                      <div className="tw:flex tw:justify-center tw:items-center tw:py-12">
+                        <BusyLoader show={true} />
+                      </div>
+                    ) : (
+                      <FormProvider {...formMethods}>
+                        <AppCard
+                          title={t("basicInformation")}
+                          subtitle={t("basicInformationSubtitle")}
+                        >
+                          <form onSubmit={handleSubmit(onSubmit)}>
+                            {/* Basic Info Tab */}
 
                             <div>
-                              <AppInput
-                                name="contactMobile"
-                                label={t("contactMobile")}
-                                type="tel"
-                                placeholder={t("enter10DigitMobile")}
-                                register={register}
-                                error={errors.contactMobile?.message}
-                                onChange={handleMobileChange}
-                                maxLength={10}
-                                isRequired
-                              />
-                              {/* OTP Verification Checkbox - only show in add mode */}
-                              {!isEditing && (
-                                <div className="tw:mt-2">
-                                  <Controller
-                                    control={control}
-                                    name="verifyWithOtp"
-                                    render={({ field }) => (
-                                      <AppCheckbox
-                                        label={t("verifyWithOtp")}
+                              {/* Grid Layout for Basic Info Fields */}
+                              <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-6 tw:space-y-4">
+                                <AppInput
+                                  name="vendorName"
+                                  label={t("vendorName")}
+                                  placeholder={t("enterVendorName")}
+                                  register={register}
+                                  error={errors.vendorName?.message}
+                                  isRequired
+                                />
+
+                                <AppInput
+                                  name="contactName"
+                                  label={t("contactPersonName")}
+                                  placeholder={t("enterContactPersonName")}
+                                  register={register}
+                                  error={errors.contactName?.message}
+                                  isRequired
+                                />
+
+                                <div>
+                                  <AppInput
+                                    name="contactMobile"
+                                    label={t("contactMobile")}
+                                    type="tel"
+                                    placeholder={t("enter10DigitMobile")}
+                                    register={register}
+                                    error={errors.contactMobile?.message}
+                                    onChange={handleMobileChange}
+                                    maxLength={10}
+                                    isRequired
+                                  />
+                                  {/* OTP Verification Checkbox - only show in add mode */}
+                                  {!isEditing && (
+                                    <div className="tw:mt-2">
+                                      <Controller
+                                        control={control}
                                         name="verifyWithOtp"
-                                        onChange={field.onChange}
-                                        value={field.value as any}
-                                        size="xs"
+                                        render={({ field }) => (
+                                          <AppCheckbox
+                                            label={t("verifyWithOtp")}
+                                            name="verifyWithOtp"
+                                            onChange={field.onChange}
+                                            value={field.value as any}
+                                            size="xs"
+                                          />
+                                        )}
                                       />
-                                    )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <AppInput
+                                  name="contactEmail"
+                                  label={t("contactEmail")}
+                                  type="email"
+                                  placeholder={t("enterEmailAddress")}
+                                  register={register}
+                                  error={errors.contactEmail?.message}
+                                />
+                              </div>
+
+                              {/* Brand Selection */}
+                              <div className="tw:col-span-2 tw:mb-4">
+                                <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:gap-2">
+                                  <div className="tw:flex-1">
+                                    <BrandSearchInput
+                                      label={t("selectBrands")}
+                                      placeholder={t("searchAndSelectBrands")}
+                                      multiSelect={true}
+                                      callback={handleBrandSelect}
+                                      values={selectedBrands}
+                                      disabled={sourceAllBrands}
+                                    />
+                                  </div>
+                                  <div className="tw:mt-6">
+                                    <Controller
+                                      control={control}
+                                      name="sourceAllBrands"
+                                      render={({ field }) => (
+                                        <AppCheckbox
+                                          label={t("sourceAllBrands")}
+                                          name="sourceAllBrands"
+                                          onChange={onSourceAllBrandsChange(
+                                            field.onChange,
+                                          )}
+                                          value={field.value as any}
+                                        />
+                                      )}
+                                    />
+                                  </div>
+                                </div>
+                                {sourceAllBrands ? (
+                                  <div className="tw:text-xs tw:text-gray-500 tw:mt-2">
+                                    {t("allBrandsWillBeSourced")}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {/* Documents Tab */}
+                            {activeTab === "documents" && (
+                              <div className="tw:space-y-6">
+                                <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4">
+                                  <AppInput
+                                    name="pan"
+                                    label={t("panNumber")}
+                                    placeholder={t("enterPanNumber")}
+                                    register={register}
+                                    error={errors.pan?.message}
+                                    onChange={handlePanChange}
+                                  />
+
+                                  <AppInput
+                                    name="gst"
+                                    label={t("gstNumber")}
+                                    placeholder={t("enterGstNumber")}
+                                    register={register}
+                                    error={errors.gst?.message}
+                                    onChange={handleGstChange}
                                   />
                                 </div>
-                              )}
-                            </div>
+
+                                {/* Submit Buttons */}
+                                <div className="tw:flex tw:justify-between tw:pt-6">
+                                  <AppButton
+                                    onClick={() => setActiveTab("basic")}
+                                    fill="outline"
+                                    color="medium"
+                                  >
+                                    {t("back")}
+                                  </AppButton>
+                                  <AppButton
+                                    type="submit"
+                                    color="primary"
+                                    isLoading={submitting}
+                                  >
+                                    <CheckCheck />
+                                    {isEditing
+                                      ? t("updateVendor")
+                                      : t("createVendor")}
+                                  </AppButton>
+                                </div>
+                              </div>
+                            )}
+                          </form>
+                        </AppCard>
+
+                        <AppCard title={t("address")}>
+                          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-6 tw:space-y-4">
+                            <AppPincodeInput
+                              name="pincode"
+                              label={t("pincode")}
+                              placeholder={t("enter6DigitPincode")}
+                              register={register}
+                              error={errors.pincode?.message}
+                              onPincodeSelect={handlePincodeSelect}
+                              isRequired
+                            />
 
                             <AppInput
-                              name="contactEmail"
-                              label={t("contactEmail")}
-                              type="email"
-                              placeholder={t("enterEmailAddress")}
+                              name="doorNo"
+                              label={t("doorNo")}
+                              placeholder={t("enterDoorNumber")}
                               register={register}
-                              error={errors.contactEmail?.message}
+                              error={errors.doorNo?.message}
                             />
-                          </div>
 
-                          {/* Brand Selection */}
-                          <div className="tw:col-span-2 tw:mb-4">
-                            <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:gap-2">
-                              <div className="tw:flex-1">
-                                <BrandSearchInput
-                                  label={t("selectBrands")}
-                                  placeholder={t("searchAndSelectBrands")}
-                                  multiSelect={true}
-                                  callback={handleBrandSelect}
-                                  values={selectedBrands}
-                                  disabled={sourceAllBrands}
-                                />
-                              </div>
-                              <div className="tw:mt-6">
-                                <Controller
-                                  control={control}
-                                  name="sourceAllBrands"
-                                  render={({ field }) => (
-                                    <AppCheckbox
-                                      label={t("sourceAllBrands")}
-                                      name="sourceAllBrands"
-                                      onChange={onSourceAllBrandsChange(
-                                        field.onChange,
-                                      )}
-                                      value={field.value as any}
-                                    />
-                                  )}
-                                />
-                              </div>
+                            <AppInput
+                              name="addressLine1"
+                              label={t("streetAddress")}
+                              placeholder={t("enterStreetAddress")}
+                              register={register}
+                              error={errors.addressLine1?.message}
+                              isRequired
+                            />
+
+                            <AppInput
+                              name="landmark"
+                              label={t("landmark")}
+                              placeholder={t("enterNearbyLandmark")}
+                              register={register}
+                              error={errors.landmark?.message}
+                            />
+
+                            <div className="tw:col-span-2 tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+                              <SdtLocation
+                                state={watchedState}
+                                district={watchedDistrict}
+                                town={watchedTown}
+                                callback={({ data }) => {
+                                  setValue("state", data.state || "");
+                                  setValue("district", data.district || "");
+                                  setValue("town", data.town || "");
+                                }}
+                              />
                             </div>
-                            {sourceAllBrands ? (
-                              <div className="tw:text-xs tw:text-gray-500 tw:mt-2">
-                                {t("allBrandsWillBeSourced")}
+
+                            {/* Static map preview when lat/lng available */}
+                            {watchedLat && watchedLng ? (
+                              <div className="tw:col-span-2 tw:mt-2">
+                                <div className="tw:flex tw:items-center tw:justify-between tw:mb-2">
+                                  <div className="tw:text-sm tw:font-medium tw:flex tw:gap-2">
+                                    <MapPin size={20} />
+                                    Vendor Location
+                                  </div>
+                                </div>
+                                <div className="tw:relative tw:rounded tw:overflow-hidden tw:border tw:border-gray-200 tw:h-48">
+                                  <StaticGMap
+                                    lat={Number(watchedLat)}
+                                    lng={Number(watchedLng)}
+                                    className="tw:w-full tw:h-full"
+                                  />
+                                  <div className="tw:absolute tw:top-2 tw:right-2">
+                                    <AppButton
+                                      onClick={() =>
+                                        setGeoModal({
+                                          show: true,
+                                          lat: watchedLat,
+                                          lng: watchedLng,
+                                        })
+                                      }
+                                      size="small"
+                                      fill="solid"
+                                      color="danger"
+                                    >
+                                      <EditIcon />
+                                      {t("editOnMap") || "Edit on map"}
+                                    </AppButton>
+                                  </div>
+                                </div>
                               </div>
                             ) : null}
                           </div>
-                        </div>
+                        </AppCard>
 
-                        {/* Documents Tab */}
-                        {activeTab === "documents" && (
-                          <div className="tw:space-y-6">
-                            <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4">
-                              <AppInput
-                                name="pan"
-                                label={t("panNumber")}
-                                placeholder={t("enterPanNumber")}
-                                register={register}
-                                error={errors.pan?.message}
-                                onChange={handlePanChange}
-                              />
+                        <AppCard title={t("financialAndTaxInformation")}>
+                          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-6 tw:space-y-4">
+                            <AppInput
+                              name="pan"
+                              label={t("panNumber")}
+                              placeholder={t("enterPanNumber")}
+                              register={register}
+                              error={errors.pan?.message}
+                              onChange={handlePanChange}
+                            />
 
-                              <AppInput
-                                name="gst"
-                                label={t("gstNumber")}
-                                placeholder={t("enterGstNumber")}
-                                register={register}
-                                error={errors.gst?.message}
-                                onChange={handleGstChange}
-                              />
-                            </div>
+                            <AppInput
+                              name="gst"
+                              label={t("gstNumber")}
+                              placeholder={t("enterGstNumber")}
+                              register={register}
+                              error={errors.gst?.message}
+                              onChange={handleGstChange}
+                            />
 
-                            {/* Submit Buttons */}
-                            <div className="tw:flex tw:justify-between tw:pt-6">
-                              <AppButton
-                                onClick={() => setActiveTab("basic")}
-                                fill="outline"
-                                color="medium"
-                              >
-                                {t("back")}
-                              </AppButton>
-                              <AppButton
-                                type="submit"
-                                color="primary"
-                                isLoading={submitting}
-                              >
-                                <CheckCheck />
-                                {isEditing
-                                  ? t("updateVendor")
-                                  : t("createVendor")}
-                              </AppButton>
-                            </div>
-                          </div>
-                        )}
-                      </form>
-                    </AppCard>
-
-                    <AppCard title={t("address")}>
-                      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-6 tw:space-y-4">
-                        <AppPincodeInput
-                          name="pincode"
-                          label={t("pincode")}
-                          placeholder={t("enter6DigitPincode")}
-                          register={register}
-                          error={errors.pincode?.message}
-                          onPincodeSelect={handlePincodeSelect}
-                          isRequired
-                        />
-
-                        <AppInput
-                          name="doorNo"
-                          label={t("doorNo")}
-                          placeholder={t("enterDoorNumber")}
-                          register={register}
-                          error={errors.doorNo?.message}
-                        />
-
-                        <AppInput
-                          name="addressLine1"
-                          label={t("streetAddress")}
-                          placeholder={t("enterStreetAddress")}
-                          register={register}
-                          error={errors.addressLine1?.message}
-                          isRequired
-                        />
-
-                        <AppInput
-                          name="landmark"
-                          label={t("landmark")}
-                          placeholder={t("enterNearbyLandmark")}
-                          register={register}
-                          error={errors.landmark?.message}
-                        />
-
-                        <div className="tw:col-span-2 tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
-                          <SdtLocation
-                            state={watchedState}
-                            district={watchedDistrict}
-                            town={watchedTown}
-                            callback={({ data }) => {
-                              setValue("state", data.state || "");
-                              setValue("district", data.district || "");
-                              setValue("town", data.town || "");
-                            }}
-                          />
-                        </div>
-
-                        {/* Static map preview when lat/lng available */}
-                        {watchedLat && watchedLng ? (
-                          <div className="tw:col-span-2 tw:mt-2">
-                            <div className="tw:flex tw:items-center tw:justify-between tw:mb-2">
-                              <div className="tw:text-sm tw:font-medium tw:flex tw:gap-2">
-                                <MapPin size={20} />
-                                Vendor Location
-                              </div>
-                            </div>
-                            <div className="tw:relative tw:rounded tw:overflow-hidden tw:border tw:border-gray-200 tw:h-48">
-                              <StaticGMap
-                                lat={Number(watchedLat)}
-                                lng={Number(watchedLng)}
-                                className="tw:w-full tw:h-full"
-                              />
-                              <div className="tw:absolute tw:top-2 tw:right-2">
-                                <AppButton
-                                  onClick={() =>
-                                    setGeoModal({
-                                      show: true,
-                                      lat: watchedLat,
-                                      lng: watchedLng,
-                                    })
-                                  }
-                                  size="small"
-                                  fill="solid"
-                                  color="danger"
-                                >
-                                  <EditIcon />
-                                  {t("editOnMap") || "Edit on map"}
-                                </AppButton>
-                              </div>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    </AppCard>
-
-                    <AppCard title={t("financialAndTaxInformation")}>
-                      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-6 tw:space-y-4">
-                        <AppInput
-                          name="pan"
-                          label={t("panNumber")}
-                          placeholder={t("enterPanNumber")}
-                          register={register}
-                          error={errors.pan?.message}
-                          onChange={handlePanChange}
-                        />
-
-                        <AppInput
-                          name="gst"
-                          label={t("gstNumber")}
-                          placeholder={t("enterGstNumber")}
-                          register={register}
-                          error={errors.gst?.message}
-                          onChange={handleGstChange}
-                        />
-
-                        {/* <AppInput
+                            {/* <AppInput
                     name="aadharNo"
                     label="Aadhar Number"
                     placeholder="Enter 12-digit Aadhar number"
@@ -1006,34 +1089,43 @@ const VendorManage = () => {
                     error={errors.aadharNo?.message}
                     maxLength={12}
                   /> */}
-                      </div>
-                    </AppCard>
+                          </div>
+                        </AppCard>
 
-                    <AppCard title={t("uploadDocuments")}>
-                      <UploadForm />
-                    </AppCard>
+                        <AppCard title={t("uploadDocuments")}>
+                          <UploadForm />
+                        </AppCard>
 
-                    <div className="tw:flex tw:justify-end tw:gap-2">
-                      <AppButton
-                        onClick={() => appNav.back()}
-                        fill="outline"
-                        color="medium"
-                      >
-                        {t("cancel")}
-                      </AppButton>
+                        <div className="tw:flex tw:justify-end tw:gap-2">
+                          <AppButton
+                            onClick={() => appNav.back()}
+                            fill="outline"
+                            color="medium"
+                          >
+                            {t("cancel")}
+                          </AppButton>
 
-                      <AppButton
-                        type="button"
-                        onClick={onSubmit}
-                        isLoading={submitting}
-                        color="primary"
-                      >
-                        <CheckCheck />
-                        {isEditing ? t("updateVendor") : t("saveVendor")}
-                      </AppButton>
-                    </div>
-                  </FormProvider>
-                )}
+                          <AppButton
+                            type="button"
+                            onClick={onSubmit}
+                            isLoading={submitting}
+                            color="primary"
+                          >
+                            <CheckCheck />
+                            {isEditing ? t("updateVendor") : t("saveVendor")}
+                          </AppButton>
+                        </div>
+                      </FormProvider>
+                    )}
+                  </div>
+                </AppPaneMain>
+
+                {/* Side column — only rendered while the theme-2 split layout
+                    is active (lg+), where the CSS re-homes it as the fixed
+                    vendor list pane beside the section icon rail. */}
+                <AppPaneSide className="app-pane-only">
+                  <VendorSidePane activeVendorId={vendorId || undefined} />
+                </AppPaneSide>
               </div>
             </div>
           </div>
@@ -1062,6 +1154,13 @@ const VendorManage = () => {
         selectedBrands={confirmationModal.brands}
         isEditing={isEditing}
         isLoading={submitting}
+      />
+
+      {/* Existing Vendor Modal - shown when the entered mobile already exists */}
+      <VendorExistsModal
+        show={existsModal.show}
+        vendor={existsModal.vendor}
+        callback={handleExistsModalCallback}
       />
 
       {/* Geo Location Modal - used to pick/edit lat/lng */}

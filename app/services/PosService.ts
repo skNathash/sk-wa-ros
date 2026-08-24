@@ -1361,6 +1361,27 @@ export class PosService {
     );
   }
 
+  /**
+   * Add multiple items to a cart in one call (used by the reorder flow).
+   * `items` carries one entry per deal: { dealId, quantity, sellerId, cartId }
+   * plus snapshots for B2C (and quick-checkout B2B) carts; plain B2B sends [].
+   */
+  static async addItemsToCartBulk(params: {
+    items: Array<{
+      dealId: string;
+      quantity: number;
+      sellerId: string;
+      cartId?: string;
+      snapshots?: any[];
+    }>;
+  }) {
+    return AjaxService.request(
+      `${this.BASE_URL}sales/cart/item/bulk`,
+      "POST",
+      params
+    );
+  }
+
   static async removeItemFromCart(params: Record<string, any>) {
     return AjaxService.request(
       `${this.BASE_URL}sales/cart/item/remove`,

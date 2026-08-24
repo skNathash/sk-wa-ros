@@ -134,8 +134,9 @@ export default function UserProfile({ onInviteCustomer }: UserProfileProps) {
     const photos = userData.shopPhotosDetails;
     if (!Array.isArray(photos) || photos.length === 0) return null;
 
+    // Only an approved shop photo qualifies as the profile picture.
     const approved = photos.find((p) => p.status === "Approved");
-    return approved?.fileUrl || photos[0]?.fileUrl;
+    return approved?.fileUrl || null;
   };
 
   const profileImage = isManpowerLoggedIn

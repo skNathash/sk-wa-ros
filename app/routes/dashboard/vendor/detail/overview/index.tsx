@@ -9,6 +9,8 @@ import VendorService from "~/services/VendorService";
 import ContactInfoCard from "./components/ContactInfoCard";
 import FinancialTaxCard from "./components/FinancialTaxCard";
 import KycDetailsCard from "./components/KycDetailsCard";
+import SummaryCards from "./components/SummaryCards";
+import TopSkus from "./components/top-skus/TopSkus";
 import AppCard from "~/components/core/card/AppCard";
 
 const Overview = () => {
@@ -37,6 +39,8 @@ const Overview = () => {
             email: data.contact?.[0]?.email || "",
             phone: data.contact?.[0]?.mobile || "",
             address: data?._fullAddress || "",
+            shortAddress: data?._shortAddress || "",
+            distance: data?._distance != null ? `${data._distance} km` : "",
             categories: data.contact?.[0]?.categories || [],
           },
           finance: {
@@ -66,29 +70,34 @@ const Overview = () => {
       ) : null}
 
       {!loading && vendor?._id ? (
-        <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-x-4">
-          <ContactInfoCard data={vendor?.contact} />
+        <>
+          <SummaryCards vendorId={id} />
 
-          <FinancialTaxCard data={vendor?.finance} />
+          <TopSkus vendorId={id} />
 
-          <KycDetailsCard
-            status={vendor?.isOtpVerified ? "Verified" : "Pending"}
-            vendorId={id}
-            mobile={vendor?.contact?.phone || ""}
-            isCreatedByMe={vendor?._isCreatedByMe}
-          />
+          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-x-4">
+            <ContactInfoCard data={vendor?.contact} />
 
-          {vendor?._lat && vendor?._lng ? (
-            <AppCard title="Vendor Location" className="tw:md:col-span-3">
-              <div className="tw:rounded-md">
-                <StaticGMap
-                  lat={vendor?._lat}
-                  lng={vendor?._lng}
-                  className="tw:h-80"
-                />
-              </div>
-            </AppCard>
-          ) : null}
+            <FinancialTaxCard data={vendor?.finance} />
+
+            <KycDetailsCard
+              status={vendor?.isOtpVerified ? "Verified" : "Pending"}
+              vendorId={id}
+              mobile={vendor?.contact?.phone || ""}
+              isCreatedByMe={vendor?._isCreatedByMe}
+            />
+
+            {vendor?._lat && vendor?._lng ? (
+              <AppCard title="Vendor Location" className="tw:md:col-span-3">
+                <div className="tw:rounded-md">
+                  <StaticGMap
+                    lat={vendor?._lat}
+                    lng={vendor?._lng}
+                    className="tw:h-80"
+                  />
+                </div>
+              </AppCard>
+            ) : null}
 
           {/* <div className="tw:md:col-span-3">
             <div className="tw:mb-8">
@@ -102,7 +111,8 @@ const Overview = () => {
           <ReturnAnalytics data={vendor?.overall?.returnsAnalytics} />
           <PaymentStatus data={vendor?.overall?.paymentStatus} />
           <FinancialSummary data={vendor?.overall?.financialSummary} /> */}
-        </div>
+          </div>
+        </>
       ) : null}
     </>
   );

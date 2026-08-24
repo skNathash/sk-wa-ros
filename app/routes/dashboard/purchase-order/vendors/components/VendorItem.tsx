@@ -21,7 +21,7 @@ const VendorItem: React.FC<VendorItemProps> = ({ vendor, callback }) => {
 
   return (
     <div
-      className="tw:grid tw:grid-cols-1 tw:gap-4 tw:md:grid-cols-4 tw:bg-white tw:border tw:border-gray-200 tw:p-4 tw:rounded-md tw:mb-4 tw:hover:border-blue-500 tw:hover:shadow-lg tw:transition-all tw:duration-300 tw:cursor-pointer"
+      className="tw:grid tw:grid-cols-1 tw:gap-4 tw:md:grid-cols-4 tw:bg-white tw:border tw:border-gray-200 tw:p-4 tw:rounded-md tw:mb-4 tw:hover:border-primary tw:hover:shadow-lg tw:transition-all tw:duration-300 tw:cursor-pointer"
       onClick={handleViewVendor}
     >
       <div>
@@ -29,7 +29,7 @@ const VendorItem: React.FC<VendorItemProps> = ({ vendor, callback }) => {
           <AppLink
             asLink
             href={`/dashboard/vendor/view/${vendor._id}`}
-            className="tw:text-blue-600 hover:tw:text-blue-800"
+            className="tw:text-primary tw:hover:text-primary-dark"
           >
             {vendor.name}
           </AppLink>

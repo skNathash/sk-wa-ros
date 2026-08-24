@@ -1,5 +1,7 @@
 import { Check, ScanLine, Search, ShoppingCart } from "lucide-react";
 
+import useTheme from "~/hooks/useTheme";
+
 import type { ScanPhase } from "../helper";
 
 type StepState = "done" | "active" | "waiting";
@@ -28,14 +30,13 @@ const stepStates = (phase: ScanPhase): StepState[] => {
 
 const CIRCLE: Record<StepState, string> = {
   done: "tw:bg-emerald-500 tw:text-white tw:border-emerald-500",
-  active:
-    "tw:bg-blue-600 tw:text-white tw:border-blue-600 tw:ring-4 tw:ring-blue-100",
+  active: "scan-step-active",
   waiting: "tw:bg-white tw:text-gray-400 tw:border-gray-300",
 };
 
 const LABEL: Record<StepState, string> = {
   done: "tw:text-emerald-700",
-  active: "tw:text-blue-700",
+  active: "scan-step-active-label",
   waiting: "tw:text-gray-400",
 };
 
@@ -46,10 +47,14 @@ interface Props {
 
 /**
  * Gamified 3-step "quest" tracker: Scan → Find → Add.
- * Completed steps turn green with a check, the current step pulses blue,
- * and the connector line fills up as the user progresses.
+ * Completed steps turn green with a check, the current step pulses in the
+ * theme accent (see barcode-scan.css), and the connector line fills up as the
+ * user progresses.
  */
 const StepTracker: React.FC<Props> = ({ phase, className = "" }) => {
+  const isTheme2 = useTheme() === "theme-2";
+  if (isTheme2) return null;
+
   const states = stepStates(phase);
 
   return (

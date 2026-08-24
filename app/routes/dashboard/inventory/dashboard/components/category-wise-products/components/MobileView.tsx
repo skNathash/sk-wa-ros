@@ -69,7 +69,7 @@ const MobileView = ({
                 <div>
                   <span className="tw:text-[10px] tw:text-gray-500">Value</span>
                   <div className="tw:text-sm tw:font-semibold">
-                    <Amount value={item.value} />
+                    <Amount value={item.value ?? 0} />
                   </div>
                 </div>
                 <div>

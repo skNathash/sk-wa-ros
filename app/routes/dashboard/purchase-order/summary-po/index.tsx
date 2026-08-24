@@ -1,4 +1,4 @@
-import { endOfDay, startOfDay } from "date-fns";
+import { endOfDay, startOfDay, subMonths } from "date-fns";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { Download } from "lucide-react";
@@ -14,21 +14,33 @@ import BusyLoader from "~/components/core/busyloader/Busyloader";
 import useAppNav from "~/hooks/useAppNav";
 import useScreenView from "~/hooks/useScreenView";
 import useAppToast from "~/hooks/useAppToast";
+import useTheme from "~/hooks/useTheme";
 import type { PaginationState, ViewToggleType } from "~/types/CommonTypes";
 import DesktopView from "./components/DesktopView";
 import Filter from "./components/Filter";
+import FilterChips from "./components/FilterChips";
 import MobileView from "./components/MobileView";
 import SummaryPoAppliedFilter from "./components/AppliedFilter";
-import { getCount, getData, prepareFilterParams } from "./helper";
+import Summary from "./components/Summary";
+import {
+  getCount,
+  getData,
+  getSummary,
+  prepareFilterParams,
+  type PoSummaryCounts,
+} from "./helper";
 import AuthService from "~/services/AuthService";
 import CommonService from "~/services/CommonService";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
 import PageHeader from "~/shared/page-header/PageHeader";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import PoSectionTabs from "~/shared/purchase-order/components/PoSectionTabs";
 import CreatePoFab from "~/shared/purchase-order/components/CreatePoFab";
 import PoActionButtons from "~/shared/purchase-order/components/PoActionButtons";
 import PoListTabs from "../components/tabs/PoListTabs";
+import PoScanBanners from "~/shared/purchase-order/components/PoScanBanners";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 
 const defaultBreadcrumbs = [
   {
@@ -44,6 +56,9 @@ const defaultFilter = {
   vendorType: "All",
   status: "All",
   type: "All",
+  purchasedFrom: "All",
+  arrivingToday: false,
+  dateRange: [startOfDay(subMonths(new Date(), 3)), endOfDay(new Date())],
 };
 
 const getPageTitle = (groupByType: string) => {
@@ -72,12 +87,14 @@ const SummaryVendors = () => {
   const { t } = useTranslation(["common", "menu"]);
   const appToast = useAppToast();
 
-  const methods = useForm();
+  const methods = useForm({ defaultValues: defaultFilter });
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const { isMobile } = useScreenView();
   const appNav = useAppNav();
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
 
   const [view, setView] = useState<ViewToggleType>("list");
 
@@ -90,6 +107,8 @@ const SummaryVendors = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [summary, setSummary] = useState<PoSummaryCounts>();
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const filterRef = useRef<Record<string, any>>({ ...defaultFilter });
   const paginationRef = useRef<PaginationState>({
@@ -113,6 +132,7 @@ const SummaryVendors = () => {
       groupByType: s.groupByType || "",
       status: s.status || "All",
       purchasedFrom: s.purchasedFrom || "All",
+      arrivingToday: s.arrivingToday === "true",
     };
 
     if (s.search) {
@@ -134,6 +154,12 @@ const SummaryVendors = () => {
       } catch (e) {
         // ignore parse errors
       }
+    } else {
+      // Default to last 3 months when no date range is provided in the URL.
+      newFormValues.dateRange = [
+        startOfDay(subMonths(new Date(), 3)),
+        endOfDay(new Date()),
+      ];
     }
 
     // set form values silently
@@ -183,7 +209,24 @@ const SummaryVendors = () => {
       setLoading(false);
     }
 
+    loadSummary();
     loadList();
+  }, []);
+
+  const loadSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    try {
+      const params = prepareFilterParams(
+        filterRef.current,
+        paginationRef.current,
+      );
+      const data = await getSummary(params);
+      setSummary(data);
+    } catch (error) {
+      console.error("Error loading PO summary:", error);
+    } finally {
+      setSummaryLoading(false);
+    }
   }, []);
 
   const loadList = useCallback(async () => {
@@ -320,6 +363,10 @@ const SummaryVendors = () => {
         params.purchasedFrom = filterRef.current.purchasedFrom;
       }
 
+      if (filterRef.current.arrivingToday) {
+        params.arrivingToday = "true";
+      }
+
       if (Object.keys(params).length > 0) {
         appNav.replace(location.pathname, params);
       } else {
@@ -342,23 +389,36 @@ const SummaryVendors = () => {
       if (id) {
         appNav.to(`/dashboard/vendor/view/${id}`);
       }
+    } else if (a.action === "inward") {
+      // Route to the receive/process flow so the user can inward stock.
+      // SK orders receive through the primary-orders SK receive page; every
+      // other vendor uses the standard purchase-order process page.
+      const row = a.data || {};
+      const id = row?.orderData?.id || row?.poId || row?._id;
+      if (!id) return;
+
+      const isSk =
+        row?.from?.subType === "SK" || row?._sourceType?.value === "sk_order";
+      if (isSk) {
+        appNav.to(`/dashboard/orders/primary/receive/sk/process/${id}`);
+      } else {
+        appNav.to(`/dashboard/purchase-order/process/${id}`);
+      }
     }
   };
 
   return (
     <>
-      <AppHeader title={pageTitle} />
+      <AppHeader
+        title={pageTitle}
+        sectionKey="supply"
+        activeTab="purchase-orders"
+        mobileLead="menu"
+      />
       <div className="app-page page-padding page-bg">
         <div className="app-container">
-          {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css).
-              `sticky` pins them under the header and breaks out of the page
-              padding so the underline runs edge to edge. */}
-          <SectionTabs
-            sectionKey="supply"
-            activeTab="purchase-orders"
-            noShadow
-            sticky
-          />
+          {/* PO tab bar — theme-2 mobile only (see theme-2.css). */}
+          <PoSectionTabs activeTab="all-po" />
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -373,83 +433,111 @@ const SummaryVendors = () => {
             </aside>
 
             <div className="section-content">
-          <div className="theme-2-mobile-hide tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2 tw:mb-4">
-            <PageHeader
-              breadcrumbs={breadcrumbs}
-              title={pageTitle || t("purchaseOrders")}
-              description="purchaseOrder"
-            />
-            <PoActionButtons />
-          </div>
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12 tw:space-y-0">
+                  {!isTheme2 && (
+                    <div className="theme-2-mobile-hide tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:md:justify-between tw:gap-2 tw:mb-4">
+                      <PageHeader
+                        breadcrumbs={breadcrumbs}
+                        title={pageTitle || t("purchaseOrders")}
+                        description="purchaseOrder"
+                      />
+                      <PoActionButtons />
+                    </div>
+                  )}
 
-          {groupByType === "total" && (
-            <PoListTabs activeTab="all-po" className="tw:mb-4" />
-          )}
+                  {groupByType === "total" && !isTheme2 && (
+                    <PoListTabs activeTab="all-po" />
+                  )}
 
-          <FormProvider {...methods}>
-            <div className="tw:mb-2">
-              <Filter callback={onFilterChange} />
-              <SummaryPoAppliedFilter
-                onFilterChange={handleAppliedFilterChange}
-              />
-            </div>
-          </FormProvider>
+                  <Summary data={summary} loading={summaryLoading} />
 
-          <div className="tw:flex tw:justify-between tw:items-center tw:mb-2 tw:flex-wrap tw:gap-3">
-            <div>
-              <PaginationSummary
-                paginationConfig={paginationRef.current}
-                loadingTotalRecords={loading}
-                loadedCount={orders.length}
-                fwSize="sm"
-              />
-            </div>
-            <div className="tw:flex tw:items-center tw:gap-2">
-              <AppButton
-                size="small"
-                fill="outline"
-                color="light"
-                onClick={downloadSummary}
-                disabled={loading || downloading}
-                isLoading={downloading}
-              >
-                <Download className="tw:mr-1" size={14} aria-hidden />
-                {downloading ? t("common:downloading") : t("common:download")}
-              </AppButton>
-              <ViewToggle
-                viewType={view}
-                callback={setView}
-                showOnlyIcon={isMobile}
-              />
-            </div>
-          </div>
-          {isMobile || view === "card" ? (
-            <>
-              <MobileView data={orders} groupByType={groupByType} />
-              {hasMoreData && !loading && orders.length > 0 && (
-                <LoadMoreButton
-                  loadMore={loadMore}
-                  loading={loadingMore}
-                  totalCount={paginationRef.current.totalRecords}
-                  loadedCount={orders.length}
-                />
-              )}
-            </>
-          ) : (
-            <AppCard noPadding={true}>
-              <DesktopView
-                data={orders}
-                loading={loading}
-                sortCb={() => {}}
-                callback={handleRowAction}
-                showLoadMore={hasMoreData}
-                loadMore={loadMore}
-                loadingMore={loadingMore}
-                totalCount={paginationRef.current.totalRecords}
-                groupByType={groupByType}
-              />
-            </AppCard>
-          )}
+                  {/* Box scan / SK Invoice AI shortcuts — desktop only here;
+                      on mobile the PO tab bar already carries them. */}
+                  {!isMobile && (
+                    <PoScanBanners className="app-pane-hide tw:mb-4" />
+                  )}
+
+                  <FormProvider {...methods}>
+                    <div className="tw:mb-2">
+                      <FilterChips callback={onFilterChange} />
+                      <Filter
+                        callback={onFilterChange}
+                        className="app-filter-band tw:mb-4"
+                      />
+                      <SummaryPoAppliedFilter
+                        onFilterChange={handleAppliedFilterChange}
+                      />
+                    </div>
+                  </FormProvider>
+
+                  <div className="tw:flex tw:justify-between tw:items-center tw:mb-2 tw:flex-wrap tw:gap-3">
+                    <div>
+                      <PaginationSummary
+                        paginationConfig={paginationRef.current}
+                        loadingTotalRecords={loading}
+                        loadedCount={orders.length}
+                        fwSize="sm"
+                      />
+                    </div>
+                    <div className="tw:flex tw:items-center tw:gap-2">
+                      <AppButton
+                        size="small"
+                        fill="outline"
+                        color="light"
+                        onClick={downloadSummary}
+                        disabled={loading || downloading}
+                        isLoading={downloading}
+                      >
+                        <Download className="tw:mr-1" size={14} aria-hidden />
+                        {downloading
+                          ? t("common:downloading")
+                          : t("common:download")}
+                      </AppButton>
+                      <ViewToggle
+                        viewType={view}
+                        callback={setView}
+                        showOnlyIcon={isMobile}
+                      />
+                    </div>
+                  </div>
+                  {isMobile || view === "card" ? (
+                    <>
+                      <MobileView
+                        data={orders}
+                        groupByType={groupByType}
+                        callback={handleRowAction}
+                      />
+                      {hasMoreData && !loading && orders.length > 0 && (
+                        <LoadMoreButton
+                          loadMore={loadMore}
+                          loading={loadingMore}
+                          totalCount={paginationRef.current.totalRecords}
+                          loadedCount={orders.length}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <AppCard noPadding={true}>
+                      <DesktopView
+                        data={orders}
+                        loading={loading}
+                        sortCb={() => {}}
+                        callback={handleRowAction}
+                        showLoadMore={hasMoreData}
+                        loadMore={loadMore}
+                        loadingMore={loadingMore}
+                        totalCount={paginationRef.current.totalRecords}
+                        groupByType={groupByType}
+                      />
+                    </AppCard>
+                  )}
+                </AppPaneMain>
+
+                <AppPaneSide className="app-pane-only">
+                  <PurchaseOrderSidePane />
+                </AppPaneSide>
+              </div>
             </div>
           </div>
         </div>

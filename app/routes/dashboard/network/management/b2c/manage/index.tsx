@@ -1,24 +1,41 @@
-import { ChevronDown, MapPin, Save, UserPlus } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Mic, Plus, Unlock } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
-import AppButton from "~/components/core/button/AppButton";
-import { AppInput, AppPincodeInput, AppSelect } from "~/components/core/form";
 import AppHeader from "~/components/core/header/AppHeader";
-import SdtLocation from "~/components/core/sdt/SdtLocation";
+import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
-import AuthService from "~/services/AuthService";
+import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import CustomerService from "~/services/CustomerService";
-import type { BreadcrumbItem } from "~/types/CommonTypes";
-import { defaultFormData, preparePayload, validateForm } from "./helper";
-import CustomerCreatedSuccessModal from "./modals/CustomerCreatedSuccessModal";
-import LinkCustomerRetailerModal from "~/shared/users/modals/link-customer-retailer/LinkCustomerRetailerModal";
 import PageAccessService from "~/services/PageAccessService";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import DirectorySidePane from "~/shared/network/components/directory-side-pane/DirectorySidePane";
+import type { QuickAddKey } from "~/shared/network/components/directory-side-pane/QuickAdd";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import LinkCustomerRetailerModal from "~/shared/users/modals/link-customer-retailer/LinkCustomerRetailerModal";
+import type {
+  BreadcrumbItem,
+  SectionTab,
+  TabItem,
+} from "~/types/CommonTypes";
+// import CounterQrTab from "./components/CounterQrTab";
+import OnboardedToday from "./components/OnboardedToday";
+import PaylaterFirstTab from "./components/PaylaterFirstTab";
+import VoiceAddTab from "./components/VoiceAddTab";
+import WhyItWorks from "./components/WhyItWorks";
+import ZeroFormTab from "./components/ZeroFormTab";
+import {
+  defaultFormData,
+  MODE_BY_PARAM,
+  preparePayload,
+  validateForm,
+  type OnboardMode,
+} from "./helper";
+import CustomerCreatedSuccessModal from "./modals/CustomerCreatedSuccessModal";
 
 const breadcrumbData: BreadcrumbItem[] = [
   {
@@ -41,6 +58,25 @@ const breadcrumbData: BreadcrumbItem[] = [
   },
 ];
 
+/** The four onboarding routes, in the order the counter should try them. */
+const TABS: TabItem[] = [
+  { key: "zero-form", name: "A · Zero-form", icon: <Plus /> },
+  { key: "voice", name: "B · Voice add", icon: <Mic /> },
+  // { key: "qr", name: "C · Counter QR", icon: <QrCode /> },
+  { key: "paylater", name: "D · Paylater-first", icon: <Unlock /> },
+];
+
+/** Rail copy — why the active route beats asking for a form. */
+const WHY_IT_WORKS: Record<OnboardMode, string> = {
+  "zero-form":
+    "The mobile number is the entire customer record on day one. Everything else — name, KYC, preferences — accretes over time from bills and WhatsApp. Ideal for the counter rush.",
+  voice:
+    "Mic tap → say the name and number. The retailer never puts the phone down, and a mishear is corrected in place before the customer is created.",
+  qr: "Show the counter QR. Customer scans, WhatsApp opens, one tap saves. You see them join live. Also printable as a tent card.",
+  paylater:
+    "Start the customer with credit — the credit unlock IS the sign-up. No forms, no KYC. Consent via WhatsApp. Bill history becomes the credit score from bill #1.",
+};
+
 export async function clientLoader() {
   return PageAccessService.canAccessPage([], {
     blockForMasterLogin: true,
@@ -51,173 +87,90 @@ const ManageB2c = () => {
   const { t } = useTranslation(["common", "menu"]);
   const appToast = useAppToast();
   const appNav = useAppNav();
-  const [searchParams] = useSearchParams();
+  const { isMobile } = useScreenView();
+  // theme-2 mobile is the only view that gets the pill bar in the sticky slot.
+  const theme2Mobile = useTheme() === "theme-2" && isMobile;
+  const [searchParams, setSearchParams] = useSearchParams();
   const sourcePage = searchParams.get("sourcePage");
   const customerType = searchParams.get("customerType");
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    reset,
-    getValues,
-    formState: { errors },
-    control,
-  } = useForm({
-    defaultValues: {
-      ...defaultFormData,
-    },
-  });
+  const activeTab: OnboardMode =
+    MODE_BY_PARAM[searchParams.get("mode") || ""] || "zero-form";
 
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdMobile, setCreatedMobile] = useState("");
-  const [showAdditional, setShowAdditional] = useState(false);
   const [linkModal, setLinkModal] = useState({ show: false, cid: "" });
+  // Bumped after every successful onboarding so the rail re-pulls the list.
+  const [onboardedKey, setOnboardedKey] = useState(0);
 
-  // Gender options
-  const genderOptions = [
-    { value: "Male", label: "Male" },
-    { value: "Female", label: "Female" },
-  ];
+  const tabs = useMemo(() => TABS, []);
 
-  const [state, district, town] = useWatch({
-    control,
-    name: ["state", "district", "town"],
-  });
+  /** theme-2 mobile hands the sticky section-tab slot over to these routes. */
+  const onboardSectionTabs: SectionTab[] = useMemo(
+    () =>
+      TABS.map((tab) => ({
+        key: tab.key,
+        label: tab.name,
+        icon: tab.icon,
+        redirect: { url: "" },
+      })),
+    [],
+  );
 
-  useEffect(() => {
-    const user = AuthService.getLoggedInUser();
-    setValue("pincode", user.pincode);
-    setValue("state", user?.state);
-    setValue("district", user?.district);
-    setValue("town", user?.city || user?.town);
-  }, [setValue]);
-
-  // Handle pincode change
-  const handlePincodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const pincode = event.target.value;
-    setValue("pincode", pincode);
+  /** `?mode=` is the single source of truth for the active route — the tab bar
+   * and the side pane's picker both write it. */
+  const handleModeChange = (mode: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("mode", mode);
+    setSearchParams(next, { replace: true });
   };
 
-  // Handle name change - only allow alphabetic characters and spaces
-  const handleNameChange = () => {
-    const newValue = getValues("name");
+  const handleTabChange = (tab: TabItem) => handleModeChange(tab.key);
 
-    // Filter out any characters that are not alphabetic or spaces
-    const filteredValue = newValue.replace(/[^A-Za-z\s]/g, "");
+  /**
+   * The one creation path all the form-shaped routes share — zero-form and
+   * voice both land here, so validation, the toast and the success modal stay
+   * identical between them.
+   */
+  const createCustomer = async (data: Record<string, any>) => {
+    const values = { ...defaultFormData, ...data };
 
-    setValue("name", filteredValue);
-  };
-
-  // Handle mobile change - only allow numeric characters
-  const handleMobileChange = () => {
-    const newValue = getValues("mobile");
-
-    // Filter out any characters that are not numeric
-    const filteredValue = newValue.replace(/[^0-9]/g, "");
-
-    setValue("mobile", filteredValue);
-  };
-
-  // Handle pincode data callback
-  const handlePincodeDataCallback = (data: any) => {
-    if (data.state) {
-      setValue("state", data.state);
+    const validation = validateForm(values, t);
+    if (!validation.status) {
+      appToast.show({ msg: validation.msg, color: "danger" });
+      return false;
     }
-    if (data.district) {
-      setValue("district", data.district);
-    }
-    if (data.city) {
-      setValue("town", data.city);
-    }
-  };
 
-  // Handle location change from SdtLocation component
-  const handleLocationChange = ({
-    action,
-    data,
-  }: {
-    action: string;
-    data: any;
-  }) => {
-    if (action === "state_change") {
-      setValue("state", data.state);
-      setValue("district", data.district);
-      setValue("town", data.town);
-    } else if (action === "district_change") {
-      setValue("district", data.district);
-      setValue("town", data.town);
-    } else if (action === "town_change") {
-      setValue("town", data.town);
-    }
-  };
-
-  // Form submission
-  const onSubmit = async () => {
+    setSubmitting(true);
     try {
-      const data = getValues();
-
-      // Validate all form data
-      const validation = validateForm(data, t);
-      if (!validation.status) {
-        appToast.show({ msg: validation.msg, color: "danger" });
-        return;
-      }
-
-      setSubmitting(true);
-
-      // Check if customer already exists by mobile number
-      const checkResp = await CustomerService.getCustomers({
-        filter: { mobile: data.mobile },
-        page: 1,
-        count: 1,
-      });
-
-      // const existingCustomer = checkResp?.data?.data?.[0];
-
-      // if (existingCustomer?._id) {
-      //   const loggedInUserId = AuthService.getLoggedInUserId();
-      //   console.log(loggedInUserId);
-      //   if (existingCustomer?.franchiseInfo?.id === loggedInUserId) {
-      //     appToast.show({
-      //       msg: t("customerAlreadyRegistered"),
-      //       color: "danger",
-      //     });
-      //   } else {
-      //     setLinkModal({ show: true, cid: existingCustomer._id });
-      //   }
-      //   return;
-      // }
-
-      // Prepare payload
-      const payload = preparePayload(data);
-
-      // Call API
-      const response = await CustomerService.createCustomer(payload);
+      const response = await CustomerService.createCustomer(
+        preparePayload(values),
+      );
 
       if (response?.statusCode === 200) {
         appToast.show({
           msg: t("customerCreatedSuccessfully"),
           color: "success",
         });
-        setCreatedMobile(data.mobile || "");
+        setCreatedMobile(values.mobile || "");
         setShowSuccessModal(true);
-        // Reset form to default values (do not auto-fill location/gender/pincode)
-        reset({ ...defaultFormData });
-      } else {
-        appToast.show({
-          msg: response?.data?.message || t("errorCreatingCustomer"),
-          color: "danger",
-        });
+        setOnboardedKey((key) => key + 1);
+        return true;
       }
+
+      appToast.show({
+        msg: response?.data?.message || t("errorCreatingCustomer"),
+        color: "danger",
+      });
+      return false;
     } catch (error: any) {
       console.error("Error creating customer:", error);
       appToast.show({
         msg: error?.response?.data?.message || t("errorCreatingCustomer"),
         color: "danger",
       });
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -236,7 +189,6 @@ const ManageB2c = () => {
               msg: t("customerLinkedSuccessfully"),
               color: "success",
             });
-            reset({ ...defaultFormData });
             appNav.to("/dashboard/network/management/b2c-customers", {
               tab: "b2c-customers",
             });
@@ -265,13 +217,26 @@ const ManageB2c = () => {
       />
       <div className="app-page page-bg page-padding tw:min-h-screen">
         <div className="app-container">
-          {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
-          <SectionTabs
-            sectionKey="business"
-            activeTab="customers"
-            noShadow
-            sticky
-          />
+          {/* Sticky bar — only shown in theme-2 mobile view (see theme-2.css).
+              On that view the onboarding routes take the slot instead of the
+              section tabs, so the page shows one tab bar, not two. */}
+          {theme2Mobile ? (
+            <SectionTabs
+              tabs={onboardSectionTabs}
+              activeTab={activeTab}
+              onTabChange={(tab) => handleModeChange(tab.key)}
+              variant="pills"
+              noShadow
+              sticky
+            />
+          ) : (
+            <SectionTabs
+              sectionKey="business"
+              activeTab="customers"
+              noShadow
+              sticky
+            />
+          )}
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -287,181 +252,74 @@ const ManageB2c = () => {
 
             <div className="section-content">
               <div className="theme-2-mobile-only tw:h-4" />
-              <div className="tw:max-w-3xl tw:mx-auto tw:space-y-5">
-                <AppBreadcrumbs data={breadcrumbData} />
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Main column — spans the full grid; in theme-2 desktop the
+                    CSS lifts the side pane out of the grid into the fixed
+                    list pane beside the section icon rail. */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <AppBreadcrumbs data={breadcrumbData} />
 
-          {/* Hero Banner */}
-          <div className="tw:bg-linear-to-br tw:from-blue-600 tw:via-indigo-600 tw:to-purple-700 tw:rounded-2xl tw:p-6 tw:md:p-8 tw:text-white tw:shadow-xl tw:relative tw:overflow-hidden">
-            <div className="tw:absolute tw:inset-0 tw:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_50%)]" />
-            <div className="tw:absolute tw:-right-8 tw:-bottom-8 tw:w-32 tw:h-32 tw:bg-white/5 tw:rounded-full" />
-            <div className="tw:absolute tw:right-12 tw:-top-4 tw:w-20 tw:h-20 tw:bg-white/5 tw:rounded-full" />
-            <div className="tw:flex tw:items-center tw:gap-4 tw:relative">
-              <div className="tw:bg-white/15 tw:backdrop-blur-sm tw:rounded-xl tw:p-3 tw:ring-1 tw:ring-white/20">
-                <UserPlus size={26} />
-              </div>
-              <div>
-                <h2 className="tw:text-xl tw:font-bold tw:tracking-tight">
-                  {t("createB2cCustomer")}
-                </h2>
-                <p className="tw:text-blue-100 tw:text-sm tw:mt-1">
-                  {t("manageB2cCustomerBasicInfo")}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="tw:space-y-5">
-            {/* Basic Information Card */}
-            <div className="tw:bg-white tw:rounded-2xl tw:shadow-sm tw:border tw:border-gray-100 tw:overflow-hidden hover:tw:shadow-md tw:transition-shadow tw:duration-300">
-              <div className="tw:border-b tw:border-gray-100 tw:px-6 tw:py-5 tw:flex tw:items-center tw:gap-3 tw:bg-gradient-to-r tw:from-gray-50/80 tw:to-white">
-                <div className="tw:bg-blue-100 tw:text-blue-600 tw:rounded-xl tw:p-2.5">
-                  <UserPlus size={18} />
-                </div>
-                <div>
-                  <h3 className="tw:font-semibold tw:text-gray-800">
-                    {t("basicInformation")}
-                  </h3>
-                  <p className="tw:text-xs tw:text-gray-400 tw:mt-0.5">
-                    {t("fillCustomerDetails")}
-                  </p>
-                </div>
-              </div>
-              <div className="tw:p-6 tw:md:p-8">
-                <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-6">
-                  <AppInput
-                    label="Name"
-                    name="name"
-                    type="text"
-                    placeholder="Enter customer name"
-                    register={register}
-                    onChange={handleNameChange}
-                    className="tw:w-full"
-                    error={errors.name?.message}
-                    isRequired
-                    maxLength={50}
-                  />
-
-                  <AppInput
-                    register={register}
-                    label="Mobile"
-                    name="mobile"
-                    type="tel"
-                    maxLength={10}
-                    placeholder="Enter mobile"
-                    onChange={handleMobileChange}
-                    className="tw:w-full"
-                    error={errors.mobile?.message}
-                    isRequired
-                  />
-
-                  <Controller
-                    name="gender"
-                    control={control}
-                    render={({ field }) => (
-                      <AppSelect
-                        label="Gender"
-                        options={genderOptions}
-                        placeholder="Select gender"
-                        onChange={field.onChange}
-                        value={field.value}
-                        inputClassName="tw:w-full"
-                        error={errors.gender?.message}
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Info Card */}
-            <div className="tw:bg-white tw:rounded-2xl tw:shadow-sm tw:border tw:border-gray-100 tw:overflow-hidden hover:tw:shadow-md tw:transition-shadow tw:duration-300">
-              <button
-                type="button"
-                onClick={() => setShowAdditional(!showAdditional)}
-                className="tw:w-full tw:flex tw:justify-between tw:items-center tw:px-6 tw:py-5 tw:cursor-pointer hover:tw:bg-gray-50/80 tw:transition-colors tw:duration-200"
-              >
-                <div className="tw:flex tw:items-center tw:gap-3">
-                  <div className="tw:bg-purple-100 tw:text-purple-600 tw:rounded-xl tw:p-2.5">
-                    <MapPin size={18} />
-                  </div>
-                  <div className="tw:text-start">
-                    <span className="tw:text-gray-800 tw:font-semibold tw:block tw:text-sm">
-                      {t("additionalInfo")}{" "}
-                      <span className="tw:text-xs tw:font-normal tw:text-gray-400 tw:ml-1">
-                        ({t("optional")})
-                      </span>
-                    </span>
-                    <span className="tw:text-xs tw:text-gray-400 tw:block tw:mt-0.5">
-                      {t("addEmailAndLocationDetails")}
-                    </span>
-                  </div>
-                </div>
-                <div
-                  className={`tw:text-gray-400 tw:transition-transform tw:duration-300 ${
-                    showAdditional ? "tw:rotate-180" : ""
-                  }`}
-                >
-                  <ChevronDown size={20} />
-                </div>
-              </button>
-
-              {showAdditional && (
-                <div className="tw:border-t tw:border-gray-100 tw:p-6 tw:md:p-8 tw:animate-in tw:fade-in tw:duration-200">
-                  <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-6">
-                    <AppPincodeInput
-                      label="Pincode"
-                      name="pincode"
-                      placeholder="Enter pincode"
-                      register={register}
-                      onChange={handlePincodeChange}
-                      onPincodeSelect={({ data }) => {
-                        if (data) {
-                          handlePincodeDataCallback({
-                            city: data.city || "",
-                            state: data.state || "",
-                            district: data.district || "",
-                          });
-                        }
-                      }}
-                      className="tw:w-full"
-                      error={errors.pincode?.message}
+                  {/* Skipped on theme-2 mobile — the sticky bar above already
+                      carries these routes. */}
+                  {theme2Mobile ? null : (
+                    <AppTab
+                      tabs={tabs}
+                      activeTab={activeTab}
+                      onTabChange={handleTabChange}
+                      variant="underline"
+                      cardClassName="tw:mb-0"
                     />
+                  )}
 
-                    <SdtLocation
-                      state={state}
-                      district={district}
-                      town={town}
-                      callback={handleLocationChange}
-                    />
+                  <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-[minmax(0,1fr)_320px]">
+                    <div className="tw:min-w-0">
+                      {activeTab === "zero-form" ? (
+                        <ZeroFormTab
+                          onCreate={createCustomer}
+                          submitting={submitting}
+                        />
+                      ) : null}
+                      {activeTab === "voice" ? (
+                        <VoiceAddTab
+                          onCreate={createCustomer}
+                          submitting={submitting}
+                        />
+                      ) : null}
+                      {/* {activeTab === "qr" ? (
+                        <CounterQrTab refreshKey={onboardedKey} />
+                      ) : null} */}
+                      {activeTab === "paylater" ? (
+                        <PaylaterFirstTab
+                          onCreate={createCustomer}
+                          submitting={submitting}
+                        />
+                      ) : null}
+                    </div>
 
-                    <AppInput
-                      label="Email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter email"
-                      register={register}
-                      className="tw:w-full"
-                      error={errors.email?.message}
-                    />
+                    <div className="tw:space-y-4">
+                      <WhyItWorks>{WHY_IT_WORKS[activeTab]}</WhyItWorks>
+                      <OnboardedToday refreshKey={onboardedKey} />
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                </AppPaneMain>
 
-            {/* Submit Button */}
-            <div className="tw:flex tw:justify-end tw:pt-4">
-              <AppButton
-                type="submit"
-                color="primary"
-                size="large"
-                isLoading={submitting}
-                disabled={submitting}
-              >
-                <Save />
-                {t("createCustomer")}
-              </AppButton>
-            </div>
-              </form>
+                {/* Side column — only rendered inside the theme-2 split layout,
+                    where the CSS lifts it into the fixed pane. Same pane the
+                    directory pages use; the quick-add rows are intercepted so
+                    they switch this page's route instead of navigating to it.
+                    Re-keyed after each create so the newly-added list re-pulls. */}
+                <AppPaneSide className="app-pane-only">
+                  <DirectorySidePane
+                    key={onboardedKey}
+                    title="Onboard"
+                    scopeLabel={`${tabs.length} ways in`}
+                    showChips={false}
+                    showRecentActivity={false}
+                    onQuickAddSelect={(key: QuickAddKey) =>
+                      handleModeChange(MODE_BY_PARAM[key] || "zero-form")
+                    }
+                  />
+                </AppPaneSide>
               </div>
             </div>
           </div>

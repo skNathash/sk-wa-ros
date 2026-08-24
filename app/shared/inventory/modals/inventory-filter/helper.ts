@@ -65,6 +65,12 @@ export interface Props {
   feature?: string;
   hideStatus?: boolean;
   hidePriceSlab?: boolean;
+  /**
+   * Drop the menu picker. Used by the products list's dedicated menu view,
+   * where the menu is fixed by the page itself and must not be re-picked here.
+   * The seeded menu value is still submitted, so the view stays filtered.
+   */
+  hideMenu?: boolean;
 }
 
 export type FormData = {

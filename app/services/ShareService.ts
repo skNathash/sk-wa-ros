@@ -45,18 +45,15 @@ class ShareService {
     absoluteUrl?: string;
     phone?: string | undefined;
   }) {
-    let m;
-    if (options.msg) {
-      m = options.msg + ",";
-    } else {
-      m = "";
-    }
+    let m = options.msg || "";
     const u = this.prepareUrl({
       absoluteUrl: options.absoluteUrl,
       hashUrl: options.hashUrl,
     });
     if (u) {
-      m += u;
+      // Comma-separate the message from the appended link (previous behavior),
+      // but only when there is actually a link to append.
+      m += (m ? "," : "") + u;
     }
 
     let shareUrl = "https://api.whatsapp.com/send";

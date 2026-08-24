@@ -1,9 +1,12 @@
+import clsx from "clsx";
 import {
   BoxIcon,
   CheckCheck,
   Clock,
+  CreditCard,
   File,
   GitBranch,
+  Package,
   Split,
   FileText,
   User,
@@ -28,11 +31,13 @@ import Rbac from "~/components/core/rbac/Rbac";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import AppTab from "~/components/core/tab/AppTab";
 import { ALERT_DISMISS_TIME } from "~/constants";
+import { useIsMobile } from "~/hooks/use-mobile";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
 import ApproveSuccessModal from "~/modals/ApproveSuccessModal";
 import ImgPreviewModal from "~/modals/core/img-preview/ImgPreviewModal";
 import SharedRemarksModal from "~/modals/feature/remarks/RemarksModal";
+import useTheme from "~/hooks/useTheme";
 import AuthService from "~/services/AuthService";
 import CommonService from "~/services/CommonService";
 import OmsService from "~/services/OmsService";
@@ -40,7 +45,13 @@ import PageAccessService from "~/services/PageAccessService";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import InventoryAddStockModal from "~/shared/catalog/modals/add-stock/InventoryAddStockModal";
+import { AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 import RouteInfoBanner from "~/shared/logistics/components/RouteInfoBanner";
+import FulfillmentSidePane from "~/shared/fulfillment/components/fulfillment-side-pane/FulfillmentSidePane";
+import PaymentApprovedList from "~/shared/fulfillment/components/fulfillment-side-pane/PaymentApprovedList";
+import PaymentPendingList from "~/shared/fulfillment/components/fulfillment-side-pane/PaymentPendingList";
+import { PAYMENT_APPROVAL_FROM_PARAM } from "~/shared/fulfillment/components/fulfillment-side-pane/paymentApprovalHelper";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
 import ShipLaterModal from "~/shared/orders/modals/ship-later/ShipLaterModal";
 import OrderBoxes from "~/shared/orders/order-boxes/OrderBoxes";
 import PrintReceipt from "~/shared/orders/print-receipt/PrintReceipt";
@@ -60,6 +71,7 @@ import OrderProducts from "./components/products/OrderProducts";
 import SellerInfo from "./components/seller-info/SellerInfo";
 import ShiplaterApproval from "./components/ShiplaterApproval";
 import StatusSummary from "./components/status-summary/StatusSummary";
+import FulfillmentStepper from "./components/FulfillmentStepper";
 import Timeline from "./components/timeline/Timeline";
 import RemarksModal from "./modals/RemarksModal";
 import ShiplaterRejectModal from "./modals/ShiplaterRejectModal";
@@ -96,15 +108,58 @@ if (AuthService.isBuyerUser()) {
   });
 }
 
+/**
+ * A standing note about the order (pay-later wallet, coin store, …). Theme-2
+ * renders it as an incoming chat bubble so the page's asides read the way a
+ * conversation's do; every other theme keeps the framed InfoBlock.
+ */
+const OrderNote = ({
+  children,
+  variant,
+}: {
+  children: React.ReactNode;
+  variant?: "warning";
+}) => {
+  const isTheme2 = useTheme() === "theme-2";
+
+  if (!isTheme2) {
+    return (
+      <InfoBlock size="sm" className="tw:mb-4" bordered variant={variant}>
+        {children}
+      </InfoBlock>
+    );
+  }
+
+  return (
+    <div
+      className={clsx(
+        "ov-bubble tw:mb-4",
+        variant === "warning" && "ov-bubble-warn",
+      )}
+    >
+      {children}
+    </div>
+  );
+};
+
 const OrderView = () => {
   const { t } = useTranslation(["common"]);
   const { id } = useParams();
   const appNav = useAppNav();
   const appToast = useAppToast();
+  const isTheme2 = useTheme() === "theme-2";
+  const isMobile = useIsMobile();
 
   const [searchParams] = useSearchParams();
 
   const from = searchParams.get("from");
+
+  // Opened out of the payment-approval queue — the pane trades the fulfilment
+  // stages for what is still waiting on a payment check and what just cleared.
+  const isPaymentApproval = from === PAYMENT_APPROVAL_FROM_PARAM;
+
+  /** Bumped after a payment is approved / rejected so the blocks reload. */
+  const [paymentBlocksKey, setPaymentBlocksKey] = useState(0);
 
   const [order, setOrder] = useState<any>({});
   const [loading, setLoading] = useState<boolean>(true);
@@ -211,6 +266,11 @@ const OrderView = () => {
 
     if (from === "ord-dash") {
       b[0].redirect!.path = "/dashboard/orders/dashboard";
+    }
+
+    // Back out of an order opened from the queue lands on the queue itself.
+    if (from === PAYMENT_APPROVAL_FROM_PARAM) {
+      b[1].redirect!.params = { tab: PAYMENT_APPROVAL_FROM_PARAM };
     }
 
     return b;
@@ -594,6 +654,7 @@ const OrderView = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const updatedOrder = await getData(id || "");
       setOrder(updatedOrder);
+      setPaymentBlocksKey((key) => key + 1);
       setLoading(false);
     }
   };
@@ -609,6 +670,12 @@ const OrderView = () => {
       setLoading(false);
     }
   };
+
+  // Who the order is with, from this side of it: the customer when we're the
+  // seller, the seller when we're buying. Rides in the header subtitle.
+  const partyName = order?.isMyOrder
+    ? order?.customerInfo?.name
+    : order?.sellerInfo?.franchiseName;
 
   const orderBadges = order?._id ? (
     <>
@@ -634,479 +701,576 @@ const OrderView = () => {
 
   return (
     <>
-      <AppHeader title={t("orderDetailsTitle")} />
-      <div className="page-bg tw:p-4 app-page">
-        <div className="app-container">
-          <div className="tw:flex tw:lg:justify-between tw:items-center tw:flex-wrap tw:gap-2 tw:mb-4">
-            <AppBreadcrumbs data={breadcrumbs} />
-          </div>
-
-          {loading ? (
-            <div className="tw:p-4 tw:text-center tw:flex tw:justify-center tw:items-center tw:h-full">
-              <AppSpinner />
+      {/* Chat-style header on phones: the order is the "contact" — its ref no
+          and type on the title line, the party it belongs to underneath. On
+          desktop the identity plate below already carries all of that, so the
+          header stays a plain page title. */}
+      <AppHeader
+        mobileLead="back"
+        title={
+          order?._id && isMobile ? (
+            <span className="tw:flex tw:items-center tw:gap-1.5 tw:min-w-0">
+              <span className="tw:truncate tw:min-w-0">{order.orderRefNo}</span>
+              <AppBadge variant={order._typeColor} className="tw:shrink-0">
+                {order.orderType}
+              </AppBadge>
+            </span>
+          ) : (
+            t("orderDetailsTitle")
+          )
+        }
+        subtitle={
+          partyName && isMobile ? (
+            <span className="tw:font-medium tw:truncate tw:min-w-0 tw:opacity-80">
+              {partyName}
+            </span>
+          ) : undefined
+        }
+      />
+      <div className="page-bg app-page page-padding">
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu sectionKey="bill" activeTab="orders" title="Bill" />
             </div>
-          ) : null}
+          </aside>
 
-          {!loading && !order?._id ? <NoData /> : null}
-
-          {!loading && order?._id ? (
-            <>
-              <div className="tw:mb-5">
-                <div className="tw:flex tw:items-start tw:md:items-center tw:justify-between tw:gap-3">
-                  <div className="tw:min-w-0">
-                    <div className="tw:flex tw:items-center tw:gap-2 tw:flex-wrap">
-                      <span className="tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-widest tw:text-gray-500">
-                        ID
-                      </span>
-                      <span className="tw:text-[18px] tw:font-bold tw:tracking-tight tw:text-gray-900 tw:tabular-nums">
-                        {order.orderRefNo}
-                      </span>
-                      <div className="tw:hidden tw:md:flex tw:items-center tw:gap-2 tw:flex-wrap">
-                        {orderBadges}
-                      </div>
-                    </div>
-                    <div className="tw:flex tw:md:hidden tw:items-center tw:gap-2 tw:flex-wrap tw:mt-2">
-                      {orderBadges}
-                    </div>
-                  </div>
-                  <div className="tw:flex tw:flex-col tw:md:flex-row tw:flex-wrap tw:justify-end tw:gap-2 tw:shrink-0">
-                    <Rbac roles={rbacRoles.cancelOrder}>
-                      {order._showCancelFullOrder &&
-                        !order._needToApprove &&
-                        !order._needPaymentApproval && (
-                          <AppButton
-                            color="light"
-                            fill="outline"
-                            size="small"
-                            onClick={() => setShowRemarksModal(true)}
-                          >
-                            {t("cancelOrder")}
-                          </AppButton>
-                        )}
-                    </Rbac>
-                    {!order.isMyOrder && order.status === "Shipped" ? (
-                      <AppButton
-                        color="success"
-                        size="small"
-                        onClick={() =>
-                          appNav.to(
-                            `/dashboard/orders/primary/receive/process/${order._id}`,
-                          )
-                        }
-                      >
-                        <BoxIcon />
-                        {t("receive")}
-                      </AppButton>
-                    ) : null}
-                    {order.invoices && order.invoices.length > 0 ? (
-                      <>
-                        {order.orderType === "B2C" ? (
-                          <>
-                            <PrintReceipt
-                              orderId={order._id}
-                              size="small"
-                              color="light"
-                              variant="outline"
-                            />
-                            {order.invoices[0]?.invoiceDocumentId ? (
-                              <AppButton
-                                color="light"
-                                fill="outline"
-                                size="small"
-                                onClick={() =>
-                                  CommonService.assetDownload(
-                                    order.invoices[0].invoiceDocumentId,
-                                    true,
-                                  )
-                                }
-                              >
-                                <FileText />
-                                {t("printInvoice")}
-                              </AppButton>
-                            ) : null}
-                          </>
-                        ) : (
-                          <AppButton
-                            color="light"
-                            fill="outline"
-                            size="small"
-                            onClick={handleDownloadInvoice}
-                          >
-                            <File />
-                            {t("downloadInvoice")}
-                          </AppButton>
-                        )}
-                      </>
-                    ) : null}
-                  </div>
+          <div className="section-content">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+              {/* Main column — spans the full grid; the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed order pane beside the icon rail. */}
+              <div className="app-pane-main tw:col-span-12">
+                <div className="hide-in-theme-2 tw:flex tw:lg:justify-between tw:items-center tw:flex-wrap tw:gap-2 tw:mb-4">
+                  <AppBreadcrumbs data={breadcrumbs} />
                 </div>
-                <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-x-5 tw:gap-y-1 tw:mt-2 tw:text-[13px]">
-                  <div className="tw:flex tw:items-center tw:gap-1.5">
-                    <span className="tw:text-gray-500">{t("placedOn")}:</span>
-                    <span className="tw:font-medium tw:text-gray-800">
-                      <DateFormat value={order.createdAt} />
-                    </span>
+
+                {loading ? (
+                  <div className="tw:p-4 tw:text-center tw:flex tw:justify-center tw:items-center tw:h-full">
+                    <AppSpinner />
                   </div>
-                  {order.createdBy?.name ? (
-                    <div className="tw:flex tw:items-center tw:gap-1.5">
-                      <span className="tw:text-gray-300">·</span>
-                      <User size={13} className="tw:text-gray-500" />
-                      <span className="tw:text-gray-500">Created by</span>
-                      {order.createdBy.redirect ? (
-                        <AppLink
-                          href={order.createdBy.redirect.path}
-                          className="tw:font-medium"
-                          asLink={true}
-                        >
-                          {order.createdBy.name}
-                        </AppLink>
-                      ) : (
-                        <span className="tw:font-medium tw:text-gray-800">
-                          {order.createdBy.name}
-                        </span>
-                      )}
-                      {order.createdBy.userType ? (
-                        <AppBadge variant="light">
-                          {order.createdBy.userType}
-                        </AppBadge>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
+                ) : null}
 
-              {order._needPaymentApproval ? (
-                <PaymentApprovalInfo
-                  payments={order.paymentMode}
-                  orderAmount={order._payableAmt || 0}
-                  orderId={order._id}
-                  groupTransactionId={order.groupTransactionId}
-                  linkedOrder={order.linkedOrder}
-                  currentOrderRefNo={order.orderRefNo}
-                  isCurrentOrderReserve={
-                    !!order._hasInsufficientStock || !!order.shiplaterRequest
-                  }
-                  callback={handlePaymentApprovalCallback}
-                />
-              ) : null}
+                {!loading && !order?._id ? <NoData /> : null}
 
-              {!order.quickCheckout ? (
-                <RouteInfoBanner
-                  customerInfo={order.customerInfo}
-                  routeInfo={order.routeInfo}
-                  isMyOrder={!!order.isMyOrder}
-                  orderType={order.orderType}
-                  orderStatus={order.status}
-                  orderId={order._id}
-                  feature="order"
-                  onRefresh={() => {
-                    setLoading(true);
-                    getData(id || "").then((data) => {
-                      setOrder(data);
-                      setLoading(false);
-                    });
-                  }}
-                />
-              ) : null}
-
-              {order.canDoSplitOrder ? (
-                <SplitOrder
-                  orderId={order._id}
-                  canDoSplitOrder={order.canDoSplitOrder}
-                  callback={handleSplitOrderCallback}
-                  className="tw:mb-4"
-                  isMyOrder={order.isMyOrder}
-                />
-              ) : null}
-
-              {!order._needPaymentApproval &&
-              order.shiplaterRequest &&
-              (order.showApproveForShiplater ||
-                order.shiplaterRequest.status !== "Pending") ? (
-                <ShiplaterApproval
-                  shiplaterRequest={order.shiplaterRequest}
-                  onApprove={
-                    order.showApproveForShiplater
-                      ? handleShiplaterApprove
-                      : undefined
-                  }
-                  onReject={
-                    order.showApproveForShiplater
-                      ? () => setShowShiplaterRejectModal(true)
-                      : undefined
-                  }
-                />
-              ) : null}
-
-              {order._needToApprove &&
-              !order._needPaymentApproval &&
-              order._hasInsufficientStock ? (
-                <InsufficientStockBanner
-                  count={
-                    (order.items || []).filter(
-                      (it: any) =>
-                        it?.showAddStock && it?.status !== "Cancelled",
-                    ).length
-                  }
-                  showShipLaterButton={order.showShipLaterButton}
-                  onShipLater={() => setShowShipLaterModal(true)}
-                />
-              ) : null}
-
-              {!order._needPaymentApproval && order.waitingForBuyerApproval ? (
-                <AppCard
-                  noPadding
-                  className="tw:mb-4 tw:rounded-lg tw:border tw:border-amber-200/80 tw:bg-white tw:overflow-hidden tw:relative tw:shadow-sm"
-                >
-                  <div className="tw:h-1 tw:bg-linear-to-r tw:from-amber-200 tw:via-amber-400 tw:to-amber-200 tw:animate-pulse" />
-                  <div className="tw:relative tw:px-3.5 tw:py-3 tw:flex tw:flex-col tw:sm:flex-row tw:sm:items-center tw:gap-3">
-                    <div className="tw:flex tw:items-center tw:gap-3 tw:flex-1 tw:min-w-0">
-                      <div className="tw:relative tw:flex tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-full tw:bg-amber-50 tw:border tw:border-amber-200 tw:shrink-0">
-                        <Clock size={18} className="tw:text-amber-700" />
-                        <span className="tw:absolute tw:-top-0.5 tw:-right-0.5 tw:flex tw:h-2.5 tw:w-2.5">
-                          <span className="tw:absolute tw:inline-flex tw:h-full tw:w-full tw:rounded-full tw:bg-amber-400 tw:opacity-75 tw:animate-ping" />
-                          <span className="tw:relative tw:inline-flex tw:h-2.5 tw:w-2.5 tw:rounded-full tw:bg-amber-500 tw:ring-2 tw:ring-white" />
-                        </span>
-                      </div>
-                      <div className="tw:min-w-0 tw:flex-1">
-                        <div className="tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
-                          <span className="tw:text-sm tw:font-semibold tw:text-gray-900 tw:leading-tight">
-                            {t("waitingForApproval")}
-                          </span>
-                          <span className="tw:inline-flex tw:items-center tw:text-[10px] tw:uppercase tw:tracking-wider tw:text-amber-800 tw:font-semibold tw:bg-amber-100 tw:border tw:border-amber-200 tw:px-1.5 tw:py-0.5 tw:rounded">
-                            {t("shipLater")}
-                          </span>
-                        </div>
-                        <p className="tw:text-xs tw:text-gray-500 tw:mt-0.5 tw:leading-snug">
-                          {t("shipLaterAwaitingBuyerApproval")}
-                        </p>
-                        {order.shiplaterRequest?.expectedDeliveryDate ? (
-                          <div className="tw:mt-1.5 tw:flex tw:items-center tw:gap-1.5 tw:text-xs">
-                            <span className="tw:text-gray-500">
-                              {t("newExpectedDeliveryDate")}:
-                            </span>
-                            <span className="tw:font-semibold tw:text-gray-900">
-                              <DateFormat
-                                value={
-                                  order.shiplaterRequest.expectedDeliveryDate
-                                }
-                              />
-                            </span>
+                {!loading && order?._id ? (
+                  <>
+                    <div className="ov-hero tw:mb-4">
+                      {/* Identity above, actions below on narrow columns: the
+                          ref no is long enough that a right-hand button stack
+                          would squeeze it onto two lines. They share a row from
+                          sm up, where there's width for both. */}
+                      <div className="tw:flex tw:flex-col tw:gap-3 tw:sm:flex-row tw:sm:items-start tw:sm:justify-between">
+                        <div className="tw:flex tw:items-start tw:gap-3 tw:min-w-0 tw:flex-1">
+                          <div className="ov-hero-icon">
+                            <Package size={20} />
                           </div>
-                        ) : null}
+                          <div className="tw:min-w-0 tw:flex-1">
+                            <div className="ov-hero-eyebrow">Order</div>
+                            {/* Ref no and badges share a line wherever there's
+                                room and wrap onto their own when there isn't,
+                                so the plate stays two or three lines tall
+                                instead of one row per fact. */}
+                            <div className="tw:flex tw:items-center tw:gap-x-2 tw:gap-y-1.5 tw:flex-wrap tw:min-w-0">
+                              <h1 className="app-heading-serif tw:text-[18px] tw:font-bold tw:tracking-tight tw:text-primary tw:leading-tight tw:tabular-nums tw:truncate tw:min-w-0">
+                                #{order.orderRefNo}
+                              </h1>
+                              <div className="tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
+                                {orderBadges}
+                              </div>
+                            </div>
+                            <div className="ov-hero-meta tw:mt-2">
+                              <div className="tw:flex tw:items-center tw:gap-1.5 tw:min-w-0">
+                                <span className="tw:shrink-0">
+                                  {t("placedOn")}:
+                                </span>
+                                <strong className="tw:truncate">
+                                  <DateFormat value={order.createdAt} />
+                                </strong>
+                              </div>
+                              {order.createdBy?.name ? (
+                                <div className="tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap tw:min-w-0">
+                                  <User
+                                    size={13}
+                                    className="tw:text-gray-400 tw:shrink-0"
+                                  />
+                                  <span className="tw:shrink-0">
+                                    Created by
+                                  </span>
+                                  {order.createdBy.redirect ? (
+                                    <AppLink
+                                      href={order.createdBy.redirect.path}
+                                      className="tw:font-medium"
+                                      asLink={true}
+                                    >
+                                      {order.createdBy.name}
+                                    </AppLink>
+                                  ) : (
+                                    <strong>{order.createdBy.name}</strong>
+                                  )}
+                                  {order.createdBy.userType ? (
+                                    <AppBadge variant="light">
+                                      {order.createdBy.userType}
+                                    </AppBadge>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2 tw:sm:justify-end tw:sm:shrink-0">
+                          <Rbac roles={rbacRoles.cancelOrder}>
+                            {order._showCancelFullOrder &&
+                              !order._needToApprove &&
+                              !order._needPaymentApproval && (
+                                <AppButton
+                                  color="light"
+                                  fill="outline"
+                                  size="small"
+                                  onClick={() => setShowRemarksModal(true)}
+                                >
+                                  {t("cancelOrder")}
+                                </AppButton>
+                              )}
+                          </Rbac>
+                          {!order.isMyOrder && order.status === "Shipped" ? (
+                            <AppButton
+                              color="success"
+                              size="small"
+                              onClick={() =>
+                                appNav.to(
+                                  `/dashboard/orders/primary/receive/process/${order._id}`,
+                                )
+                              }
+                            >
+                              <BoxIcon />
+                              {t("receive")}
+                            </AppButton>
+                          ) : null}
+                          {order.invoices && order.invoices.length > 0 ? (
+                            <>
+                              {order.orderType === "B2C" ? (
+                                <>
+                                  <PrintReceipt
+                                    orderId={order._id}
+                                    size="small"
+                                    color="light"
+                                    variant="outline"
+                                  />
+                                  {order.invoices[0]?.invoiceDocumentId ? (
+                                    <AppButton
+                                      color="light"
+                                      fill="outline"
+                                      size="small"
+                                      onClick={() =>
+                                        CommonService.assetDownload(
+                                          order.invoices[0].invoiceDocumentId,
+                                          true,
+                                        )
+                                      }
+                                    >
+                                      <FileText />
+                                      {t("printInvoice")}
+                                    </AppButton>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <AppButton
+                                  color="light"
+                                  fill="outline"
+                                  size="small"
+                                  onClick={handleDownloadInvoice}
+                                >
+                                  <File />
+                                  {t("downloadInvoice")}
+                                </AppButton>
+                              )}
+                            </>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
-                    {order._canCancelShipLaterRequest ? (
-                      <AppButton
-                        color="light"
-                        fill="outline"
-                        size="small"
-                        onClick={() => setShowCancelShiplaterModal(true)}
-                      >
-                        <X size={14} />
-                        {t("cancelRequest")}
-                      </AppButton>
+
+                    {/* Where the order stands, straight under its identity —
+                        the two travel as one block on phones. Everything
+                        below is either something to act on or detail. */}
+                    <FulfillmentStepper order={order} />
+
+                    {order._needPaymentApproval ? (
+                      <PaymentApprovalInfo
+                        payments={order.paymentMode}
+                        orderAmount={order._payableAmt || 0}
+                        orderId={order._id}
+                        groupTransactionId={order.groupTransactionId}
+                        linkedOrder={order.linkedOrder}
+                        currentOrderRefNo={order.orderRefNo}
+                        isCurrentOrderReserve={
+                          !!order._hasInsufficientStock ||
+                          !!order.shiplaterRequest
+                        }
+                        callback={handlePaymentApprovalCallback}
+                      />
                     ) : null}
-                  </div>
-                </AppCard>
-              ) : null}
 
-              <AppTab
-                tabs={tabsWithCounts}
-                activeTab={activeTab}
-                onTabChange={(tab) => setActiveTab(tab.key)}
-                className="tw:mb-4"
-              />
+                    {!order.quickCheckout ? (
+                      <RouteInfoBanner
+                        customerInfo={order.customerInfo}
+                        routeInfo={order.routeInfo}
+                        isMyOrder={!!order.isMyOrder}
+                        orderType={order.orderType}
+                        orderStatus={order.status}
+                        orderId={order._id}
+                        feature="order"
+                        onRefresh={() => {
+                          setLoading(true);
+                          getData(id || "").then((data) => {
+                            setOrder(data);
+                            setLoading(false);
+                          });
+                        }}
+                      />
+                    ) : null}
 
-              {order.isPaylaterOrder ? (
-                <InfoBlock size="sm" className="tw:mb-4" bordered>
-                  <span className="tw:font-bold tw:mr-2">Please Note:</span>
-                  <span>
-                    Payment processed through customer&apos;s &quot;
-                    <span className="tw:font-bold">Pay Later</span> &quot;
-                    wallet. No immediate payment collection required.
-                  </span>
-                </InfoBlock>
-              ) : null}
+                    {order.canDoSplitOrder ? (
+                      <SplitOrder
+                        orderId={order._id}
+                        canDoSplitOrder={order.canDoSplitOrder}
+                        callback={handleSplitOrderCallback}
+                        className="tw:mb-4"
+                        isMyOrder={order.isMyOrder}
+                      />
+                    ) : null}
 
-              <RefundSettlement
-                orderId={order._id}
-                refundSettlements={order.refundSettlements}
-                className="tw:mb-4"
-                callback={async (data) => {
-                  if (data.action === "submit") {
-                    setLoading(true);
-                    const updatedOrder = await getData(id || "");
-                    setOrder(updatedOrder);
-                    setLoading(false);
-                  }
-                }}
-              />
+                    {!order._needPaymentApproval &&
+                    order.shiplaterRequest &&
+                    (order.showApproveForShiplater ||
+                      order.shiplaterRequest.status !== "Pending") ? (
+                      <ShiplaterApproval
+                        shiplaterRequest={order.shiplaterRequest}
+                        onApprove={
+                          order.showApproveForShiplater
+                            ? handleShiplaterApprove
+                            : undefined
+                        }
+                        onReject={
+                          order.showApproveForShiplater
+                            ? () => setShowShiplaterRejectModal(true)
+                            : undefined
+                        }
+                      />
+                    ) : null}
 
-              {order.isKcStore ? (
-                <InfoBlock
-                  size="sm"
-                  className="tw:mb-4"
-                  bordered
-                  variant="warning"
-                >
-                  <span className="tw:font-bold tw:mr-2">Please Note:</span>
-                  <span>
-                    This is a{" "}
-                    <AppBadge variant={order._subTypeColor}>CoinStore</AppBadge>{" "}
-                    order. Customer has redeemed
-                    <span className="tw:font-bold tw:mx-1">
-                      {order.coinsRedeemed ?? 0} {t("coins")}
-                    </span>
-                  </span>
-                </InfoBlock>
-              ) : null}
+                    {order._needToApprove &&
+                    !order._needPaymentApproval &&
+                    order._hasInsufficientStock ? (
+                      <InsufficientStockBanner
+                        count={
+                          (order.items || []).filter(
+                            (it: any) =>
+                              it?.showAddStock && it?.status !== "Cancelled",
+                          ).length
+                        }
+                        showShipLaterButton={order.showShipLaterButton}
+                        onShipLater={() => setShowShipLaterModal(true)}
+                      />
+                    ) : null}
 
-              {order.isSplitOrder && order.parentOrder ? (
-                <div className="tw:mb-4 tw:flex tw:items-center tw:gap-2 tw:px-3 tw:py-2 tw:bg-blue-50 tw:border tw:border-blue-200 tw:rounded tw:text-xs tw:text-blue-700">
-                  <GitBranch size={14} className="tw:shrink-0" />
-                  <span>
-                    This order was created from order{" "}
-                    <AppLink
-                      asLink
-                      href={`/dashboard/orders/view/${order.parentOrder.orderId}`}
-                      className="tw:font-semibold tw:underline"
-                    >
-                      #{order.parentOrder.orderRefNo}
-                    </AppLink>{" "}
-                    because some items were sent separately.
-                  </span>
-                </div>
-              ) : null}
+                    {!order._needPaymentApproval &&
+                    order.waitingForBuyerApproval ? (
+                      <AppCard
+                        noPadding
+                        className="tw:mb-4 tw:rounded-lg tw:border tw:border-amber-200/80 tw:bg-white tw:overflow-hidden tw:relative tw:shadow-sm"
+                      >
+                        <div className="tw:h-1 tw:bg-linear-to-r tw:from-amber-200 tw:via-amber-400 tw:to-amber-200 tw:animate-pulse" />
+                        <div className="tw:relative tw:px-3.5 tw:py-3 tw:flex tw:flex-col tw:sm:flex-row tw:sm:items-center tw:gap-3">
+                          <div className="tw:flex tw:items-center tw:gap-3 tw:flex-1 tw:min-w-0">
+                            <div className="tw:relative tw:flex tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-full tw:bg-amber-50 tw:border tw:border-amber-200 tw:shrink-0">
+                              <Clock size={18} className="tw:text-amber-700" />
+                              <span className="tw:absolute tw:-top-0.5 tw:-right-0.5 tw:flex tw:h-2.5 tw:w-2.5">
+                                <span className="tw:absolute tw:inline-flex tw:h-full tw:w-full tw:rounded-full tw:bg-amber-400 tw:opacity-75 tw:animate-ping" />
+                                <span className="tw:relative tw:inline-flex tw:h-2.5 tw:w-2.5 tw:rounded-full tw:bg-amber-500 tw:ring-2 tw:ring-white" />
+                              </span>
+                            </div>
+                            <div className="tw:min-w-0 tw:flex-1">
+                              <div className="tw:flex tw:items-center tw:gap-1.5 tw:flex-wrap">
+                                <span className="tw:text-sm tw:font-semibold tw:text-gray-900 tw:leading-tight">
+                                  {t("waitingForApproval")}
+                                </span>
+                                <span className="tw:inline-flex tw:items-center tw:text-[10px] tw:uppercase tw:tracking-wider tw:text-amber-800 tw:font-semibold tw:bg-amber-100 tw:border tw:border-amber-200 tw:px-1.5 tw:py-0.5 tw:rounded">
+                                  {t("shipLater")}
+                                </span>
+                              </div>
+                              <p className="tw:text-xs tw:text-gray-500 tw:mt-0.5 tw:leading-snug">
+                                {t("shipLaterAwaitingBuyerApproval")}
+                              </p>
+                              {order.shiplaterRequest?.expectedDeliveryDate ? (
+                                <div className="tw:mt-1.5 tw:flex tw:items-center tw:gap-1.5 tw:text-xs">
+                                  <span className="tw:text-gray-500">
+                                    {t("newExpectedDeliveryDate")}:
+                                  </span>
+                                  <span className="tw:font-semibold tw:text-gray-900">
+                                    <DateFormat
+                                      value={
+                                        order.shiplaterRequest
+                                          .expectedDeliveryDate
+                                      }
+                                    />
+                                  </span>
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                          {order._canCancelShipLaterRequest ? (
+                            <AppButton
+                              color="light"
+                              fill="outline"
+                              size="small"
+                              onClick={() => setShowCancelShiplaterModal(true)}
+                            >
+                              <X size={14} />
+                              {t("cancelRequest")}
+                            </AppButton>
+                          ) : null}
+                        </div>
+                      </AppCard>
+                    ) : null}
 
-              {activeTab === "details" ? (
-                <div className="tw:flex tw:flex-col tw:md:flex-row tw:gap-4">
-                  <div className="tw:flex-1">
-                    <StatusSummary
-                      order={order}
-                      callback={handleChildCallback}
+                    {/* Pills on theme-2 (the chat-app register), the segmented
+                  control everywhere else. Pinned under the app header either
+                  way, so switching views never means scrolling back up. */}
+                    <AppTab
+                      tabs={tabsWithCounts}
+                      activeTab={activeTab}
+                      onTabChange={(tab) => setActiveTab(tab.key)}
+                      variant={isTheme2 ? "pills" : undefined}
+                      className="ov-tabs tw:mb-4"
+                      slideOffset={isTheme2 ? 16 : 0}
                     />
 
-                    {/* <OrderInvoiceList
+                    {order.isPaylaterOrder ? (
+                      <OrderNote>
+                        <span className="tw:font-bold tw:mr-2">
+                          Please Note:
+                        </span>
+                        <span>
+                          Payment processed through customer&apos;s &quot;
+                          <span className="tw:font-bold">Pay Later</span> &quot;
+                          wallet. No immediate payment collection required.
+                        </span>
+                      </OrderNote>
+                    ) : null}
+
+                    <RefundSettlement
+                      orderId={order._id}
+                      refundSettlements={order.refundSettlements}
+                      className="tw:mb-4"
+                      callback={async (data) => {
+                        if (data.action === "submit") {
+                          setLoading(true);
+                          const updatedOrder = await getData(id || "");
+                          setOrder(updatedOrder);
+                          setLoading(false);
+                        }
+                      }}
+                    />
+
+                    {order.isKcStore ? (
+                      <OrderNote variant="warning">
+                        <span className="tw:font-bold tw:mr-2">
+                          Please Note:
+                        </span>
+                        <span>
+                          This is a{" "}
+                          <AppBadge variant={order._subTypeColor}>
+                            CoinStore
+                          </AppBadge>{" "}
+                          order. Customer has redeemed
+                          <span className="tw:font-bold tw:mx-1">
+                            {order.coinsRedeemed ?? 0} {t("coins")}
+                          </span>
+                        </span>
+                      </OrderNote>
+                    ) : null}
+
+                    {order.isSplitOrder && order.parentOrder ? (
+                      <div className="ov-bubble ov-bubble-info tw:mb-4 tw:flex tw:items-center tw:gap-2">
+                        <GitBranch size={14} className="tw:shrink-0" />
+                        <span>
+                          This order was created from order{" "}
+                          <AppLink
+                            asLink
+                            href={`/dashboard/orders/view/${order.parentOrder.orderId}`}
+                            className="tw:font-semibold tw:underline"
+                          >
+                            #{order.parentOrder.orderRefNo}
+                          </AppLink>{" "}
+                          because some items were sent separately.
+                        </span>
+                      </div>
+                    ) : null}
+
+                    {activeTab === "details" ? (
+                      <div className="ov-grid">
+                        <div className="tw:min-w-0">
+                          <StatusSummary
+                            order={order}
+                            callback={handleChildCallback}
+                          />
+
+                          {/* <OrderInvoiceList
                       invoices={order.invoices}
                       callback={listCallback}
                     /> */}
 
-                    <PointsReward coinsRewared={order.coinsRewared} />
+                          <PointsReward coinsRewared={order.coinsRewared} />
 
-                    <div id="order-products-section">
-                      <OrderProducts
-                        products={order.items}
-                        statusSummary={order.statusSummary}
-                        orderId={order._id}
-                        isKCStore={order.isKcStore}
-                        isMyOrder={order.isMyOrder}
-                        needPaymentApproval={order._needPaymentApproval}
-                        orderType={order.orderType}
-                        callback={orderProductsCallback}
-                      />
-                    </div>
+                          <div id="order-products-section">
+                            <OrderProducts
+                              products={order.items}
+                              statusSummary={order.statusSummary}
+                              orderId={order._id}
+                              isKCStore={order.isKcStore}
+                              isMyOrder={order.isMyOrder}
+                              needPaymentApproval={order._needPaymentApproval}
+                              orderType={order.orderType}
+                              callback={orderProductsCallback}
+                            />
+                          </div>
 
-                    <BillSummary order={order} />
-                  </div>
-                  <div className="tw:md:w-1/3 tw:md:sticky tw:md:top-20 tw:md:self-start">
-                    {order.isMyOrder ? (
-                      <DeliveryTo
-                        customerInfo={order.customerInfo}
-                        deliveryAddress={order.shippingAddress}
-                        deliveryDistance={order.deliveryDistance}
-                      />
-                    ) : (
-                      <SellerInfo data={order.sellerInfo} />
-                    )}
-
-                    <AppCard title={t("payment")} icon="credit-card">
-                      <div className="tw:flex tw:items-center tw:gap-2 tw:mt-2 tw:justify-between">
-                        <span className="tw:text-gray-500 tw:text-sm">
-                          {t("method")}
-                        </span>
-                        <AppBadge
-                          variant={
-                            order.isKcStore
-                              ? "warning"
-                              : order.isPaylaterOrder
-                                ? "primary"
-                                : "light"
-                          }
-                        >
-                          {order.isKcStore
-                            ? "Coinstore"
-                            : order.isPaylaterOrder
-                              ? "Paylater Wallet"
-                              : order.paymentType}
-                        </AppBadge>
-                      </div>
-
-                      {order.isKcStore ? (
-                        <div className="tw:text-sm tw:text-gray-700 tw:mt-2">
-                          Customer has redeemed{" "}
-                          <span className="tw:font-bold">
-                            {order.coinsRedeemed ?? 0} {t("coins")}
-                          </span>{" "}
+                          <BillSummary order={order} />
                         </div>
-                      ) : (
-                        <>
-                          {Array.isArray(order.paymentMode) &&
-                          order.paymentMode.length > 0 ? (
-                            <div className="tw:flex tw:flex-col tw:gap-2 tw:mt-2">
-                              {order.paymentMode.map(
-                                (payment: any, index: number) => (
-                                  <PaymentMethodList
-                                    key={index}
-                                    payment={payment}
-                                    callback={handleChildCallback}
+                        <div className="ov-grid-side tw:min-w-0">
+                          {order.isMyOrder ? (
+                            <DeliveryTo
+                              customerInfo={order.customerInfo}
+                              deliveryAddress={order.shippingAddress}
+                              deliveryDistance={order.deliveryDistance}
+                            />
+                          ) : (
+                            <SellerInfo data={order.sellerInfo} />
+                          )}
+
+                          {/* Payment, as a contact-info style block: how it's being
+                        paid on the identity row, then the settled/pending
+                        state and each tender underneath. */}
+                          <AppCard noPadding>
+                            <div className="app-seller-header tw:bg-primary/5 tw:px-4 tw:py-3 tw:border-b tw:border-primary/15">
+                              <div className="tw:flex tw:items-center tw:gap-3">
+                                <div className="tw:shrink-0 tw:w-10 tw:h-10 tw:rounded-full tw:bg-primary tw:text-white tw:flex tw:items-center tw:justify-center">
+                                  <CreditCard size={17} />
+                                </div>
+                                <div className="tw:flex-1 tw:min-w-0">
+                                  <div className="tw:text-sm tw:font-semibold tw:text-gray-900 tw:truncate">
+                                    {order.isKcStore
+                                      ? "Coinstore"
+                                      : order.isPaylaterOrder
+                                        ? "Paylater Wallet"
+                                        : order.paymentType}
+                                  </div>
+                                  <div className="tw:text-[11px] tw:text-gray-500">
+                                    {t("payment")} · {t("method")}
+                                  </div>
+                                </div>
+                                {order._paymentStatusLbl ? (
+                                  <AppBadge variant={order._paymentStatusColor}>
+                                    {order._paymentStatusLbl}
+                                  </AppBadge>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="tw:px-4 tw:py-4">
+                              {order.isKcStore ? (
+                                <div className="tw:text-sm tw:text-gray-700">
+                                  Customer has redeemed{" "}
+                                  <span className="tw:font-bold">
+                                    {order.coinsRedeemed ?? 0} {t("coins")}
+                                  </span>{" "}
+                                </div>
+                              ) : (
+                                <>
+                                  {Array.isArray(order.paymentMode) &&
+                                  order.paymentMode.length > 0 ? (
+                                    <div className="tw:flex tw:flex-col tw:gap-2">
+                                      {order.paymentMode.map(
+                                        (payment: any, index: number) => (
+                                          <PaymentMethodList
+                                            key={index}
+                                            payment={payment}
+                                            callback={handleChildCallback}
+                                          />
+                                        ),
+                                      )}
+                                    </div>
+                                  ) : null}
+                                  <PrepaidPaymentBtn
+                                    order={order}
+                                    onPaymentSuccess={async () => {
+                                      setLoading(true);
+                                      const updatedOrder = await getData(
+                                        id || "",
+                                      );
+                                      setOrder(updatedOrder);
+                                      setLoading(false);
+                                    }}
                                   />
-                                ),
+                                </>
                               )}
                             </div>
-                          ) : null}
-                          <PrepaidPaymentBtn
-                            order={order}
-                            onPaymentSuccess={async () => {
-                              setLoading(true);
-                              const updatedOrder = await getData(id || "");
-                              setOrder(updatedOrder);
-                              setLoading(false);
-                            }}
-                          />
-                        </>
-                      )}
-                    </AppCard>
+                          </AppCard>
+                        </div>
+                      </div>
+                    ) : activeTab === "timeline" ? (
+                      <Timeline
+                        timelineData={order.logs || []}
+                        invoices={order.invoices || []}
+                        orderType={order.orderType}
+                        packages={order.packages || []}
+                        shipmentDetails={order.shipmentDetails || null}
+                        orderSubType={order.orderSubType}
+                        orderId={order._id}
+                        orderStatus={order.status}
+                        canProcess={order._canProcessOrder}
+                        isGuestCustomer={order.customerInfo?.isGuesCustomer}
+                        quickCheckout={order.quickCheckout}
+                      />
+                    ) : activeTab === "linkedOrder" ? (
+                      <LinkedOrderNotice
+                        order={order}
+                        linkedOrder={order.linkedOrder}
+                      />
+                    ) : activeTab === "boxes" ? (
+                      <OrderBoxes
+                        orderId={order._id}
+                        receivedCount={receivedCount}
+                        notReceivedCount={notReceivedCount}
+                        callback={handleOrderBoxesCallback}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+
+              {/* Side column — theme-2 desktop only, where the CSS re-homes it
+                  as the fixed order pane: the list of orders stays alongside
+                  the one being read, the way a chat list sits beside a chat. */}
+              <AppPaneSide className="app-pane-only">
+                <FulfillmentSidePane
+                  title={t("orders")}
+                  chipType="order-channel"
+                  showStages={!isPaymentApproval}
+                />
+
+                {isPaymentApproval && (
+                  <div className="tw:mt-4 tw:flex tw:flex-col tw:gap-4">
+                    <PaymentPendingList refreshKey={paymentBlocksKey} />
+                    <PaymentApprovedList refreshKey={paymentBlocksKey} />
                   </div>
-                </div>
-              ) : activeTab === "timeline" ? (
-                <Timeline
-                  timelineData={order.logs || []}
-                  invoices={order.invoices || []}
-                  orderType={order.orderType}
-                  packages={order.packages || []}
-                  shipmentDetails={order.shipmentDetails || null}
-                  orderSubType={order.orderSubType}
-                  orderId={order._id}
-                  orderStatus={order.status}
-                  canProcess={order._canProcessOrder}
-                  isGuestCustomer={order.customerInfo?.isGuesCustomer}
-                />
-              ) : activeTab === "linkedOrder" ? (
-                <LinkedOrderNotice
-                  order={order}
-                  linkedOrder={order.linkedOrder}
-                />
-              ) : activeTab === "boxes" ? (
-                <OrderBoxes
-                  orderId={order._id}
-                  receivedCount={receivedCount}
-                  notReceivedCount={notReceivedCount}
-                  callback={handleOrderBoxesCallback}
-                />
-              ) : null}
-            </>
-          ) : null}
+                )}
+              </AppPaneSide>
+            </div>
+          </div>
         </div>
       </div>
 

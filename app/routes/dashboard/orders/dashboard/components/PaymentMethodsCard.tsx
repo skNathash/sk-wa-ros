@@ -5,8 +5,10 @@ import AppButton from "~/components/core/button/AppButton";
 import Amount from "~/components/core/amount/Amount";
 import clsx from "clsx";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
+import useTheme from "~/hooks/useTheme";
 import OmsDashboardService from "~/services/OmsDashboardService";
 import { prepareParams, formatPaymentSummary } from "../helper";
+import PaymentBreakdown from "./theme2/PaymentBreakdown";
 
 interface PaymentMethod {
   label: string;
@@ -21,8 +23,8 @@ const PaymentMethodCard: React.FC<{
   method: PaymentMethod;
   loading?: boolean;
 }> = ({ method, loading = false }) => (
-  <AppCard>
-    <div className="tw:flex tw:items-center tw:justify-between tw:gap-4">
+  <AppCard noPadding>
+    <div className="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:p-3">
       <div className="tw:flex tw:items-center tw:gap-2">
         <div
           className="tw:p-2 tw:rounded-lg tw:flex tw:items-center tw:justify-center tw:flex-shrink-0"
@@ -73,6 +75,7 @@ const PaymentMethodsCard: React.FC<{
   onManage,
 }) => {
   const [loading, setLoading] = useState(true);
+  const isTheme2 = useTheme() === "theme-2";
   const [summary, setSummary] = useState<{
     prepaid: number;
     prepaidPerc: number;
@@ -155,10 +158,16 @@ const PaymentMethodsCard: React.FC<{
       label: "Pay Later",
       value: summary.payLater,
       percentage: summary.payLaterPerc,
-      color: "#D1D5DB",
+      // Theme-2 draws a share bar per method, and the theme-1 tile grey
+      // (#D1D5DB) all but disappears as a bar, so it steps up to a slate.
+      color: isTheme2 ? "#94A3B8" : "#D1D5DB",
       icon: <Clock className="tw:w-full tw:h-full" />,
     },
   ];
+
+  if (isTheme2) {
+    return <PaymentBreakdown methods={methods} loading={loading} />;
+  }
 
   return (
     <>

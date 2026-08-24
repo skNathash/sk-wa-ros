@@ -9,15 +9,23 @@ import DateFormat from "~/components/core/date/DateFormat";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
 import AuthService from "~/services/AuthService";
 import AppButton from "~/components/core/button/AppButton";
+import ReceiveBoxFlow from "~/shared/purchase-order/components/receive-box-flow/ReceiveBoxFlow";
 
 const ViewBoxItemsModal = ({
   show,
   callback,
   boxId,
+  allowReceive = false,
 }: {
   show: boolean;
   callback: (a: { action: string; data?: any }) => void;
   boxId?: string | null | number;
+  /**
+   * Opt in to the receive action in the footer. Off by default — only surfaces
+   * that own the yet-to-receive feed (purchase-order/not-received) turn it on;
+   * everywhere else this modal stays read-only.
+   */
+  allowReceive?: boolean;
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +79,10 @@ const ViewBoxItemsModal = ({
   const handleClose = () => {
     callback({ action: "close" });
   };
+
+  // "Shipped" is the only state a box can still be received from; anything
+  // else (already received, short, closed) gets no receive button.
+  const canReceive = allowReceive && pkg?.status === "Shipped";
 
   return (
     <AppModal
@@ -281,7 +293,7 @@ const ViewBoxItemsModal = ({
       </AppModal.Content>
 
       <AppModal.Footer>
-        <div className="tw:w-full tw:flex tw:justify-end">
+        <div className="tw:w-full tw:flex tw:justify-end tw:gap-2">
           <AppButton
             onClick={handleClose}
             disabled={loading}
@@ -290,6 +302,17 @@ const ViewBoxItemsModal = ({
           >
             Close
           </AppButton>
+
+          {canReceive && (
+            <ReceiveBoxFlow
+              // The receive flow needs orderIdToProcess / isNonSkVendor, which
+              // the raw package response doesn't carry.
+              data={PurchaseOrderService.formatPoDashboardSummary(pkg)}
+              onReceived={() => callback({ action: "received", data: pkg })}
+            >
+              <AppButton color="primary">Received</AppButton>
+            </ReceiveBoxFlow>
+          )}
         </div>
       </AppModal.Footer>
     </AppModal>

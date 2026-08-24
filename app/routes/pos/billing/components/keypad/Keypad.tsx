@@ -103,7 +103,7 @@ const Keypad = ({ onSubmit, onClose, cart = [], notice = null }: KeypadProps) =>
           <button
             type="button"
             onClick={onClose}
-            className="tw:absolute tw:top-3 tw:right-3 tw:z-10 tw:flex tw:items-center tw:justify-center tw:w-8 tw:h-8 tw:rounded-full tw:border tw:border-border tw:bg-card tw:text-muted-foreground tw:cursor-pointer tw:hover:bg-muted tw:active:bg-muted tw:shadow-sm"
+            className="tw:absolute tw:top-3 tw:right-3 tw:z-10 tw:flex tw:items-center tw:justify-center tw:w-8 tw:h-8 tw:rounded-full tw:border tw:border-gray-300 tw:bg-white tw:text-gray-700 tw:cursor-pointer tw:hover:bg-gray-50 tw:active:bg-gray-100 tw:shadow-sm"
             aria-label="Close"
           >
             <X size={16} />
@@ -111,17 +111,17 @@ const Keypad = ({ onSubmit, onClose, cart = [], notice = null }: KeypadProps) =>
         )}
         <div className="tw:p-4 tw:flex tw:flex-col tw:gap-3 tw:max-w-md tw:mx-auto">
         <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
-          <div className="wa-mono tw:flex-1 tw:bg-muted tw:border tw:border-border tw:rounded-xl tw:px-3 tw:py-3 tw:text-right tw:text-2xl tw:min-h-[52px] tw:tracking-wider">
-            {value || <span className="tw:text-muted-foreground/50">0</span>}
+          <div className="tw:flex-1 tw:bg-gray-50 tw:border tw:border-gray-200 tw:rounded-md tw:px-3 tw:py-3 tw:text-right tw:text-2xl tw:font-mono tw:min-h-[52px] tw:tracking-wider">
+            {value || <span className="tw:text-gray-300">0</span>}
           </div>
         </div>
 
         {notice && (
           <div
             key={notice.ts}
-            className={`tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:px-3 tw:py-2 tw:text-sm tw:border ${
+            className={`tw:flex tw:items-center tw:gap-2 tw:rounded-md tw:px-3 tw:py-2 tw:text-sm tw:border ${
               notice.type === "error"
-                ? "tw:bg-destructive/10 tw:border-destructive/20 tw:text-destructive"
+                ? "tw:bg-red-50 tw:border-red-200 tw:text-red-800"
                 : "tw:bg-amber-50 tw:border-amber-200 tw:text-amber-800"
             }`}
           >
@@ -133,13 +133,13 @@ const Keypad = ({ onSubmit, onClose, cart = [], notice = null }: KeypadProps) =>
         {lastAdded && (
           <div
             key={lastAdded.ts}
-            className="tw:flex tw:items-center tw:gap-2 wa-incart tw:rounded-xl tw:px-3 tw:py-2 tw:text-sm tw:animate-in tw:fade-in tw:slide-in-from-top-1"
+            className="tw:flex tw:items-center tw:gap-2 tw:bg-green-50 tw:border tw:border-green-200 tw:text-green-800 tw:rounded-md tw:px-3 tw:py-2 tw:text-sm tw:animate-in tw:fade-in tw:slide-in-from-top-1"
           >
             <Check size={16} className="tw:shrink-0" />
             <span className="tw:flex-1 tw:truncate">
-              <span className="tw:font-bold">Added:</span> {lastAdded.name}
+              <span className="tw:font-semibold">Added:</span> {lastAdded.name}
             </span>
-            <span className="wa-mono tw:text-xs tw:bg-white/60 tw:px-2 tw:py-0.5 tw:rounded">
+            <span className="tw:font-mono tw:text-xs tw:bg-green-100 tw:px-2 tw:py-0.5 tw:rounded">
               x{lastAdded.qty}
             </span>
           </div>
@@ -154,18 +154,18 @@ const Keypad = ({ onSubmit, onClose, cart = [], notice = null }: KeypadProps) =>
                 key={k}
                 type="button"
                 onClick={() => press(k)}
-                className={`wa-mono tw:py-4 tw:rounded-xl tw:border tw:text-lg tw:font-semibold tw:cursor-pointer tw:select-none tw:transition tw:active:scale-95 ${
+                className={`tw:py-4 tw:rounded-md tw:border tw:text-lg tw:font-semibold tw:cursor-pointer tw:select-none tw:transition tw:active:scale-95 ${
                   isClear
-                    ? "tw:bg-destructive/10 tw:border-destructive/20 tw:text-destructive tw:hover:bg-destructive/15"
+                    ? "tw:bg-red-50 tw:border-red-200 tw:text-red-600 tw:hover:bg-red-100 tw:active:bg-red-200"
                     : isBack
-                      ? "tw:bg-muted tw:border-border tw:text-foreground tw:active:bg-muted/70"
-                      : "tw:bg-card tw:border-border tw:text-foreground tw:hover:border-primary/40 tw:active:bg-muted"
+                      ? "tw:bg-gray-100 tw:border-gray-300 tw:text-gray-700 tw:active:bg-gray-200"
+                      : "tw:bg-white tw:border-gray-300 tw:text-gray-900 tw:hover:bg-gray-50 tw:active:bg-gray-200"
                 }`}
               >
                 {isBack ? (
                   <Delete size={20} className="tw:mx-auto" />
                 ) : isClear ? (
-                  <span className="tw:text-sm tw:font-bold tw:tracking-wide">
+                  <span className="tw:text-sm tw:font-semibold tw:tracking-wide">
                     CLEAR
                   </span>
                 ) : (
@@ -180,7 +180,7 @@ const Keypad = ({ onSubmit, onClose, cart = [], notice = null }: KeypadProps) =>
           type="button"
           onClick={handleEnter}
           disabled={submitting || !value.trim()}
-          className="wa-cta tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-4 tw:rounded-xl tw:text-lg tw:font-bold tw:cursor-pointer tw:active:scale-[.98] tw:disabled:opacity-50 tw:disabled:cursor-not-allowed"
+          className="tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-4 tw:rounded-md tw:bg-primary tw:text-white tw:text-lg tw:font-semibold tw:cursor-pointer tw:active:scale-[.98] tw:disabled:opacity-50 tw:disabled:cursor-not-allowed"
         >
           {submitting ? (
             <>

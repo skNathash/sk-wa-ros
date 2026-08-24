@@ -23,7 +23,7 @@ const MobileView: React.FC<MobileViewProps> = ({ products, callback }) => {
   }
 
   return (
-    <div className="tw:space-y-4 tw:px-4">
+    <div className="tw:space-y-3 tw:px-3">
       {products.map((product, index) => (
         <div
           key={index}
@@ -46,7 +46,7 @@ const MobileView: React.FC<MobileViewProps> = ({ products, callback }) => {
                 {product.dealName}
               </AppLink>
 
-              <div className="tw:flex tw:items-center tw:gap-2 tw:mt-1">
+              <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:mt-1">
                 <AppBadge
                   variant={product.status === "VALID" ? "success" : "danger"}
                   className="tw:text-xs"

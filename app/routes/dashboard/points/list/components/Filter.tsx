@@ -3,6 +3,7 @@ import { debounce } from "lodash";
 import { useCallback } from "react";
 import { AppInput, AppSelect } from "~/components/core/form";
 import AppDateInput from "~/components/core/form/AppDateInput";
+import AppCard from "~/components/core/card/AppCard";
 import type { DayPickerProps } from "react-day-picker";
 import LoyaltyPointService from "~/services/LoyaltyPointService";
 import { useTranslation } from "react-i18next";
@@ -58,7 +59,10 @@ const Filter = ({ callback, className }: Props) => {
     };
 
   return (
-    <div className={`tw:space-y-4 ${className || ""}`}>
+    <AppCard
+      className={`tw:mb-0 tw:py-3 ${className || ""}`}
+      bodyClassName="tw:px-3"
+    >
       <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4">
         <AppInput
           name="search"
@@ -100,7 +104,7 @@ const Filter = ({ callback, className }: Props) => {
           />
         </div>
       </div>
-    </div>
+    </AppCard>
   );
 };
 

@@ -15,6 +15,7 @@ interface AppDateInputProps {
   isRequired?: boolean;
   inputClassName?: string;
   forceClose?: boolean;
+  showTime?: boolean;
   disabled?: boolean;
 }
 
@@ -31,6 +32,7 @@ const AppDateInput = ({
   isRequired = false,
   inputClassName = "",
   forceClose = false,
+  showTime = false,
   disabled = false,
 }: AppDateInputProps) => {
   const handleClear = () => {
@@ -54,6 +56,7 @@ const AppDateInput = ({
           hideClose={hideClose}
           inputClassName={inputClassName}
           forceClose={forceClose}
+          showTime={showTime}
           disabled={disabled}
         />
       </div>

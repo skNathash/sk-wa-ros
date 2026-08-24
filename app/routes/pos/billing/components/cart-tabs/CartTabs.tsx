@@ -142,14 +142,14 @@ const CartTabs = ({ cartData, activeCartId, callback }: Props) => {
           <AppSwiper.Slide key={cart.cartId} isAutoWidth>
             <button
               className={clsx(
-                "tw:px-3 tw:rounded-full tw:border tw:flex tw:items-center tw:gap-2 tw:text-xs tw:font-bold tw:py-1.5 tw:cursor-pointer tw:transition-colors",
+                "tw:px-3 tw:rounded-full tw:border tw:flex tw:items-center tw:gap-2 tw:text-xs tw:font-medium tw:py-1.5 tw:cursor-pointer tw:transition-colors",
                 activeCartId === cart.cartId
-                  ? "wa-incart tw:border-transparent tw:shadow-sm"
-                  : "tw:border-border tw:text-muted-foreground tw:bg-card tw:hover:border-primary/40"
+                  ? "tw:bg-primary tw:text-white tw:border-primary"
+                  : "tw:border-gray-300 tw:text-foreground tw:bg-card"
               )}
               onClick={() => viewCart(cart.cartId)}
             >
-              <span className="wa-mono">Bill {index + 1}</span>
+              Window - {index + 1}
               {cartData.length - 1 === index && index !== 0 && (
                 <X
                   size={14}
@@ -163,11 +163,11 @@ const CartTabs = ({ cartData, activeCartId, callback }: Props) => {
         {cartData.length <= 2 && (
           <AppSwiper.Slide isAutoWidth>
             <button
-              className="tw:px-3 tw:rounded-full tw:border tw:border-dashed tw:border-primary/50 tw:text-primary tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-bold tw:py-1.5 tw:cursor-pointer tw:transition-colors tw:hover:bg-primary/5"
+              className="tw:px-3 tw:rounded-full tw:border tw:border-dashed tw:border-primary/50 tw:text-primary tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-medium tw:py-1.5 tw:cursor-pointer tw:transition-colors tw:hover:bg-primary/5"
               onClick={handleAddCart}
             >
               <Plus size={14} />
-              New bill
+              ADD
             </button>
           </AppSwiper.Slide>
         )}

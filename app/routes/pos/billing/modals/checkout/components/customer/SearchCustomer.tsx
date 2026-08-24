@@ -185,14 +185,14 @@ const SearchCustomer = ({ callback }: SearchCustomerProps) => {
       />
 
       {searching && (
-        <div className="tw:text-sm tw:text-muted-foreground tw:mt-2">
+        <div className="tw:text-sm tw:text-gray-500 tw:mt-2">
           {t("checkoutModal.customer.search.searching")}
         </div>
       )}
 
       {isNewCustomer && (
-        <div className="tw:border tw:rounded-xl tw:p-3 tw:mt-3 tw:bg-primary/5 tw:border-primary/20">
-          <div className="tw:text-xs tw:text-primary tw:font-medium tw:mb-2">
+        <div className="tw:border tw:rounded-md tw:p-3 tw:mt-3 tw:bg-blue-50 tw:border-blue-200">
+          <div className="tw:text-xs tw:text-blue-700 tw:font-medium tw:mb-2">
             {t("checkoutModal.customer.search.noCustomerFound")}
           </div>
           <AppInput
@@ -200,13 +200,13 @@ const SearchCustomer = ({ callback }: SearchCustomerProps) => {
             register={register}
             name="name"
             size="lg"
-            inputClassName="tw:bg-card"
+            inputClassName="tw:bg-white"
           />
         </div>
       )}
 
       {customer && (
-        <div className="wa-incart tw:rounded-xl tw:p-4 tw:mt-4 tw:border tw:border-transparent tw:shadow-sm">
+        <div className="tw:rounded-lg tw:p-4 tw:mt-4 tw:bg-linear-to-br tw:from-green-50 tw:to-emerald-50 tw:border tw:border-green-200 tw:shadow-sm">
           <div className="tw:flex tw:justify-between tw:items-start tw:gap-3 tw:mb-3">
             {/* Customer Info */}
             <div className="tw:flex-1 tw:min-w-0">
@@ -218,19 +218,16 @@ const SearchCustomer = ({ callback }: SearchCustomerProps) => {
                       register={register}
                       name="tempName"
                       size="sm"
-                      inputClassName="tw:bg-card tw:text-foreground"
+                      inputClassName="tw:bg-white tw:text-gray-900"
                       autoFocus={true}
                       maxLength={100}
                       className="tw:w-full tw:flex-1"
-                      leftIcon={<User size={16} className="tw:text-muted-foreground" />}
+                      leftIcon={<User size={16} className="tw:text-gray-600" />}
                       disabled={saving}
                       onChange={handleTempNameChange}
                     />
                   ) : (
-                    <div
-                      className="tw:font-semibold"
-                      style={{ color: "var(--wa-bubble-text)" }}
-                    >
+                    <div className="tw:font-semibold tw:text-green-900">
                       {customer?.name}
                     </div>
                   )}
@@ -274,12 +271,9 @@ const SearchCustomer = ({ callback }: SearchCustomerProps) => {
 
               {!showEditInput && (
                 <div className="tw:flex tw:flex-col tw:gap-1.5 tw:mt-2">
-                  <div
-                    className="tw:text-xs tw:flex tw:gap-2 tw:items-center"
-                    style={{ color: "var(--wa-bubble-text)" }}
-                  >
+                  <div className="tw:text-xs tw:flex tw:gap-2 tw:items-center tw:text-green-700">
                     <Phone size={14} className="tw:shrink-0" />
-                    <span className="wa-mono tw:tracking-wide">
+                    <span className="tw:font-mono tw:tracking-wide">
                       {customer?.mobile}
                     </span>
                   </div>
@@ -296,7 +290,7 @@ const SearchCustomer = ({ callback }: SearchCustomerProps) => {
                 size="small"
                 fill="clear"
                 onClick={handleClear}
-                className="tw:p-1.5 tw:text-muted-foreground hover:tw:text-destructive hover:tw:bg-destructive/10 tw:rounded-full tw:transition-colors tw:duration-200 tw:flex-shrink-0"
+                className="tw:p-1.5 tw:text-gray-400 hover:tw:text-red-600 hover:tw:bg-red-100 tw:rounded-md tw:transition-colors tw:duration-200 tw:flex-shrink-0"
                 title="Remove selection"
               >
                 <X size={16} />
@@ -306,17 +300,18 @@ const SearchCustomer = ({ callback }: SearchCustomerProps) => {
 
           {/* Select Button - Full Width Below */}
           {!showEditInput && (
-            <button
-              type="button"
+            <AppButton
+              size="small"
+              color="success"
               onClick={() => {
                 if (callback) {
                   callback({ action: "next" });
                 }
               }}
-              className="wa-cta tw:w-full tw:px-4 tw:py-2.5 tw:font-bold tw:text-sm tw:rounded-xl tw:transition-all tw:duration-200 tw:whitespace-nowrap tw:cursor-pointer"
+              className="tw:w-full tw:px-4 tw:py-2.5 tw:font-semibold tw:text-sm tw:rounded-md tw:shadow-sm hover:tw:shadow-md tw:transition-all tw:duration-200 tw:whitespace-nowrap"
             >
               {t("checkoutModal.customer.actions.select")}
-            </button>
+            </AppButton>
           )}
         </div>
       )}

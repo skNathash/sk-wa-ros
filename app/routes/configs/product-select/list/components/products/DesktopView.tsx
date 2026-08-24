@@ -84,7 +84,7 @@ const DesktopView = ({
 
     if (feature === "PackUpdate") {
       base.push({
-        label: "Sell In",
+        label: "Sell As",
         key: "sellingType",
         width: widthMap.sellingType,
       });

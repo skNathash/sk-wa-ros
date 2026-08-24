@@ -1,13 +1,11 @@
-import { Barcode, Layers, Printer } from "lucide-react";
+import { Barcode, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouteLoaderData } from "react-router";
 import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
-import PageLoader from "~/components/core/page-loader/PageLoader";
-import useAppNav from "~/hooks/useAppNav";
+import ContentLoader from "~/components/core/page-loader/ContentLoader";
 import useScreenView from "~/hooks/useScreenView";
-import VariantModal from "~/routes/dashboard/inventory/subscribe/modals/variant-modal/VariantModal";
 import CommonService from "~/services/CommonService";
 import SellerCatalogService from "~/services/SellerCatalogService";
 import AddDealBarcodeModal from "~/shared/catalog/modals/add-deal-barcode/AddDealBarcodeModal";
@@ -51,14 +49,7 @@ const DealOverview = () => {
     dealId?: string;
   }>({ show: false, dealId: "" });
 
-  const [variantModal, setVariantModal] = useState<{
-    show: boolean;
-    dealId?: string;
-  }>({ show: false, dealId: "" });
-
   const [socialLinksModal, setSocialLinksModal] = useState(false);
-
-  const appNav = useAppNav();
 
   useEffect(() => {
     if (loadedData) {
@@ -100,9 +91,10 @@ const DealOverview = () => {
   const renderStockStatus = () => {
     return (
       <StockStatus
-        totalStock={productData.totalStock}
+        sellerDealObjId={productData._id}
+        // totalStock={productData.totalStock}
         stockValue={productData.inventoryValue}
-        daysOfStock={productData.daysOfStock}
+        // daysOfStock={productData.daysOfStock}
         stock={productData.actualMaxQty}
         blockedQty={productData.blockedQty}
         pickedQty={productData.pickedQty}
@@ -155,7 +147,7 @@ const DealOverview = () => {
   };
 
   if (!loadedData || !productData) {
-    return <PageLoader />;
+    return <ContentLoader />;
   }
 
   // Seller's own links populate the inputs; deal-level links are shown as
@@ -169,50 +161,21 @@ const DealOverview = () => {
 
   return (
     <>
-      <div className="tw:flex tw:flex-col tw:md:flex-row tw:gap-4">
-        <div className="tw:md:w-2/3">
-          <ProductBasicInfo
+      {/* Single column at every breakpoint — the detail page already splits
+          into hero / content columns, so a second split here reads cramped. */}
+      <div className="tw:flex tw:flex-col tw:gap-4">
+        <div>
+          {/* <ProductBasicInfo
             basic={productData}
             onPriceUpdate={handlePriceUpdate}
-          />
+          /> */}
 
-          {productData?.groupDeals &&
-            Array.isArray(productData.groupDeals) &&
-            productData.groupDeals.length > 0 && (
-              <div
-                className="tw:flex tw:items-center tw:justify-between tw:p-3 tw:bg-orange-50 tw:border tw:border-orange-100 tw:rounded-md tw:mb-4 tw:cursor-pointer hover:tw:bg-orange-100 tw:transition-colors"
-                onClick={() =>
-                  setVariantModal({ show: true, dealId: productData._id })
-                }
-              >
-                <div className="tw:flex tw:items-center tw:gap-2">
-                  <div className="tw:p-1.5 tw:bg-orange-100 tw:rounded-full tw:text-orange-600">
-                    <Layers size={16} />
-                  </div>
-                  <div>
-                    <div className="tw:text-sm tw:font-medium tw:text-gray-900">
-                      Multiple Variants Available
-                    </div>
-                    <div className="tw:text-xs tw:text-gray-500">
-                      {productData.groupDeals.length} variants found for this
-                      product
-                    </div>
-                  </div>
-                </div>
-                <AppButton
-                  size="small"
-                  color="primary"
-                  fill="clear"
-                  className="tw:text-orange-600 hover:tw:bg-orange-200 hover:tw:text-orange-700"
-                >
-                  View All
-                </AppButton>
-              </div>
-            )}
+          {renderStockStatus()}
 
-          {isMobile && renderStockStatus()}
+          {/* Variants now live in the page's left column as the
+              "Available Variants" list (see ProductVariants). */}
 
-          <ProductOtherInfo basic={productData} />
+          {/* <ProductOtherInfo basic={productData} /> */}
 
           <ProductSocialLinks
             basic={productData}
@@ -262,8 +225,7 @@ const DealOverview = () => {
           </AppCard>
           <ProductBin dealId={productData._id} />
         </div>
-        <div className="tw:md:w-1/3 tw:md:sticky tw:md:top-20 tw:self-start">
-          {!isMobile && renderStockStatus()}
+        <div>
           <RecentActivity dealId={productData?._raw?._id} />
         </div>
       </div>
@@ -320,23 +282,6 @@ const DealOverview = () => {
           }
         }}
       />
-
-      {variantModal.show && (
-        <VariantModal
-          show={variantModal.show}
-          callback={(e) => {
-            if (e.action === "close") {
-              setVariantModal({ show: false, dealId: "" });
-            }
-            if (e.action === "open_cart") {
-              setVariantModal({ show: false, dealId: "" });
-              appNav.to("/dashboard/inventory/subscribe/cart");
-            }
-          }}
-          dealId={variantModal.dealId || ""}
-          showAllDeals={true}
-        />
-      )}
     </>
   );
 };

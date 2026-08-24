@@ -2,6 +2,7 @@ import { Package, Upload, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import AppTab from "~/components/core/tab/AppTab";
 import useAppNav from "~/hooks/useAppNav";
+import useTheme from "~/hooks/useTheme";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
 import type { TabItem } from "~/types/CommonTypes";
 
@@ -37,9 +38,14 @@ const BulkUploadMainTab = ({
   refreshKey?: number | string;
 }) => {
   const appNav = useAppNav();
+  // theme-2 reads this sub-nav as free-standing pills (the filled brand chip)
+  // rather than the grey segmented bar the other themes use.
+  const isTheme2 = useTheme() === "theme-2";
   const [invalidCount, setInvalidCount] = useState(0);
 
   useEffect(() => {
+    // The badge only exists on the tab theme-2 hides, so skip the count call.
+    if (isTheme2) return;
     (async () => {
       try {
         const res = await InventorySubscribeService.getInvalidBarcodes({
@@ -51,9 +57,14 @@ const BulkUploadMainTab = ({
         console.error("Error fetching invalid barcode count:", e);
       }
     })();
-  }, [refreshKey]);
+  }, [refreshKey, isTheme2]);
 
-  const tabs = TABS.map((t) =>
+  // theme-2 keeps only the two upload flows here — single product lives in the
+  // catalog add flow and the not-found barcodes are surfaced from the preview.
+  const tabs = TABS.filter(
+    (t) =>
+      !isTheme2 || (t.key !== "single" && t.key !== "invalid-barcodes"),
+  ).map((t) =>
     t.key === "invalid-barcodes"
       ? { ...t, count: invalidCount, countColor: "tw:bg-red-600 tw:text-white" }
       : t,
@@ -76,7 +87,15 @@ const BulkUploadMainTab = ({
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tab) => handleTabChange(tab)}
-      className={className}
+      variant={isTheme2 ? "pills" : "tabs"}
+      // theme-2 pins the chips on their own white band under the app header
+      // (same treatment as the barcode scan sub-nav), so the caller's margins
+      // are dropped — the band has to sit flush.
+      className={
+        isTheme2
+          ? "subscribe-tabs-sticky barcode-tabs-pills"
+          : className
+      }
     />
   );
 };

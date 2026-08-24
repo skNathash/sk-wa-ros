@@ -3,6 +3,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { debounce } from "lodash";
 import { useTranslation } from "react-i18next";
 import { AppInput } from "~/components/core/form/AppInput";
+import AppCard from "~/components/core/card/AppCard";
 import { Button } from "~/components/ui/button";
 import { Filter as FilterIcon, Search } from "lucide-react";
 import AppliedFilters from "./AppliedFilters";
@@ -84,9 +85,9 @@ const Filter = ({ callback }: FilterProps) => {
   };
 
   return (
-    <div>
-      <div className="tw:flex tw:items-center tw:gap-3 tw:mb-4">
-        <div className="tw:flex-1">
+    <AppCard noPadding bodyClassName="tw:p-3" className="tw:mb-4">
+      <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-3">
+        <div className="tw:min-w-[180px] tw:flex-1">
           <AppInput
             name="search"
             placeholder={t("searchPlaceholder")}
@@ -101,7 +102,7 @@ const Filter = ({ callback }: FilterProps) => {
         <Button
           variant="outline"
           size="sm"
-          className="tw:flex tw:items-center tw:gap-2 tw:h-9 tw:px-4 tw:border-gray-200 tw:hover:tw:bg-gray-50 tw:text-gray-600"
+          className="tw:flex tw:shrink-0 tw:items-center tw:gap-2 tw:h-9 tw:px-4 tw:border-gray-200 tw:hover:tw:bg-gray-50 tw:text-gray-600"
           onClick={() => setFilterModal({ show: true, data: getValues() })}
         >
           <FilterIcon className="tw:w-4 tw:h-4" />
@@ -114,7 +115,7 @@ const Filter = ({ callback }: FilterProps) => {
         />
       </div>
       <AppliedFilters filters={watchedFilters} onRemove={handleRemoveFilter} />
-    </div>
+    </AppCard>
   );
 };
 

@@ -6,6 +6,7 @@ import AppButton from "~/components/core/button/AppButton";
 import { AppInput } from "~/components/core/form";
 import AppTextarea from "~/components/core/form/AppTextarea";
 import AppModal from "~/components/core/modal/AppModal";
+import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import useAppToast from "~/hooks/useAppToast";
 import ExpenseService from "~/services/ExpenseService";
 
@@ -138,7 +139,9 @@ const ManageExpenseCategoryModal = ({
       </AppModal.Title>
       <AppModal.Content>
         {isLoading ? (
-          <div className="tw-py-4">Loading...</div>
+          <div className="tw:flex tw:justify-center tw:items-center tw:py-8">
+            <AppSpinner />
+          </div>
         ) : (
           <>
             <AppInput
@@ -158,7 +161,7 @@ const ManageExpenseCategoryModal = ({
               placeholder={t("manageCategory.enterDescription")}
               maxLength={200}
             />
-            <div className="tw:text-xs tw:text-gray-500">
+            <div className="tw:text-xs tw:text-muted-foreground">
               Max 200 characters
             </div>
           </>

@@ -26,7 +26,7 @@ const Amount: React.FC<AmountProps> = ({
   const formattedValue = CommonService.formattedAmount(value, decimalPlaces);
 
   return (
-    <span className={clsx(className)}>
+    <span className={clsx("app-amount", className)}>
       {showSymbol && <span className="tw:font-serif">₹</span>}
       {formattedValue}
     </span>

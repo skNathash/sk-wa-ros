@@ -16,6 +16,8 @@ import KingSlabInfo from "../king-slab/KingSlabInfo";
 import type { BuyCartType } from "~/types/CommonTypes";
 import CaseQtyPopover from "~/shared/catalog/components/CaseQtyPopover";
 import DisplayQty from "../display-qty/DisplayQty";
+import TintTile from "~/components/core/tint/TintTile";
+import { productTintIndex } from "./productTint";
 
 type Props = {
   data: any;
@@ -24,6 +26,7 @@ type Props = {
   bgStyle?: any;
   cartType?: BuyCartType;
   useBusyLoader?: boolean;
+  tint?: boolean | number;
 };
 
 const ProductCardTwo = ({
@@ -33,7 +36,9 @@ const ProductCardTwo = ({
   bgStyle,
   cartType,
   useBusyLoader = false,
+  tint = false,
 }: Props) => {
+  const tintIndex = productTintIndex(tint, data);
   let finalCartType =
     cartType || (AuthService.isBuyerUser() ? "buyer" : "normal");
 
@@ -77,6 +82,38 @@ const ProductCardTwo = ({
     callback({ action: "brand", data: { brand: data.brand } });
   };
 
+  // The no-image fallback carries its own grey plate only when there is no tint
+  // behind it — inside a `TintTile` the wash is the plate.
+  const productImage = data?.images?.length ? (
+    tintIndex === null ? (
+      <ImgRender
+        assetId={data.images[0]}
+        alt={data.name}
+        className="tw:h-full tw:object-contain"
+        size={PRD_IMG_RESOLUTION}
+      />
+    ) : (
+      // White inner plate over the wash, matching the buy-from-other-retailer card.
+      <div className="tw:relative tw:flex tw:h-20 tw:w-20 tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-xl tw:bg-white tw:shadow-sm">
+        <ImgRender
+          assetId={data.images[0]}
+          alt={data.name}
+          className="tw:h-full tw:w-full tw:object-contain tw:p-1"
+          size={PRD_IMG_RESOLUTION}
+        />
+      </div>
+    )
+  ) : (
+    <div
+      className={clsx(
+        "tw:w-full tw:h-24 tw:flex tw:items-center tw:justify-center",
+        { "tw:bg-gray-200": tintIndex === null },
+      )}
+    >
+      <div className="tw:text-gray-400 tw:text-3xl">📦</div>
+    </div>
+  );
+
   return (
     <AppCard className="tw:mb-1 tw:py-2 tw:relative" bodyClassName="tw:p-3">
       <div onClick={() => callback({ action: "click" })}>
@@ -96,23 +133,21 @@ const ProductCardTwo = ({
         )}
 
         {/* Image Section */}
-        <div
-          className="tw:relative tw:flex tw:items-center tw:justify-center tw:h-24 tw:mb-1"
-          style={imgBgStyle}
-        >
-          {data?.images?.length ? (
-            <ImgRender
-              assetId={data.images[0]}
-              alt={data.name}
-              className="tw:h-full tw:object-contain"
-              size={PRD_IMG_RESOLUTION}
-            />
-          ) : (
-            <div className="tw:w-full tw:h-24 tw:flex tw:items-center tw:justify-center tw:bg-gray-200">
-              <div className="tw:text-gray-400 tw:text-3xl">📦</div>
-            </div>
-          )}
-        </div>
+        {tintIndex === null ? (
+          <div
+            className="tw:relative tw:flex tw:items-center tw:justify-center tw:h-24 tw:mb-1"
+            style={imgBgStyle}
+          >
+            {productImage}
+          </div>
+        ) : (
+          <TintTile
+            index={tintIndex}
+            className="tw:h-24 tw:mb-1 tw:rounded-lg"
+          >
+            {productImage}
+          </TintTile>
+        )}
 
         {/* Content Section */}
         <div>

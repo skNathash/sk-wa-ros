@@ -1,0 +1,107 @@
+/* Runner job list — the three feeds under the masthead. Everything shared with
+   the home feed (`.runner-job-card`, `.runner-job-badge`, `.runner-job-cod`)
+   stays in runner-home.css; only what the list screen adds lives here. */
+
+/* Feed switch. Sits on white directly under the masthead so the tabs read as
+   part of the header block rather than as the first card of the feed. */
+.runner-jobs-bar {
+  border-bottom: 1px solid var(--border);
+  background-color: #fff;
+  padding: 0.75rem 1rem;
+}
+
+/* Active job card — a map card. It carries the same stage accent as the home
+   feed's rail, but spends it on the strip and the ETA instead. */
+.runner-active-card {
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 20px -14px rgb(15 23 42 / 0.4);
+}
+
+/* Stage strip. Runs on the accent as a ramp rather than a flat fill, so the
+   order code at the far end stays legible against the deeper edge. */
+.runner-active-stage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--runner-job-accent) 88%, #fff) 0%,
+    var(--runner-job-accent) 55%,
+    color-mix(in srgb, var(--runner-job-accent) 78%, #000) 100%
+  );
+}
+
+.runner-active-stage-dot {
+  height: 0.4375rem;
+  width: 0.4375rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.runner-active-map {
+  position: relative;
+}
+
+/* ETA rides on the map rather than under it — it is the one number the runner
+   checks while the map is still loading. */
+.runner-active-eta {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.625rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.18);
+  padding: 0.25rem 0.5625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Cash due on the drop — a full-width band under the actions, because the
+   runner must not miss it while reaching for Navigate. */
+.runner-active-collect {
+  margin-top: 0.625rem;
+  border-radius: 0.625rem;
+  background-color: #dcfce7;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #15803d;
+}
+
+/* A closed job on today's list keeps a rail like the rest, in the settled
+   green the delivered badge uses. */
+.runner-job-card--delivered {
+  --runner-job-accent: #16a34a;
+}
+
+.runner-job-badge--delivered {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+/* What an open job carries — same chip weight as the COD chip beside it, in a
+   neutral so cash stays the louder of the two. */
+.runner-job-load {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.5rem;
+  background-color: var(--muted, #f1f5f9);
+  padding: 0.1875rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #475569;
+}

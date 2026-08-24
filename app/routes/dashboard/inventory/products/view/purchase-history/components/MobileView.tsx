@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar } from "lucide-react";
+import { Calendar, Truck } from "lucide-react";
 import DateFormat from "~/components/core/date/DateFormat";
 import Amount from "~/components/core/amount/Amount";
 import AppBadge from "~/components/core/badge/AppBadge";
@@ -8,7 +8,7 @@ import AppLink from "~/components/core/link/AppLink";
 import Divider from "~/components/core/divider/Divider";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import AppCard from "~/components/core/card/AppCard";
-import KeyValue from "~/components/core/key-value/KeyValue";
+import NoData from "~/components/core/no-data/NoData";
 
 interface MobileViewProps {
   data: any[];
@@ -19,6 +19,14 @@ interface MobileViewProps {
   totalCount?: number;
   loadedCount: number;
 }
+
+// auto-fill keeps every card at least 280px wide, so the content never gets
+// squeezed into overlapping/one-character columns on any breakpoint.
+const gridClass =
+  "tw:grid tw:gap-3 tw:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]";
+
+const cardClass =
+  "tw:mb-0 tw:h-full tw:transition-shadow tw:hover:shadow-md tw:gap-0";
 
 const MobileView: React.FC<MobileViewProps> = ({
   data,
@@ -31,19 +39,48 @@ const MobileView: React.FC<MobileViewProps> = ({
 }) => {
   const { t } = useTranslation(["common"]);
 
+  // Loading state
   if (loading) {
-    return <div className="tw:text-center tw:py-4">{t("loading")}</div>;
-  }
-  if (!data || data.length === 0) {
     return (
-      <div className="tw:text-center tw:text-gray-400">
-        {t("noDataFound") || t("noDataAvailable")}
+      <div className={gridClass}>
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <AppCard key={`skeleton-${idx}`} noPadding className={cardClass}>
+            <div className="tw:animate-pulse">
+              <div className="tw:flex tw:items-start tw:justify-between tw:gap-3 tw:px-3 tw:py-2.5">
+                <div className="tw:flex-1 tw:space-y-1.5">
+                  <div className="tw:h-4 tw:w-32 tw:rounded tw:bg-gray-200" />
+                  <div className="tw:h-3 tw:w-24 tw:rounded tw:bg-gray-100" />
+                </div>
+                <div className="tw:space-y-1.5">
+                  <div className="tw:h-4 tw:w-16 tw:rounded tw:bg-gray-200" />
+                  <div className="tw:h-3 tw:w-14 tw:rounded tw:bg-gray-100" />
+                </div>
+              </div>
+              <Divider className="tw:my-0!" />
+              <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:py-2">
+                <div className="tw:h-3.5 tw:w-28 tw:rounded tw:bg-gray-100" />
+                <div className="tw:h-5 tw:w-20 tw:rounded-full tw:bg-gray-100" />
+              </div>
+            </div>
+          </AppCard>
+        ))}
       </div>
     );
   }
+
+  // No data state
+  if (!data || data.length === 0) {
+    return (
+      <AppCard>
+        <NoData />
+      </AppCard>
+    );
+  }
+
+  // Data state
   return (
     <>
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
+      <div className={gridClass}>
         {data.map((item, idx) => {
           const poId = item.orderId || item.po?.id || "--";
           const vendorName = item.vendorName || item.vendor?.name || "--";
@@ -55,111 +92,84 @@ const MobileView: React.FC<MobileViewProps> = ({
             <AppCard
               key={item._id || poId || idx}
               noPadding
-              className="tw:mb-0"
+              className={cardClass}
             >
-              {/* Header: PO ID and Status */}
-              <div className="tw:px-4 tw:py-3 tw:flex tw:items-start">
-                <div className="tw:w-[70%]">
-                  <div className="tw:flex tw:flex-col tw:gap-1">
-                    <AppLink
-                      asLink
-                      href={`/dashboard/purchase-order/view/${item._id}`}
-                      className="tw:text-blue-500 tw:font-semibold tw:text-lg"
-                    >
-                      {poId}
-                    </AppLink>
-                    {/* Date with icon */}
-                    <div className="tw:flex tw:items-center tw:gap-2 tw:text-gray-400 tw:text-xs">
-                      <Calendar size={14} />
-                      <span>
-                        {item.createdAt ? (
-                          <DateFormat
-                            value={item.createdAt}
-                            formatStr="dd MMM yyyy, hh:mm a"
-                          />
-                        ) : (
-                          "--"
-                        )}
-                      </span>
-                    </div>
-                  </div>
+              <div className="tw:px-3 tw:py-2.5">
+                {/* po ref + total */}
+                <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+                  <AppLink
+                    asLink
+                    href={`/dashboard/purchase-order/view/${item._id}`}
+                    title={poId}
+                    className="tw:block tw:min-w-0 tw:flex-1 tw:truncate tw:text-sm tw:font-semibold tw:text-blue-600"
+                  >
+                    {poId}
+                  </AppLink>
+                  <Amount
+                    value={unitPrice * quantity}
+                    decimalPlaces={2}
+                    className="tw:shrink-0 tw:text-sm tw:font-semibold tw:whitespace-nowrap tw:text-slate-900"
+                  />
                 </div>
 
-                <div className="tw:flex tw:flex-col">
-                  <span className="tw:text-[10px] tw:text-gray-400 tw:uppercase tw:font-medium">
-                    {t("status")}
+                {/* date + qty × unit price */}
+                <div className="tw:mt-1 tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-gray-500">
+                  <span className="tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-1">
+                    <Calendar
+                      size={12}
+                      className="tw:shrink-0 tw:text-slate-400"
+                    />
+                    {item.createdAt ? (
+                      <DateFormat
+                        value={item.createdAt}
+                        formatStr="dd MMM yy, hh:mm a"
+                        className="tw:truncate"
+                      />
+                    ) : (
+                      <span className="tw:truncate">--</span>
+                    )}
                   </span>
-                  <AppBadge variant={item._statusColor}>
-                    {item._statusLbl || item.status || "--"}
-                  </AppBadge>
+                  <span className="tw:shrink-0 tw:whitespace-nowrap">
+                    {quantity} × <Amount value={unitPrice} />
+                  </span>
                 </div>
               </div>
 
               <Divider className="tw:my-0!" />
 
-              {/* Body */}
-              <div className="tw:px-4 tw:py-3">
-                {/* Vendor - Full Row */}
-                <div className="tw:mb-4">
-                  <KeyValue label={t("vendor")} size="sm">
+              {/* vendor + delivery date + status */}
+              <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:px-3 tw:py-1.5">
+                <span className="tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-1">
+                  <Truck size={12} className="tw:shrink-0 tw:text-slate-400" />
+                  {item.vendorId ? (
                     <AppLink
                       asLink
                       href={`/dashboard/vendor/view/${item.vendorId}`}
-                      className="tw:text-blue-500 tw:font-medium"
+                      title={vendorName}
+                      className="tw:block tw:min-w-0 tw:truncate tw:text-xs tw:text-blue-600"
                     >
                       {vendorName}
                     </AppLink>
-                  </KeyValue>
-                </div>
+                  ) : (
+                    <span className="tw:truncate tw:text-xs tw:text-gray-500">
+                      {vendorName}
+                    </span>
+                  )}
+                </span>
 
-                <div className="tw:flex tw:items-center">
-                  <div className="tw:w-[50%]">
-                    {/* Quantity */}
-                    <KeyValue label={t("quantity")} size="sm">
-                      <span className="tw:font-bold tw:text-gray-800">
-                        {quantity}{" "}
-                        <span className="tw:font-normal">{t("units")}</span>
-                      </span>
-                    </KeyValue>
-                  </div>
-
-                  <div className="tw:w-[50%]">
-                    {/* Unit Price */}
-                    <KeyValue label={t("unitPrice")} size="sm">
-                      <span className="tw:font-bold tw:text-gray-800">
-                        <Amount value={unitPrice} />
-                      </span>
-                    </KeyValue>
-                  </div>
-                </div>
-
-                <div className="tw:mt-3 tw:flex tw:items-center">
-                  <div className="tw:w-[50%]">
-                    {/* Total */}
-                    <KeyValue label={t("total")} size="sm">
-                      <Amount
-                        value={unitPrice * quantity}
-                        className="tw:text-green-600 tw:font-bold"
-                      />
-                    </KeyValue>
-                  </div>
-
-                  <div className="tw:w-[50%]">
-                    {/* Delivery Date */}
-                    <KeyValue label={t("deliveryDate")} size="sm">
-                      <span className="tw:font-bold tw:text-gray-800">
-                        {deliveryDate ? (
-                          <DateFormat
-                            value={deliveryDate}
-                            formatStr="dd MMM yyyy"
-                          />
-                        ) : (
-                          "--"
-                        )}
-                      </span>
-                    </KeyValue>
-                  </div>
-                </div>
+                <span className="tw:flex tw:shrink-0 tw:items-center tw:gap-1.5">
+                  {deliveryDate && (
+                    <span
+                      className="tw:whitespace-nowrap tw:text-xs tw:text-gray-500"
+                      title={t("deliveryDate")}
+                    >
+                      <DateFormat value={deliveryDate} formatStr="dd MMM yy" />
+                    </span>
+                  )}
+                  <AppBadge variant={item._statusColor || "default"} size="sm">
+                    {item._statusLbl || item.status || "--"}
+                  </AppBadge>
+                </span>
               </div>
             </AppCard>
           );

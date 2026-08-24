@@ -82,7 +82,7 @@ const InventoryTab: React.FC<InventoryTabProps> = ({
     } else if (tab.key === "browse-category") {
       appNav.to(`/dashboard/inventory/browse-category`);
     } else if (tab.key === "browse-by-brand") {
-      appNav.to(`/dashboard/inventory/browse`);
+      appNav.to(`/dashboard/inventory/browse-brand`);
     } else if (tab.key === "inactive-products") {
       appNav.to(`/dashboard/inventory/products/list?inactive=true`);
     } else if (tab.key === "cases") {

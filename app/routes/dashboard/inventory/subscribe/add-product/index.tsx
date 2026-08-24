@@ -38,6 +38,10 @@ import BrandSearchInput from "~/shared/catalog/components/search-input/brand/Bra
 import CategorySearchInput from "~/shared/catalog/components/search-input/category/CategorySearchInput";
 import BarcodeInput from "~/shared/inventory/components/barcode-input/BarcodeInput";
 import DealScopeBadge from "~/shared/inventory/components/DealScopeBadge";
+import SubscribeSidePane from "~/shared/inventory/components/subscribe-side-pane/SubscribeSidePane";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import BulkUploadMainTab from "../bulk-upload/components/BulkUploadMainTab";
 import SuccessModal from "../modals/SuccessModal";
@@ -125,7 +129,7 @@ const AiProcessingMessage = () => {
 };
 
 const ManageProduct = () => {
-  const { t } = useTranslation(["inventorySubscribe"]);
+  const { t } = useTranslation(["inventorySubscribe", "menu"]);
   const { register, handleSubmit, setValue, getValues, control, reset } =
     useForm<Record<string, any>>({
       defaultValues: {
@@ -162,7 +166,12 @@ const ManageProduct = () => {
   // user commits to a path: AI has filled the form, or they opted to type it
   // manually. Keeps the initial view focused on uploading a photo.
   const [aiApplied, setAiApplied] = useState(false);
-  const [manualFill, setManualFill] = useState(false);
+  // `manual=1` means the seller already chose "create manually" on the way in
+  // (e.g. from the create-item chooser), so skip the path chooser and open the
+  // detail sections straight away.
+  const [manualFill, setManualFill] = useState(
+    searchParams.get("manual") === "1",
+  );
   const showDetails = aiApplied || manualFill;
 
   // Fetch approval pending count
@@ -628,28 +637,50 @@ const ManageProduct = () => {
 
   return (
     <>
-      <AppHeader title={t("header.title")} />
+      <AppHeader title="Create Item" />
       <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4">
-            <AppBreadcrumbs data={breadcrumbs} />
-            <div>
-              <AppButton
-                onClick={viewSubscriptionHistory}
-                color="light"
-                size="small"
-                fill="outline"
-              >
-                Subscription History
-                <ChevronRight />
-              </AppButton>
-            </div>
-          </div>
-          {/* <BulkUploadMainTab activeTab={activeTab} className="tw:mb-4" /> */}
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs sectionKey="catalog" activeTab="library" noShadow sticky />
 
-          {/* Approval Pending Count Block — a single tappable strip that takes
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="library"
+                title={t("menu:manageCatalog")}
+              />
+            </div>
+          </aside>
+
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4">
+                  <AppBreadcrumbs data={breadcrumbs} />
+                  {/* Top action — hidden in theme-2, where the side pane owns
+                      the secondary navigation. */}
+                  <div className="hide-in-theme-2">
+                    <AppButton
+                      onClick={viewSubscriptionHistory}
+                      color="light"
+                      size="small"
+                      fill="outline"
+                    >
+                      Subscription History
+                      <ChevronRight />
+                    </AppButton>
+                  </div>
+                </div>
+                {/* <BulkUploadMainTab activeTab={activeTab} className="tw:mb-4" /> */}
+
+                {/* Approval Pending Count Block — a single tappable strip that takes
               the seller to their pending products. Temporarily disabled. */}
-          {/*
+                {/*
           {approvalPendingCount > 0 && (
             <button
               type="button"
@@ -672,25 +703,26 @@ const ManageProduct = () => {
           )}
           */}
 
-          {/* Scan context banner — shown when the seller arrives from the
+                {/* Scan context banner — shown when the seller arrives from the
               barcode-scan page. Makes it clear they're creating the item they
               just scanned, that the barcode is already captured, and what to do
               next (add a photo for AI fill, or enter details manually below). */}
-          {scannedBarcode && (
-            <div className="tw:mb-4 tw:flex tw:items-center tw:gap-2.5 tw:rounded-lg tw:border tw:border-blue-200 tw:bg-blue-50 tw:px-3 tw:py-2">
-              <ScanLine className="tw:w-4 tw:h-4 tw:shrink-0 tw:text-blue-600" />
-              <p className="tw:min-w-0 tw:text-xs tw:text-gray-700">
-                Barcode{" "}
-                <span className="tw:font-mono tw:font-bold tw:text-blue-700">
-                  {scannedBarcode}
-                </span>{" "}
-                captured — add a photo to auto-fill, or fill details below.
-              </p>
-            </div>
-          )}
+                {scannedBarcode && (
+                  <div className="tw:mb-4 tw:flex tw:items-center tw:gap-2.5 tw:rounded-lg tw:border tw:border-blue-200 tw:bg-blue-50 tw:px-3 tw:py-2">
+                    <ScanLine className="tw:w-4 tw:h-4 tw:shrink-0 tw:text-blue-600" />
+                    <p className="tw:min-w-0 tw:text-xs tw:text-gray-700">
+                      Barcode{" "}
+                      <span className="tw:font-mono tw:font-bold tw:text-blue-700">
+                        {scannedBarcode}
+                      </span>{" "}
+                      captured — add a photo to auto-fill, or fill details
+                      below.
+                    </p>
+                  </div>
+                )}
 
-          {/* StoreKing AI Block (Beta) — temporarily disabled */}
-          {/*
+                {/* StoreKing AI Block (Beta) — temporarily disabled */}
+                {/*
           <div className="tw:mb-4">
             <div className="tw:group tw:relative tw:overflow-hidden tw:bg-white tw:border tw:border-purple-100 tw:rounded-xl tw:shadow-sm hover:tw:shadow-md tw:transition-all tw:duration-300">
               <div className="tw:absolute tw:inset-0 tw:bg-gradient-to-r tw:from-purple-50/50 tw:via-blue-50/30 tw:to-transparent tw:opacity-100" />
@@ -740,215 +772,222 @@ const ManageProduct = () => {
           </div>
           */}
 
-          {/* Page content: Add Product Form */}
-          <div>
-            <div>
-              <div className="tw:mb-4">
-                <h3 className="tw:text-base tw:font-semibold tw:text-gray-900">
-                  {t("form.title")}
-                </h3>
-                <p className="tw:text-xs tw:text-gray-500 tw:mt-0.5">
-                  {t("form.subtitle")}
-                </p>
-              </div>
-              <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                <div className="tw:flex tw:flex-col tw:gap-4">
-                  {/* Product images */}
-                  <FormSection
-                    icon={<Image size={18} className="tw:text-violet-600" />}
-                    accent="tw:bg-violet-50"
-                    title="Product Images"
-                    description="Upload clear photos of the product to auto-fill details"
-                    extra={
-                      <button
-                        type="button"
-                        onClick={openSampleModal}
-                        className="tw:inline-flex tw:items-center tw:gap-1 tw:rounded-full tw:border tw:border-blue-200 tw:bg-blue-50 tw:px-2.5 tw:py-1 tw:text-xs tw:font-medium tw:text-blue-600 tw:transition-colors hover:tw:bg-blue-100 tw:cursor-pointer"
-                      >
-                        <Eye className="tw:w-3.5 tw:h-3.5" />
-                        Samples
-                      </button>
-                    }
-                  >
-                    <div className="tw:space-y-4">
-                      {images && images.length > 0 ? (
-                        <div className="tw:grid tw:grid-cols-3 tw:sm:grid-cols-4 tw:lg:grid-cols-6 tw:gap-3">
-                          {images.map((img: any, index: number) => (
-                            <div
-                              key={img.id}
-                              className="tw:group tw:relative tw:aspect-square tw:rounded-xl tw:overflow-hidden tw:border tw:border-gray-200 tw:bg-gray-50 tw:shadow-sm"
-                            >
-                              <button
-                                type="button"
-                                className="tw:block tw:w-full tw:h-full tw:cursor-pointer"
-                                onClick={() => handleImageClick(img.id)}
-                                title="View image"
-                              >
-                                <ImgRender
-                                  {...(/^https?:\/\//i.test(img.id)
-                                    ? { src: img.id, isAbsolute: true }
-                                    : { assetId: img.id })}
-                                  className="tw:w-full tw:h-full tw:object-cover tw:transition-transform tw:duration-300 group-hover:tw:scale-105"
-                                  alt="Product"
-                                />
-                                {/* Hover scrim with a preview affordance */}
-                                <span className="tw:absolute tw:inset-0 tw:flex tw:items-center tw:justify-center tw:bg-gray-900/0 tw:opacity-0 tw:transition-all tw:duration-200 group-hover:tw:bg-gray-900/35 group-hover:tw:opacity-100">
-                                  <Eye className="tw:w-5 tw:h-5 tw:text-white tw:drop-shadow" />
-                                </span>
-                              </button>
-
-                              {/* The first photo is used as the listing cover */}
-                              {index === 0 && (
-                                <span className="tw:absolute tw:bottom-1 tw:left-1 tw:rounded-md tw:bg-gray-900/75 tw:px-1.5 tw:py-0.5 tw:text-[9px] tw:font-bold tw:uppercase tw:tracking-wide tw:text-white">
-                                  Cover
-                                </span>
-                              )}
-
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveImage(index);
-                                }}
-                                className="tw:absolute tw:top-1 tw:right-1 tw:w-6 tw:h-6 tw:flex tw:items-center tw:justify-center tw:rounded-full tw:bg-white/90 tw:text-gray-500 tw:shadow-sm tw:transition-all hover:tw:bg-red-500 hover:tw:text-white tw:z-10"
-                                title="Remove image"
-                              >
-                                <Trash2 className="tw:w-3.5 tw:h-3.5" />
-                              </button>
-                            </div>
-                          ))}
-
-                          {/* Inline tile to upload more images */}
-                          <FileUpload onFileUpload={handleFileUpload}>
-                            <div className="tw:group tw:aspect-square tw:border-2 tw:border-dashed tw:border-gray-200 tw:rounded-xl tw:flex tw:flex-col tw:items-center tw:justify-center tw:gap-1 tw:bg-violet-50/30 hover:tw:border-violet-400 hover:tw:bg-violet-50/60 tw:transition-all cursor-pointer">
-                              <span className="tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-full tw:bg-white tw:text-violet-500 tw:shadow-sm group-hover:tw:scale-105 tw:transition-transform">
-                                <Plus className="tw:w-5 tw:h-5" />
-                              </span>
-                              <span className="tw:text-[10px] tw:font-bold tw:text-violet-500">
-                                Add Photo
-                              </span>
-                            </div>
-                          </FileUpload>
-                        </div>
-                      ) : (
-                        <FileUpload onFileUpload={handleFileUpload}>
-                          <div className="tw:group tw:relative tw:overflow-hidden tw:flex tw:flex-col tw:items-center tw:justify-center tw:text-center tw:w-full tw:border-2 tw:border-dashed tw:border-violet-200 tw:rounded-2xl tw:bg-linear-to-br tw:from-violet-50 tw:via-white tw:to-purple-50/60 tw:px-6 tw:py-8 tw:transition-all hover:tw:border-violet-400 hover:tw:from-violet-100/80 cursor-pointer">
-                            {/* Camera tile carrying a small AI sparkle badge —
-                                signals that the photo auto-fills the form. */}
-                            <div className="tw:relative tw:mb-3">
-                              <div className="tw:flex tw:items-center tw:justify-center tw:w-14 tw:h-14 tw:rounded-2xl tw:bg-linear-to-br tw:from-violet-500 tw:to-purple-600 tw:text-white tw:shadow-md group-hover:tw:scale-105 tw:transition-transform">
-                                <Camera size={26} />
-                              </div>
-                              <span className="tw:absolute tw:-top-1.5 tw:-right-1.5 tw:flex tw:items-center tw:justify-center tw:w-6 tw:h-6 tw:rounded-full tw:bg-white tw:text-purple-600 tw:shadow-sm tw:ring-2 tw:ring-violet-50">
-                                <Sparkles className="tw:w-3.5 tw:h-3.5" />
-                              </span>
-                            </div>
-                            <span className="tw:block tw:text-sm tw:font-bold tw:text-gray-900">
-                              Snap a photo to begin
-                            </span>
-                            <span className="tw:block tw:text-xs tw:text-gray-500 tw:mt-1 tw:max-w-xs">
-                              Take or upload a photo and StoreKing AI fills in
-                              the name, price and other details for you
-                            </span>
-                            <span className="tw:mt-3 tw:inline-flex tw:items-center tw:gap-1.5 tw:rounded-full tw:bg-white/80 tw:border tw:border-violet-100 tw:px-2.5 tw:py-1 tw:text-[10px] tw:font-medium tw:text-gray-500">
-                              JPG · PNG · WEBP · up to 10MB
-                            </span>
-                          </div>
-                        </FileUpload>
-                      )}
-
-                      {/* Inline Loading State */}
-                      {isAiLoading && (
-                        <div className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-indigo-100 tw:bg-linear-to-br tw:from-indigo-50 tw:via-white tw:to-purple-50 tw:p-3.5">
-                          <div className="tw:flex tw:items-center tw:gap-3">
-                            {/* Icon with a pulsing halo — reads as "thinking"
-                                without the jittery whole-card pulse. */}
-                            <div className="tw:relative tw:shrink-0">
-                              <span className="tw:absolute tw:inset-0 tw:rounded-lg tw:bg-indigo-400/40 tw:animate-ping" />
-                              <div className="tw:relative tw:w-9 tw:h-9 tw:rounded-lg tw:bg-linear-to-br tw:from-indigo-500 tw:to-purple-600 tw:flex tw:items-center tw:justify-center tw:shadow-sm">
-                                <Sparkles className="tw:w-5 tw:h-5 tw:text-white" />
-                              </div>
-                            </div>
-                            <div className="tw:flex-1 tw:min-w-0">
-                              <p className="tw:flex tw:items-center tw:text-xs tw:font-semibold tw:text-indigo-900">
-                                StoreKing AI is extracting details
-                                {/* Animated typing dots */}
-                                <span className="tw:ml-1 tw:inline-flex tw:gap-0.5">
-                                  <span className="tw:w-1 tw:h-1 tw:rounded-full tw:bg-indigo-500 tw:animate-bounce tw:[animation-delay:-0.3s]" />
-                                  <span className="tw:w-1 tw:h-1 tw:rounded-full tw:bg-indigo-500 tw:animate-bounce tw:[animation-delay:-0.15s]" />
-                                  <span className="tw:w-1 tw:h-1 tw:rounded-full tw:bg-indigo-500 tw:animate-bounce" />
-                                </span>
-                              </p>
-                              <AiProcessingMessage />
-                            </div>
-                          </div>
-                          {/* Indeterminate progress track with a sweeping stripe */}
-                          <div className="tw:mt-3 tw:h-1.5 tw:w-full tw:overflow-hidden tw:rounded-full tw:bg-indigo-100">
-                            <div className="ai-progress-sweep tw:h-full tw:w-1/3 tw:rounded-full tw:bg-linear-to-r tw:from-indigo-400 tw:to-purple-500" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* StoreKing AI Assistant Banner Card */}
-                      {images && images.length > 0 && !isAiLoading && (
-                        <div className="tw:flex tw:flex-col tw:sm:flex-row tw:items-center tw:justify-between tw:gap-3 tw:p-3 tw:bg-purple-50/50 tw:border tw:border-purple-100/60 tw:rounded-xl">
-                          <div className="tw:flex tw:items-center tw:gap-2.5 tw:self-start tw:sm:self-auto">
-                            <Sparkles className="tw:w-4 tw:h-4 tw:text-purple-600 tw:shrink-0" />
-                            <div className="tw:text-left">
-                              <span className="tw:block tw:text-xs tw:font-bold tw:text-gray-900">
-                                StoreKing AI Assistant
-                              </span>
-                              <span className="tw:block tw:text-[10px] tw:text-gray-500 tw:mt-0.5">
-                                {aiProduct
-                                  ? "Details extracted — review them or re-scan the photos"
-                                  : "StoreKing AI will fill the product details using your photos"}
-                              </span>
-                            </div>
-                          </div>
-                          {/* Once details exist, keep them re-openable (no extra API
-                              call) and offer a re-scan; otherwise show the primary CTA. */}
-                          {aiProduct ? (
-                            <div className="tw:flex tw:items-center tw:gap-2 tw:w-full tw:sm:w-auto">
-                              <AppButton
-                                type="button"
-                                onClick={() => extractDetailsWithAi(images)}
-                                color="light"
-                                fill="outline"
-                                size="small"
-                                className="tw:text-xs tw:h-8 tw:px-3 tw:rounded-lg tw:shadow-none tw:flex-1 tw:sm:flex-none"
-                              >
-                                Re-scan
-                              </AppButton>
-                              <AppButton
-                                type="button"
-                                onClick={() => setShowAiDetailsModal(true)}
-                                color="primary"
-                                size="small"
-                                className="tw:text-xs tw:h-8 tw:px-3 tw:rounded-lg tw:shadow-none tw:flex-1 tw:sm:flex-none"
-                              >
-                                <Eye className="tw:w-3.5 tw:h-3.5 tw:mr-1" />
-                                View Details
-                              </AppButton>
-                            </div>
-                          ) : (
-                            <AppButton
-                              type="button"
-                              onClick={() => extractDetailsWithAi(images)}
-                              disabled={isAiLoading}
-                              color="primary"
-                              size="small"
-                              className="tw:text-xs tw:h-8 tw:px-3 tw:rounded-lg tw:shadow-none tw:w-full tw:sm:w-auto"
-                            >
-                              <Sparkles className="tw:w-3.5 tw:h-3.5 tw:mr-1" />
-                              Fill from Photo
-                            </AppButton>
-                          )}
-                        </div>
-                      )}
+                {/* Page content: Add Product Form */}
+                <div>
+                  <div>
+                    <div className="tw:mb-4">
+                      <h3 className=" theme-2-hide  tw:text-base tw:font-semibold tw:text-gray-900">
+                        {t("form.title")}
+                      </h3>
+                      <p className="theme-2-hide tw:text-xs tw:text-gray-500 tw:mt-0.5">
+                        {t("form.subtitle")}
+                      </p>
                     </div>
-                  </FormSection>
+                    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+                      <div className="tw:flex tw:flex-col tw:gap-4">
+                        {/* Product images */}
+                        <FormSection
+                          icon={
+                            <Image size={18} className="tw:text-violet-600" />
+                          }
+                          accent="tw:bg-violet-50"
+                          title="Product Images"
+                          description="Upload clear photos of the product to auto-fill details"
+                          extra={
+                            <button
+                              type="button"
+                              onClick={openSampleModal}
+                              className="tw:inline-flex tw:items-center tw:gap-1 tw:rounded-full tw:border tw:border-blue-200 tw:bg-blue-50 tw:px-2.5 tw:py-1 tw:text-xs tw:font-medium tw:text-blue-600 tw:transition-colors hover:tw:bg-blue-100 tw:cursor-pointer"
+                            >
+                              <Eye className="tw:w-3.5 tw:h-3.5" />
+                              Samples
+                            </button>
+                          }
+                        >
+                          <div className="tw:space-y-4">
+                            {images && images.length > 0 ? (
+                              <div className="tw:grid tw:grid-cols-3 tw:sm:grid-cols-4 tw:lg:grid-cols-6 tw:gap-3">
+                                {images.map((img: any, index: number) => (
+                                  <div
+                                    key={img.id}
+                                    className="tw:group tw:relative tw:aspect-square tw:rounded-xl tw:overflow-hidden tw:border tw:border-gray-200 tw:bg-gray-50 tw:shadow-sm"
+                                  >
+                                    <button
+                                      type="button"
+                                      className="tw:block tw:w-full tw:h-full tw:cursor-pointer"
+                                      onClick={() => handleImageClick(img.id)}
+                                      title="View image"
+                                    >
+                                      <ImgRender
+                                        {...(/^https?:\/\//i.test(img.id)
+                                          ? { src: img.id, isAbsolute: true }
+                                          : { assetId: img.id })}
+                                        className="tw:w-full tw:h-full tw:object-cover tw:transition-transform tw:duration-300 group-hover:tw:scale-105"
+                                        alt="Product"
+                                      />
+                                      {/* Hover scrim with a preview affordance */}
+                                      <span className="tw:absolute tw:inset-0 tw:flex tw:items-center tw:justify-center tw:bg-gray-900/0 tw:opacity-0 tw:transition-all tw:duration-200 group-hover:tw:bg-gray-900/35 group-hover:tw:opacity-100">
+                                        <Eye className="tw:w-5 tw:h-5 tw:text-white tw:drop-shadow" />
+                                      </span>
+                                    </button>
 
-                  {/* Path chooser: the user either uploads a photo and lets AI
+                                    {/* The first photo is used as the listing cover */}
+                                    {index === 0 && (
+                                      <span className="tw:absolute tw:bottom-1 tw:left-1 tw:rounded-md tw:bg-gray-900/75 tw:px-1.5 tw:py-0.5 tw:text-[9px] tw:font-bold tw:uppercase tw:tracking-wide tw:text-white">
+                                        Cover
+                                      </span>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveImage(index);
+                                      }}
+                                      className="tw:absolute tw:top-1 tw:right-1 tw:w-6 tw:h-6 tw:flex tw:items-center tw:justify-center tw:rounded-full tw:bg-white/90 tw:text-gray-500 tw:shadow-sm tw:transition-all hover:tw:bg-red-500 hover:tw:text-white tw:z-10"
+                                      title="Remove image"
+                                    >
+                                      <Trash2 className="tw:w-3.5 tw:h-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
+
+                                {/* Inline tile to upload more images */}
+                                <FileUpload onFileUpload={handleFileUpload}>
+                                  <div className="tw:group tw:aspect-square tw:border-2 tw:border-dashed tw:border-gray-200 tw:rounded-xl tw:flex tw:flex-col tw:items-center tw:justify-center tw:gap-1 tw:bg-violet-50/30 hover:tw:border-violet-400 hover:tw:bg-violet-50/60 tw:transition-all cursor-pointer">
+                                    <span className="tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-full tw:bg-white tw:text-violet-500 tw:shadow-sm group-hover:tw:scale-105 tw:transition-transform">
+                                      <Plus className="tw:w-5 tw:h-5" />
+                                    </span>
+                                    <span className="tw:text-[10px] tw:font-bold tw:text-violet-500">
+                                      Add Photo
+                                    </span>
+                                  </div>
+                                </FileUpload>
+                              </div>
+                            ) : (
+                              <FileUpload onFileUpload={handleFileUpload}>
+                                <div className="tw:group tw:relative tw:overflow-hidden tw:flex tw:flex-col tw:items-center tw:justify-center tw:text-center tw:w-full tw:border-2 tw:border-dashed tw:border-violet-200 tw:rounded-2xl tw:bg-linear-to-br tw:from-violet-50 tw:via-white tw:to-purple-50/60 tw:px-6 tw:py-8 tw:transition-all hover:tw:border-violet-400 hover:tw:from-violet-100/80 cursor-pointer">
+                                  {/* Camera tile carrying a small AI sparkle badge —
+                                signals that the photo auto-fills the form. */}
+                                  <div className="tw:relative tw:mb-3">
+                                    <div className="tw:flex tw:items-center tw:justify-center tw:w-14 tw:h-14 tw:rounded-2xl tw:bg-linear-to-br tw:from-violet-500 tw:to-purple-600 tw:text-white tw:shadow-md group-hover:tw:scale-105 tw:transition-transform">
+                                      <Camera size={26} />
+                                    </div>
+                                    <span className="tw:absolute tw:-top-1.5 tw:-right-1.5 tw:flex tw:items-center tw:justify-center tw:w-6 tw:h-6 tw:rounded-full tw:bg-white tw:text-purple-600 tw:shadow-sm tw:ring-2 tw:ring-violet-50">
+                                      <Sparkles className="tw:w-3.5 tw:h-3.5" />
+                                    </span>
+                                  </div>
+                                  <span className="tw:block tw:text-sm tw:font-bold tw:text-gray-900">
+                                    Snap a photo to begin
+                                  </span>
+                                  <span className="tw:block tw:text-xs tw:text-gray-500 tw:mt-1 tw:max-w-xs">
+                                    Take or upload a photo and StoreKing AI
+                                    fills in the name, price and other details
+                                    for you
+                                  </span>
+                                  <span className="tw:mt-3 tw:inline-flex tw:items-center tw:gap-1.5 tw:rounded-full tw:bg-white/80 tw:border tw:border-violet-100 tw:px-2.5 tw:py-1 tw:text-[10px] tw:font-medium tw:text-gray-500">
+                                    JPG · PNG · WEBP · up to 10MB
+                                  </span>
+                                </div>
+                              </FileUpload>
+                            )}
+
+                            {/* Inline Loading State */}
+                            {isAiLoading && (
+                              <div className="tw:relative tw:overflow-hidden tw:rounded-xl tw:border tw:border-indigo-100 tw:bg-linear-to-br tw:from-indigo-50 tw:via-white tw:to-purple-50 tw:p-3.5">
+                                <div className="tw:flex tw:items-center tw:gap-3">
+                                  {/* Icon with a pulsing halo — reads as "thinking"
+                                without the jittery whole-card pulse. */}
+                                  <div className="tw:relative tw:shrink-0">
+                                    <span className="tw:absolute tw:inset-0 tw:rounded-lg tw:bg-indigo-400/40 tw:animate-ping" />
+                                    <div className="tw:relative tw:w-9 tw:h-9 tw:rounded-lg tw:bg-linear-to-br tw:from-indigo-500 tw:to-purple-600 tw:flex tw:items-center tw:justify-center tw:shadow-sm">
+                                      <Sparkles className="tw:w-5 tw:h-5 tw:text-white" />
+                                    </div>
+                                  </div>
+                                  <div className="tw:flex-1 tw:min-w-0">
+                                    <p className="tw:flex tw:items-center tw:text-xs tw:font-semibold tw:text-indigo-900">
+                                      StoreKing AI is extracting details
+                                      {/* Animated typing dots */}
+                                      <span className="tw:ml-1 tw:inline-flex tw:gap-0.5">
+                                        <span className="tw:w-1 tw:h-1 tw:rounded-full tw:bg-indigo-500 tw:animate-bounce tw:[animation-delay:-0.3s]" />
+                                        <span className="tw:w-1 tw:h-1 tw:rounded-full tw:bg-indigo-500 tw:animate-bounce tw:[animation-delay:-0.15s]" />
+                                        <span className="tw:w-1 tw:h-1 tw:rounded-full tw:bg-indigo-500 tw:animate-bounce" />
+                                      </span>
+                                    </p>
+                                    <AiProcessingMessage />
+                                  </div>
+                                </div>
+                                {/* Indeterminate progress track with a sweeping stripe */}
+                                <div className="tw:mt-3 tw:h-1.5 tw:w-full tw:overflow-hidden tw:rounded-full tw:bg-indigo-100">
+                                  <div className="ai-progress-sweep tw:h-full tw:w-1/3 tw:rounded-full tw:bg-linear-to-r tw:from-indigo-400 tw:to-purple-500" />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* StoreKing AI Assistant Banner Card */}
+                            {images && images.length > 0 && !isAiLoading && (
+                              <div className="tw:flex tw:flex-col tw:sm:flex-row tw:items-center tw:justify-between tw:gap-3 tw:p-3 tw:bg-purple-50/50 tw:border tw:border-purple-100/60 tw:rounded-xl">
+                                <div className="tw:flex tw:items-center tw:gap-2.5 tw:self-start tw:sm:self-auto">
+                                  <Sparkles className="tw:w-4 tw:h-4 tw:text-purple-600 tw:shrink-0" />
+                                  <div className="tw:text-left">
+                                    <span className="tw:block tw:text-xs tw:font-bold tw:text-gray-900">
+                                      StoreKing AI Assistant
+                                    </span>
+                                    <span className="tw:block tw:text-[10px] tw:text-gray-500 tw:mt-0.5">
+                                      {aiProduct
+                                        ? "Details extracted — review them or re-scan the photos"
+                                        : "StoreKing AI will fill the product details using your photos"}
+                                    </span>
+                                  </div>
+                                </div>
+                                {/* Once details exist, keep them re-openable (no extra API
+                              call) and offer a re-scan; otherwise show the primary CTA. */}
+                                {aiProduct ? (
+                                  <div className="tw:flex tw:items-center tw:gap-2 tw:w-full tw:sm:w-auto">
+                                    <AppButton
+                                      type="button"
+                                      onClick={() =>
+                                        extractDetailsWithAi(images)
+                                      }
+                                      color="light"
+                                      fill="outline"
+                                      size="small"
+                                      className="tw:text-xs tw:h-8 tw:px-3 tw:rounded-lg tw:shadow-none tw:flex-1 tw:sm:flex-none"
+                                    >
+                                      Re-scan
+                                    </AppButton>
+                                    <AppButton
+                                      type="button"
+                                      onClick={() =>
+                                        setShowAiDetailsModal(true)
+                                      }
+                                      color="primary"
+                                      size="small"
+                                      className="tw:text-xs tw:h-8 tw:px-3 tw:rounded-lg tw:shadow-none tw:flex-1 tw:sm:flex-none"
+                                    >
+                                      <Eye className="tw:w-3.5 tw:h-3.5 tw:mr-1" />
+                                      View Details
+                                    </AppButton>
+                                  </div>
+                                ) : (
+                                  <AppButton
+                                    type="button"
+                                    onClick={() => extractDetailsWithAi(images)}
+                                    disabled={isAiLoading}
+                                    color="primary"
+                                    size="small"
+                                    className="tw:text-xs tw:h-8 tw:px-3 tw:rounded-lg tw:shadow-none tw:w-full tw:sm:w-auto"
+                                  >
+                                    <Sparkles className="tw:w-3.5 tw:h-3.5 tw:mr-1" />
+                                    Fill from Photo
+                                  </AppButton>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </FormSection>
+
+                        {/* Path chooser: the user either uploads a photo and lets AI
                       fill the form, or opts to enter the details manually.
                       Uploading is optional, so the manual option is always
                       offered; the "or" divider only appears once a photo exists
@@ -956,269 +995,296 @@ const ManageProduct = () => {
                       hidden until one path is taken. Built as a large, icon-led
                       tap target (not a small checkbox) so the choice is obvious
                       for rural users. */}
-                  {images && images.length > 0 && !showDetails && (
-                    <div className="tw:flex tw:items-center tw:gap-3">
-                      <span className="tw:h-px tw:flex-1 tw:bg-gray-200" />
-                      <span className="tw:text-[11px] tw:font-medium tw:text-gray-400 tw:uppercase tw:tracking-wide">
-                        or
-                      </span>
-                      <span className="tw:h-px tw:flex-1 tw:bg-gray-200" />
-                    </div>
-                  )}
-                  {!showDetails && (
-                    <button
-                      type="button"
-                      onClick={() => setManualFill(true)}
-                      className="tw:group tw:flex tw:items-center tw:gap-3 tw:w-full tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white tw:p-4 tw:text-left tw:cursor-pointer tw:transition-all hover:tw:border-blue-400 hover:tw:bg-blue-50/30"
-                    >
-                      <span className="tw:flex tw:shrink-0 tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-lg tw:bg-blue-50 tw:text-blue-600 group-hover:tw:scale-105 tw:transition-transform">
-                        <Pencil size={20} />
-                      </span>
-                      <span className="tw:flex-1">
-                        <span className="tw:block tw:text-sm tw:font-bold tw:text-gray-900">
-                          I will fill the product details myself
-                        </span>
-                        <span className="tw:block tw:text-xs tw:text-gray-500 tw:mt-0.5">
-                          Type the product name, price and other details
-                        </span>
-                      </span>
-                      <ChevronRight className="tw:w-5 tw:h-5 tw:text-gray-300 group-hover:tw:text-blue-500 tw:transition-colors" />
-                    </button>
-                  )}
+                        {images && images.length > 0 && !showDetails && (
+                          <div className="tw:flex tw:items-center tw:gap-3">
+                            <span className="tw:h-px tw:flex-1 tw:bg-gray-200" />
+                            <span className="tw:text-[11px] tw:font-medium tw:text-gray-400 tw:uppercase tw:tracking-wide">
+                              or
+                            </span>
+                            <span className="tw:h-px tw:flex-1 tw:bg-gray-200" />
+                          </div>
+                        )}
+                        {!showDetails && (
+                          <button
+                            type="button"
+                            onClick={() => setManualFill(true)}
+                            className="tw:group tw:flex tw:items-center tw:gap-3 tw:w-full tw:rounded-xl tw:border tw:border-gray-200 tw:bg-white tw:p-4 tw:text-left tw:cursor-pointer tw:transition-all hover:tw:border-blue-400 hover:tw:bg-blue-50/30"
+                          >
+                            <span className="tw:flex tw:shrink-0 tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-lg tw:bg-blue-50 tw:text-blue-600 group-hover:tw:scale-105 tw:transition-transform">
+                              <Pencil size={20} />
+                            </span>
+                            <span className="tw:flex-1">
+                              <span className="tw:block tw:text-sm tw:font-bold tw:text-gray-900">
+                                I will fill the product details myself
+                              </span>
+                              <span className="tw:block tw:text-xs tw:text-gray-500 tw:mt-0.5">
+                                Type the product name, price and other details
+                              </span>
+                            </span>
+                            <ChevronRight className="tw:w-5 tw:h-5 tw:text-gray-300 group-hover:tw:text-blue-500 tw:transition-colors" />
+                          </button>
+                        )}
 
-                  {showDetails && (
-                    <>
-                      {/* Basic details: identity of the product */}
-                      <FormSection
-                        icon={<Tag size={18} className="tw:text-blue-600" />}
-                        accent="tw:bg-blue-50"
-                        title="Basic Details"
-                        description="Name, brand and category of the product"
-                      >
-                        <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:gap-4">
-                          <AppInput
-                            name="name"
-                            label={t("form.fields.productName.label")}
-                            register={register}
-                            isRequired
-                            size="sm"
-                            placeholder={t(
-                              "form.fields.productName.placeholder",
-                            )}
-                            className="tw:col-span-1 tw:sm:col-span-2"
-                          />
-
-                          <div>
-                            {addNewBrand ? (
-                              <>
+                        {showDetails && (
+                          <>
+                            {/* Basic details: identity of the product */}
+                            <FormSection
+                              icon={
+                                <Tag size={18} className="tw:text-blue-600" />
+                              }
+                              accent="tw:bg-blue-50"
+                              title="Basic Details"
+                              description="Name, brand and category of the product"
+                            >
+                              <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:gap-4">
                                 <AppInput
+                                  name="name"
+                                  label={t("form.fields.productName.label")}
                                   register={register}
-                                  name="newBrand"
-                                  label="Add New Brand"
+                                  isRequired
                                   size="sm"
-                                  placeholder="Enter Brand Name"
+                                  placeholder={t(
+                                    "form.fields.productName.placeholder",
+                                  )}
+                                  className="tw:col-span-1 tw:sm:col-span-2"
                                 />
-                                <button
-                                  className="tw:text-xs tw:text-gray-500 tw:underline tw:cursor-pointer"
-                                  onClick={toggleAddNewBrand}
-                                  type="button"
-                                >
-                                  Search All Brands
-                                </button>
-                              </>
-                            ) : (
-                              <>
+
+                                <div>
+                                  {addNewBrand ? (
+                                    <>
+                                      <AppInput
+                                        register={register}
+                                        name="newBrand"
+                                        label="Add New Brand"
+                                        size="sm"
+                                        placeholder="Enter Brand Name"
+                                      />
+                                      <button
+                                        className="tw:text-xs tw:text-gray-500 tw:underline tw:cursor-pointer"
+                                        onClick={toggleAddNewBrand}
+                                        type="button"
+                                      >
+                                        Search All Brands
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Controller
+                                        name="brand"
+                                        control={control}
+                                        render={({ field }) => (
+                                          <BrandSearchInput
+                                            size="sm"
+                                            values={
+                                              field.value ? [field.value] : []
+                                            }
+                                            callback={handleBrandChange}
+                                            label={t("form.fields.brand.label")}
+                                          />
+                                        )}
+                                      />
+                                      <button
+                                        className="tw:text-xs tw:text-gray-500 tw:underline tw:cursor-pointer"
+                                        onClick={toggleAddNewBrand}
+                                        type="button"
+                                      >
+                                        Add New Brand
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+
                                 <Controller
-                                  name="brand"
+                                  name="category"
                                   control={control}
                                   render={({ field }) => (
-                                    <BrandSearchInput
+                                    <CategorySearchInput
                                       size="sm"
                                       values={field.value ? [field.value] : []}
-                                      callback={handleBrandChange}
-                                      label={t("form.fields.brand.label")}
+                                      callback={handleCategoryChange}
+                                      label={t("form.fields.category.label")}
                                     />
                                   )}
                                 />
-                                <button
-                                  className="tw:text-xs tw:text-gray-500 tw:underline tw:cursor-pointer"
-                                  onClick={toggleAddNewBrand}
-                                  type="button"
-                                >
-                                  Add New Brand
-                                </button>
-                              </>
-                            )}
-                          </div>
 
-                          <Controller
-                            name="category"
-                            control={control}
-                            render={({ field }) => (
-                              <CategorySearchInput
-                                size="sm"
-                                values={field.value ? [field.value] : []}
-                                callback={handleCategoryChange}
-                                label={t("form.fields.category.label")}
-                              />
-                            )}
-                          />
-
-                          {showModelInput && (
-                            <AppInput
-                              name="model"
-                              label={t("form.fields.model.label")}
-                              register={register}
-                              isRequired
-                              size="sm"
-                              placeholder={t("form.fields.model.placeholder")}
-                            />
-                          )}
-                        </div>
-                      </FormSection>
-
-                      {/* Pricing & units: how the product is measured and priced */}
-                      <FormSection
-                        icon={
-                          <IndianRupee
-                            size={18}
-                            className="tw:text-emerald-600"
-                          />
-                        }
-                        accent="tw:bg-emerald-50"
-                        title="Pricing & Units"
-                        description="Unit, price, weight and barcode"
-                      >
-                        <div className="tw:grid tw:grid-cols-2 tw:lg:grid-cols-3 tw:gap-4">
-                          <Controller
-                            name="unitType"
-                            control={control}
-                            render={({ field }) => (
-                              <AppSelect
-                                label={t("form.fields.unitType.label")}
-                                placeholder={t(
-                                  "form.fields.unitType.placeholder",
+                                {showModelInput && (
+                                  <AppInput
+                                    name="model"
+                                    label={t("form.fields.model.label")}
+                                    register={register}
+                                    isRequired
+                                    size="sm"
+                                    placeholder={t(
+                                      "form.fields.model.placeholder",
+                                    )}
+                                  />
                                 )}
-                                options={uomOptions}
-                                value={field.value}
-                                onChange={handleUomChange}
-                                size="sm"
-                                inputClassName="tw:w-full"
-                                isRequired
-                              />
-                            )}
-                          />
+                              </div>
+                            </FormSection>
 
-                          <div>
-                            <AppInput
-                              type="number"
-                              name="mrp"
-                              label={t("form.fields.mrp.label")}
-                              register={register}
-                              isRequired
-                              size="sm"
-                              placeholder={t("form.fields.mrp.placeholder")}
-                              onChange={handleNumberInput}
-                            />
-                            {isSmallUom && (
-                              <p className="tw:text-[11px] tw:text-gray-400 tw:mt-1">
-                                Enter price per {displayUom}
-                                {mrpWatch
-                                  ? ` (≈ ₹${UomPriceService.toApiPrice(mrpWatch, unitType)}/${unitType})`
-                                  : ""}
-                              </p>
-                            )}
-                          </div>
-
-                          <AppInput
-                            type="number"
-                            name="weight"
-                            label={t("form.fields.weight.label")}
-                            register={register}
-                            size="sm"
-                            placeholder={t("form.fields.weight.placeholder")}
-                            onChange={handleNumberInput}
-                          />
-
-                          <div className="tw:col-span-2 tw:lg:col-span-3">
-                            <label className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:font-medium tw:text-gray-600 tw:mb-1.5">
-                              {t("form.fields.barcode.label")}
-                              {isLocalDeal && <DealScopeBadge isLocalDeal />}
-                            </label>
-                            <Controller
-                              name="barcode"
-                              control={control}
-                              render={({ field }) => (
-                                <BarcodeInput
-                                  value={field.value || ""}
-                                  onChange={(barcode) => {
-                                    // Any barcode change clears a previous "local deal"
-                                    // mark; the markAsLocal callback re-sets it after.
-                                    field.onChange(barcode);
-                                    setValue("isLocalDeal", false);
-                                  }}
-                                  useSubscribeBtn={false}
-                                  uom={unitType}
-                                  callback={handleBarcodeCallback}
-                                  placeholder={t(
-                                    "form.fields.barcode.placeholder",
-                                  )}
-                                  dealId={searchParams.get("id") || undefined}
-                                  hideCreateProduct
+                            {/* Pricing & units: how the product is measured and priced */}
+                            <FormSection
+                              icon={
+                                <IndianRupee
+                                  size={18}
+                                  className="tw:text-emerald-600"
                                 />
-                              )}
-                            />
-                          </div>
+                              }
+                              accent="tw:bg-emerald-50"
+                              title="Pricing & Units"
+                              description="Unit, price, weight and barcode"
+                            >
+                              <div className="tw:grid tw:grid-cols-2 tw:lg:grid-cols-3 tw:gap-4">
+                                <Controller
+                                  name="unitType"
+                                  control={control}
+                                  render={({ field }) => (
+                                    <AppSelect
+                                      label={t("form.fields.unitType.label")}
+                                      placeholder={t(
+                                        "form.fields.unitType.placeholder",
+                                      )}
+                                      options={uomOptions}
+                                      value={field.value}
+                                      onChange={handleUomChange}
+                                      size="sm"
+                                      inputClassName="tw:w-full"
+                                      isRequired
+                                    />
+                                  )}
+                                />
+
+                                <div>
+                                  <AppInput
+                                    type="number"
+                                    name="mrp"
+                                    label={t("form.fields.mrp.label")}
+                                    register={register}
+                                    isRequired
+                                    size="sm"
+                                    placeholder={t(
+                                      "form.fields.mrp.placeholder",
+                                    )}
+                                    onChange={handleNumberInput}
+                                  />
+                                  {isSmallUom && (
+                                    <p className="tw:text-[11px] tw:text-gray-400 tw:mt-1">
+                                      Enter price per {displayUom}
+                                      {mrpWatch
+                                        ? ` (≈ ₹${UomPriceService.toApiPrice(mrpWatch, unitType)}/${unitType})`
+                                        : ""}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <AppInput
+                                  type="number"
+                                  name="weight"
+                                  label={t("form.fields.weight.label")}
+                                  register={register}
+                                  size="sm"
+                                  placeholder={t(
+                                    "form.fields.weight.placeholder",
+                                  )}
+                                  onChange={handleNumberInput}
+                                />
+
+                                <div className="tw:col-span-2 tw:lg:col-span-3">
+                                  <label className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:font-medium tw:text-gray-600 tw:mb-1.5">
+                                    {t("form.fields.barcode.label")}
+                                    {isLocalDeal && (
+                                      <DealScopeBadge isLocalDeal />
+                                    )}
+                                  </label>
+                                  <Controller
+                                    name="barcode"
+                                    control={control}
+                                    render={({ field }) => (
+                                      <BarcodeInput
+                                        value={field.value || ""}
+                                        onChange={(barcode) => {
+                                          // Any barcode change clears a previous "local deal"
+                                          // mark; the markAsLocal callback re-sets it after.
+                                          field.onChange(barcode);
+                                          setValue("isLocalDeal", false);
+                                        }}
+                                        useSubscribeBtn={false}
+                                        uom={unitType}
+                                        callback={handleBarcodeCallback}
+                                        placeholder={t(
+                                          "form.fields.barcode.placeholder",
+                                        )}
+                                        dealId={
+                                          searchParams.get("id") || undefined
+                                        }
+                                        hideCreateProduct
+                                      />
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            </FormSection>
+
+                            {/* Additional details: free-text description and notes */}
+                            <FormSection
+                              icon={
+                                <FileText
+                                  size={18}
+                                  className="tw:text-amber-600"
+                                />
+                              }
+                              accent="tw:bg-amber-50"
+                              title="Additional Details"
+                              description="Description and any extra information"
+                            >
+                              <div className="tw:grid tw:grid-cols-1 tw:gap-4">
+                                <AppTextarea
+                                  name="description"
+                                  label={t("form.fields.description.label")}
+                                  register={register}
+                                  rows={3}
+                                  placeholder={t(
+                                    "form.fields.description.placeholder",
+                                  )}
+                                />
+
+                                <AppTextarea
+                                  name="additionalInfo"
+                                  label={t("form.fields.additionalInfo.label")}
+                                  register={register}
+                                  rows={3}
+                                  placeholder={t(
+                                    "form.fields.additionalInfo.placeholder",
+                                  )}
+                                />
+                              </div>
+                            </FormSection>
+                          </>
+                        )}
+                      </div>
+
+                      {showDetails && (
+                        <div className="tw:flex tw:flex-col tw:gap-3 tw:mt-5 tw:pt-4 tw:border-t tw:border-gray-200 tw:md:flex-row tw:md:justify-between tw:md:items-center">
+                          <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-gray-500">
+                            <span className="tw:text-red-500">*</span>
+                            Fields marked are mandatory.
+                          </span>
+                          <AppButton type="submit" isLoading={loading}>
+                            {t("form.actions.submit")}
+                          </AppButton>
                         </div>
-                      </FormSection>
-
-                      {/* Additional details: free-text description and notes */}
-                      <FormSection
-                        icon={
-                          <FileText size={18} className="tw:text-amber-600" />
-                        }
-                        accent="tw:bg-amber-50"
-                        title="Additional Details"
-                        description="Description and any extra information"
-                      >
-                        <div className="tw:grid tw:grid-cols-1 tw:gap-4">
-                          <AppTextarea
-                            name="description"
-                            label={t("form.fields.description.label")}
-                            register={register}
-                            rows={3}
-                            placeholder={t(
-                              "form.fields.description.placeholder",
-                            )}
-                          />
-
-                          <AppTextarea
-                            name="additionalInfo"
-                            label={t("form.fields.additionalInfo.label")}
-                            register={register}
-                            rows={3}
-                            placeholder={t(
-                              "form.fields.additionalInfo.placeholder",
-                            )}
-                          />
-                        </div>
-                      </FormSection>
-                    </>
-                  )}
-                </div>
-
-                {showDetails && (
-                  <div className="tw:flex tw:flex-col tw:gap-3 tw:mt-5 tw:pt-4 tw:border-t tw:border-gray-200 tw:md:flex-row tw:md:justify-between tw:md:items-center">
-                    <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-gray-500">
-                      <span className="tw:text-red-500">*</span>
-                      Fields marked are mandatory.
-                    </span>
-                    <AppButton type="submit" isLoading={loading}>
-                      {t("form.actions.submit")}
-                    </AppButton>
+                      )}
+                    </form>
                   </div>
-                )}
-              </form>
+                </div>
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <SubscribeSidePane scopeLabel="Add Item" />
+              </AppPaneSide>
             </div>
           </div>
         </div>

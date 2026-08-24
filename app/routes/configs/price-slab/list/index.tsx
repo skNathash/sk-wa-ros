@@ -22,7 +22,10 @@ import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import type { ViewToggleType } from "~/types/CommonTypes";
 
-import ManagePriceTabs from "../../components/ManagePriceTabs";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import PricingSidePane from "~/shared/inventory/components/pricing-side-pane/PricingSidePane";
+import PriceTabs from "~/shared/configs/components/price-tabs/PriceTabs";
 import PageDescription from "~/components/core/page-description/PageDescription";
 import HowItWorksModal from "../modals/HowItWorksModal";
 import {
@@ -33,6 +36,7 @@ import {
   type PriceSlabType,
 } from "./helper";
 import DefaultSlabs from "./components/DefaultSlabs";
+import PricingChannelCards from "~/shared/configs/components/pricing-channel-cards/PricingChannelCards";
 import AppCard from "~/components/core/card/AppCard";
 import { format } from "date-fns";
 import AuthService from "~/services/AuthService";
@@ -354,152 +358,223 @@ export default function PriceSlabList() {
 
   return (
     <>
+      {/* No `sectionKey` (drops the theme-2 section dropdown) and the default
+          `back` lead (drops the hamburger) — this is a leaf of Manage Price,
+          so the title stays plain and the way out is back. */}
       <AppHeader title={getHeaderTitle()} />
 
       <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:items-start tw:md:items-center tw:mb-1 tw:gap-1">
-            <div className="tw:flex-1">
-              <AppBreadcrumbs data={breadcrumbs} className="tw:mb-1!" />
-              <PageDescription description="priceSlab" className="tw:mb-4" />
-            </div>
-          </div>
-
-          <ManagePriceTabs activeTab="priceSlab" className="tw:mb-6" />
-
-          <div className="tw:mb-4">
-            <AppTab
-              tabs={tabs}
-              activeTab={activeTab}
-              onTabChange={onTabChange}
-              className="tw:mb-2"
-              variant="underline"
-            />
-
-            {/* Tab Description with inline help button */}
-            <div className="tw:flex tw:flex-row tw:items-center tw:justify-between tw:gap-3">
-              <p className="tw:text-xs tw:text-gray-500 tw:leading-relaxed tw:m-0 tw:flex-1">
-                {tabDescriptions[activeTab as keyof typeof tabDescriptions]}
-              </p>
-
-              <div className="tw:ml-0 tw:md:ml-4">
-                <AppButton
-                  onClick={() => setHowItWorksModal(true)}
-                  size="small"
-                  color="light"
-                  fill="outline"
-                >
-                  <Info className="tw:w-4 tw:h-4 tw:mr-2" />
-                  How it works
-                </AppButton>
-              </div>
-            </div>
-          </div>
-
-          <div className="tw:mt-4">
-            {activeTab === "global" && (
-              <DefaultSlabs
-                slabs={items?.[0]?.slab || []}
-                id={items?.[0]?._id}
-                isActive={items?.[0]?.isActive}
-                callback={itemCallback}
+        <div className="section-layout">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="pricing"
+                title="Manage Catalog"
               />
-            )}
+            </div>
+          </aside>
 
-            {!hasConfig && !loading ? (
-              <div className="tw:p-8 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-white tw:flex tw:flex-col tw:items-center tw:justify-center tw:gap-4">
-                <div className="tw:text-center">
-                  <div className="tw:w-14 tw:h-14 tw:rounded-full tw:bg-gray-100 tw:flex tw:items-center tw:justify-center tw:mx-auto tw:mb-3">
-                    <AlertCircle className="tw:w-7 tw:h-7 tw:text-gray-500" />
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              <AppPaneMain className="tw:lg:col-span-12">
+                {/* Dropped wholesale in theme-2 (both children are hidden there
+                    anyway) so the empty wrapper stops contributing a stack gap
+                    above the command bar. */}
+                <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:items-start tw:md:items-center tw:mb-1 tw:gap-1 hide-in-theme-2">
+                  <div className="tw:flex-1">
+                    <AppBreadcrumbs data={breadcrumbs} className="tw:mb-1!" />
+                    <PageDescription
+                      description="priceSlab"
+                      className="tw:mb-4"
+                    />
                   </div>
-                  <h3 className="tw:text-base tw:font-semibold tw:text-gray-900 tw:mb-1">
-                    Not Configured
-                  </h3>
-                  <p className="tw:text-sm tw:text-gray-600 tw:mb-4">
-                    No price slab configuration set up for this category yet.
-                  </p>
                 </div>
 
-                <AppButton
-                  onClick={() =>
-                    setPriceConfigModal({
-                      show: true,
-                      type: activeTab as any,
-                    })
-                  }
-                  color="primary"
-                >
-                  Configure Now
-                </AppButton>
-              </div>
-            ) : (
-              <>
-                {/* Show list when items are present; otherwise show the empty state */}
-                {activeTab === "global" ? null : (
-                  <>
-                    <FormProvider {...methods}>
-                      <div>
-                        <Filter callback={handleFilterChange} />
+                {/* Pricing command bar — same block as Manage Price: the
+                    channel cards (price slabs are B2B-only, so the other
+                    channels hand back to Manage Price) above the underline
+                    tab row. */}
+                <div className="pricing-command-bar tw:-mt-6 tw:md:mt-0">
+                  <div className="tw:px-4 tw:py-2 tw:md:pt-3 tw:md:py-0">
+                    {/* Price slabs only exist on B2B — the cards navigate back
+                        to Manage Price for any other channel. */}
+                    <PricingChannelCards
+                      activeKey="network"
+                      // Compact tab row on mobile; full cards from md up.
+                      variant={isMobile ? "tab" : "card"}
+                    />
+                  </div>
 
-                        <div className="tw:mb-4 tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-end tw:flex-wrap">
-                          <div className="tw:flex-1 tw:hidden tw:md:block">
-                            <PaginationSummary
-                              paginationConfig={paginationRef.current}
-                              loadingTotalRecords={loading}
-                              loadedCount={items.length}
-                              fwSize="sm"
-                            />
-                          </div>
+                  <PriceTabs
+                    type="network"
+                    activeTab="priceSlab"
+                    className="tw:mt-1 tw:px-4 tw:hidden tw:md:block"
+                  />
+                </div>
 
-                          <div className="tw:flex tw:gap-2 tw:items-center">
-                            <ViewToggle viewType={view} callback={setView} />
-                            {!isMobile &&
-                              activeTab !== "global" &&
-                              hasConfig && (
-                                <div className="tw:ml-2">
-                                  {renderCreateButton()}
-                                </div>
-                              )}
-                          </div>
+                <div className="tw:mb-4">
+                  <AppTab
+                    tabs={tabs}
+                    activeTab={activeTab}
+                    onTabChange={onTabChange}
+                    className="tw:mb-2"
+                    variant="underline"
+                  />
+
+                  {/* Tab Description with inline help button */}
+                  <div className="tw:flex tw:flex-row tw:items-center tw:justify-between tw:gap-3">
+                    <p className="tw:text-xs tw:text-gray-500 tw:leading-relaxed tw:m-0 tw:flex-1">
+                      {
+                        tabDescriptions[
+                          activeTab as keyof typeof tabDescriptions
+                        ]
+                      }
+                    </p>
+
+                    <div className="tw:ml-0 tw:md:ml-4">
+                      <AppButton
+                        onClick={() => setHowItWorksModal(true)}
+                        size="small"
+                        color="light"
+                        fill="outline"
+                      >
+                        <Info className="tw:w-4 tw:h-4 tw:mr-2" />
+                        How it works
+                      </AppButton>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="tw:mt-4">
+                  {activeTab === "global" && (
+                    <DefaultSlabs
+                      slabs={items?.[0]?.slab || []}
+                      id={items?.[0]?._id}
+                      isActive={items?.[0]?.isActive}
+                      callback={itemCallback}
+                    />
+                  )}
+
+                  {!hasConfig && !loading ? (
+                    <div className="tw:p-8 tw:border tw:border-gray-200 tw:rounded-lg tw:bg-white tw:flex tw:flex-col tw:items-center tw:justify-center tw:gap-4">
+                      <div className="tw:text-center">
+                        <div className="tw:w-14 tw:h-14 tw:rounded-full tw:bg-gray-100 tw:flex tw:items-center tw:justify-center tw:mx-auto tw:mb-3">
+                          <AlertCircle className="tw:w-7 tw:h-7 tw:text-gray-500" />
                         </div>
+                        <h3 className="tw:text-base tw:font-semibold tw:text-gray-900 tw:mb-1">
+                          Not Configured
+                        </h3>
+                        <p className="tw:text-sm tw:text-gray-600 tw:mb-4">
+                          No price slab configuration set up for this category
+                          yet.
+                        </p>
                       </div>
 
-                      {isMobile || view === "card" ? (
+                      <AppButton
+                        onClick={() =>
+                          setPriceConfigModal({
+                            show: true,
+                            type: activeTab as any,
+                          })
+                        }
+                        color="primary"
+                      >
+                        Configure Now
+                      </AppButton>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Show list when items are present; otherwise show the empty state */}
+                      {activeTab === "global" ? null : (
                         <>
-                          <MobileView
-                            loading={loading}
-                            data={items}
-                            callback={itemCallback}
-                            showLoadMore={hasMoreData}
-                            loadingMore={loadingMore}
-                            loadMore={loadMore}
-                            totalCount={paginationRef.current.totalRecords}
-                            loadedCount={items.length}
-                          />
+                          <FormProvider {...methods}>
+                            <div>
+                              {/* Filter leads, the count line reads below it.
+                                  On mobile the block is its own white band
+                                  running edge to edge (`app-bleed-x` cancels
+                                  the page gutter); desktop keeps it inline. */}
+                              <div className="tw:mb-3 tw:bg-white tw:px-4 tw:py-2 app-bleed-x tw:md:mb-0 tw:md:bg-transparent tw:md:px-0 tw:md:py-0">
+                                <Filter callback={handleFilterChange} />
+                              </div>
+
+                              <div className="tw:mb-4 tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-end tw:flex-wrap">
+                                <div className="tw:flex-1 tw:hidden tw:md:block">
+                                  <PaginationSummary
+                                    paginationConfig={paginationRef.current}
+                                    loadingTotalRecords={loading}
+                                    loadedCount={items.length}
+                                    fwSize="sm"
+                                  />
+                                </div>
+
+                                <div className="tw:flex tw:gap-2 tw:items-center">
+                                  <ViewToggle
+                                    viewType={view}
+                                    callback={setView}
+                                  />
+                                  {!isMobile &&
+                                    activeTab !== "global" &&
+                                    hasConfig && (
+                                      <div className="tw:ml-2">
+                                        {renderCreateButton()}
+                                      </div>
+                                    )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {isMobile || view === "card" ? (
+                              <>
+                                <MobileView
+                                  loading={loading}
+                                  data={items}
+                                  callback={itemCallback}
+                                  showLoadMore={hasMoreData}
+                                  loadingMore={loadingMore}
+                                  loadMore={loadMore}
+                                  totalCount={
+                                    paginationRef.current.totalRecords
+                                  }
+                                  loadedCount={items.length}
+                                />
+                              </>
+                            ) : (
+                              <AppCard noPadding={true}>
+                                <DesktopView
+                                  type={activeTab}
+                                  loading={loading}
+                                  data={items}
+                                  callback={itemCallback}
+                                  sortKey={""}
+                                  onSort={() => {}}
+                                  sortValue={"asc"}
+                                  showLoadMore={hasMoreData}
+                                  loadingMore={loadingMore}
+                                  loadMore={loadMore}
+                                  totalCount={
+                                    paginationRef.current.totalRecords
+                                  }
+                                  loadedCount={items.length}
+                                />
+                              </AppCard>
+                            )}
+                          </FormProvider>
                         </>
-                      ) : (
-                        <AppCard noPadding={true}>
-                          <DesktopView
-                            type={activeTab}
-                            loading={loading}
-                            data={items}
-                            callback={itemCallback}
-                            sortKey={""}
-                            onSort={() => {}}
-                            sortValue={"asc"}
-                            showLoadMore={hasMoreData}
-                            loadingMore={loadingMore}
-                            loadMore={loadMore}
-                            totalCount={paginationRef.current.totalRecords}
-                            loadedCount={items.length}
-                          />
-                        </AppCard>
                       )}
-                    </FormProvider>
-                  </>
-                )}
-              </>
-            )}
+                    </>
+                  )}
+                </div>
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed pane
+                  beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <PricingSidePane title="Price Slabs" />
+              </AppPaneSide>
+            </div>
           </div>
         </div>
       </div>

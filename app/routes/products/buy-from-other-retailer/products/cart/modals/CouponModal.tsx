@@ -99,7 +99,7 @@ const CouponModal = ({ show, cartId, callback }: Props) => {
                   <div className="tw:flex-1 tw:min-w-0">
                     <div className="tw:flex tw:items-center tw:gap-2 tw:mb-1">
                       <Ticket
-                        className="tw:w-4 tw:h-4 tw:text-blue-600 tw:shrink-0"
+                        className="tw:w-4 tw:h-4 tw:text-primary tw:shrink-0"
                         strokeWidth={2.25}
                       />
                       <span className="tw:font-semibold tw:text-sm tw:truncate">
@@ -109,7 +109,7 @@ const CouponModal = ({ show, cartId, callback }: Props) => {
                         <button
                           type="button"
                           onClick={() => handleCopy(code)}
-                          className="tw:shrink-0 tw:text-gray-400 tw:hover:text-blue-600 tw:transition-colors"
+                          className="tw:shrink-0 tw:text-gray-400 tw:hover:text-primary tw:transition-colors"
                           aria-label={`Copy coupon ${code}`}
                           title="Copy code"
                         >

@@ -915,6 +915,30 @@ class PurchaseOrderService {
     );
   }
 
+  /**
+   * Fetch purchase order dashboard insights.
+   * Endpoint: purchase/purchaseorder-dashboard/insights
+   */
+  public static async getDashboardInsights(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${this.BASE_URL}purchase/purchaseorder-dashboard/insights`,
+      "GET",
+      params,
+    );
+  }
+
+  /**
+   * Weekly purchase recap for the logged-in buyer — orders placed, boxes
+   * received, payments made and dues coming up in the next window.
+   */
+  public static async getPurchaseSummary(params: Record<string, any> = {}) {
+    return AjaxService.request(
+      `${this.BASE_URL}sales/dashboard/purchase/summary`,
+      "GET",
+      params,
+    );
+  }
+
   static async cancelPo(id: string, params?: Record<string, any>) {
     return AjaxService.request(
       `${this.BASE_URL}purchase/orders/${id}/cancel`,

@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import Alpha from "~/components/core/alpha/Alpha";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
-import { AppInput } from "~/components/core/form";
 import AppHeader from "~/components/core/header/AppHeader";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
@@ -16,9 +15,15 @@ import BuyFromNetworkTab from "../../components/BuyFromNetworkTab";
 import DistanceChooser from "../components/DistanceChooser";
 import BrandList, { type BrandItem } from "./components/BrandList";
 import BrandGrid from "./components/BrandGrid";
+import BrandBrowseGrid from "./components/BrandBrowseGrid";
 import CategoryList, { type CategoryItem } from "./components/CategoryList";
 import Products from "../components/products/Products";
+import BrowseSearchField from "~/shared/catalog/components/browse/BrowseSearchField";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
+import { useSidebar } from "~/components/ui/sidebar";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SupplyCatalogPane from "~/shared/catalog/components/supply-catalog-pane/SupplyCatalogPane";
 import { DEFAULT_BROWSE_DISTANCE } from "~/constants";
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -29,6 +34,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 const CategoriesPage = () => {
   const { t } = useTranslation(["common", "menu"]);
   const { isMobile } = useScreenView();
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
+  const { setOpen } = useSidebar();
+
+  // Collapse the side menu when this page opens; the user can reopen it via the toggle.
+  React.useEffect(() => {
+    setOpen(false);
+  }, []);
 
   const { register, getValues, setValue } = useForm({
     defaultValues: {
@@ -166,19 +179,14 @@ const CategoriesPage = () => {
     <>
       <AppHeader title={t("browseByBrand")} showCart={true} />
       <div className="page-bg app-page tw:p-4">
-        <SectionTabs
-          sectionKey="supply"
-          activeTab="buy-from-network"
-          noShadow
-          sticky
-        />
+        <SectionTabs sectionKey="supply" activeTab="browse" noShadow sticky />
 
         <div className="section-layout section-layout--tight">
           <aside className="section-menu-aside">
             <div className="tw:sticky tw:top-20">
               <SectionMenu
                 sectionKey="supply"
-                activeTab="buy-from-network"
+                activeTab="browse"
                 title={t("manageSupply", { ns: "menu" })}
               />
             </div>
@@ -187,83 +195,141 @@ const CategoriesPage = () => {
           <div className="section-content">
             <AppBreadcrumbs data={breadcrumbs} className="tw:mb-4" />
             <div className="tw:mb-4 tw:relative tw:z-10">
-              <BuyFromNetworkTab activeTab="brands" className="tw:mb-4" />
+              <BuyFromNetworkTab
+                activeTab="brands"
+                className="tw:mb-4 hide-in-theme-2"
+              />
 
-              <>
-                <div className="browse-grid--brand tw:grid tw:grid-cols-1 tw:md:grid-cols-[20rem_22rem_1fr] tw:md:grid-rows-1 tw:gap-3 tw:h-[calc(100vh-12rem)]">
-                  <div className="tw:flex tw:flex-col tw:gap-2 tw:min-h-0 tw:h-full">
-                    <div className="tw:flex tw:items-center tw:gap-2">
-                      <AppInput
-                        name="search"
-                        placeholder="Search"
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                {/* Main column — spans the full grid (the side pane only
+                    exists in theme-2 desktop, where the CSS lifts it out of
+                    the grid into the fixed list pane; see AppPane /
+                    theme-2.css). */}
+                <AppPaneMain className="tw:lg:col-span-12">
+                  {isTheme2 ? (
+                    /* theme-2 — card-grid browse view instead of the 3-column
+                   brand/category/product layout. */
+                    <div className="tw:flex tw:flex-col tw:gap-3">
+                      {/* `search-sticky` (theme-2.css) pins the bar under the
+                          header and bleeds it edge-to-edge out of the page
+                          padding, like the main browse page. The top utilities
+                          mirror its offsets (mobile: below the sticky section
+                          tab bar; md+: below the header) so the bar never
+                          slides under either bar. */}
+                      <BrowseSearchField
                         register={register}
-                        className="tw:w-full tw:flex-1"
                         onChange={handleSearch}
+                        className="search-sticky tw:top-27 tw:md:top-15"
+                        trailing={
+                          <DistanceChooser selectedDistance={distance} />
+                        }
                       />
-                      <DistanceChooser selectedDistance={distance} />
+                      <Alpha
+                        selected={alpha}
+                        callback={handleAlphaChange}
+                        className="tw:w-full"
+                      />
+                      <BrandBrowseGrid
+                        items={items}
+                        loading={loading}
+                        loadingMore={loadingMore}
+                        hasMoreData={hasMoreData}
+                        totalRecords={paginationRef.current.totalRecords}
+                        rowsPerPage={paginationRef.current.rowsPerPage}
+                        distance={distance}
+                        loadMore={loadMore}
+                      />
                     </div>
-                    <Alpha
-                      selected={alpha}
-                      callback={handleAlphaChange}
-                      className="tw:w-full"
-                    />
-                    {/* <PaginationSummary
+                  ) : (
+                    <div className="browse-grid--brand tw:grid tw:grid-cols-1 tw:md:grid-cols-[20rem_22rem_1fr] tw:md:grid-rows-1 tw:gap-3 tw:h-[calc(100vh-12rem)]">
+                      <div className="tw:flex tw:flex-col tw:gap-2 tw:min-h-0 tw:h-full">
+                        <BrowseSearchField
+                          register={register}
+                          onChange={handleSearch}
+                          trailing={
+                            <DistanceChooser selectedDistance={distance} />
+                          }
+                        />
+                        <Alpha
+                          selected={alpha}
+                          callback={handleAlphaChange}
+                          className="tw:w-full"
+                        />
+                        {/* <PaginationSummary
                     paginationConfig={paginationRef.current}
                     loadingTotalRecords={loading}
                     loadedCount={items.length}
                     fwSize="sm"
                   /> */}
-                    <div className="tw:flex-1 tw:min-h-0 tw:overflow-y-auto">
-                      {isMobile ? (
-                        <BrandGrid
-                          items={items}
-                          loading={loading}
-                          loadingMore={loadingMore}
-                          hasMoreData={hasMoreData}
-                          totalRecords={paginationRef.current.totalRecords}
-                          rowsPerPage={paginationRef.current.rowsPerPage}
-                          distance={distance}
-                          loadMore={loadMore}
-                        />
-                      ) : (
-                        <BrandList
-                          items={items}
-                          loading={loading}
-                          loadingMore={loadingMore}
-                          hasMoreData={hasMoreData}
-                          totalRecords={paginationRef.current.totalRecords}
-                          selectedId={selectedBrand?._id}
-                          onSelect={handleSelectBrand}
-                          loadMore={loadMore}
-                        />
+                        <div className="tw:flex-1 tw:min-h-0 tw:overflow-y-auto">
+                          {isMobile ? (
+                            <BrandGrid
+                              items={items}
+                              loading={loading}
+                              loadingMore={loadingMore}
+                              hasMoreData={hasMoreData}
+                              totalRecords={paginationRef.current.totalRecords}
+                              rowsPerPage={paginationRef.current.rowsPerPage}
+                              distance={distance}
+                              loadMore={loadMore}
+                            />
+                          ) : (
+                            <BrandList
+                              items={items}
+                              loading={loading}
+                              loadingMore={loadingMore}
+                              hasMoreData={hasMoreData}
+                              totalRecords={paginationRef.current.totalRecords}
+                              selectedId={selectedBrand?._id}
+                              onSelect={handleSelectBrand}
+                              loadMore={loadMore}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {!isMobile && (
+                        <>
+                          <CategoryList
+                            brandId={selectedBrand?._id}
+                            brandName={
+                              selectedBrand?._displayName || selectedBrand?.name
+                            }
+                            distance={distance}
+                            selectedId={selectedCategory?._id}
+                            onSelect={setSelectedCategory}
+                          />
+
+                          <Products
+                            brandId={selectedBrand?._id}
+                            brandName={selectedBrand?.name}
+                            categoryId={selectedCategory?._id}
+                            categoryName={selectedCategory?.name}
+                            distance={distance}
+                            placeholder="Select a brand to view its products"
+                          />
+                        </>
                       )}
                     </div>
-                  </div>
-
-                  {!isMobile && (
-                    <>
-                      <CategoryList
-                        brandId={selectedBrand?._id}
-                        brandName={
-                          selectedBrand?._displayName || selectedBrand?.name
-                        }
-                        distance={distance}
-                        selectedId={selectedCategory?._id}
-                        onSelect={setSelectedCategory}
-                      />
-
-                      <Products
-                        brandId={selectedBrand?._id}
-                        brandName={selectedBrand?.name}
-                        categoryId={selectedCategory?._id}
-                        categoryName={selectedCategory?.name}
-                        distance={distance}
-                        placeholder="Select a brand to view its products"
-                      />
-                    </>
                   )}
-                </div>
-              </>
+                </AppPaneMain>
+
+                {/* Side column — only rendered while the theme-2 split layout
+                    is active (lg+), where the CSS re-homes it as the fixed
+                    catalog list pane beside the icon rail. */}
+                <AppPaneSide className="app-pane-only">
+                  <div className="tw:flex tw:flex-col tw:gap-4">
+                    <SupplyCatalogPane
+                      title="Marketplace"
+                      distance={distance}
+                      activeKey="brands"
+                      showPurchaseCart
+                      showTrendingSearches
+                      showPreviousPurchases
+                    />
+                  </div>
+                </AppPaneSide>
+              </div>
             </div>
           </div>
         </div>

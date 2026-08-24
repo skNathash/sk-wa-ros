@@ -1,5 +1,6 @@
 import { endOfDay, startOfDay } from "date-fns";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
+import VendorService from "~/services/VendorService";
 import type { PaginationState, SortProps } from "~/types/CommonTypes";
 
 export const defaultSummary = [
@@ -124,32 +125,80 @@ export const getCount = async (params: Record<string, any>) => {
   }
 };
 
-export const getSummary = async (filter: Record<string, any>) => {
-  const defaultFilter = { ...filter };
+export interface PurchaseOrderSummary {
+  /** Lifetime PO count and value placed with this vendor. */
+  totalCount: number;
+  totalValue: number;
+  cancelledCount: number;
+  /** Amount already settled, and how many POs were delivered. */
+  paidAmount: number;
+  deliveredCount: number;
+  /** Amount still to be paid (incl. paylater) and the PO count behind it. */
+  pendingAmount: number;
+  pendingCount: number;
+}
 
-  const pendingFilter = {
-    ...filter,
-    status: "yetToReceive",
-  };
+export const defaultSummaryData: PurchaseOrderSummary = {
+  totalCount: 0,
+  totalValue: 0,
+  cancelledCount: 0,
+  paidAmount: 0,
+  deliveredCount: 0,
+  pendingAmount: 0,
+  pendingCount: 0,
+};
 
-  const receivedTodayFilter = {
-    ...filter,
-    dateRange: [new Date(), new Date()],
-    status: "received",
-  };
+/**
+ * Query params for the summary call: the same list filters (search, date
+ * range, status) so the cards stay in sync with the table. Vendor and paging
+ * are dropped — the vendor is in the path and analytics returns no rows.
+ */
+export const prepareSummaryParams = (filter: Record<string, any> = {}) => {
+  const { filter: listFilter } = prepareFilterParams(filter);
+
+  delete listFilter["vendorInfo.id"];
+
+  const params: Record<string, any> = { type: "purchaseorder" };
+
+  if (Object.keys(listFilter).length) {
+    params.filter = listFilter;
+  }
+
+  return params;
+};
+
+/**
+ * Vendor purchase-order summary cards, narrowed by the current list filter.
+ * API: vendor/{vendorId}/analytics?type=purchaseorder
+ * Returns zeroed values on failure so the strip still renders.
+ */
+export const getSummary = async (
+  vendorId: string,
+  filter: Record<string, any> = {},
+): Promise<PurchaseOrderSummary> => {
+  if (!vendorId) return { ...defaultSummaryData };
 
   try {
-    const promises = [
-      getCount(prepareFilterParams(defaultFilter)),
-      getCount(prepareFilterParams(receivedTodayFilter)),
-      getCount(prepareFilterParams(pendingFilter)),
-      getCount(prepareFilterParams(defaultFilter)),
-    ];
-    const [totalPoValue, receivedToday, pendingOrders, totalPo] =
-      await Promise.all(promises);
-    return { totalPoValue, receivedToday, pendingOrders, totalPo };
+    const response = await VendorService.getVendorAnalyticsByType(
+      vendorId,
+      prepareSummaryParams(filter),
+    );
+
+    if (response.statusCode !== 200) return { ...defaultSummaryData };
+
+    const data = response.data?.data || {};
+
+    return {
+      totalCount: data.totalPurchaseOrders?.count || 0,
+      totalValue: data.totalPurchaseOrders?.value || 0,
+      cancelledCount: data.totalPurchaseOrders?.cancelledCount || 0,
+      paidAmount: data.paidToVendor?.amount || 0,
+      deliveredCount: data.paidToVendor?.deliveredPOs || 0,
+      pendingAmount: data.paymentPending?.amount || 0,
+      pendingCount: data.paymentPending?.poCount || 0,
+    };
   } catch (error) {
-    console.error("Error fetching purchase orders summary:", error);
-    return [];
+    console.error("Error fetching vendor purchase order summary:", error);
+    return { ...defaultSummaryData };
   }
 };

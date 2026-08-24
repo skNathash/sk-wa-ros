@@ -1,17 +1,15 @@
-import { format, isValid, parseISO } from "date-fns";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import useScreenView from "~/hooks/useScreenView";
-import AuthService from "~/services/AuthService";
 import WhatsappTemplateModal from "~/shared/notifications/whatsapp-template/WhatsappTemplateModal";
 import type { PaginationState, ViewToggleType } from "~/types/CommonTypes";
+import { buildReminderModalDataFromRequest } from "../../helper";
 import DesktopView from "./components/DesktopView";
 import MobileView from "./components/MobileView";
 import { getCount, getData, prepareParams } from "./helper";
-import CommonService from "~/services/CommonService";
 
 const Collect = () => {
   const { t } = useTranslation();
@@ -76,60 +74,10 @@ const Collect = () => {
 
   const handleAction = useCallback((payload: { action: string; data: any }) => {
     if (payload.action === "send-reminder") {
-      const item = payload.data;
-      const user = AuthService.getLoggedInUser() || {};
-
-      // Get franchise name
-      const franchiseName = user?.name;
-
-      // Format due date
-      let formattedDueDate = "";
-      if (item.validityEndDate) {
-        try {
-          const dateValue =
-            typeof item.validityEndDate === "string"
-              ? parseISO(item.validityEndDate)
-              : item.validityEndDate;
-          if (isValid(dateValue)) {
-            formattedDueDate = format(dateValue, "dd MMM yyyy");
-          }
-        } catch (e) {
-          formattedDueDate = String(item.validityEndDate || "");
-        }
-      }
-
-      // Prepare template data according to PaylaterNotificationTemplate interface
-      const templateData = {
-        customerName: item.userInfo?.name || "",
-        franchiseName: franchiseName,
-        amount: CommonService.formattedAmount(item.totalPayableAmount || 0),
-        dueDate: formattedDueDate,
-        franchiseId: AuthService.getLoggedInUserId(),
-        customerId: item.userInfo?._id,
-      };
-
-      // Prepare modal data
-      const modalData = {
-        data: {
-          dynamicData: templateData,
-        },
-        users: [
-          {
-            name: item.userInfo?.name || "",
-            mobile: item.userInfo?.mobile || "",
-            type: "Customer",
-          },
-          ...(item.NomineeDetails || []).map((nominee: any) => ({
-            name: nominee.name || "",
-            mobile: nominee.mobile || "",
-            type: "Nominee",
-          })),
-        ],
-        categories: ["payLater"],
-        templateFor: [item.userCategory === "B2B" ? "B2B" : "B2C"],
-      };
-
-      setReminderModal({ show: true, data: modalData });
+      setReminderModal({
+        show: true,
+        data: buildReminderModalDataFromRequest(payload.data),
+      });
     }
   }, []);
 

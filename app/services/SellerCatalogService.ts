@@ -13,6 +13,8 @@ import {
 import CartService from "~/services/CartService";
 import type {
   BreadcrumbItem,
+  InventoryActivityLog,
+  NetworkGroupPrice,
   PackConfigItemType,
   SellerDeal,
   SellersArrayItem,
@@ -108,7 +110,7 @@ class SellerCatalogService {
       {
         value: "UNIT",
         apiValue: "Unit",
-        label: "Units",
+        label: "Unit",
         packType: "Unit",
         langKey: "sellInUnits",
         color: "light",
@@ -251,6 +253,208 @@ class SellerCatalogService {
   }
 
   /**
+   * Clone an existing seller deal into a new one — used by the pre-owned
+   * intake flow, where a second-hand unit is listed as its own deal carrying
+   * the source product's identity plus condition/grade details.
+   * payload example:
+   * {
+   *  productCondtionType: "Refurbished",
+   *  dealName: "samsung 64 (Refurbished)",
+   *  description: "Grade-A refurbished, 3-month warranty",
+   *  images: ["00302458951524329320"],
+   *  quantity: 3,
+   *  mrp: 5000,
+   *  productGrade: "A"
+   * }
+   */
+  static async cloneDeal(dealId: string, payload: Record<string, any>) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/${dealId}/clone`,
+      "POST",
+      payload,
+    );
+  }
+
+  /**
+   * Fetch the deals a retailer has previously purchased from a given seller.
+   * Scoped by `sellerId`; the response mirrors the seller-deals list shape and
+   * can be run through `formatProductResponse`.
+   */
+  static async getPurchasedDeals(
+    params: Record<string, any>,
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/purchased`,
+      "GET",
+      params,
+      config,
+    );
+  }
+
+  /**
+   * Fetch how this deal's prices sit against the network — the seller's own
+   * MRP / cost / B2C / B2B prices alongside the network average B2C and B2B
+   * price for the same deal. Powers the seller price comparison on the item
+   * detail page.
+   */
+  static async getPeerPrice(dealId: string, config?: AxiosRequestConfig) {
+    return AjaxService.request(
+      `${API}catalog/deals/peer-price/${dealId}`,
+      "GET",
+      undefined,
+      config,
+    );
+  }
+
+  /**
+   * Other variants of the same product — the catalog deals sharing this deal's
+   * base product tokens (pack sizes, weights, packaging). The rows mirror the
+   * catalog deal shape, not the seller-deal one, so they carry `name`/`weight`/
+   * `uom` rather than `dealName`. Keyed on the readable deal id.
+   */
+  static async getSimilarVariants(dealId: string, config?: AxiosRequestConfig) {
+    return AjaxService.request(
+      `${API}catalog/deals/${dealId}/similar-variants`,
+      "GET",
+      undefined,
+      config,
+    );
+  }
+
+  /**
+   * Retailers who bought this deal, within `distance` km of the seller. Pass
+   * `outputType: "count"` for the total instead of the list. Powers the
+   * retailers tab on the item detail page.
+   */
+  static async getDealPerformance(
+    dealId: string,
+    params?: Record<string, any>,
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/deals/performance/${dealId}`,
+      "GET",
+      params,
+      config,
+    );
+  }
+
+  /**
+   * Weekly price history for a seller deal — one point per week for the last
+   * `weeks` weeks. `priceTarget` picks the price being tracked ("network" =
+   * B2B, "customer" = B2C) and `action` the kind of change recorded.
+   */
+  static async getPriceHistory(
+    dealId: string,
+    params?: {
+      action?: string;
+      priceTarget?: "network" | "customer";
+      weeks?: number;
+    },
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/${dealId}/price-history`,
+      "GET",
+      {
+        action: "PRICE_UPDATE",
+        priceTarget: "network",
+        weeks: 6,
+        ...params,
+      },
+      config,
+    );
+  }
+
+  /**
+   * Price events for a seller deal — the same history endpoint in `events`
+   * view, returning one entry per price move (own and peer) in the last `days`.
+   * `distance` bounds the seller radius the averages are drawn from.
+   */
+  static async getPriceEvents(
+    dealId: string,
+    params?: {
+      days?: number;
+      weeks?: number;
+      distance?: string;
+    },
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/${dealId}/price-history`,
+      "GET",
+      {
+        view: "events",
+        days: 30,
+        weeks: 6,
+        distance: "1km",
+        ...params,
+      },
+      config,
+    );
+  }
+
+  /**
+   * Price trend — the same history endpoint in `priceTrend` view, returning one
+   * point per week for the last `weeks` with your price, the peer average within
+   * `distance` and the SK cost.
+   */
+  static async getPriceTrend(
+    dealId: string,
+    params?: {
+      weeks?: number;
+      distance?: number | string;
+      /** Which price book the trend is drawn from — "b2c" or "b2b". */
+      pricingType?: string;
+    },
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/${dealId}/price-history`,
+      "GET",
+      {
+        view: "priceTrend",
+        weeks: 6,
+        distance: "1km",
+        pricingType: "b2c",
+        ...params,
+      },
+      config,
+    );
+  }
+
+  /**
+   * Retailers in and around — the same history endpoint in `b2cInAndAround`
+   * view, returning every peer within `distance` metres that sells this deal,
+   * with their selling price and how much it moves for them.
+   */
+  static async getInAndAroundPrices(
+    dealId: string,
+    params?: {
+      view?: string;
+      distance?: number | string;
+      /** Which price book the peers are compared on — "b2c" or "b2b". */
+      pricingType?: string;
+      /** Peer ordering, the standard object form — `{ distanceKm: 1 }`. */
+      sort?: Record<string, 1 | -1>;
+    },
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/${dealId}/price-history`,
+      "GET",
+      {
+        view: "b2cInAndAround",
+        distance: 1000,
+        pricingType: "b2c",
+        ...params,
+      },
+      config,
+    );
+  }
+
+  /**
    * Request barcode print for a seller deal
    * payload example:
    * {
@@ -381,6 +585,12 @@ class SellerCatalogService {
       ignoreCaseStock?: boolean;
       view?: "buyer" | "seller";
       excludeReserveStock?: boolean;
+      /**
+       * Seller these deals belong to, when the list is scoped to one shop.
+       * The local cart is keyed per seller — without it a deal bought from
+       * another seller would read as "in cart" here.
+       */
+      sellerId?: string;
     },
   ): (SellerDeal & { _raw?: any })[] {
     return (products || []).map((product) => {
@@ -474,7 +684,10 @@ class SellerCatalogService {
       let price = product.price || product.mrp || 0;
       let displayPrice = price;
 
-      const inCart = CartService.isDealInCart(product.dealRefId) || {
+      const inCart = CartService.isDealInCart(
+        product.dealRefId,
+        options?.sellerId,
+      ) || {
         status: false,
         qty: 0,
       };
@@ -487,8 +700,7 @@ class SellerCatalogService {
         );
       }
 
-      const { youtubeLink, instaLink } =
-        this.prepareSocialMediaLinks(product);
+      const { youtubeLink, instaLink } = this.prepareSocialMediaLinks(product);
 
       let temp: SellerDeal & { _raw?: any } = {
         subscribedBy: product.subscribedBy || {},
@@ -497,6 +709,7 @@ class SellerCatalogService {
         description: product.description || "",
         _id: product.dealId,
         id: product.dealRefId,
+        sellerDealObjId: product.sellerDealObjId || "",
         images: product.images || [],
         mrp: product.mrp || 0,
         price: price,
@@ -533,8 +746,8 @@ class SellerCatalogService {
         selectedSeller: {
           name: product.sellerName || "",
         },
-        incrQty: product.incrQty || 0,
-        minQty: product.minQty || 0,
+        incrQty: product.incrementQuantity || 0,
+        minQty: product.b2bMinQuantity || 0,
         inCart,
         inventoryNew: product.inventoryNew || 0,
         fulfilledBy: product.fulfilledBy || "",
@@ -542,6 +755,7 @@ class SellerCatalogService {
         locations: product.locations || [],
         _raw: product,
         inventoryValue: product.inventoryValue || 0,
+        inventoryValueChange: product.inventoryValueChange || 0,
         movementType: product.movementType || "Normal",
         _movementTypeColor: getMovementTypeColor(product.movementType),
         barcodes: product.barcodes || [],
@@ -553,6 +767,15 @@ class SellerCatalogService {
         b2cDiscountType:
           product?.customerSellingPrice?.discountType || "Normal",
         b2bDiscountType: product?.networkSellingPrice?.discountType || "Normal",
+        // B2B prices scoped to buyer groups, plus the group/seller roll-up.
+        networkGroupPrices: this.prepareNetworkGroupPrices(
+          product?.networkGroupSellingPrice || [],
+        ),
+        networkGroupPriceInfo: {
+          totalGroups: product?.networkGroupSellingPriceInfo?.totalGroup || 0,
+          totalSellers:
+            product?.networkGroupSellingPriceInfo?.totalSellers || 0,
+        },
         isB2bMarginConfigured:
           product?.networkSellingPrice?.price != null &&
           product?.networkSellingPrice?.price !== product?.mrp,
@@ -595,6 +818,25 @@ class SellerCatalogService {
           quantity: product?.networkSalesInfo?.totalSales || 0,
         },
         totalStock: product?.quantity || 0,
+        // Logged-in retailer's own stock (network reorder APIs)
+        loggedInUserStock: product.loggedInUserStock || 0,
+        loggedInUserStockUom:
+          product.loggedInUserStockUom === "piece"
+            ? "unit"
+            : product.loggedInUserStockUom || "",
+        // Who the logged-in retailer last bought this product from; blank when
+        // the API doesn't carry a previous purchase.
+        lastPurchaseFrom: product?.lastPurchase?.from || "",
+        // Logged-in retailer's own sales analytics
+        loggedInUserSalesAnalytics: {
+          last7Days: {
+            quantity:
+              product?.loggedInUserSalesAnalytics?.last7Days?.quantity || 0,
+            value: product?.loggedInUserSalesAnalytics?.last7Days?.value || 0,
+          },
+        },
+        // Sales velocity — units the logged-in retailer sold in the last 7 days
+        vsl: product?.loggedInUserSalesAnalytics?.last7Days?.quantity || 0,
         basePrice:
           product?.networkSellingPrice?.basePrice ||
           product?.purchaseInfo?.price ||
@@ -608,6 +850,9 @@ class SellerCatalogService {
         sellers: this.prepareSellersData(product.sellers || [], {
           view: options?.view,
         }),
+        // Seller count from the network deal API; card falls back to
+        // sellers.length when an endpoint doesn't return it.
+        totalSellers: product.totalSellers,
         groupDeals: groupDealData,
         networkPriceSlab,
         customerPriceSlab,
@@ -635,7 +880,7 @@ class SellerCatalogService {
           product.selectedStockUom === "piece"
             ? "unit"
             : product.selectedStockUom || "",
-        // Pack/unit configuration cannot be edited for small (loose) UOMs like gm/ml
+        // Pack/Sell in configuration cannot be edited for small (loose) UOMs like gm/ml
         hideUnitConfigEdit: UomPriceService.isSmallUom(
           product.selectedStockUom,
         ),
@@ -702,7 +947,8 @@ class SellerCatalogService {
     // deal-level link only when the seller has none for that platform.
     const pickBy = (predicate: (l: { name?: string }) => boolean) => {
       const fromSeller = sellerLinks.filter(predicate);
-      const links = fromSeller.length > 0 ? fromSeller : dealLinks.filter(predicate);
+      const links =
+        fromSeller.length > 0 ? fromSeller : dealLinks.filter(predicate);
       return links.map(normalize);
     };
 
@@ -818,6 +1064,29 @@ class SellerCatalogService {
     };
   }
 
+  /**
+   * B2B prices configured per buyer group (`networkGroupSellingPrice`). Each
+   * entry is one seller group with the price the deal carries for it — the
+   * deal-level network price still applies to every seller outside a group.
+   */
+  static prepareNetworkGroupPrices(
+    groups: Array<Record<string, any>>,
+  ): NetworkGroupPrice[] {
+    return (groups || []).map((group: any) => ({
+      id: group.id || group._id || "",
+      type: group.type || "",
+      name: group.name || "",
+      sellersCount: group.sellersCount || 0,
+      price: group.price || 0,
+      discount: group.discount || 0,
+      discountType: group.discountType || "Normal",
+      isActive: group.isActive !== false,
+      status: group.status || "",
+      // "Notsynced" means the price is saved but not yet pushed to the network.
+      isSynced: (group.status || "").toLowerCase() === "synced",
+    }));
+  }
+
   static prepareSellersData(
     sellers: Array<Record<string, any>>,
     options?: {
@@ -858,6 +1127,10 @@ class SellerCatalogService {
         b2bScheme: this.prepareSchemeData(seller?._offerInfo || {}),
         qty: maxQty,
         actualMaxQty: actualMaxQty,
+        // SK deals ship their own min/increment order rules; other sellers
+        // fall back to single-unit stepping.
+        minQty: seller.b2bMinQuantity || 1,
+        incrQty: seller.incrementQuantity || 1,
         name: seller.sellerName,
         id: seller.sellerId,
         refId: seller.sellerRefId,
@@ -871,9 +1144,16 @@ class SellerCatalogService {
           0,
           "markup",
         ),
+        discount: seller.discount ?? 0,
         cartQuantity: seller.cartQuantity || 0,
         cartId: seller.cartId,
         itemId: seller.itemId,
+        // Seller ratings as returned by the network APIs (same shape as the
+        // nearby-retailers response).
+        ratingsSummary: seller.ratingsSummary || undefined,
+        // Recommendation tags from the network reorder API,
+        // e.g. ["cheap", "previously-purchased", "fast-delivery"].
+        tags: Array.isArray(seller.tags) ? seller.tags : [],
         city: seller.city || undefined,
         district: seller.district || undefined,
         pincode: seller.pincode || undefined,
@@ -902,7 +1182,7 @@ class SellerCatalogService {
     return 0;
   }
 
-  static formatMenuResponse(menus: any[]) {
+  static formatMenuResponse(menus: any[], includeRawResponse = false) {
     const selectedLang = MiscService.getSelectedLang();
     return (menus || []).map((menu) => ({
       name: menu._id?.menuName,
@@ -911,6 +1191,10 @@ class SellerCatalogService {
       _displayName: menu?.lng?.[selectedLang] || menu?._id?.menuName,
       id: menu._id,
       objId: menu?._id?.id,
+      dealsCount: menu.totalDeals || 0,
+      brandsCount: menu.uniqueBrandCount ?? menu.totalBrands ?? 0,
+      totalInventoryValue: menu.totalInventoryValue || 0,
+      ...(includeRawResponse && { _raw: menu }),
     }));
   }
 
@@ -973,11 +1257,110 @@ class SellerCatalogService {
     }));
   }
 
+  /**
+   * Month-by-month sales trend for a single deal — one bucket per month for
+   * the last `months` months, along with the matching previous period totals
+   * and the growth percentages between them.
+   */
+  static async getMonthlySalesTrend(
+    dealId: string,
+    params?: { months?: number },
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}sales/dashboard/monthly-sales/${dealId}`,
+      "GET",
+      params,
+      config,
+    );
+  }
+
+  static async getTopSearchLogs(params?: Record<string, any>) {
+    return AjaxService.request(`${API}catalog/search-logs/top`, "GET", params);
+  }
+
+  /**
+   * Reduces a top-search-logs row to what the trending list shows. `rawTerm`
+   * keeps the buyer's original casing. Blocked terms are dropped.
+   */
+  static formatTopSearchLogs(logs: any[]) {
+    return (logs || [])
+      .filter((log) => !log.isBlocked)
+      .map((log) => ({
+        id: log._id,
+        term: log.rawTerm,
+        count: log.searchCount,
+        /** Results the term returned last time it ran — 0 means a dead end. */
+        lastResultCount: log.lastResultCount,
+      }));
+  }
+
   static async getSellerDealsAnalytics(params?: Record<string, any>) {
     return AjaxService.request(
       `${API}catalog/seller-deals/analytics`,
       "GET",
       params,
+    );
+  }
+
+  /**
+   * Margin / price-comparison figures for the seller's catalogue — the source
+   * behind the whole Manage Price screen. `outputType` picks the shape:
+   * - `"list"` — the seller-deal rows (run through `formatProductResponse`),
+   * - `"count"` — the total for pagination,
+   * - `"summary"` — the aggregate block used by the summary cards (totalDeals,
+   *   avgMargin, avgMarginLastWeek and the high/mid/low margin bucket counts).
+   *
+   * Takes the standard seller-deal params (page / limit / filter / sort) plus
+   * `distance` (seller radius in km) and `priceType` ("b2c" / "b2b").
+   */
+  static async getPriceComparison(
+    params?: Record<string, any>,
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/price-comparison`,
+      "GET",
+      params,
+      config,
+    );
+  }
+
+  /**
+   * Price sheet rows for the Manage Price list — the seller's deals enriched
+   * with the peer pricing used by the price sheet view. `distance` is the peer
+   * radius in km, `priceType` picks the channel ("b2c" / "b2b") and
+   * `priceMismatch` narrows to deals priced away from their peers.
+   */
+  static async getPriceSheet(
+    params?: Record<string, any>,
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/price-sheet`,
+      "GET",
+      params,
+      config,
+    );
+  }
+
+  /**
+   * Price movements around the seller — every deal in the network whose price
+   * changed inside the lookback window, with the old/new price, the seller who
+   * moved it and how it sits against our own price.
+   *
+   * Takes `distance` (seller radius in km), `days` (lookback window), `priceType`
+   * ("b2c" / "b2b") and the standard list params (page / limit / filter).
+   */
+  static async getNetworkPriceAlerts(
+    params?: Record<string, any>,
+    config?: AxiosRequestConfig,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/network/price-alerts`,
+      "GET",
+      params,
+      config,
     );
   }
 
@@ -988,6 +1371,7 @@ class SellerCatalogService {
   static async updateReserveConfig(data: {
     configType: string;
     dealId?: string;
+    sellerDealObjId?: string;
     isActive: boolean;
     maxReserveQty?: number;
     remarks?: string;
@@ -1013,6 +1397,43 @@ class SellerCatalogService {
     return AjaxService.request(`${API}catalog/seller-deals/${dealId}`, "PUT", {
       isPromotionalDeal,
     });
+  }
+
+  /**
+   * Update the B2B price a deal carries for one buyer group.
+   * @param sellerDealObjId - Seller-deal document id (not the deal id)
+   * @param groupId - Seller group the price applies to
+   * @param payload - Price fields, e.g. `{ price, discount, discountType }`
+   */
+  static async updateNetworkGroupSellingPrice(
+    sellerDealObjId: string,
+    groupId: string,
+    payload: Record<string, any>,
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/${sellerDealObjId}/network-group-selling-price/${groupId}`,
+      "PUT",
+      payload,
+    );
+  }
+
+  /**
+   * Set group-scoped B2B prices for many deals in one call — what the bulk
+   * price setter posts.
+   *
+   * Each item is either a single fixed price for one group
+   * (`{ sellerDealId, groupId, price, discountType: "Fixed" }`) or a discount
+   * written across several groups
+   * (`{ sellerDealId, groups: [{ id, discount, discountType }] }`).
+   */
+  static async bulkUpdateNetworkGroupSellingPrice(
+    items: Record<string, any>[],
+  ) {
+    return AjaxService.request(
+      `${API}catalog/seller-deals/network-group-selling-price/bulk`,
+      "POST",
+      { items },
+    );
   }
 
   /**
@@ -1098,6 +1519,120 @@ class SellerCatalogService {
       `${API}catalog/seller-deals/${dealId}/activity-logs`,
       "GET",
     );
+  }
+
+  /**
+   * Short badge text (max 3 initials) derived from the activity action.
+   */
+  static getActivityLogCode(action: string) {
+    const words = String(action || "")
+      .replace(/[^a-zA-Z0-9\s]/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    if (!words.length) return "--";
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+
+    return words
+      .slice(0, 3)
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase();
+  }
+
+  static getActivityLogBadgeVariant(
+    activityType: string,
+    action: string,
+  ): InventoryActivityLog["badgeVariant"] {
+    const text = `${activityType || ""} ${action || ""}`.toLowerCase().trim();
+
+    if (text.includes("price")) return "warning";
+
+    if (
+      text.includes("unblock") ||
+      text.includes("reject") ||
+      text.includes("remove") ||
+      text.includes("delete")
+    ) {
+      return "danger";
+    }
+
+    if (text.includes("sales")) return "secondary";
+
+    if (text.includes("stock") || text.includes("picked")) return "success";
+
+    return "primary";
+  }
+
+  /**
+   * Right hand side value of an activity - price change, stock delta or sale value.
+   */
+  static getActivityLogValueLabel(activityDetails: any) {
+    const { stockOperation, priceChanges, transactionOperation } =
+      activityDetails || {};
+
+    const oldPrice =
+      priceChanges?.oldPrices?.customerPrice ??
+      priceChanges?.oldPrices?.networkPrice;
+    const newPrice =
+      priceChanges?.newPrices?.customerPrice ??
+      priceChanges?.newPrices?.networkPrice;
+
+    if (oldPrice !== undefined && newPrice !== undefined) {
+      return `₹${oldPrice} → ₹${newPrice}`;
+    }
+
+    const quantityChange = stockOperation?.quantityChange;
+    if (quantityChange !== undefined && quantityChange !== null) {
+      return `${quantityChange > 0 ? "+" : ""}${quantityChange} units`;
+    }
+
+    if (transactionOperation?.totalValue !== undefined) {
+      return `₹${transactionOperation.totalValue}`;
+    }
+
+    if (transactionOperation?.quantity !== undefined) {
+      return `${transactionOperation.quantity} units`;
+    }
+
+    return "";
+  }
+
+  /**
+   * Keeps only the keys the activity log UI needs out of a raw activity log entry.
+   */
+  static formatSellerActivityLog(log: any): InventoryActivityLog {
+    const activityType = log?.activityType || "";
+    const action = log?.action || "";
+
+    return {
+      id: log?._id || "",
+      activityType,
+      action,
+      status: log?.status || "",
+      loggedAt: log?.loggedAt || log?.createdAt || "",
+      title: log?.dealName || activityType || "Activity",
+      subtitle: log?.description || log?.remarks || "",
+      code: this.getActivityLogCode(action || activityType),
+      badgeVariant: this.getActivityLogBadgeVariant(activityType, action),
+      valueLabel: this.getActivityLogValueLabel(log?.activityDetails),
+    };
+  }
+
+  static async getSellerActivityLogs(
+    sellerId: string,
+  ): Promise<InventoryActivityLog[]> {
+    const response = await AjaxService.request<any>(
+      `${API}catalog/seller-deals/seller/${sellerId}/activity-logs`,
+      "GET",
+    );
+
+    const logs = response?.data?.data;
+
+    return Array.isArray(logs)
+      ? logs.map((log) => this.formatSellerActivityLog(log))
+      : [];
   }
 
   static downloadProducts(params?: Record<string, any>) {
@@ -1278,12 +1813,78 @@ class SellerCatalogService {
     };
   }
 
+  static getNetworkSeasonalParams(params: Record<string, any>) {
+    return {
+      ...params,
+      recommended: true,
+      recommendedType: { tags: ["seasonal"] },
+    };
+  }
+
+  static getNetworkClearSlowParams(params: Record<string, any>) {
+    return {
+      ...params,
+      recommended: true,
+      recommendedType: { tags: ["clearslow"] },
+    };
+  }
+
+  static getNetworkPriceDropsParams(params: Record<string, any>) {
+    return {
+      ...params,
+      recommended: true,
+      recommendedType: { tags: ["PriceDrop"] },
+    };
+  }
+
+  static getNetworkPrevBestParams(params: Record<string, any>) {
+    return {
+      ...params,
+      recommended: true,
+      recommendedType: { tags: ["PrevBest"] },
+    };
+  }
+
   static getNetworkTopSellingParams(params: Record<string, any>) {
     return {
       ...params,
       recommended: true,
       recommendedType: { tags: ["TopSelling"] },
     };
+  }
+
+  static getNetworkTrendingParams(params: Record<string, any>) {
+    return {
+      ...params,
+      recommended: true,
+      recommendedType: { tags: ["TopSelling"] },
+    };
+  }
+
+  static getNetworkFastMoversParams(params: Record<string, any>) {
+    return {
+      ...params,
+      recommended: true,
+      recommendedType: { tags: ["fast-delivery"] },
+    };
+  }
+
+  static async getFastMovers(params: Record<string, any>, distance: any = 10) {
+    const p = this.getNetworkFastMoversParams(params);
+    return this.getNetworkDeals(p, distance);
+  }
+
+  static getNetworkReorderParams(params: Record<string, any>) {
+    return {
+      ...params,
+      recommended: true,
+      recommendedType: { tags: ["Reorder"] },
+    };
+  }
+
+  static async getReorder(params: Record<string, any>, distance: any = 10) {
+    const p = this.getNetworkReorderParams(params);
+    return this.getNetworkDeals(p, distance);
   }
 
   static getNetworkPromotionalDealParams(params: Record<string, any>) {
@@ -1310,6 +1911,7 @@ class SellerCatalogService {
     } = {
       showOutOfStock: false,
     },
+    config?: AxiosRequestConfig,
   ) {
     let p: Record<string, any> = merge({}, params, {
       filter: {
@@ -1346,6 +1948,7 @@ class SellerCatalogService {
       `${API}catalog/seller-deals/network`,
       "GET",
       reqParams,
+      config,
     );
 
     return resp;

@@ -27,7 +27,9 @@ const ShipmentDetail = ({ data, className }: Props) => {
     <div
       className={`tw:border tw:rounded-lg tw:p-4 tw:bg-gray-50 ${className}`}
     >
-      <div className="tw:text-sm tw:font-medium tw:mb-2">{t("shipmentDetails")}</div>
+      <div className="tw:text-sm tw:font-medium tw:mb-2">
+        {t("shipmentDetails")}
+      </div>
       {data?.shipmentType === "courier" && (
         <div className="tw:grid tw:grid-cols-2 tw:lg:grid-cols-3 tw:gap-4">
           <KeyValue label={t("courierName")} size="sm">

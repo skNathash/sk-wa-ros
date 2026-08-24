@@ -1,17 +1,40 @@
+import {
+  ArrowLeft,
+  ArrowRight,
+  Globe,
+  MessageCircle,
+  Send,
+  Store,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
-import AppButton from "~/components/core/button/AppButton";
-import { AppInput } from "~/components/core/form";
 import ImgRender from "~/components/core/img/ImgRender";
+import { MISSED_CALL_NUMBER, SUPPORT_WHATSAPP_NUMBER } from "~/constants";
 import useAppNav from "~/hooks/useAppNav";
 import useAppToast from "~/hooks/useAppToast";
 import OtpModal from "~/modals/core/otp-modal/OtpModal";
 import AuthService from "~/services/AuthService";
 import CommonService from "~/services/CommonService";
-import "./ForgotPassword.css";
 import { verifyOtp } from "./helper";
+
+const HERO_IMG = "login/hero-retailer.jpg";
+
+const OS_MODULES = [
+  "Storefront",
+  "Orders",
+  "Catalogue",
+  "Billing",
+  "PayLater",
+  "King Coins",
+];
+
+// "9606980465" / "919606980465" -> "+91 96069 80465"
+const formatSupportNumber = (num: string) => {
+  const local = num.length > 10 ? num.replace(/^91/, "") : num;
+  return `+91 ${local.slice(0, 5)} ${local.slice(5)}`.trim();
+};
 
 interface ForgotForm {
   mobile: string;
@@ -163,111 +186,205 @@ const ForgotPassword = () => {
     }
   };
 
+  const handleContactSupport = () => {
+    const waUrl = CommonService.prepareWhatsappMessage(
+      "hi",
+      SUPPORT_WHATSAPP_NUMBER,
+    );
+    CommonService.windowOpenHandler(waUrl, () => {});
+  };
+
+  const handleHelperCall = () => {
+    // dial without the country code
+    const dialNumber =
+      MISSED_CALL_NUMBER.length > 10
+        ? MISSED_CALL_NUMBER.replace(/^91/, "")
+        : MISSED_CALL_NUMBER;
+    CommonService.windowOpenHandler(`tel:${dialNumber}`, () => {});
+  };
+
+  const mobileField = register("mobile");
+
   return (
     <>
-      <div className="app-page tw:min-h-screen">
-        <div className=" tw:md:bg-blue-50 tw:min-h-screen tw:flex tw:md:items-center tw:md:justify-center">
-          <div className="tw:md:py-12 tw:md:px-8 tw:bg-white tw:rounded-lg tw:md:gap-4 tw:relative tw:md:shadow-xl tw:md:max-w-[1200px] tw:md:mx-auto tw:flex-1">
-            <ImgRender
-              src="logo/logo.png"
-              className="tw:h-10 tw:!hidden tw:md:!block tw:md:absolute tw:md:top-4 tw:md:right-10 tw:mt-4 tw:ml-4"
-            />
-            <div className="tw:md:p-10 tw:p-6 tw:md:shadow-lg tw:md:rounded-lg tw:md:bg-gradient-to-br tw:md:from-blue-50 tw:md:to-white tw:bg-gradient-to-b tw:from-blue-100/80 tw:to-white/80 tw:md:w-[450px] tw:md:m-6 tw:relative tw:z-20">
-              <div className="tw:text-2xl tw:font-bold tw:flex tw:items-center tw:gap-2">
-                <span>Welcome to</span>
-                <ImgRender
-                  src="logo/logo.png"
-                  className="tw:h-10 tw:md:hidden"
-                />
-                <span className="tw:hidden tw:md:inline">StoreKing</span>
-              </div>
-              <div className="tw:text-xs tw:text-gray-700 tw:mb-10">
-                Transform your store into an online supermarket.
-              </div>
+      <div className="login-page app-page">
+        <nav className="sk-nav">
+          <div className="sk-nav-inner">
+            <div className="sk-logo">
+              <ImgRender src="logo/logo.png" alt="StoreKing" />
+            </div>
+            <button
+              type="button"
+              className="sk-nav-help"
+              onClick={handleContactSupport}
+            >
+              <span className="sk-nav-help-icon">
+                <MessageCircle size={13} />
+              </span>
+              Need help? Chat on{" "}
+              <span className="sk-nav-help-num">
+                {formatSupportNumber(SUPPORT_WHATSAPP_NUMBER)}
+              </span>
+            </button>
+          </div>
+        </nav>
 
-              <div className="tw:relative">
-                <ImgRender
-                  src="login/fly.png"
-                  className="tw:absolute tw:-top-12 tw:md:-top-16 tw:right-0 tw:w-[160px] tw:md:w-[190px]"
-                />
-                <div className="tw:text-xl tw:font-bold">Forgot Password</div>
-                <div className="tw:text-xs tw:text-gray-700 tw:mt-2 tw:mb-6">
-                  Enter your registered mobile number to reset your password
-                </div>
-              </div>
-
-              <div className="tw:md:w-11/12">
-                <form
-                  className="tw:mt-8 tw:space-y-6"
-                  onSubmit={handleSubmit(onSubmit)}
-                >
-                  <div className="tw:mb-4">
-                    <AppInput
-                      name="mobile"
-                      type="number"
-                      placeholder="Mobile number"
-                      register={register}
-                      error={errors.mobile?.message as string}
-                      className="tw:bg-white"
-                      maxLength={10}
-                    />
-                  </div>
-                  <div>
-                    <AppButton type="submit" className="tw:w-full">
-                      Submit
-                    </AppButton>
-                  </div>
-                </form>
-
-                <div className="tw:text-xs tw:text-gray-500 tw:mt-4 tw:text-center">
-                  <Link to="/auth/login" className="tw:text-blue-800">
-                    Back to Login
-                  </Link>
-                </div>
-              </div>
+        <div className="sk-shell">
+          {/* ---------- Branded panel ---------- */}
+          <aside className="sk-brand">
+            <div className="sk-brand-photo-frame">
+              <ImgRender src={HERO_IMG} className="sk-brand-photo" />
             </div>
 
-            {/* Desktop background - only visible on md and above */}
-            <div className="tw:hidden tw:md:absolute tw:md:bottom-0 tw:md:right-0 tw:md:top-0 tw:md:left-0 tw:md:z-0 tw:md:block tw:md:rounded-lg">
-              <ImgRender
-                src="login/bg-2.jpg"
-                className="tw:w-full tw:h-full tw:object-cover tw:md:rounded-lg"
-              />
-            </div>
+            <div className="sk-brand-content">
+              <div>
+                <span className="sk-os-badge">
+                  <span className="sk-os-badge-mark">
+                    <Store size={12} strokeWidth={2.4} />
+                  </span>
+                  StoreKing <strong>Retail OS</strong>
+                </span>
 
-            {/* Feature blocks - only visible on desktop */}
-            <div className="tw:hidden tw:md:flex tw:md:absolute tw:md:bottom-4 tw:md:right-4 tw:md:z-10 tw:md:gap-2">
-              {[
-                "POS",
-                "Inventory",
-                "Orders",
-                "Fulfillment",
-                "Delivery",
-                "Analytics",
-              ].map((block, index) => (
-                <div
-                  key={index}
-                  className="tw:rounded tw:py-1 tw:px-2 tw:text-center tw:shadow-md tw:border tw:border-[#E0A935]/60 tw:min-w-[60px] tw:backdrop-blur-sm"
-                  style={{
-                    background: "linear-gradient(to bottom, #E8AF3B, #E0A935)",
-                    opacity: 0.8,
-                  }}
-                >
-                  <span className="tw:text-white tw:font-medium tw:text-xs tw:tracking-wide">
-                    {block}
+                <h2 className="sk-brand-headline">
+                  Welcome back, <em>King</em>. <br />
+                  Your town is waiting.
+                </h2>
+                <p className="sk-brand-sub">
+                  Log in to manage your online storefront, orders, catalogue,
+                  King Coins and PayLater — all from one place.
+                </p>
+              </div>
+
+              <div className="sk-brand-storefront">
+                <span className="sk-brand-storefront-icon">
+                  <Globe size={16} strokeWidth={2.2} />
+                </span>
+                <span className="sk-brand-storefront-body">
+                  <span className="sk-brand-storefront-label">
+                    Your live storefront
+                  </span>
+                  <span className="sk-brand-storefront-url">
+                    storeking.in/your-mobile
+                  </span>
+                </span>
+              </div>
+
+              <div className="sk-brand-modules">
+                <div className="sk-brand-modules-label">
+                  What&apos;s inside your OS
+                </div>
+                <div className="sk-module-chips">
+                  {OS_MODULES.map((m) => (
+                    <span className="sk-module-chip" key={m}>
+                      {m}
+                    </span>
+                  ))}
+                </div>
+                <div className="sk-module-chips sk-module-chips-stat">
+                  <span className="sk-module-chip">
+                    <strong>20,000+</strong> retailers signed in today
                   </span>
                 </div>
-              ))}
+              </div>
+            </div>
+          </aside>
+
+          {/* ---------- Form ---------- */}
+          <main className="sk-canvas">
+            <div className="sk-head">
+              <span className="sk-eyebrow">Reset password</span>
+              <h1 className="sk-h1">
+                Send me a <em>reset code</em>.
+              </h1>
+              <p className="sk-sub">
+                We&apos;ll send a 6-digit code to your{" "}
+                <strong>registered mobile number</strong>.
+              </p>
             </div>
 
-            {/* Mobile background - only visible below md, positioned at bottom */}
-            <div className="tw:md:hidden tw:absolute tw:bottom-0 tw:left-0 tw:right-0 tw:z-0">
+            <form className="sk-card" onSubmit={handleSubmit(onSubmit)}>
+              <Link to="/auth/login" className="sk-back-link">
+                <ArrowLeft size={16} />
+                Back to login
+              </Link>
+
+              <div className="sk-field">
+                <div className="sk-field-label">
+                  <span>Confirm your mobile number</span>
+                </div>
+                <label className="sk-input-wrap sk-phone-input">
+                  <span className="sk-phone-cc">
+                    <span className="sk-flag" aria-hidden="true" />
+                    +91
+                  </span>
+                  <input
+                    {...mobileField}
+                    onChange={(e) => {
+                      e.target.value = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 10);
+                      mobileField.onChange(e);
+                    }}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    autoComplete="tel-national"
+                    placeholder="98765 43210"
+                  />
+                </label>
+                {errors.mobile?.message && (
+                  <span className="sk-field-error">
+                    {errors.mobile.message as string}
+                  </span>
+                )}
+              </div>
+
+              <button type="submit" className="sk-btn-primary">
+                <span className="sk-btn-primary-left">
+                  <span className="sk-btn-primary-icon">
+                    <Send size={18} strokeWidth={2.2} />
+                  </span>
+                  <span>
+                    <span className="sk-btn-primary-main">
+                      Send my reset code
+                    </span>
+                    <span className="sk-btn-primary-sub">
+                      A 6-digit code on your registered number
+                    </span>
+                  </span>
+                </span>
+                <span className="sk-btn-primary-arrow">
+                  <ArrowRight size={20} strokeWidth={2.4} />
+                </span>
+              </button>
+            </form>
+
+            <div className="sk-helper-note">
+              Number changed?{" "}
+              <button type="button" onClick={handleHelperCall}>
+                Call our helper on {formatSupportNumber(MISSED_CALL_NUMBER)}
+              </button>
+            </div>
+
+            <div className="sk-foot">
+              <button
+                type="button"
+                className="sk-foot-link"
+                onClick={handleContactSupport}
+              >
+                <MessageCircle size={15} />
+                Trouble resetting? Talk to us
+              </button>
+            </div>
+
+            <div className="sk-powered">
+              Powered by
               <ImgRender
-                src="login/mobile-bg.jpg"
-                className="tw:w-full tw:h-auto tw:object-cover"
+                src="/ai/ai.gif"
+                className="tw:h-7 tw:inline-block tw:rounded-full"
               />
             </div>
-          </div>
+          </main>
         </div>
       </div>
 

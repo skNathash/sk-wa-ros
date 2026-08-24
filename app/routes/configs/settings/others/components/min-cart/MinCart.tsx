@@ -74,7 +74,7 @@ const MinCart: React.FC = () => {
 
   return (
     <div className="tw:flex tw:flex-col tw:gap-4">
-      <InfoBlock variant="info" size="sm">
+      <InfoBlock variant="info" size="sm" className="app-note-block">
         <div className="tw:flex tw:items-center tw:gap-2">
           <Info size={16} className="tw:flex-shrink-0" />
           <span className="tw:font-medium">

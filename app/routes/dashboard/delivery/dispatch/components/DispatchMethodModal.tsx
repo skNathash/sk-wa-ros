@@ -89,12 +89,12 @@ const DispatchMethodModal: React.FC<DispatchMethodModalProps> = ({
   });
 
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
-    "selfShipment"
+    "selfShipment",
   );
   const [assignModal, setAssignModal] = useState<{ show: boolean; data?: any }>(
     {
       show: false,
-    }
+    },
   );
 
   const [counts, setCounts] = useState<{
@@ -277,7 +277,7 @@ const DispatchMethodModal: React.FC<DispatchMethodModalProps> = ({
         setAssignModal({ show: false });
       }
     },
-    [assignModal.data, callback]
+    [assignModal.data, callback],
   );
 
   const handleModalClose = () => {
@@ -329,10 +329,14 @@ const DispatchMethodModal: React.FC<DispatchMethodModalProps> = ({
                             : "tw:text-red-500"
                         }`}
                       >
-                        {counts[method.id as keyof typeof counts] > 0
+                        {/* Available count display hidden as per requirement */}
+                        {/* {counts[method.id as keyof typeof counts] > 0
                           ? `${t("available")}: ${
                               counts[method.id as keyof typeof counts]
                             }`
+                          : t("notAvailable")} */}
+                        {counts[method.id as keyof typeof counts] > 0
+                          ? ""
                           : t("notAvailable")}
                       </p>
                     </div>

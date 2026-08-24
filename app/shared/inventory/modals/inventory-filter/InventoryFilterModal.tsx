@@ -29,6 +29,7 @@ const InventoryFilterModal = ({
   feature = "inventory",
   hideStatus = false,
   hidePriceSlab = false,
+  hideMenu = false,
 }: Props) => {
   const { t } = useTranslation(["common"]);
   const { reset, control, setValue, getValues } = useForm<FormData>({
@@ -209,15 +210,17 @@ const InventoryFilterModal = ({
 
       <AppModal.Content>
         <div className="tw:space-y-4">
-          <div>
-            <MenuSearchInput
-              callback={handleMenuChange}
-              values={menu}
-              feature="pos"
-              label="Menu"
-              size="sm"
-            />
-          </div>
+          {!hideMenu && (
+            <div>
+              <MenuSearchInput
+                callback={handleMenuChange}
+                values={menu}
+                feature="pos"
+                label="Menu"
+                size="sm"
+              />
+            </div>
+          )}
 
           <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4">
             <div>

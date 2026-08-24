@@ -1,4 +1,4 @@
-import { Edit, Plus } from "lucide-react";
+import { Ban, Check, Edit, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ExpenseService from "~/services/ExpenseService";
 import AppButton from "~/components/core/button/AppButton";
@@ -9,7 +9,6 @@ import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import { prepareParams, getData, getCount } from "./helper";
 import type { PaginationState } from "~/types/CommonTypes";
 import NoData from "~/components/core/no-data/NoData";
-import AppCard from "~/components/core/card/AppCard";
 import useAppToast from "~/hooks/useAppToast";
 import { produce } from "immer";
 
@@ -184,7 +183,7 @@ const ExpenseViewSubCategoriesModal = ({
         </div>
       </AppModal.Title>
 
-      <AppModal.Content className="tw:max-h-[90vh] modal-bg">
+      <AppModal.Content className="tw:max-h-[90vh]">
         {loading ? (
           <div className="tw:flex tw:justify-center tw:items-center tw:py-8">
             <AppSpinner />
@@ -193,23 +192,23 @@ const ExpenseViewSubCategoriesModal = ({
           <div className="tw:mt-4">
             {/* Parent category details */}
             {parentCategory && (
-              <AppCard>
+              <div className="tw:bg-muted tw:p-3 tw:rounded-lg tw:mb-4">
                 <div className="tw:flex tw:justify-between tw:items-start">
                   <div>
-                    <div className="tw:text-xs tw:uppercase tw:text-gray-500 tw:tracking-wide">
+                    <div className="tw:text-xs tw:uppercase tw:text-muted-foreground tw:tracking-wide">
                       Category
                     </div>
-                    <div className="tw:text-base tw:font-semibold tw:mt-1">
+                    <div className="tw:text-base tw:font-semibold tw:mt-1 tw:text-foreground">
                       {parentCategory.name}
                     </div>
                     {parentCategory.description && (
-                      <div className="tw:text-xs tw:text-gray-600 tw:mt-1">
+                      <div className="tw:text-xs tw:text-muted-foreground tw:mt-1">
                         {parentCategory.description}
                       </div>
                     )}
                   </div>
                 </div>
-              </AppCard>
+              </div>
             )}
             {data.length === 0 ? (
               <div className="tw:text-center tw:py-6">
@@ -217,52 +216,57 @@ const ExpenseViewSubCategoriesModal = ({
               </div>
             ) : (
               <>
-                <div className="tw:text-sm tw:font-semibold tw:mb-1 tw:text-gray-600">
+                <div className="tw:text-sm tw:font-semibold tw:mb-1 tw:text-muted-foreground">
                   List of Sub Categories ({paginationRef.current.totalRecords})
                 </div>
 
                 <div className="tw:space-y-3">
                   {data.map((it, index) => (
-                    <AppCard key={it._id}>
-                      <div>
-                        <div className="tw:flex tw:justify-between tw:items-center">
-                          <div className="tw:font-semibold">{it.name}</div>
-                          {!it.isGlobal && (
-                            <AppButton
-                              size="small"
-                              fill="clear"
-                              color="light"
-                              onClick={() => handleEdit(it)}
-                            >
-                              <Edit size={16} />
-                            </AppButton>
-                          )}
+                    <div key={it._id} className="expense-cat-card expense-cat-card-modal">
+                      <div className="tw:flex tw:items-start tw:justify-between tw:gap-3">
+                        <div className="tw:min-w-0 tw:flex-1">
+                          <div className="tw:flex tw:items-center tw:gap-2">
+                            <span className="expense-cat-title tw:truncate">
+                              {it.name}
+                            </span>
+                            {it.isGlobal && (
+                              <span className="expense-cat-tag">Global</span>
+                            )}
+                          </div>
+                          <div className="expense-cat-desc tw:line-clamp-2">
+                            {it.description || "No description"}
+                          </div>
                         </div>
-                        <div className="tw:text-sm tw:md:text-xs tw:text-gray-600">
-                          {it.description || "-"}
-                        </div>
-                      </div>
-                      <div className="tw:flex tw:justify-end tw:gap-2">
                         <AppBadge variant={it.statusColor}>
                           {it.statusLabel}
                         </AppBadge>
+                      </div>
 
-                        {!it.isGlobal && (
+                      {!it.isGlobal && (
+                        <div className="expense-cat-actions">
                           <AppButton
                             size="small"
                             fill="outline"
+                            color="secondary"
+                            onClick={() => handleEdit(it)}
+                          >
+                            <Edit size={14} />
+                            Edit
+                          </AppButton>
+                          <AppButton
+                            size="small"
+                            fill={it.isActive ? "outline" : "solid"}
                             color={it.isActive ? "danger" : "success"}
                             onClick={() => handleStatus(it, index)}
                             disabled={statusIndex === index}
                             isLoading={statusIndex === index}
                           >
-                            {it.isActive
-                              ? "Mark as inactive"
-                              : "Mark as active"}
+                            {it.isActive ? <Ban size={14} /> : <Check size={14} />}
+                            {it.isActive ? "Deactivate" : "Activate"}
                           </AppButton>
-                        )}
-                      </div>
-                    </AppCard>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </>

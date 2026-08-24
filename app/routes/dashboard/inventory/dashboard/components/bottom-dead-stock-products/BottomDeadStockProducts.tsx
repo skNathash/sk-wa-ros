@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSearchParams } from "react-router";
 import type { PaginationState, ViewToggleType } from "~/types/CommonTypes";
-import type { DeadStockProduct } from "../../helper";
 import useScreenView from "~/hooks/useScreenView";
 import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
@@ -16,7 +15,14 @@ import { Download } from "lucide-react";
 import AppButton from "~/components/core/button/AppButton";
 import CommonService from "~/services/CommonService";
 import useAppToast from "~/hooks/useAppToast";
-import { getData, getCount, downloadExport, prepareParams } from "./helper";
+import {
+  getData,
+  getCount,
+  downloadExport,
+  prepareParams,
+  prepareRows,
+  type DeadStockRow,
+} from "./helper";
 
 const defaultSort: SortValue = {
   key: "stockQty",
@@ -36,7 +42,7 @@ const BottomDeadStockProducts = () => {
 
   const [viewType, setViewType] = useState<ViewToggleType>("list");
   const [sort, setSort] = useState<SortValue>(defaultSort);
-  const [data, setData] = useState<DeadStockProduct[]>([]);
+  const [data, setData] = useState<DeadStockRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
@@ -66,7 +72,9 @@ const BottomDeadStockProducts = () => {
         sort,
       );
       const result = await getData(params);
-      setData(result || []);
+      // Cell values are derived once, off the response — the views below only
+      // read the `_`-prefixed keys.
+      setData(prepareRows(result || []));
       const totalRecords = await getCount(params);
       paginationRef.current.totalRecords = totalRecords;
       setHasMoreData(result.length >= paginationRef.current.rowsPerPage);
@@ -91,7 +99,7 @@ const BottomDeadStockProducts = () => {
         sort,
       );
       const result = await getData(params);
-      setData((prev) => [...prev, ...(result || [])]);
+      setData((prev) => [...prev, ...prepareRows(result || [], prev.length)]);
       setHasMoreData(
         (result || []).length >= paginationRef.current.rowsPerPage,
       );

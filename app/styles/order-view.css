@@ -1,0 +1,268 @@
+/* ============================================================================
+   ORDER DETAIL (/dashboard/orders/view/:id)
+   Visual system for the order detail page. Theme-neutral (`ov-*`) so the
+   classic theme keeps working off the same markup; the theme-2 blocks below
+   re-cut the same pieces into the WhatsApp language (flush bands under the
+   teal header, bubble notes, hairline info rows).
+
+   The fulfilment block reuses the `op-stage-*` accents and `op-step*` marks
+   from order-process.css, so the pipeline reads identically on the detail
+   page and on the process page.
+   ========================================================================= */
+
+/* ── Identity plate ────────────────────────────────────────────────────── */
+
+/* The order's own header: ref no, badges, when/who placed it, and the page
+   actions. A plate rather than bare page text so the blocks below (fulfilment,
+   tabs) read as stacked cards instead of a run of loose rows. */
+.ov-hero {
+  background-color: #fff;
+  border: 1px solid var(--color-gray-200, #e5e7eb);
+  border-radius: 1rem;
+  padding: 0.875rem 1rem;
+}
+
+.ov-hero-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.875rem;
+  background-color: color-mix(in srgb, var(--primary) 10%, #fff);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* "Order" above the ref no rather than beside it — the ref runs long enough
+   that the pair wraps mid-phrase in a narrow column. */
+.ov-hero-eyebrow {
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+  color: #94a3b8;
+}
+
+/* Meta lines under the title (placed on, created by) — one per row, so a long
+   name never pushes the date onto a line of its own. */
+.ov-hero-meta {
+  display: flex;
+  flex-direction: column;
+  row-gap: 0.125rem;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+.ov-hero-meta strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* From tablet up there's width for the meta to run as one line, separated by
+   dots the way a byline is — the stacked phone version would leave the plate
+   mostly empty next to the action buttons. */
+@media (min-width: 640px) {
+  .ov-hero-meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.75rem;
+  }
+  .ov-hero-meta > * + *::before {
+    content: "";
+    flex-shrink: 0;
+    width: 3px;
+    height: 3px;
+    border-radius: 9999px;
+    background-color: #cbd5e1;
+    margin-right: 0.375rem;
+  }
+}
+
+/* ── Fulfilment block ──────────────────────────────────────────────────── */
+
+/* Same card chrome as the hero, tinted by the stage accent it carries
+   (`op-stage-*`). Holds the stage eyebrow, the status/amount summary and the
+   step tracker. */
+.ov-fulfil {
+  background-color: #fff;
+  border: 1px solid var(--op-tint-border, var(--color-gray-200, #e5e7eb));
+  border-radius: 1rem;
+  padding: 0.875rem 1rem 0.75rem;
+}
+
+/* Tracker row. The dots/labels/connectors are `op-step*` from
+   order-process.css; this only supplies the scroll rail, since the detail page
+   shows seven steps (it has the pre-approval ones the process page never
+   sees) and they don't fit a phone. */
+.ov-track {
+  display: flex;
+  align-items: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-top: 0.125rem;
+}
+.ov-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Sections & rows ───────────────────────────────────────────────────── */
+
+/* Info rows inside the aside cards (payment method, customer, seller): label
+   on the left, value on the right, hairline between — WhatsApp's contact-info
+   list rather than a grid of boxed cells. */
+.ov-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-gray-100, #f3f4f6);
+  font-size: 0.8125rem;
+}
+.ov-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.ov-row:first-child {
+  padding-top: 0;
+}
+.ov-row-label {
+  color: #64748b;
+  flex-shrink: 0;
+}
+.ov-row-value {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Standing notes (pay-later, coin store, split parent, …). Rendered as an
+   incoming chat bubble: tinted fill, one squared corner on the lead edge. */
+.ov-bubble {
+  position: relative;
+  background-color: var(--wa-bubble, #f1f5f9);
+  color: #1f2937;
+  border: 1px solid color-mix(in srgb, var(--wa-bubble, #e2e8f0) 70%, #94a3b8);
+  border-radius: 0.75rem;
+  border-top-left-radius: 0.25rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+/* Toned variants — the note still carries its meaning (a coin-store order, a
+   split parent) without breaking the bubble language. */
+.ov-bubble-warn {
+  background-color: #fef3c7;
+  border-color: #fcd34d;
+  color: #78350f;
+}
+.ov-bubble-info {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+}
+
+/* ── Details layout ────────────────────────────────────────────────────── */
+
+/* Feed column + a narrower rail carrying the parties and the payment card.
+   Single column on phones; the rail sticks under the header from lg up. */
+.ov-grid {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .ov-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    gap: 1rem;
+    align-items: start;
+  }
+  .ov-grid-side {
+    position: sticky;
+    top: 5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ov-grid {
+    grid-template-columns: minmax(0, 1fr) 21rem;
+  }
+}
+
+/* ============================================================================
+   THEME-2
+   ========================================================================= */
+
+/* The stack the page opens with (hero → fulfilment → tabs) reads as one
+   continuous band under the teal header on phones: the plates lose their
+   floating card look, run edge to edge and stack on hairlines, the way
+   WhatsApp stacks its own header blocks. */
+@media (max-width: 767.98px) {
+  [data-theme="theme-2"] .ov-hero,
+  [data-theme="theme-2"] .ov-fulfil {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  /* First block on the page — meet the header with no page-bg seam. */
+  [data-theme="theme-2"] .ov-hero {
+    margin-top: -1rem;
+    border-top: 0;
+  }
+
+  /* The two plates travel together, so drop the doubled hairline and the gap
+     between them — the pair reads as one header block, not two cards. */
+  [data-theme="theme-2"] .ov-hero:has(+ .ov-fulfil) {
+    margin-bottom: 0;
+  }
+  [data-theme="theme-2"] .ov-hero + .ov-fulfil {
+    margin-top: 0;
+    border-top: 0;
+  }
+}
+
+/* The order's own tab bar (Details / Timeline / …) pins under the app header
+   on its own white band, matching the sub-nav strips the catalog and order
+   list pages carry. */
+[data-theme="theme-2"] [data-slot="app-tab"].ov-tabs {
+  position: sticky;
+  top: 3.75rem;
+  z-index: 30;
+  background-color: #fff;
+  border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+  padding: 0.5rem 1rem;
+}
+
+@media (max-width: 767.98px) {
+  [data-theme="theme-2"] [data-slot="app-tab"].ov-tabs {
+    width: auto;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* Cards on the cream page carry the hairline only — the elevation theme-2
+   drops everywhere else. */
+[data-theme="theme-2"] .ov-hero,
+[data-theme="theme-2"] .ov-fulfil {
+  box-shadow: none;
+  border-color: oklch(0.93 0.005 236.58);
+}
+
+/* Brand-green identity mark instead of the neutral tinted square. */
+[data-theme="theme-2"] .ov-hero-icon {
+  border-radius: 9999px;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}

@@ -13,7 +13,16 @@ interface Filter {
   createdBy?: string;
   distance?: string | number;
   brand?: any[];
+  quickFilter?: string;
 }
+
+// Quick-filter chips that map to a purchase-activity window. The API supports
+// e.g. filter={"purchaseAnalytics.last15Days.orders":{"$gt":0}} — i.e. vendors
+// with at least one purchase order in that window.
+const ACTIVITY_QUICK_FILTERS: Record<string, string> = {
+  "15-day": "purchaseAnalytics.last15Days.orders",
+  "30-day": "purchaseAnalytics.last30Days.orders",
+};
 
 export const mapSelectedData = (
   data: Record<string, any>[],
@@ -90,48 +99,56 @@ export const prepareParams = (filter: Filter, pagination: PaginationState) => {
     params.filter.brandId = filter.brand[0]?.value?.id;
   }
 
+  // Quick-filter chip (due / alerts / cod / 30-day / 15-day).
+  // The activity chips map to `purchaseAnalytics` counters inside `filter`
+  // (vendors we bought from at least once in that window); the rest are still
+  // passed as a root-level key for the backend to interpret.
+  if (filter.quickFilter && filter.quickFilter !== "all") {
+    const activityField = ACTIVITY_QUICK_FILTERS[filter.quickFilter];
+    if (activityField) {
+      params.filter[activityField] = { $gt: 0 };
+    } else {
+      params.quickFilter = filter.quickFilter;
+    }
+  }
+
   return params;
 };
 
-// Get purchase orders data from API
+// Map the backend `orderStatistics` block on a vendor row to the flat
+// `summary` shape the list/detail views read (totalPOValue, pendingDeliveries,
+// unpaidInvoices, unpaidValue). Mirrors the old per-vendor getSummary mapping.
+export const mapOrderStatistics = (stats: Record<string, any> = {}) => {
+  const pending = stats.paymentBreakdown?.Pending || {};
+  return {
+    totalPOValue: stats.totalPOValue || 0,
+    pendingDeliveries: stats.statusBreakdown?.Approved?.count || 0,
+    unpaidInvoices: pending.count || 0,
+    unpaidValue: pending.totalValue || 0,
+  };
+};
+
+// Get vendor list data from API (stats aggregated by the backend)
 export const getData = async (params: Record<string, any>) => {
   try {
-    const response = await VendorService.getDashboardVendorList(params);
+    const response = await VendorService.getVendorsWithStats(params);
     if (response.statusCode === 200 && Array.isArray(response.data?.data)) {
-      const formattedData = response.data.data.map((item: any) => {
-        return VendorService.formatVendorData(item);
+      return response.data.data.map((item: any) => {
+        const formatted = VendorService.formatVendorData(item);
+        return {
+          ...formatted,
+          summary: mapOrderStatistics(item.orderStatistics),
+        };
       });
-
-      const promises = formattedData.map(async (item: any) => {
-        try {
-          const response = await getSummary({
-            filter: {
-              "vendorInfo.id": item._id,
-            },
-          });
-          return { id: item._id, summary: response };
-        } catch (error) {
-          return { id: item._id, summary: {} };
-        }
-      });
-
-      const summaryData = await Promise.all(promises);
-
-      const data = formattedData.map((item: any) => {
-        const summary = summaryData.find((s: any) => s.id === item._id);
-        return { ...item, summary: summary?.summary || {} };
-      });
-
-      return data;
     }
     return [];
   } catch (error) {
-    console.error("Error fetching purchase orders:", error);
+    console.error("Error fetching vendors:", error);
     return [];
   }
 };
 
-// Get purchase orders count from API
+// Get vendor count from API
 export const getCount = async (params: Record<string, any>) => {
   try {
     const countParams: Record<string, any> = { ...params, outputType: "count" };
@@ -140,13 +157,13 @@ export const getCount = async (params: Record<string, any>) => {
     delete countParams.count;
     delete countParams.sort;
 
-    const response = await VendorService.getDashboardVendorList(countParams);
+    const response = await VendorService.getVendorsWithStats(countParams);
     if (response.statusCode === 200) {
       return response.data?.count || 0;
     }
     return 0;
   } catch (error) {
-    console.error("Error fetching purchase orders count:", error);
+    console.error("Error fetching vendors count:", error);
     return 0;
   }
 };

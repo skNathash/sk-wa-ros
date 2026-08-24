@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronRight } from "lucide-react";
 import AppSwiper from "~/components/core/swiper";
 import { CART_ITEM_ADDED, DEFAULT_BROWSE_DISTANCE } from "~/constants";
 import SellerCatalogService from "~/services/SellerCatalogService";
-import SellerListModal from "../../../modals/seller-list/SellerListModal";
+import SellerListModal from "~/shared/catalog/modals/seller-list/SellerListModal";
 import ProductCard from "../../../components/ProductCard";
 import useAppNav from "~/hooks/useAppNav";
 import useTheme from "~/hooks/useTheme";
@@ -142,18 +141,14 @@ const NewlyLaunched: React.FC<NewlyLaunchedProps> = ({
   return (
     <div className="tw:mb-6">
       <div className="tw:flex tw:justify-between tw:items-center tw:mb-3">
-        <div className="tw:flex tw:items-center tw:gap-2">
-          <span className="tw:h-4 tw:w-1 tw:rounded-full tw:bg-primary" />
-          <h2 className="tw:text-base tw:font-bold tw:text-slate-900">
-            Newly Launched
-          </h2>
-        </div>
+        <h2 className="app-label tw:text-[0.8125rem]! tw:font-semibold tw:uppercase tw:tracking-[0.12em] tw:text-primary/70">
+          Newly Launched
+        </h2>
         <button
           onClick={handleSeeAll}
-          className="tw:inline-flex tw:items-center tw:gap-0.5 tw:text-xs tw:font-semibold tw:text-primary tw:hover:opacity-80"
+          className="tw:inline-flex tw:items-center tw:gap-0.5 tw:cursor-pointer tw:text-[13px] tw:font-semibold tw:text-primary"
         >
-          {t("seeAll")}
-          <ChevronRight className="tw:h-3.5 tw:w-3.5" />
+          {t("seeAll")} <span aria-hidden>→</span>
         </button>
       </div>
 

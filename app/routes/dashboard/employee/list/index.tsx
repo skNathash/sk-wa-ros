@@ -441,7 +441,14 @@ const EmployeeList = () => {
             </div>
           </div>
           <Summary summary={summary} />
-          <AppCard title={t("userList")} icon="users" noContentPadding>
+          {/* `app-flat-sheet`: theme-2 mobile drops the outer card so the list
+              rows sit straight on the page ground (see theme-2.css). */}
+          <AppCard
+            title={t("userList")}
+            icon="users"
+            noContentPadding
+            className="app-flat-sheet"
+          >
             <div className="tw:px-6 tw:py-2">
               <div className="tw:mb-4">
                 <Alpha selected={alpha} callback={handleAlphaSelect} />

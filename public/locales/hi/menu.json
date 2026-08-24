@@ -47,6 +47,7 @@
   "buyFromSK": "SK से खरीदें",
   "manageInventory": "आइटम प्रबंधित करें",
   "manageSupply": "आपूर्ति प्रबंधित करें",
+  "manageCatalog": "कैटलॉग प्रबंधित करें",
   "deliveryRoute": "डिलीवरी मार्ग",
   "manageSales": "बिक्री प्रबंधित करें",
   "manageBusiness": "व्यवसाय प्रबंधित करें",
@@ -54,6 +55,7 @@
   "marketing": "मार्केटिंग",
   "banners": "बैनर",
   "coupons": "कूपन",
+  "whatsappTemplateRequests": "व्हाट्सएप टेम्पलेट",
   "manageMarketing": "मार्केटिंग प्रबंधित करें",
   "manageBanners": "बैनर प्रबंधित करें",
   "assistedOrder": "सहायक आदेश"

@@ -1,25 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import AppButton from "~/components/core/button/AppButton";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppCard from "~/components/core/card/AppCard";
+import AppTab from "~/components/core/tab/AppTab";
+import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
+import useAppNav from "~/hooks/useAppNav";
 import useScreenView from "~/hooks/useScreenView";
+import CommonService from "~/services/CommonService";
 import PageAccessService from "~/services/PageAccessService";
 import type {
   PaginationState,
-  SortProps,
+  TabItem,
   ViewToggleType,
 } from "~/types/CommonTypes";
-import { Info } from "lucide-react";
-import InfoBlock from "~/components/core/info-blk/InfoBlock";
+import SortPopover, {
+  buildSortOptions,
+  type SortValue,
+} from "~/components/feature/utility/sort/SortPopover";
 import Filter from "./components/Filter";
-import DesktopView from "./components/item/DesktopView";
+import DesktopView, { headers } from "./components/item/DesktopView";
 import MobileView from "./components/item/MobileView";
-import Summary from "./components/Summary";
+import Summary, { type JoiningSegment } from "./components/Summary";
 import { getCount, getData, getSummary, prepareParams } from "./helper";
-import CommonService from "~/services/CommonService";
-import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import DirectoryBanner from "~/shared/network/components/directory-banner/DirectoryBanner";
+import DirectorySidePane from "~/shared/network/components/directory-side-pane/DirectorySidePane";
+import MiscService from "~/services/MiscService";
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage(["NETWORK.VIEW-USERS"]);
@@ -27,13 +33,28 @@ export async function clientLoader() {
 
 const JoiningRequest = () => {
   const { isMobile } = useScreenView();
-  const { t } = useTranslation(["common"]);
+  const { to } = useAppNav();
+
   const [data, setData] = useState<any[]>([]);
   const [summary, setSummary] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
+
   const [view, setView] = useState<ViewToggleType>("list");
+  // Default to Pending — that is the actionable queue this page is for.
+  const [segment, setSegment] = useState<JoiningSegment>("Pending");
+
+  // Sort is shared by the desktop column headers and the mobile popover — the
+  // options come straight off the table's column config.
+  const sortOptions = useMemo(() => buildSortOptions(headers), []);
+  const [sort, setSort] = useState<SortValue>({
+    key: "createdAt",
+    value: -1,
+  });
+  // The list calls read the sort through a ref so they stay closure-free, the
+  // state only drives the header arrows and the popover's active row.
+  const sortRef = useRef<SortValue>(sort);
 
   const filterRef = useRef<Record<string, any>>({ status: "Pending" });
   const paginationRef = useRef<PaginationState>({
@@ -42,10 +63,6 @@ const JoiningRequest = () => {
     rowsPerPage: 10,
     startSlNo: 1,
     totalRecords: 0,
-  });
-  const sortRef = useRef<{ key: string; value: "asc" | "desc" }>({
-    key: "name",
-    value: "asc",
   });
 
   const applyFilter = useCallback(async () => {
@@ -61,21 +78,23 @@ const JoiningRequest = () => {
       const params = prepareParams(
         filterRef.current,
         paginationRef.current,
-        sortRef.current
+        sortRef.current,
       );
       const result = await getData(params);
       setData(result || []);
       const totalRecords = await getCount(params);
       paginationRef.current.totalRecords = totalRecords;
       setHasMoreData(
-        (result || []).length >= paginationRef.current.rowsPerPage
+        (result || []).length >= paginationRef.current.rowsPerPage,
       );
-      // fetch summary based on current filters
+
+      // fetch summary based on current filters (status stripped inside)
       const summaryData = await getSummary(filterRef.current || {});
       setSummary(summaryData || {});
     } catch (e) {
       setData([]);
       setHasMoreData(false);
+      setSummary({});
     } finally {
       setLoading(false);
     }
@@ -90,11 +109,15 @@ const JoiningRequest = () => {
         ...paginationRef.current,
         activePage: paginationRef.current.activePage + 1,
       };
-      const params = prepareParams(filterRef.current, paginationRef.current);
+      const params = prepareParams(
+        filterRef.current,
+        paginationRef.current,
+        sortRef.current,
+      );
       const result = await getData(params);
       setData((prev) => [...prev, ...(result || [])]);
       setHasMoreData(
-        (result || []).length >= paginationRef.current.rowsPerPage
+        (result || []).length >= paginationRef.current.rowsPerPage,
       );
     } catch (e) {
       // handle error
@@ -103,85 +126,237 @@ const JoiningRequest = () => {
     }
   }, [loadingMore, hasMoreData]);
 
-  // Initial load
   useEffect(() => {
     applyFilter();
   }, []);
 
   const onFilterChange = useCallback((data: any) => {
+    const formData = data.formData || {};
     filterRef.current = {
       ...filterRef.current,
-      ...data.formData,
+      ...formData,
     };
+    // Desktop status dropdown shares the same status as the summary tiles /
+    // mobile pills — keep the active segment highlighted in sync.
+    if (formData.status !== undefined) {
+      const next = formData.status;
+      setSegment(
+        next === "All" || next === "all" ? "all" : (next as JoiningSegment),
+      );
+    }
     applyFilter();
-  }, []);
+  }, [applyFilter]);
 
-  const handleSort = useCallback(({ key, value }: SortProps) => {
-    sortRef.current = { key, value: value || "asc" };
-    applyFilter();
-  }, []);
+  // One segment drives the summary tiles, mobile pills, and desktop status
+  // dropdown — the list call carries it as `filter.status` (`All` clears it).
+  const handleSegmentChange = useCallback(
+    (key: JoiningSegment) => {
+      setSegment(key);
+      filterRef.current = {
+        ...filterRef.current,
+        status: key === "all" ? "All" : key,
+      };
+      applyFilter();
+    },
+    [applyFilter],
+  );
+
+  // Same handler for both entry points — the table headers and the mobile
+  // popover — so a column tap and a popover pick land on one sort state.
+  const handleSort = useCallback(
+    (value: SortValue) => {
+      sortRef.current = value;
+      setSort(value);
+      applyFilter();
+    },
+    [applyFilter],
+  );
+
+  // Mobile has no side pane, so status segments ride as a pill tab strip —
+  // same segments, same counts, same handler as the summary tiles.
+  const segmentTabs = useMemo<TabItem[]>(() => {
+    const items: { key: JoiningSegment; name: string; count: number }[] = [
+      { key: "all", name: "All", count: Number(summary?.total) || 0 },
+      {
+        key: "Pending",
+        name: "Pending",
+        count: Number(summary?.notApproved) || 0,
+      },
+      {
+        key: "Approved",
+        name: "Approved",
+        count: Number(summary?.approved) || 0,
+      },
+      {
+        key: "Rejected",
+        name: "Rejected",
+        count: Number(summary?.rejected) || 0,
+      },
+    ];
+
+    return items.map((item) => ({
+      ...item,
+      // The active pill is already brand-filled — a red badge on top of it
+      // fights the fill, so it goes translucent there.
+      countColor: item.key === segment ? "tw:bg-white/25" : "tw:bg-red-500",
+    }));
+  }, [summary, segment]);
+
+  // Banner mix line — same counts the tiles below run on.
+  const bannerMix = useMemo(() => {
+    const count = (value: any) => (Number(value) || 0).toLocaleString("en-IN");
+    return [
+      `${count(summary?.notApproved)} pending`,
+      `${count(summary?.approved)} approved`,
+      `${count(summary?.rejected)} rejected`,
+    ].join(" · ");
+  }, [summary]);
 
   return (
     <>
-      <InfoBlock
-        variant="info"
-        size="sm"
-        className="tw:mb-4 tw:flex tw:items-start tw:gap-2"
-      >
-        <Info size={16} className="tw:mt-0.5 tw:shrink-0" />
-        <span>{t("joiningRequestInfo")}</span>
-      </InfoBlock>
-
-      <Summary summary={summary} />
-
-      <Filter callback={onFilterChange} />
-
-      <div className="tw:mb-4 tw:mt-4 tw:flex tw:md:flex-row tw:flex-col tw:md:justify-between tw:md:items-end tw:gap-2">
-        <div className="tw:flex-1 tw:flex tw:flex-row tw:md:flex-col tw:gap-2 tw:justify-between tw:items-center tw:md:items-start">
-          <PaginationSummary
-            paginationConfig={paginationRef.current}
-            loadingTotalRecords={loading}
-            loadedCount={data.length}
-            fwSize="sm"
+      <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+        {/* Main column — spans the full grid; in theme-2 desktop the CSS lifts
+            the side pane out of the grid into the fixed list pane. */}
+        <AppPaneMain className="tw:lg:col-span-12">
+          {/* `app-bleed-x` — mobile only: the hero runs edge to edge instead of
+              floating in the page gutter, so it drops its corner radius too. */}
+          <DirectoryBanner
+            scopeLabel="Joining Requests"
+            total={summary?.total}
+            entityLabel="requests"
+            description={bannerMix}
+            descriptionHighlight="Review to onboard them as buyers."
+            highlightLabel="Pending review"
+            highlightValue={(
+              Number(summary?.notApproved) || 0
+            ).toLocaleString("en-IN")}
+            loading={loading}
+            className="app-bleed-x"
           />
-        </div>
 
-        <div className="tw:flex tw:gap-2">
-          <ViewToggle viewType={view} callback={setView} />
-        </div>
-      </div>
-
-      {isMobile || view === "card" ? (
-        <>
-          <MobileView data={data} loading={loading} />
-
-          {hasMoreData && !loading && (
-            <div className="tw:text-center tw:mt-4">
-              <LoadMoreButton
-                loadMore={loadMore}
-                loading={loadingMore}
-                totalCount={paginationRef.current.totalRecords}
-                loadedCount={data.length}
+          {isMobile && (
+            <div className="app-bleed-x tw:bg-white tw:-mt-4 tw:py-2">
+              <AppTab
+                tabs={segmentTabs}
+                activeTab={segment}
+                onTabChange={(tab) =>
+                  handleSegmentChange(tab.key as JoiningSegment)
+                }
+                variant="pills"
+                slideOffset={MiscService.isMobile() ? 16 : 0}
               />
             </div>
           )}
-        </>
-      ) : (
-        <AppCard noPadding>
-          <DesktopView
-            data={data}
-            loading={loading}
-            sortKey={sortRef.current.key}
-            sortValue={sortRef.current.value}
-            onSort={handleSort}
-            loadMore={loadMore}
-            loadingMore={loadingMore}
-            totalCount={paginationRef.current.totalRecords}
-            loadedCount={data.length}
-            hasMoreData={hasMoreData}
+
+          <Summary
+            summary={summary}
+            activeSegment={segment}
+            onSegmentSelect={handleSegmentChange}
           />
-        </AppCard>
-      )}
+
+          <Filter
+            callback={onFilterChange}
+            showFilters
+            status={segment === "all" ? "All" : segment}
+          />
+
+          {isMobile || view === "card" ? (
+            <>
+              {/* Card/mobile toolbar — same card surface and controls as the
+                  desktop table toolbar: summary left, view toggle right.
+                  On mobile the view toggle is hidden anyway, so the count reads
+                  as a plain caption on the page-bg with no card around it. */}
+              {isMobile ? (
+                // Mobile has no column headers to tap, so the sort rides beside
+                // the count as a popover trigger on the same line, as a plain
+                // caption row on the page-bg with no card around it.
+                <div className="tw:mb-1 tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-1">
+                  <div className="tw:min-w-0">
+                    <PaginationSummary
+                      paginationConfig={paginationRef.current}
+                      loadingTotalRecords={loading}
+                      loadedCount={data.length}
+                      fwSize="sm"
+                    />
+                  </div>
+                  <div className="tw:shrink-0">
+                    <SortPopover
+                      options={sortOptions}
+                      sortValue={sort}
+                      onSort={handleSort}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <AppCard noPadding>
+                  <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-4 tw:py-3">
+                    <div className="tw:min-w-0 tw:flex-1">
+                      <PaginationSummary
+                        paginationConfig={paginationRef.current}
+                        loadingTotalRecords={loading}
+                        loadedCount={data.length}
+                        fwSize="sm"
+                      />
+                    </div>
+                    <div className="tw:flex tw:shrink-0 tw:items-center tw:gap-2">
+                      <ViewToggle viewType={view} callback={setView} />
+                    </div>
+                  </div>
+                </AppCard>
+              )}
+
+              <MobileView
+                data={data}
+                loading={loading}
+                onView={(item: any) =>
+                  to(`/dashboard/network/view/view-join-request/${item._id}`)
+                }
+              />
+              {hasMoreData && !loading && (
+                <div className="tw:text-center tw:mt-4">
+                  <LoadMoreButton
+                    loadMore={loadMore}
+                    loading={loadingMore}
+                    totalCount={paginationRef.current.totalRecords}
+                    loadedCount={data.length}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <AppCard noPadding>
+              <DesktopView
+                data={data}
+                loading={loading}
+                loadMore={loadMore}
+                loadingMore={loadingMore}
+                totalCount={paginationRef.current.totalRecords}
+                loadedCount={data.length}
+                hasMoreData={hasMoreData}
+                paginationConfig={paginationRef.current}
+                view={view}
+                onViewChange={setView}
+                sortValue={sort}
+                onSort={handleSort}
+              />
+            </AppCard>
+          )}
+        </AppPaneMain>
+
+        {/* Side column — only rendered inside the theme-2 split layout.
+            Status segments live on the summary tiles (not loyal/silent), so
+            the pane keeps the nav strip and drops the directory segments. */}
+        <AppPaneSide className="app-pane-only">
+          <DirectorySidePane
+            title="Joining Requests"
+            scopeLabel={
+              summary?.total ? `${summary.total} requests` : undefined
+            }
+            showChips={false}
+            showQuickAdd={false}
+          />
+        </AppPaneSide>
+      </div>
     </>
   );
 };

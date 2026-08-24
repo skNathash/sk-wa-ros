@@ -29,6 +29,7 @@ import ViewMyClubModal from "~/shared/store/view-my-club/ViewMyClubModal";
 import { attachCountsToMenu } from "./helper";
 import LanguageSelector from "./LanguageSelector";
 import SideMenuButton from "./SideMenuButton";
+import ThemeSelector from "./ThemeSelector";
 import UserProfile from "./UserProfile";
 import MiscService from "~/services/MiscService";
 
@@ -240,9 +241,13 @@ export default function SideMenu() {
 
   useEffect(() => {
     const handleProfileUpdated = () => {
-      setIsFranchiseProfileComplete(
-        AuthService.isFranchiseProfileComplete().status,
-      );
+      if (AuthService.isMasterLogin()) {
+        setIsFranchiseProfileComplete(true);
+      } else {
+        setIsFranchiseProfileComplete(
+          AuthService.isFranchiseProfileComplete().status,
+        );
+      }
     };
 
     MiscService.listenEvent("profile-updated", handleProfileUpdated);
@@ -434,6 +439,11 @@ export default function SideMenu() {
               {/* Language Selector - Compact */}
               <SidebarMenuItem className="tw:py-1">
                 <LanguageSelector />
+              </SidebarMenuItem>
+
+              {/* Theme switcher — swaps the whole app to theme-2 (Modern). */}
+              <SidebarMenuItem className="tw:py-1">
+                <ThemeSelector />
               </SidebarMenuItem>
 
               <SidebarSeparator />

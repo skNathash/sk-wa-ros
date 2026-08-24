@@ -196,7 +196,9 @@ const SwiperCard = ({
   return (
     <div className="tw:rounded-2xl tw:border tw:border-gray-200 tw:bg-white tw:p-4 tw:shadow-sm">
       <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between">
-        <h3 className="tw:text-lg tw:font-bold tw:text-slate-900">{title}</h3>
+        <h3 className="app-label tw:text-[0.8125rem]! tw:font-semibold tw:uppercase tw:tracking-[0.12em] tw:text-primary/70">
+          {title}
+        </h3>
         <div className="tw:flex tw:items-center tw:gap-2">
           <NavButton
             dir="prev"

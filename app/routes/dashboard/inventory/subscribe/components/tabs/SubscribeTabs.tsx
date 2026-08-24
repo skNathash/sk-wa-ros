@@ -2,7 +2,9 @@ import { produce } from "immer";
 import {
   Award,
   Clock,
+  Compass,
   LayoutGrid,
+  ListTree,
   MapPin,
   Package,
   Search,
@@ -16,9 +18,11 @@ import type { TabItem } from "~/types/CommonTypes";
 import { SUBSCRIBE_VERSION_OLD } from "../../helper";
 
 type SubscribeTabKey =
+  | "discover"
   | "search"
   | "categories"
   | "brands"
+  | "menus"
   | "top"
   | "history"
   | "un-brands";
@@ -32,6 +36,12 @@ const SubscribeTabs: React.FC<SubscribeTabsProps> = ({ className }) => {
   const [searchParams] = useSearchParams();
 
   const [tabs, setTabs] = useState<TabItem[]>([
+    {
+      key: "discover",
+      langKey: "inventorySubscribe:tabs.discover",
+      name: "Discover",
+      icon: <Compass />,
+    },
     {
       key: "search",
       langKey: "inventorySubscribe:tabs.search",
@@ -64,6 +74,12 @@ const SubscribeTabs: React.FC<SubscribeTabsProps> = ({ className }) => {
       icon: <Award />,
     },
     {
+      key: "menus",
+      langKey: "inventorySubscribe:tabs.menus",
+      name: "Menus",
+      icon: <ListTree />,
+    },
+    {
       key: "history",
       langKey: "inventorySubscribe:tabs.history",
       name: "History",
@@ -80,13 +96,21 @@ const SubscribeTabs: React.FC<SubscribeTabsProps> = ({ className }) => {
     version === SUBSCRIBE_VERSION_OLD ? `&version=${version}` : "";
 
   const handleTabChange = (tab: SubscribeTabKey) => {
-    if (tab === "categories") {
+    if (tab === "discover") {
+      appNav.to(
+        `/dashboard/inventory/subscribe/discover?tab=discover${versionSuffix}`
+      );
+    } else if (tab === "categories") {
       appNav.to(
         `/dashboard/inventory/subscribe/browse-category?tab=categories${versionSuffix}`
       );
     } else if (tab === "brands") {
       appNav.to(
         `/dashboard/inventory/subscribe/browse-brands?tab=brands${versionSuffix}`
+      );
+    } else if (tab === "menus") {
+      appNav.to(
+        `/dashboard/inventory/subscribe/menus?tab=menus${versionSuffix}`
       );
     } else if (tab === "history") {
       appNav.to(
@@ -113,6 +137,7 @@ const SubscribeTabs: React.FC<SubscribeTabsProps> = ({ className }) => {
         outputType: "count",
         filter: {
           status: "Synced",
+          isSubscribed: false,
         },
       });
       setTabs(

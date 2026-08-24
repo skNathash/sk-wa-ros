@@ -1,7 +1,8 @@
 import {
-  Box,
+  Barcode,
   CheckCircle,
   CheckSquare,
+  ChevronRight,
   Eye,
   PackageCheck,
   PlusIcon,
@@ -11,7 +12,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
 import BusyLoader from "~/components/core/busyloader/Busyloader";
 import AppButton from "~/components/core/button/AppButton";
-import AppCard from "~/components/core/card/AppCard";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
 import useAppToast from "~/hooks/useAppToast";
 import CommonService from "~/services/CommonService";
@@ -418,17 +418,18 @@ const Boxing = ({
   };
 
   return (
-    <>
+    <div className="op-stage-pack">
       {loading ? (
         <div className="tw:flex tw:justify-center tw:items-center">
           <AppSpinner />
         </div>
       ) : null}
 
-      {/* Instruction / Status Banner */}
-      <div className="tw:mb-6">
+      {/* Instruction / Status Banner — dropped entirely in theme-2, the box
+          summary below already carries the packing state. */}
+      <div className="hide-in-theme-2 tw:mb-4">
         {boxesSummary.totalUnits > boxesSummary.totalScannedUnits ? (
-          <div className="tw:bg-amber-50 tw:border tw:border-amber-200 tw:rounded-lg tw:p-4 tw:flex tw:items-start tw:gap-3">
+          <div className="op-banner tw:flex tw:items-start tw:gap-3">
             <div className="tw:bg-amber-100 tw:text-amber-600 tw:p-2 tw:rounded-full tw:shrink-0">
               <PackageCheck size={20} />
             </div>
@@ -445,7 +446,7 @@ const Boxing = ({
             </div>
           </div>
         ) : (
-          <div className="tw:bg-green-50 tw:border tw:border-green-200 tw:rounded-lg tw:p-4 tw:flex tw:items-center tw:gap-3">
+          <div className="op-banner op-stage-delivered tw:flex tw:items-center tw:gap-3">
             <div className="tw:bg-green-100 tw:text-green-600 tw:p-2 tw:rounded-full tw:shrink-0">
               <CheckSquare size={20} />
             </div>
@@ -463,49 +464,51 @@ const Boxing = ({
       </div>
 
       {/* Summary card above main Boxing card */}
-      <AppCard className="tw:mb-4 tw:bg-white">
-        <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:items-center tw:justify-between tw:gap-4">
-          <div className="tw:flex tw:items-center tw:gap-8">
-            <div className="tw:flex tw:flex-col">
-              <span className="tw:text-xs tw:text-gray-500 tw:font-medium tw:uppercase tw:tracking-wider">
-                Total Products
-              </span>
-              <span className="tw:text-lg tw:font-bold tw:text-gray-900">
-                {boxesSummary.totalProducts}
-              </span>
-            </div>
-
-            <div className="tw:h-8 tw:w-px tw:bg-gray-200 tw:hidden tw:md:block"></div>
-
-            <div className="tw:flex tw:flex-col">
-              <span className="tw:text-xs tw:text-gray-500 tw:font-medium tw:uppercase tw:tracking-wider">
-                Units Packed
-              </span>
-              <div className="tw:flex tw:items-baseline tw:gap-1">
-                <span className="tw:text-lg tw:font-bold tw:text-gray-900">
-                  {boxesSummary.totalScannedDisplay}
-                </span>
-                <span className="tw:text-sm tw:text-gray-500">
-                  / {boxesSummary.totalUnitsDisplay}
-                </span>
-              </div>
+      <div className="op-card op-card-pad tw:mb-4">
+        <div className="tw:flex tw:items-center tw:justify-between tw:gap-3">
+          <div>
+            <div className="op-eyebrow tw:mb-0.5">Boxes</div>
+            <div className="tw:text-xs tw:text-gray-500">
+              Tap a box to move items into it · IDs auto-generated
             </div>
           </div>
+          <button
+            type="button"
+            className="tw:text-sm tw:font-semibold tw:shrink-0 tw:cursor-pointer tw:bg-transparent tw:border-0"
+            style={{ color: "var(--op-accent)" }}
+            onClick={handleCreateNewBox}
+          >
+            + Add box
+          </button>
+        </div>
 
+        <div className="tw:flex tw:items-center tw:gap-6 tw:mt-3 tw:pt-3 tw:border-t tw:border-gray-100">
           <div>
-            <AppButton
-              size="small"
-              onClick={handleCreateNewBox}
-              className="tw:w-full tw:md:w-auto"
-            >
-              <PlusIcon className="tw:w-4 tw:h-4 tw:mr-2" />
-              Create New Box
-            </AppButton>
+            <div className="tw:text-[0.625rem] tw:uppercase tw:tracking-wider tw:text-gray-400 tw:font-semibold">
+              Total Products
+            </div>
+            <div className="tw:text-lg tw:font-bold tw:text-gray-900">
+              {boxesSummary.totalProducts}
+            </div>
+          </div>
+          <div className="tw:h-8 tw:w-px tw:bg-gray-200"></div>
+          <div>
+            <div className="tw:text-[0.625rem] tw:uppercase tw:tracking-wider tw:text-gray-400 tw:font-semibold">
+              Units Packed
+            </div>
+            <div className="tw:flex tw:items-baseline tw:gap-1">
+              <span className="tw:text-lg tw:font-bold tw:text-gray-900">
+                {boxesSummary.totalScannedDisplay}
+              </span>
+              <span className="tw:text-sm tw:text-gray-500">
+                / {boxesSummary.totalUnitsDisplay}
+              </span>
+            </div>
           </div>
         </div>
-      </AppCard>
+      </div>
 
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:lg:grid-cols-3 tw:gap-4 tw:mb-6">
+      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:xl:grid-cols-3 tw:gap-4 tw:mb-4">
         {boxes.map((box) => {
           const totalItems = box.totalProducts || 0;
           const totalBoxUnits = box.totalUnits || 0;
@@ -513,30 +516,33 @@ const Boxing = ({
           return (
             <div
               key={box._id}
-              className="tw:bg-white tw:border tw:border-gray-200 tw:rounded-lg tw:p-3 tw:flex tw:flex-col tw:gap-3 tw:shadow-sm hover:tw:shadow-md tw:transition-shadow"
+              className="op-box-label tw:flex tw:flex-col tw:gap-3"
             >
-              <div className="tw:flex tw:justify-between tw:items-start">
-                <div className="tw:flex tw:items-center tw:gap-2">
-                  <div className="tw:bg-primary/10 tw:p-1.5 tw:rounded-md tw:text-primary">
-                    <Box size={18} />
+              <div className="tw:flex tw:justify-between tw:items-start tw:gap-3">
+                <div className="tw:min-w-0">
+                  <div className="tw:text-[0.625rem] tw:font-bold tw:uppercase tw:tracking-widest tw:text-gray-400 tw:mb-0.5">
+                    Box Label Preview
                   </div>
-                  <div>
-                    <div className="tw:font-semibold tw:text-gray-800 tw:text-sm">
-                      {box.displayBoxName}
-                    </div>
-                    <div className="tw:text-xs tw:text-gray-500">
-                      {totalItems} Products | {box.displaySummary}
-                    </div>
+                  <div className="tw:font-bold tw:text-gray-900 tw:tracking-tight tw:truncate">
+                    {box.displayBoxName}
+                  </div>
+                  <div className="tw:text-xs tw:text-gray-500 tw:mt-0.5">
+                    {totalItems} Products · {box.displaySummary}
                   </div>
                 </div>
+                <Barcode
+                  size={28}
+                  className="tw:text-gray-400 tw:shrink-0"
+                  aria-hidden
+                />
               </div>
 
-              <div className="tw:grid tw:grid-cols-3 tw:gap-2 tw:mt-auto">
+              <div className="tw:grid tw:grid-cols-2 tw:gap-2 tw:mt-auto">
                 <AppButton
                   size="small"
                   data-boxid={box._id}
                   onClick={() => handleBoxAddItem(box._id)}
-                  fill="outline"
+                  fill="solid"
                 >
                   <PlusIcon size={14} />
                   Add Items
@@ -572,16 +578,19 @@ const Boxing = ({
       </div>
 
       {boxes.length > 0 && (
-        <div className="tw:flex tw:justify-end tw:mb-6">
-          <AppButton
-            color="success"
+        <div className="op-cta tw:mb-4">
+          <button
+            type="button"
+            className="op-cta-btn"
             onClick={handleConfirmPacking}
-            isLoading={completing}
-            fill="solid"
+            disabled={completing}
           >
-            <CheckCircle size={18} className="tw:mr-2" />
-            Complete & Submit
-          </AppButton>
+            <CheckCircle size={18} />
+            {completing
+              ? "Completing..."
+              : `Confirm boxes · ${boxes.length} ${boxes.length === 1 ? "box" : "boxes"}`}
+            <ChevronRight size={18} />
+          </button>
         </div>
       )}
 
@@ -610,7 +619,7 @@ const Boxing = ({
       />
 
       <BusyLoader show={busyLoader.show} message={busyLoader.msg} />
-    </>
+    </div>
   );
 };
 

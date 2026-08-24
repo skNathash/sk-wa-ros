@@ -141,7 +141,9 @@ const OrderProducts = ({
                 {products.filter((p) => p.showAddStock).length}
               </span>
               <span className="tw:truncate">
-                item{products.filter((p) => p.showAddStock).length > 1 ? "s" : ""} need stock
+                item
+                {products.filter((p) => p.showAddStock).length > 1 ? "s" : ""}{" "}
+                need stock
               </span>
             </div>
             <AppButton
@@ -324,7 +326,10 @@ const OrderProducts = ({
                     </AppPopover>
                   )}
 
-                  <span className="tw:hidden tw:sm:block tw:h-8 tw:w-px tw:bg-gray-200 tw:self-end" aria-hidden />
+                  <span
+                    className="tw:hidden tw:sm:block tw:h-8 tw:w-px tw:bg-gray-200 tw:self-end"
+                    aria-hidden
+                  />
 
                   {isOfferOfTheDay ? (
                     <>
@@ -336,7 +341,9 @@ const OrderProducts = ({
                         <span className="tw:font-semibold tw:text-sm tw:text-orange-700 tw:tabular-nums tw:leading-tight tw:mt-0.5">
                           <Amount value={product.price} decimalPlaces={2} />
                           {product.selectedStockUom && (
-                            <span className="tw:text-[11px] tw:font-medium">/{product.selectedStockUom}</span>
+                            <span className="tw:text-[11px] tw:font-medium">
+                              /{product.selectedStockUom}
+                            </span>
                           )}
                         </span>
                       </div>
@@ -347,7 +354,9 @@ const OrderProducts = ({
                         <span className="tw:text-sm tw:text-gray-400 tw:line-through tw:tabular-nums tw:leading-tight tw:mt-0.5">
                           <Amount value={product.mrp} decimalPlaces={2} />
                           {product.selectedStockUom && (
-                            <span className="tw:text-[11px]">/{product.selectedStockUom}</span>
+                            <span className="tw:text-[11px]">
+                              /{product.selectedStockUom}
+                            </span>
                           )}
                         </span>
                       </div>
@@ -358,7 +367,10 @@ const OrderProducts = ({
                         <span className="tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-[0.08em] tw:text-gray-400 tw:inline-flex tw:items-center tw:gap-1">
                           {priceLabel || t("price")}
                           {product.isPriceSlab && (
-                            <AppBadge variant="primary" className="tw:text-[9px]">
+                            <AppBadge
+                              variant="primary"
+                              className="tw:text-[9px]"
+                            >
                               Slab
                             </AppBadge>
                           )}
@@ -379,7 +391,9 @@ const OrderProducts = ({
                         <span className="tw:font-medium tw:text-sm tw:text-gray-700 tw:tabular-nums tw:leading-tight tw:mt-0.5">
                           <Amount value={product.mrp} decimalPlaces={2} />
                           {product.selectedStockUom && (
-                            <span className="tw:text-[11px] tw:text-gray-500">/{product.selectedStockUom}</span>
+                            <span className="tw:text-[11px] tw:text-gray-500">
+                              /{product.selectedStockUom}
+                            </span>
                           )}
                         </span>
                       </div>
@@ -457,7 +471,10 @@ const OrderProducts = ({
 
               {(() => {
                 const showAdd =
-                  isMyOrder && !isKCStore && product.showAddStock && product.status !== "Cancelled";
+                  isMyOrder &&
+                  !isKCStore &&
+                  product.showAddStock &&
+                  product.status !== "Cancelled";
                 const showCancel = product._showCancel && !needPaymentApproval;
                 if (!showAdd && !showCancel) return null;
                 return (
@@ -497,7 +514,6 @@ const OrderProducts = ({
             </div>
           );
         })}
-
       </AppCard>
 
       <CancelItemModal

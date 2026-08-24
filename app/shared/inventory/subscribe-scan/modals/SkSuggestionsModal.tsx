@@ -30,7 +30,7 @@ interface Props {
   show: boolean;
   /** The barcode the user scanned — shown for context. */
   barcode: string;
-  /** StoreKing catalog suggestions (formatted skSuggestedDeals). */
+  /** SK Library suggestions (formatted skSuggestedDeals). */
   items: ReviewDeal[];
   /** Fires with the scanned barcode once any suggestion is subscribed. */
   onSubscribed?: (barcode: string) => void;
@@ -47,7 +47,7 @@ interface Props {
 }
 
 /**
- * Modal that lists the StoreKing catalog matches for an AI-found item.
+ * Modal that lists the SK Library matches for an AI-found item.
  * The user picks the right product and taps Subscribe — once any card is
  * subscribed we notify the parent so the review row can be marked done.
  */
@@ -125,22 +125,21 @@ const SkSuggestionsModal: React.FC<Props> = ({
       <AppModal.Title onClose={onClose}>
         <div className="tw:flex tw:items-center tw:gap-1.5 tw:font-bold">
           <Store className="tw:w-4 tw:h-4 tw:text-emerald-600" />
-          Similar Items found in SK Catalog
+          Similar Items found in SK Library
         </div>
         <div className="tw:text-xs tw:text-gray-500 tw:mt-1">
           Your scanned barcode{" "}
           <span className="tw:font-mono tw:font-semibold">{barcode}</span> isn't
-          in your store yet. Tap{" "}
-          <span className="tw:font-semibold">Subscribe</span> on the product that
-          matches to add it to your subscription cart.
+          in your all items yet. Pick the matching product and tap{" "}
+          <span className="tw:font-semibold">Subscribe</span>
         </div>
       </AppModal.Title>
 
       <AppModal.Content className="tw:flex-1">
         {items.length === 0 ? (
           <div className="tw:text-center tw:text-sm tw:text-gray-500 tw:py-10">
-            No StoreKing catalog match for this barcode. Close this and add it as
-            a new product instead.
+            No SK Library match for this barcode. Close this and add it as a new
+            product instead.
           </div>
         ) : (
           <>

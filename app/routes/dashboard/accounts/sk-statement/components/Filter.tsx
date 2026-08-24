@@ -77,7 +77,7 @@ const Filter = () => {
             register={register}
             onChange={debounceSearch}
             placeholder={t("searchByReferenceId")}
-            className="tw:bg-white"
+            className="statement-search"
             leftIcon={<SearchIcon size={16} className="tw:text-gray-500" />}
             inputClassName="tw:placeholder:text-xs tw:placeholder:md:text-sm"
           />

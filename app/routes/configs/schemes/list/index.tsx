@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import AppTab from "~/components/core/tab/AppTab";
 import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSearchParams } from "react-router";
@@ -6,13 +7,15 @@ import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppButton from "~/components/core/button/AppButton";
 import AppHeader from "~/components/core/header/AppHeader";
 import PageDescription from "~/components/core/page-description/PageDescription";
-import AppTab from "~/components/core/tab/AppTab";
 import Rbac from "~/components/core/rbac/Rbac";
 import useAppNav from "~/hooks/useAppNav";
 import useScreenView from "~/hooks/useScreenView";
 import PageAccessService from "~/services/PageAccessService";
 import type { BreadcrumbItem, TabItem } from "~/types/CommonTypes";
-import ManagePriceTabs from "../../components/ManagePriceTabs";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import PricingSidePane from "~/shared/inventory/components/pricing-side-pane/PricingSidePane";
+import PriceTabs from "~/shared/configs/components/price-tabs/PriceTabs";
 import Filter from "./components/Filter";
 import type { SchemeFilterForm } from "./helper";
 import { getSummary } from "./helper";
@@ -20,6 +23,7 @@ import Summary from "./components/products/Summary";
 import Products from "./components/products/Products";
 import Brands from "./components/brands/Brands";
 import Exclude from "./components/exclude/Exclude";
+import PricingChannelCards from "~/shared/configs/components/pricing-channel-cards/PricingChannelCards";
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -155,40 +159,103 @@ const SchemesList = () => {
 
   return (
     <>
+      {/* No `sectionKey` (drops the theme-2 section dropdown) and the default
+          `back` lead (drops the hamburger) — this is a leaf of Manage Price,
+          so the title stays plain and the way out is back. */}
       <AppHeader title="B2B Schemes" />
       <div className="page-bg app-page tw:p-4">
-        <div className="app-container">
-          <div className="tw:flex tw:justify-between tw:items-center">
-            <div className="tw:flex-1">
-              <AppBreadcrumbs data={breadcrumbs} />
-              <PageDescription description="b2bSchemes" className="tw:mb-4" />
+        <div className="section-layout">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="pricing"
+                title="Manage Catalog"
+              />
             </div>
-            {!isMobile && renderActionButton()}
+          </aside>
+
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              <AppPaneMain className="tw:lg:col-span-12">
+                {/* Dropped wholesale in theme-2 (both children are hidden there
+                    anyway) so the empty wrapper stops contributing a stack gap
+                    above the command bar. */}
+                <div className="tw:flex-1 hide-in-theme-2">
+                  <AppBreadcrumbs data={breadcrumbs} />
+                  <PageDescription
+                    description="b2bSchemes"
+                    className="tw:mb-4"
+                  />
+                </div>
+
+                {/* Pricing command bar — same block as Manage Price: the
+                    channel cards (schemes are a B2B tool, so the row stays on
+                    B2B and the other channels navigate away) above the
+                    underline tab row. */}
+                <div className="pricing-command-bar tw:-mt-6 tw:md:mt-0">
+                  <div className="tw:px-4 tw:py-2 tw:md:pt-3 tw:md:py-0">
+                    {/* Schemes only exist on B2B — the cards navigate back to
+                        Manage Price for any other channel. */}
+                    <PricingChannelCards
+                      activeKey="network"
+                      // Compact tab row on mobile; full cards from md up.
+                      variant={isMobile ? "tab" : "card"}
+                    />
+                  </div>
+
+                  <PriceTabs
+                    type="network"
+                    activeTab="b2bScheme"
+                    className="tw:mt-1 tw:px-4 tw:hidden tw:md:block"
+                  />
+                </div>
+
+                {/* Filter leads, the counts read below it. On mobile the block
+                    is its own white band running edge to edge (`app-bleed-x`
+                    cancels the page gutter); desktop keeps it inline. */}
+                <div className="tw:mb-3 tw:bg-white tw:px-4 tw:py-2 app-bleed-x tw:md:mb-0 tw:md:bg-transparent tw:md:px-0 tw:md:py-0">
+                  <FormProvider {...formMethods}>
+                    <Filter
+                      callback={handleFilterChange}
+                      activeTab={activeTab}
+                    />
+                  </FormProvider>
+                </div>
+
+                <Summary summary={summary} />
+
+                {/* Create sits beside the scope tabs, so the action follows the
+                    selection it applies to instead of the page title. */}
+                <div className="tw:mb-4 tw:flex tw:items-center tw:gap-3">
+                  <AppTab
+                    tabs={tabItems}
+                    activeTab={activeTab}
+                    onTabChange={handleTabChange}
+                    variant="tabs"
+                    className="tw:min-w-0 tw:flex-1"
+                  />
+                  {!isMobile && renderActionButton()}
+                </div>
+
+                {activeTab === "products" ? (
+                  <Products />
+                ) : activeTab === "brands" ? (
+                  <Brands />
+                ) : activeTab === "exclude" ? (
+                  <Exclude />
+                ) : null}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed pane
+                  beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <PricingSidePane title="B2B Schemes" />
+              </AppPaneSide>
+            </div>
           </div>
-
-          <ManagePriceTabs activeTab="b2bScheme" className="tw:mb-4" />
-
-          <Summary summary={summary} />
-
-          <FormProvider {...formMethods}>
-            <Filter callback={handleFilterChange} activeTab={activeTab} />
-          </FormProvider>
-
-          <AppTab
-            tabs={tabItems}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            variant="tabs"
-            className="tw:mb-4"
-          />
-
-          {activeTab === "products" ? (
-            <Products />
-          ) : activeTab === "brands" ? (
-            <Brands />
-          ) : activeTab === "exclude" ? (
-            <Exclude />
-          ) : null}
         </div>
       </div>
 

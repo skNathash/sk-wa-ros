@@ -24,6 +24,7 @@ export default [
     "products/coin-store-deals",
     "routes/products/coin-store-deals/list/index.tsx",
   ),
+  route("products/coin-economy", "routes/products/coin-economy/index.tsx"),
   route("products/order-placed", "routes/products/order-placed/index.tsx"),
   route(
     "products/browse/by-brand",
@@ -51,6 +52,14 @@ export default [
     "routes/products/buy-from-other-retailer/products/list/index.tsx",
   ),
   route(
+    "products/buy-from-other-retailer/products/reorder",
+    "routes/products/buy-from-other-retailer/products/reorder/index.tsx",
+  ),
+  route(
+    "products/buy-from-other-retailer/products/feature",
+    "routes/products/buy-from-other-retailer/products/feature/index.tsx",
+  ),
+  route(
     "products/buy-from-other-retailer/products/cart",
     "routes/products/buy-from-other-retailer/products/cart/index.tsx",
   ),
@@ -61,6 +70,10 @@ export default [
   route(
     "products/buy-from-other-retailer/products/category",
     "routes/products/buy-from-other-retailer/products/category/index.tsx",
+  ),
+  route(
+    "products/buy-from-other-retailer/products/menu",
+    "routes/products/buy-from-other-retailer/products/menu/index.tsx",
   ),
   route(
     "products/buy-from-other-retailer/products/my",

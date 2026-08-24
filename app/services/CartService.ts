@@ -18,30 +18,51 @@ export default class CartService {
     this.tmpCartData.items = data;
   }
 
-  static triggerCartAddedEvent(dealId: string, qty: number): void {
-    MiscService.createEvent(EVENTS.CART_ITEM_ADDED, { dealId, qty });
+  static triggerCartAddedEvent(
+    dealId: string,
+    qty: number,
+    sellerId?: string,
+  ): void {
+    MiscService.createEvent(EVENTS.CART_ITEM_ADDED, { dealId, qty, sellerId });
   }
 
-  static triggerCartRemovedEvent(dealId: string): void {
-    MiscService.createEvent(EVENTS.CART_ITEM_REMOVED, { dealId });
+  static triggerCartRemovedEvent(dealId: string, sellerId?: string): void {
+    MiscService.createEvent(EVENTS.CART_ITEM_REMOVED, { dealId, sellerId });
+  }
+
+  /**
+   * Local cart entries are scoped per seller: the same catalog deal can sit in
+   * several sellers' carts at once, so the deal id alone is not a unique key.
+   * The own (non buy-from-other-retailer) cart uses the empty scope.
+   */
+  private static cartScope(sellerId?: string | null): string {
+    return sellerId ? String(sellerId) : "";
   }
 
   /**
    * Adds or updates an item in the cart
    * @param dealId - The ID of the deal to add
    * @param qty - Quantity to add/update
+   * @param sellerId - Seller the deal is bought from, for buy-from-other-retailer
    */
-  public static addToCartLocal(dealId: string, qty: number): void {
+  public static addToCartLocal(
+    dealId: string,
+    qty: number,
+    sellerId?: string,
+  ): void {
     try {
+      const scope = this.cartScope(sellerId);
       const cart = this.getCart();
-      const existingItemIndex = cart.findIndex((item) => item.id === dealId);
+      const existingItemIndex = cart.findIndex(
+        (item) => item.id === dealId && this.cartScope(item.sellerId) === scope,
+      );
 
       if (existingItemIndex !== -1) {
         // Update existing item
         cart[existingItemIndex].qty = qty;
       } else {
         // Add new item
-        cart.push({ id: dealId, qty });
+        cart.push({ id: dealId, qty, ...(scope ? { sellerId: scope } : {}) });
       }
 
       StorageService.set(this.CART_KEY, cart);
@@ -54,11 +75,16 @@ export default class CartService {
   /**
    * Removes an item from the cart
    * @param dealId - The ID of the deal to remove
+   * @param sellerId - Seller the deal was bought from, for buy-from-other-retailer
    */
-  public static removeFromCart(dealId: string): void {
+  public static removeFromCart(dealId: string, sellerId?: string): void {
     try {
+      const scope = this.cartScope(sellerId);
       const cart = this.getCart();
-      const updatedCart = cart.filter((item) => item.id !== dealId);
+      const updatedCart = cart.filter(
+        (item) =>
+          !(item.id === dealId && this.cartScope(item.sellerId) === scope),
+      );
       StorageService.set(this.CART_KEY, updatedCart);
     } catch (error) {
       console.error("Error removing from cart:", error);
@@ -70,7 +96,7 @@ export default class CartService {
    * Gets the current cart items
    * @returns Array of cart items [{id, qty}]
    */
-  public static getCart(): { id: string; qty: number }[] {
+  public static getCart(): { id: string; qty: number; sellerId?: string }[] {
     try {
       const cart = StorageService.get(this.CART_KEY) || [];
       return Array.isArray(cart) ? cart : [];
@@ -106,13 +132,18 @@ export default class CartService {
   /**
    * Checks if a deal is in the cart
    * @param dealId - The ID of the deal to check
+   * @param sellerId - Seller to check against, for buy-from-other-retailer
    * @returns Object with status and qty if found, otherwise null
    */
   public static isDealInCart(
     dealId: string,
+    sellerId?: string,
   ): { status: boolean; qty?: number } | null {
+    const scope = this.cartScope(sellerId);
     const cart = this.getCart();
-    const item = cart.find((item) => item.id === dealId);
+    const item = cart.find(
+      (item) => item.id === dealId && this.cartScope(item.sellerId) === scope,
+    );
     if (item && item.qty > 0) {
       return { status: true, qty: item.qty };
     }

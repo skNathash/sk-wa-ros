@@ -1,10 +1,11 @@
-import type { DayPickerProps } from "react-day-picker";
 import debounce from "lodash/debounce";
-import { Controller, useForm } from "react-hook-form";
+import { FilterIcon, SearchIcon } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { AppInput, AppSelect } from "~/components/core/form";
-import AppDateInput from "~/components/core/form/AppDateInput";
-import PurchaseOrderService from "~/services/PurchaseOrderService";
+import AppButton from "~/components/core/button/AppButton";
+import { AppInput } from "~/components/core/form";
+import FilterModal, { defaultFilterValues } from "../modals/FilterModal";
 
 interface FilterProps {
   onFilterChange: (value: any) => void;
@@ -20,129 +21,96 @@ const Filter = ({
   activeTab,
 }: FilterProps) => {
   const { t } = useTranslation(["common"]);
-  const { register, control, getValues } = useForm({
+  const { register, getValues, setValue } = useForm({
     defaultValues: {
-      status: "All",
-      source: "All",
-      dateRange: [],
+      ...defaultFilterValues,
       search: "",
     },
   });
 
-  const statusOptions = PurchaseOrderService.getStatuses()
-    .map((x) => ({
-      value: x.value,
-      label: x.label,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-  statusOptions.unshift({
-    value: "All",
-    label: t("allStatus"),
-  });
+  const [filterModal, setFilterModal] = useState<{
+    show: boolean;
+    data: Record<string, any>;
+  }>({ show: false, data: {} });
 
-  const sourceOptions = PurchaseOrderService.getSourceTypes()
-    .map((x) => ({
-      value: x.value,
-      label: x.name,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-  sourceOptions.unshift({ value: "All", label: t("all") });
-
-  // Debounced search
-  const debouncedSearch = debounce(() => {
-    triggerCallback();
-  }, 500);
-
-  const handleSearchChange = () => {
-    debouncedSearch();
-  };
+  // Status is driven by the tab on the receive-orders tab, and both status and
+  // source only apply to the purchase feature.
+  const hideStatus = feature !== "purchase" || activeTab === "receive-orders";
+  const hideSource = feature !== "purchase";
 
   const triggerCallback = () => {
-    const vals = getValues();
-    onFilterChange({ ...vals });
+    onFilterChange({ ...getValues() });
   };
 
-  const onDateChange =
-    (chngField: (value: any) => void) => (dt: Date | Date[]) => {
-      chngField(dt);
+  const debouncedSearch = useCallback(
+    debounce(() => {
       triggerCallback();
-    };
+    }, 500),
+    []
+  );
 
-  const onStatusChange = () => {
-    triggerCallback();
-  };
+  const openFilterModal = useCallback(() => {
+    setFilterModal({ show: true, data: getValues() });
+  }, [getValues]);
+
+  const handleFilterModalCallback = useCallback(
+    ({ action, data }: { action: string; data: any }) => {
+      setFilterModal({ show: false, data: {} });
+
+      if (action === "apply") {
+        setValue("dateRange", data.dateRange || defaultFilterValues.dateRange);
+        setValue(
+          "status",
+          hideStatus ? defaultFilterValues.status : data.status
+        );
+        setValue(
+          "source",
+          hideSource ? defaultFilterValues.source : data.source
+        );
+        triggerCallback();
+      }
+    },
+    [setValue, hideStatus, hideSource]
+  );
 
   return (
-    <div className={`tw:flex tw:flex-col tw:gap-4 ${className}`}>
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-4 tw:gap-3">
-        <AppInput
-          name="search"
-          placeholder={t("searchByPOIdVendorName")}
-          register={register}
-          onChange={handleSearchChange}
-          size="sm"
-        />
-
-        <Controller
-          control={control}
-          name="dateRange"
-          render={({ field }) => (
-            <AppDateInput
-              callback={onDateChange(field.onChange)}
-              value={field.value}
-              size="sm"
-              dateConfig={dateConfig}
-              placeholder={t("filterByDateRange")}
-              className="tw:w-full"
-            />
-          )}
-        />
-
-        {feature === "purchase" && activeTab !== "receive-orders" && (
-          <Controller
-            control={control}
-            name="status"
-            render={({ field }) => (
-              <AppSelect
-                placeholder={t("filterByStatus")}
-                inputClassName="tw:w-full"
-                onChange={(value) => {
-                  field.onChange(value);
-                  onStatusChange();
-                }}
-                value={field.value}
-                size="sm"
-                options={statusOptions}
-              />
-            )}
+    <>
+      <div
+        className={`tw:flex tw:items-center tw:gap-2 ${className ? className : ""}`}
+      >
+        <div className="tw:flex-1">
+          <AppInput
+            name="search"
+            placeholder={t("searchByPOIdVendorName")}
+            register={register}
+            onChange={debouncedSearch}
+            size="sm"
+            leftIcon={<SearchIcon size={16} className="tw:text-gray-500" />}
+            inputClassName="tw:placeholder:text-xs tw:placeholder:md:text-sm"
           />
-        )}
+        </div>
 
-        {feature === "purchase" && (
-          <Controller
-            control={control}
-            name="source"
-            render={({ field }) => (
-              <AppSelect
-                placeholder={t("filterBySource")}
-                onChange={(value) => {
-                  field.onChange(value);
-                  triggerCallback();
-                }}
-                value={field.value}
-                size="sm"
-                options={sourceOptions}
-              />
-            )}
-          />
-        )}
+        <div>
+          <AppButton
+            fill="outline"
+            color="light"
+            size="small"
+            onClick={openFilterModal}
+          >
+            <FilterIcon size={16} />
+          </AppButton>
+        </div>
       </div>
-    </div>
-  );
-};
 
-const dateConfig: DayPickerProps = {
-  mode: "range",
+      <FilterModal
+        show={filterModal.show}
+        callback={handleFilterModalCallback}
+        data={filterModal.data}
+        hideStatus={hideStatus}
+        hideSource={hideSource}
+      />
+    </>
+  );
 };
 
 export default Filter;

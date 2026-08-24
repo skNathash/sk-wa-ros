@@ -8,12 +8,39 @@ import useAppNav from "~/hooks/useAppNav";
 interface BannerSlideProps {
   placeholder: string;
   retailerId?: string;
+  // "valid" (default) pulls a retailer's placeholder banners and links into that
+  // retailer's storefront. "network" pulls the franchise network feed and links
+  // into the network browse (list/search) routes.
+  source?: "valid" | "network";
+  // Delivery radius used to scope the banner feed. Accepts a km number or "all"
+  // (mirrors the seller-catalog network APIs: "all" => a very large radius so the
+  // backend effectively ignores distance filtering).
+  distance?: number | string;
   onBannerClick?: (banner: any) => void;
 }
+
+const NETWORK_LIST_PATH = "/products/buy-from-other-retailer/products/list";
+const NETWORK_SEARCH_PATH = "/products/buy-from-other-retailer/products/search";
+const RETAILER_PATH = "/products/buy-from-other-retailer/retailer/";
+
+// Resolve a distance into the numeric radius the banner/network APIs expect.
+// "all" (or an invalid value) becomes a very large radius. Undefined stays
+// undefined so callers that don't scope by distance send no distance at all.
+const resolveDistance = (
+  distance?: number | string,
+): number | undefined => {
+  if (distance === undefined || distance === null || distance === "")
+    return undefined;
+  if (distance === "all") return 1000000000;
+  const parsed = Number(distance);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1000000000;
+};
 
 const BannerSlide = ({
   placeholder,
   retailerId,
+  source = "valid",
+  distance,
   onBannerClick,
 }: BannerSlideProps) => {
   const [banners, setBanners] = useState<any[]>([]);
@@ -21,16 +48,21 @@ const BannerSlide = ({
 
   useEffect(() => {
     loadBanners();
-  }, [placeholder]);
+  }, [placeholder, source, retailerId, distance]);
 
   const loadBanners = async () => {
     try {
-      const res = await BannerService.getValidBanners(retailerId, {
-        filter: {
-          "placeholderInfo.code": placeholder,
-          type: "B2B",
-        },
-      });
+      const filter: Record<string, any> = { type: "B2B" };
+      if (placeholder) filter["placeholderInfo.code"] = placeholder;
+
+      const params: Record<string, any> = { filter };
+      const radius = resolveDistance(distance);
+      if (radius !== undefined) params.distance = radius;
+
+      const res =
+        source === "network"
+          ? await BannerService.getNetworkBanners(params)
+          : await BannerService.getValidBanners(retailerId, params);
       const data = Array.isArray(res?.data?.data) ? res.data?.data : [];
       setBanners(data);
     } catch {
@@ -106,18 +138,59 @@ const BannerSlide = ({
           break;
       }
 
+      // Source banners jump straight to a specific retailer's storefront rather
+      // than a filtered browse route.
+      if (bannerType === "Source") {
+        const sourceEntity =
+          condition.sources?.[0] || condition.sellers?.[0] || null;
+        const sellerId =
+          sourceEntity?.id ||
+          sourceEntity?._id ||
+          sourceEntity?.sellerId ||
+          sourceEntity?.sellerRefId ||
+          "";
+        if (!sellerId) return;
+
+        const retailerParams: Record<string, string> = {};
+        if (distance !== undefined && distance !== null && distance !== "") {
+          retailerParams.distance = String(distance);
+        }
+        if (banner.title) retailerParams.bannerTitle = banner.title;
+
+        onBannerClick?.(banner);
+        appNav.to(RETAILER_PATH + sellerId, retailerParams);
+        return;
+      }
+
       if (Object.keys(params).length) {
+        if (banner.title) params.bannerTitle = banner.title;
+        // Scope the destination browse to the same delivery radius the banner
+        // feed was loaded with.
+        if (distance !== undefined && distance !== null && distance !== "") {
+          params.distance = String(distance);
+        }
+        onBannerClick?.(banner);
+
+        if (source === "network") {
+          // Keyword banners search the network catalog; the rest browse a
+          // filtered network product list.
+          if (bannerType === "Keywords") {
+            appNav.to(NETWORK_SEARCH_PATH, {
+              search: params.search,
+              ...(params.distance ? { distance: params.distance } : {}),
+            });
+          } else {
+            appNav.to(NETWORK_LIST_PATH, params);
+          }
+          return;
+        }
+
         params.inventoryTab = "products";
         params.scrollToProduct = Date.now().toString();
-        if (banner.title) params.bannerTitle = banner.title;
-        onBannerClick?.(banner);
-        appNav.to(
-          "/products/buy-from-other-retailer/retailer/" + retailerId,
-          params,
-        );
+        appNav.to(RETAILER_PATH + retailerId, params);
       }
     },
-    [appNav, retailerId],
+    [appNav, retailerId, source, distance, onBannerClick],
   );
 
   if (!banners.length) return null;

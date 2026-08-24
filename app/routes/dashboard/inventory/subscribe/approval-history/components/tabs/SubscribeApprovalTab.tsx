@@ -4,6 +4,8 @@ import { useSearchParams } from "react-router";
 import AppTab from "~/components/core/tab/AppTab";
 import type { TabItem } from "~/types/CommonTypes";
 import useAppNav from "~/hooks/useAppNav";
+import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import InventorySubscribeService from "~/services/InventorySubscribeService";
 import { produce } from "immer";
 import { getSubscribeVersionParam } from "../../../helper";
@@ -20,6 +22,8 @@ const SubscribeApprovalTab: React.FC<SubscribeApprovalTabProps> = ({
   const { t } = useTranslation(["common"]);
   const appNav = useAppNav();
   const [searchParams] = useSearchParams();
+  const { isMobile } = useScreenView();
+  const isTheme2 = useTheme() === "theme-2";
 
   // Preserve the active flow (`version=old`) when switching approval tabs so
   // the breadcrumb keeps pointing back to the right landing.
@@ -60,6 +64,7 @@ const SubscribeApprovalTab: React.FC<SubscribeApprovalTabProps> = ({
         outputType: "count",
         filter: {
           status: "Synced",
+          isSubscribed: false,
         },
       });
       setTabItems(
@@ -80,8 +85,15 @@ const SubscribeApprovalTab: React.FC<SubscribeApprovalTabProps> = ({
       tabs={tabItems}
       activeTab={activeTab}
       onTabChange={handleTabChange}
-      variant="underline"
+      // theme-2 keeps its sub-navs as free-standing pills; the underline bar
+      // reads as a second heavy rule under the chip strip above it.
+      variant={isTheme2 ? "pills" : "underline"}
       className={className}
+      // Mobile only: the band around this row drops its side padding there
+      // (`.app-tabs-band`), so the inset comes from the swiper instead — the row
+      // lines up with the chip strip above while still scrolling out to the
+      // screen edge. Desktop keeps the plain row with no leading gap.
+      slideOffset={isMobile ? 16 : 0}
     />
   );
 };

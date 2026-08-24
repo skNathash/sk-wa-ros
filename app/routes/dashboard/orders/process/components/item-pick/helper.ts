@@ -1,3 +1,34 @@
+/* Monogram tile shown on pick rows in place of a product image (picking items
+   don't carry one): brand-ish letter code + a deterministic accent color. */
+const TILE_COLORS = [
+  "#f59e0b",
+  "#f97316",
+  "#3b82f6",
+  "#10b981",
+  "#8b5cf6",
+  "#0ea5e9",
+  "#14b8a6",
+  "#e11d48",
+];
+
+export const buildTile = (name = "") => {
+  const words = name.split(/[\s-]+/).filter(Boolean);
+  const letters = words
+    .filter((word) => /^[a-z]/i.test(word))
+    .map((word) => word[0])
+    .join("");
+  const numbers = name.match(/\d+/g);
+  const size = numbers ? numbers[numbers.length - 1] : "";
+  const lead = letters.length >= 2 ? letters : name.slice(0, 3);
+  const code = (lead + size).toUpperCase().slice(0, 5) || "--";
+
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return { code, color: TILE_COLORS[hash % TILE_COLORS.length] };
+};
+
 export const prepareItems = (items: any[], orderItems?: any[]) => {
   // Filter out cancelled items and use remainingQty instead of orderedQty
   return items
@@ -12,6 +43,7 @@ export const prepareItems = (items: any[], orderItems?: any[]) => {
       return {
         ...item,
         _pendingQty: pendingQty,
+        _tile: buildTile(item.dealName || item.name || ""),
         orderedQty: item.orderedQty || 0,
         overridePrice: orderItem?.overridePrice ?? null,
         percentage: caluclatePercentage(

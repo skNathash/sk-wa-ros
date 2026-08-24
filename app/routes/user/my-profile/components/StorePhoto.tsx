@@ -1,4 +1,4 @@
-import { Info, Trash2, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info, Trash2, Upload } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
@@ -37,6 +37,7 @@ const StorePhoto: React.FC<StorePhotoProps> = ({ photos, callback }) => {
     message: "Processing...",
   });
 
+  const [reordering, setReordering] = useState(false);
   const [confirmShow, setConfirmShow] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   // comment is shown via AppPopover on the See comment button
@@ -86,11 +87,12 @@ const StorePhoto: React.FC<StorePhotoProps> = ({ photos, callback }) => {
     try {
       setBusyLoading({ show: true, message: "Removing photo..." });
 
-      const updatedPhotos = photos.filter((_, idx) => idx !== index);
-      // Include status for remaining photos when sending payload
-      const payload = updatedPhotos.map((photo) => ({
+      // The removed photo stays in the payload flagged with `isDeleted` — the
+      // backend needs the entry to know which one to drop.
+      const payload = photos.map((photo, idx) => ({
         fileUrl: photo.id,
         status: photo.status,
+        ...(idx === index ? { isDeleted: true } : {}),
       }));
 
       const response = await FranchiseService.updateFranchise({
@@ -125,6 +127,60 @@ const StorePhoto: React.FC<StorePhotoProps> = ({ photos, callback }) => {
     }
   };
 
+  // Swaps two photos by their index in the full `photos` array. Approved photos
+  // are reordered among themselves, so the caller passes the original indices of
+  // the two approved entries being swapped.
+  const handleReorderPhoto = async (index: number, targetIndex: number) => {
+    if (targetIndex == null || targetIndex < 0 || targetIndex >= photos.length)
+      return;
+    if (reordering) return;
+
+    try {
+      // No full-screen loader here — reordering only affects this grid, so we
+      // just disable the arrows while the update is in flight.
+      setReordering(true);
+
+      const reordered = [...photos];
+      [reordered[index], reordered[targetIndex]] = [
+        reordered[targetIndex],
+        reordered[index],
+      ];
+      // Preserve each photo's status when sending the reordered payload
+      const payload = reordered.map((photo) => ({
+        fileUrl: photo.id,
+        status: photo.status,
+      }));
+
+      const response = await FranchiseService.updateFranchise({
+        shopPhotosDetails: payload,
+      });
+
+      if (response.statusCode === 200 || response.statusCode === 201) {
+        toast.show({
+          msg: "Photo order updated successfully!",
+          color: "success",
+        });
+        callback?.({
+          action: "refresh",
+          data: { shopPhotosDetails: payload },
+        });
+      } else {
+        toast.show({
+          msg: "Failed to update photo order. Please try again.",
+          color: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error reordering photo:", error);
+      toast.show({
+        msg: "An error occurred while updating the photo order. Please try again.",
+        color: "error",
+      });
+    } finally {
+      setReordering(false);
+    }
+  };
+
   const titleContent = (
     <div className="tw:flex tw:justify-between tw:items-center tw:w-full">
       <span>{t("storePhotos")}</span>
@@ -145,6 +201,19 @@ const StorePhoto: React.FC<StorePhotoProps> = ({ photos, callback }) => {
       )}
     </div>
   );
+
+  // One grid, approved photos first then the rest. Only the approved ones can be
+  // reordered. `index` keeps each photo's position in the original `photos`
+  // array, which is what the update payloads are built from.
+  const indexedPhotos = (photos ?? []).map((photo, index) => ({
+    ...photo,
+    index,
+  }));
+  const approvedPhotos = indexedPhotos.filter((p) => p.status === "Approved");
+  const orderedPhotos = [
+    ...approvedPhotos,
+    ...indexedPhotos.filter((p) => p.status !== "Approved"),
+  ];
 
   const handleThumbnailClick = (imageId: string, _index: number) => {
     setPreviewModal({ show: true, imageId });
@@ -194,77 +263,143 @@ const StorePhoto: React.FC<StorePhotoProps> = ({ photos, callback }) => {
             </div>
           </div>
         ) : (
-          <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4">
-            {photos.map((photo, index) => (
-              <div
-                key={photo.id}
-                className="tw:border tw:border-gray-300 tw:rounded-md tw:p-2 tw:flex tw:items-center tw:justify-center tw:flex-col tw:relative"
-              >
-                {photo.status !== "Approved" ? (
-                  <button
-                    type="button"
-                    className="tw:absolute tw:top-2 tw:right-2 tw:bg-white tw:rounded-full tw:p-1 tw:shadow tw:border tw:border-gray-200 hover:tw:bg-gray-50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedIndex(index);
-                      setConfirmShow(true);
-                    }}
-                    aria-label="Remove image"
+          <>
+            <div className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-gray-500 tw:mb-3">
+              <Info size={12} />
+              <span>
+                {t(
+                  "firstPhotoIsMainNote",
+                  "The first image is considered as the main image. Use the arrows to reorder.",
+                )}
+              </span>
+            </div>
+            <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4">
+              {orderedPhotos.map((photo, position) => {
+                const isApproved = photo.status === "Approved";
+                return (
+                  <div
+                    key={photo.id}
+                    className="tw:border tw:border-gray-300 tw:rounded-md tw:p-2 tw:flex tw:items-center tw:justify-center tw:flex-col tw:relative"
                   >
-                    <Trash2 size={14} className="tw:text-gray-600" />
-                  </button>
-                ) : null}
+                    {position === 0 && isApproved && (
+                      <div className="tw:absolute tw:top-2 tw:left-2 tw:z-10">
+                        <AppBadge variant="primary">
+                          {t("mainImage", "Main")}
+                        </AppBadge>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="tw:absolute tw:top-2 tw:right-2 tw:bg-white tw:rounded-full tw:p-1 tw:shadow tw:border tw:border-gray-200 hover:tw:bg-gray-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedIndex(photo.index);
+                        setConfirmShow(true);
+                      }}
+                      aria-label="Remove image"
+                    >
+                      <Trash2 size={14} className="tw:text-gray-600" />
+                    </button>
 
-                <div
-                  className="tw:w-full tw:h-32 tw:object-cover tw:cursor-pointer"
-                  onClick={() => handleThumbnailClick(photo.id, index)}
-                >
-                  <ImgRender
-                    assetId={photo.id}
-                    alt="Store Photo"
-                    className="tw:w-full tw:h-full tw:object-cover"
-                  />
-                </div>
+                    <div
+                      className="tw:w-full tw:h-32 tw:cursor-pointer"
+                      onClick={() => handleThumbnailClick(photo.id, photo.index)}
+                    >
+                      <ImgRender
+                        assetId={photo.id}
+                        alt="Store Photo"
+                        className="tw:w-full tw:h-full tw:object-cover"
+                      />
+                    </div>
 
-                <div className="tw:text-xs tw:text-gray-500 tw:flex tw:items-center tw:justify-start tw:gap-1 tw:w-full">
-                  <div className="tw:text-xs tw:text-gray-500">
-                    Status:{" "}
-                    <div className="tw:flex tw:gap-2 tw:mt-1">
-                      <AppBadge
-                        variant={
-                          photo.status === "Approved"
-                            ? "success"
-                            : photo.status === "Rejected"
-                              ? "danger"
-                              : "warning"
-                        }
+                    {/* Reorder controls — approved photos only. Non-approved cards
+                        keep an invisible strip so every card stays the same height. */}
+                    {approvedPhotos.length > 1 && (
+                      <div
+                        className={`tw:mt-2 tw:flex tw:w-full tw:items-center tw:justify-between tw:rounded-md tw:bg-gray-100 tw:px-1 tw:py-0.5 ${
+                          isApproved ? "" : "tw:invisible"
+                        }`}
+                        aria-hidden={!isApproved}
                       >
-                        {photo.status}
-                      </AppBadge>
-                      {photo.status === "Rejected" && photo.comment ? (
-                        <AppPopover
-                          triggerContent={
-                            <button
-                              type="button"
-                              className="tw:text-xs tw:text-blue-600 hover:tw:underline tw:cursor-pointer"
-                            >
-                              <Info size={12} />
-                            </button>
+                        <button
+                          type="button"
+                          disabled={!isApproved || position === 0 || reordering}
+                          className="tw:flex tw:h-6 tw:w-6 tw:items-center tw:justify-center tw:rounded tw:text-gray-600 tw:transition hover:tw:bg-white hover:tw:text-blue-600 disabled:tw:opacity-30 disabled:tw:cursor-not-allowed disabled:hover:tw:bg-transparent"
+                          onClick={() =>
+                            handleReorderPhoto(
+                              photo.index,
+                              orderedPhotos[position - 1]?.index,
+                            )
                           }
-                          side="top"
-                          align="center"
+                          aria-label="Move image left"
+                          title="Move left"
                         >
-                          <div className="tw:max-w-xs tw:text-sm tw:text-gray-700">
-                            {photo.comment}
-                          </div>
-                        </AppPopover>
-                      ) : null}
+                          <ChevronLeft size={16} />
+                        </button>
+                        <span className="tw:text-[11px] tw:text-gray-500">
+                          {t("move", "Move")}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={
+                            !isApproved ||
+                            position === approvedPhotos.length - 1 ||
+                            reordering
+                          }
+                          className="tw:flex tw:h-6 tw:w-6 tw:items-center tw:justify-center tw:rounded tw:text-gray-600 tw:transition hover:tw:bg-white hover:tw:text-blue-600 disabled:tw:opacity-30 disabled:tw:cursor-not-allowed disabled:hover:tw:bg-transparent"
+                          onClick={() =>
+                            handleReorderPhoto(
+                              photo.index,
+                              orderedPhotos[position + 1]?.index,
+                            )
+                          }
+                          aria-label="Move image right"
+                          title="Move right"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="tw:mt-2 tw:text-xs tw:text-gray-500 tw:w-full">
+                      Status:{" "}
+                      <div className="tw:flex tw:gap-2 tw:mt-1">
+                        <AppBadge
+                          variant={
+                            isApproved
+                              ? "success"
+                              : photo.status === "Rejected"
+                                ? "danger"
+                                : "warning"
+                          }
+                        >
+                          {photo.status}
+                        </AppBadge>
+                        {photo.status === "Rejected" && photo.comment ? (
+                          <AppPopover
+                            triggerContent={
+                              <button
+                                type="button"
+                                className="tw:text-xs tw:text-blue-600 hover:tw:underline tw:cursor-pointer"
+                              >
+                                <Info size={12} />
+                              </button>
+                            }
+                            side="top"
+                            align="center"
+                          >
+                            <div className="tw:max-w-xs tw:text-sm tw:text-gray-700">
+                              {photo.comment}
+                            </div>
+                          </AppPopover>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </AppCard>
       <AppAlertDialog

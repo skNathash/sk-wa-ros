@@ -9,11 +9,13 @@ type Props = {
   children?: ReactNode;
   callback?: (arg: { action: string; data?: any }) => void;
   className?: string;
+  /** See {@link VoiceSearchModal} — `raw` skips the catalog keyword lookup. */
+  mode?: "product" | "raw";
 };
 
 declare const window: any;
 
-const VoiceSearch = ({ children, callback, className }: Props) => {
+const VoiceSearch = ({ children, callback, className, mode }: Props) => {
   const [show, setShow] = useState(false);
 
   const appToast = useAppToast();
@@ -65,7 +67,7 @@ const VoiceSearch = ({ children, callback, className }: Props) => {
       <button type="button" onClick={openVoiceDailog} className={className}>
         {children ? children : <Mic size={16} />}
       </button>
-      <VoiceSearchModal show={show} callback={cb} />
+      <VoiceSearchModal show={show} callback={cb} mode={mode} />
     </>
   );
 };

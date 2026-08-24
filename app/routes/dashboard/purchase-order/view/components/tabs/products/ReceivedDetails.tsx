@@ -1,11 +1,8 @@
-import clsx from "clsx";
-import { Eye, MapPin } from "lucide-react";
+import { Eye, LayoutGrid } from "lucide-react";
 import React from "react";
 import AppButton from "~/components/core/button/AppButton";
 import DateFormat from "~/components/core/date/DateFormat";
-import KeyValue from "~/components/core/key-value/KeyValue";
 import AppLink from "~/components/core/link/AppLink";
-import useScreenView from "~/hooks/useScreenView";
 
 interface WarehouseLocation {
   name?: string;
@@ -47,104 +44,100 @@ interface ReceivedDetailsProps {
   item: Item;
 }
 
-const ReceivedDetails: React.FC<ReceivedDetailsProps> = ({ item }) => {
-  const { isMobile } = useScreenView();
+/** Join warehouse parts into the compact "SELLABLE • H • B57" chip label. */
+const locationLabel = (location?: WarehouseLocation) => {
+  if (!location) return "-";
+  return [location.name, location.rackName, location.binName]
+    .filter(Boolean)
+    .join(" • ");
+};
 
+const ReceivedDetails: React.FC<ReceivedDetailsProps> = ({ item }) => {
   if (!item) return null;
 
-  // Map item keys to a variation object for UI compatibility
-  const variation = {
-    _id: item.itemId,
-    barcode: item.barcode, // or use another barcode field if available
-    price: item.purchasePrice,
-    manufactureDate: item.manufactureDate,
-    expiresOn: item.expiry,
-    receivedQuantity: item.receivedQuantity,
-    location: item.location,
-  };
+  const receivedQty = item.receivedQuantity || 0;
+  const location = item.location;
 
   return (
     <div>
-      <div className="tw:bg-green-50 tw:rounded-md tw:p-4">
-        <span className="tw:font-semibold tw:text-green-800">
-          Received Details
-        </span>
-        <div className="tw:flex tw:justify-between tw:mt-2">
-          <div>
-            <KeyValue label="Received" size="sm">
-              <div className="tw:flex tw:flex-col tw:md:flex-row tw:gap-1 tw:md:items-end">
-                <span className="tw:font-semibold tw:text-green-700">
-                  {variation.receivedQuantity || 0} units
-                </span>
-                <span className="tw:text-slate-600 tw:text-xs tw:md:mb-0.5">
-                  on{" "}
-                  {item.receivedAt ? (
-                    <DateFormat value={new Date(item.receivedAt)} />
-                  ) : (
-                    "--"
-                  )}
-                </span>
-              </div>
-            </KeyValue>
-          </div>
-          <div>
-            <KeyValue label="Received By" size="sm">
-              <span className="tw:font-semibold tw:text-green-700">
-                {item.receivedBy?.userName ? (
-                  <>
-                    {item.receivedBy.userName}
-                    {item.receivedBy.userType && (
-                      <span className="tw:text-xs tw:text-gray-500 tw:ml-1">
-                        ({item.receivedBy.userType})
-                      </span>
-                    )}
-                  </>
+      <div className="tw:bg-emerald-50 tw:px-3 tw:py-2.5 tw:md:px-4">
+        <div className="tw:flex tw:flex-col tw:sm:flex-row tw:sm:items-start tw:sm:justify-between tw:gap-2">
+          <div className="tw:min-w-0">
+            <p className="tw:text-xs tw:font-semibold tw:text-emerald-800">
+              Received Details
+            </p>
+            <p className="tw:mt-0.5 tw:text-xs tw:text-emerald-900/80">
+              <span className="tw:font-semibold tw:text-emerald-800">
+                {receivedQty} units
+              </span>
+              <span className="tw:text-slate-600">
+                {" "}
+                on{" "}
+                {item.receivedAt ? (
+                  <DateFormat
+                    value={new Date(item.receivedAt)}
+                    formatStr="dd MMM yyyy, hh:mm a"
+                  />
                 ) : (
                   "--"
                 )}
               </span>
-            </KeyValue>
+            </p>
+          </div>
+
+          <div className="tw:sm:text-right tw:shrink-0">
+            <p className="tw:text-[11px] tw:text-slate-500">Received By</p>
+            <p className="tw:mt-0.5 tw:text-xs tw:font-semibold tw:text-emerald-800">
+              {item.receivedBy?.userName ? (
+                <>
+                  {item.receivedBy.userName}
+                  {item.receivedBy.userType && (
+                    <span className="tw:text-[11px] tw:font-normal tw:text-slate-500 tw:ml-1">
+                      ({item.receivedBy.userType})
+                    </span>
+                  )}
+                </>
+              ) : (
+                "--"
+              )}
+            </p>
           </div>
         </div>
       </div>
-      {variation.location && (
-        <div className="tw:bg-blue-50 tw:p-3">
-          <div className="tw:flex tw:items-center tw:mb-2">
-            <MapPin className="tw:w-4 tw:h-4 tw:mr-1 tw:text-blue-700" />
-            <span className="tw:font-medium tw:text-blue-800 tw:text-sm">
-              Warehouse Location
+
+      {location && (
+        <div className="tw:flex tw:flex-col tw:sm:flex-row tw:sm:items-center tw:sm:justify-between tw:gap-2 tw:bg-sky-50 tw:px-3 tw:py-2 tw:md:px-4">
+          <div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:gap-1.5">
+            <LayoutGrid className="tw:h-3.5 tw:w-3.5 tw:shrink-0 tw:text-sky-700" />
+            <span className="tw:text-xs tw:font-medium tw:text-sky-900">
+              Warehouse Location:
+            </span>
+            <span className="tw:inline-flex tw:items-center tw:rounded-md tw:bg-sky-100 tw:px-2 tw:py-0.5 tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-sky-900">
+              {locationLabel(location)}
             </span>
           </div>
-          <div className="tw:flex tw:justify-between tw:items-center">
-            <span className="tw:bg-blue-100 tw:text-blue-900 tw:px-3 tw:py-1 tw:rounded-md tw:font-mono tw:text-base tw:font-semibold">
-              {variation.location.name || "-"}
-              {variation.location.rackName ? (
-                <> - {variation.location.rackName}</>
-              ) : null}
-              {variation.location.binName ? (
-                <> - {variation.location.binName}</>
-              ) : null}
-            </span>
-            <AppLink
-              asLink={true}
-              href={
-                variation.location?.binId
-                  ? `/dashboard/inventory/rack-bin/bin/view/${
-                      variation.location.binId
-                    }${item.dealId ? `?dealId=${item.dealId}` : ""}`
-                  : "#"
-              }
+
+          <AppLink
+            asLink={true}
+            href={
+              location?.binId
+                ? `/dashboard/inventory/rack-bin/bin/view/${location.binId}${
+                    item.dealId ? `?dealId=${item.dealId}` : ""
+                  }`
+                : "#"
+            }
+            className="tw:shrink-0"
+          >
+            <AppButton
+              fill="outline"
+              color="light"
+              size="small"
+              type="button"
+              className="tw:bg-white!"
             >
-              <AppButton
-                fill="outline"
-                color="primary"
-                size="small"
-                type="button"
-              >
-                <Eye className="tw:w-4 tw:h-4" /> View Bin
-              </AppButton>
-            </AppLink>
-          </div>
+              <Eye className="tw:h-4 tw:w-4" /> View Bin
+            </AppButton>
+          </AppLink>
         </div>
       )}
     </div>

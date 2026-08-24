@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { Package, PackageCheck } from "lucide-react";
+import { Check, Package, PackageCheck } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import AppAlertDialog from "~/components/core/alert-dialog/AppAlertDialog";
@@ -8,6 +8,7 @@ import AppTextarea from "~/components/core/form/AppTextarea";
 import AppModal from "~/components/core/modal/AppModal";
 import PageLoader from "~/components/core/page-loader/PageLoader";
 import AppTab from "~/components/core/tab/AppTab";
+import DateFormat from "~/components/core/date/DateFormat";
 import useAppToast from "~/hooks/useAppToast";
 import useScreenView from "~/hooks/useScreenView";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
@@ -86,6 +87,14 @@ const ReceiveBoxModal: React.FC<SkReceivePackageModalProps> = ({
   const [boxDetails, setBoxDetails] = useState<any>(null);
 
   const noData = !boxNo;
+
+  // A box that is already delivered & stamped with a receipt is read-only:
+  // no notes, no summary, no receive action - just who received it and when.
+  const receivedBy = boxDetails?.receivedBy;
+  const receivedOn = boxDetails?.receivedOn;
+  const isAlreadyReceived =
+    String(boxDetails?.status || "").toLowerCase() === "delivered" &&
+    !!receivedOn;
 
   useEffect(() => {
     if (show) {
@@ -409,6 +418,28 @@ const ReceiveBoxModal: React.FC<SkReceivePackageModalProps> = ({
             className="tw:mb-4"
           /> */}
 
+          {isAlreadyReceived && (
+            <div className="tw:bg-emerald-50 tw:border tw:border-emerald-200 tw:rounded-lg tw:p-3 tw:mb-4 tw:flex tw:items-center tw:gap-3">
+              <div className="tw:flex-shrink-0 tw:h-8 tw:w-8 tw:rounded-full tw:bg-emerald-100 tw:flex tw:items-center tw:justify-center">
+                <Check size={16} className="tw:text-emerald-600" />
+              </div>
+              <div className="tw:flex-1">
+                <div className="tw:text-sm tw:font-bold tw:text-emerald-800">
+                  {t("boxAlreadyReceived")}
+                </div>
+                <div className="tw:text-xs tw:text-emerald-700">
+                  {receivedBy?.userName || receivedBy?.name ? (
+                    <>
+                      {t("receivedBy")}: {receivedBy.userName || receivedBy.name}{" "}
+                      &middot;{" "}
+                    </>
+                  ) : null}
+                  <DateFormat value={receivedOn} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Tab Content */}
           <div className="tw:flex-1 tw:overflow-hidden">
             {noData && !isLoading ? (
@@ -420,7 +451,11 @@ const ReceiveBoxModal: React.FC<SkReceivePackageModalProps> = ({
               <>
                 {activeTab === "box-level" && (
                   <div className="tw:h-full tw:flex tw:flex-col">
-                    <BoxOverview box={boxDetails} items={products} />
+                    <BoxOverview
+                      box={boxDetails}
+                      items={products}
+                      hideAllocationHint={isAlreadyReceived}
+                    />
                   </div>
                 )}
 
@@ -443,49 +478,55 @@ const ReceiveBoxModal: React.FC<SkReceivePackageModalProps> = ({
             )}
           </div>
 
-          {/* Notes Section */}
-          <div className="tw:border-t tw:border-gray-200 tw:pt-4">
-            <AppTextarea
-              name="notes"
-              register={register}
-              label="Notes (Optional)"
-              placeholder="Enter any additional notes for this receive operation..."
-              rows={3}
-              maxLength={500}
-              error={errors.notes?.message}
-            />
-          </div>
+          {!isAlreadyReceived && (
+            <>
+              {/* Notes Section */}
+              <div className="tw:border-t tw:border-gray-200 tw:pt-4">
+                <AppTextarea
+                  name="notes"
+                  register={register}
+                  label="Notes (Optional)"
+                  placeholder="Enter any additional notes for this receive operation..."
+                  rows={3}
+                  maxLength={500}
+                  error={errors.notes?.message}
+                />
+              </div>
 
-          {/* Summary Component - Moved after textarea */}
-          <ReceiveSummary
-            mode={activeTab as "box-level" | "item-level"}
-            selectedBoxes={boxDetails ? 1 : 0}
-            status="Ready to Receive"
-          />
+              {/* Summary Component - Moved after textarea */}
+              <ReceiveSummary
+                mode={activeTab as "box-level" | "item-level"}
+                selectedBoxes={boxDetails ? 1 : 0}
+                status="Ready to Receive"
+              />
+            </>
+          )}
         </AppModal.Content>
 
-        <AppModal.Footer>
-          <div className="tw:flex tw:justify-end tw:gap-3">
-            <AppButton
-              onClick={handleClose}
-              fill="outline"
-              color="secondary"
-              size="default"
-            >
-              Cancel
-            </AppButton>
-            <AppButton
-              type="submit"
-              color="primary"
-              size="default"
-              onClick={receiveBox}
-              isLoading={receiving}
-              disabled={noData}
-            >
-              Receive {activeTab === "box-level" ? "Box" : "Items"}
-            </AppButton>
-          </div>
-        </AppModal.Footer>
+        {!isAlreadyReceived && (
+          <AppModal.Footer>
+            <div className="tw:flex tw:justify-end tw:gap-3">
+              <AppButton
+                onClick={handleClose}
+                fill="outline"
+                color="secondary"
+                size="default"
+              >
+                Cancel
+              </AppButton>
+              <AppButton
+                type="submit"
+                color="primary"
+                size="default"
+                onClick={receiveBox}
+                isLoading={receiving}
+                disabled={noData}
+              >
+                Receive {activeTab === "box-level" ? "Box" : "Items"}
+              </AppButton>
+            </div>
+          </AppModal.Footer>
+        )}
       </AppModal>
 
       <AppAlertDialog

@@ -1,6 +1,21 @@
 import SellerCatalogService from "~/services/SellerCatalogService";
 
 class InventoryDealFilterService {
+  /**
+   * Expand comma-separated id/name params into the form's multi-select shape
+   * (array of `{ label, value: { id } }`). A single id/name (no comma) yields a
+   * single-element array, so existing single-select callers are unaffected.
+   */
+  static toMultiSelect(ids?: string, names?: string) {
+    if (!ids || !names) return [];
+    const idList = String(ids).split(",");
+    const nameList = String(names).split(",");
+    return idList
+      .map((id, i) => ({ id: id.trim(), label: (nameList[i] || "").trim() }))
+      .filter((x) => x.id && x.label)
+      .map((x) => ({ label: x.label, value: { id: x.id } }));
+  }
+
   static prepareInventoryParamToFormData(params: Record<string, any>) {
     let formData: Record<string, any> = {};
 
@@ -13,23 +28,15 @@ class InventoryDealFilterService {
     const companyId = params.companyId;
     const companyName = params.companyName;
 
-    if (categoryId && categoryName) {
-      formData.category = [{ label: categoryName, value: { id: categoryId } }];
-    } else {
-      formData.category = [];
-    }
-
-    if (brandId && brandName) {
-      formData.brand = [{ label: brandName, value: { id: brandId } }];
-    } else {
-      formData.brand = [];
-    }
-
-    if (menuId && menuName) {
-      formData.menu = [{ label: menuName, value: { id: menuId } }];
-    } else {
-      formData.menu = [];
-    }
+    formData.category = InventoryDealFilterService.toMultiSelect(
+      categoryId,
+      categoryName,
+    );
+    formData.brand = InventoryDealFilterService.toMultiSelect(
+      brandId,
+      brandName,
+    );
+    formData.menu = InventoryDealFilterService.toMultiSelect(menuId, menuName);
 
     if (companyId || companyName) {
       formData.companyName = [
@@ -107,19 +114,28 @@ class InventoryDealFilterService {
       params.set("isPromotionalDeal", "true");
     }
 
+    // Persist all selected categories/brands/menus as comma-separated
+    // id/name pairs so multi-select (e.g. the facet filter) round-trips through
+    // the URL. A single selection stays a plain value, unchanged from before.
     if (filter.category && filter.category.length > 0) {
-      params.set("categoryId", filter.category[0].value.id);
-      params.set("categoryName", filter.category[0].label);
+      params.set(
+        "categoryId",
+        filter.category.map((c: any) => c.value.id).join(","),
+      );
+      params.set(
+        "categoryName",
+        filter.category.map((c: any) => c.label).join(","),
+      );
     }
 
     if (filter.brand && filter.brand.length > 0) {
-      params.set("brandId", filter.brand[0].value.id);
-      params.set("brandName", filter.brand[0].label);
+      params.set("brandId", filter.brand.map((b: any) => b.value.id).join(","));
+      params.set("brandName", filter.brand.map((b: any) => b.label).join(","));
     }
 
     if (filter.menu && filter.menu.length > 0) {
-      params.set("menuId", filter.menu[0].value.id);
-      params.set("menuName", filter.menu[0].label);
+      params.set("menuId", filter.menu.map((m: any) => m.value.id).join(","));
+      params.set("menuName", filter.menu.map((m: any) => m.label).join(","));
     }
 
     if (filter.companyName && filter.companyName.length > 0) {
@@ -137,6 +153,13 @@ class InventoryDealFilterService {
 
     if (filter.dealScope && filter.dealScope !== "All") {
       params.set("dealScope", filter.dealScope);
+    }
+
+    if (
+      typeof filter.onlyWithStockData === "boolean" &&
+      filter.onlyWithStockData
+    ) {
+      params.set("onlyWithStockData", "true");
     }
 
     return params;

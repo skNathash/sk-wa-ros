@@ -1,8 +1,17 @@
 import { ArrowRight, CheckCircle, Layers, XCircle } from "lucide-react";
 import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
+import AppTable from "~/components/core/table/AppTable";
+import TableHeader from "~/components/core/table/TableHeader";
 import useAppNav from "~/hooks/useAppNav";
+import type { TableHeaderItem } from "~/types/CommonTypes";
 import PricingCard from "./PricingCard";
+
+const comparisonHeaders: TableHeaderItem[] = [
+  { label: "Feature Category", key: "category", width: "25%" },
+  { label: "Other POS/Software", key: "other", width: "37.5%" },
+  { label: "StoreKing", key: "storeking", width: "37.5%" },
+];
 
 export default function RetailerBenefits() {
   const appNav = useAppNav();
@@ -139,45 +148,32 @@ export default function RetailerBenefits() {
 
         <AppCard noShadow bordered>
           <div className="tw:overflow-x-auto">
-            <table className="tw:w-full tw:min-w-[600px] tw:text-sm">
-              <thead>
-                <tr className="tw:border-b tw:border-gray-200">
-                  <th className="tw:text-left tw:py-3 tw:px-4 tw:font-semibold tw:text-gray-600 tw:w-1/4 tw:whitespace-nowrap">
-                    Feature Category
-                  </th>
-                  <th className="tw:text-left tw:py-3 tw:px-4 tw:font-semibold tw:text-gray-600 tw:w-[37.5%]">
-                    Other POS/Software
-                  </th>
-                  <th className="tw:text-left tw:py-3 tw:px-4 tw:font-semibold tw:text-gray-600 tw:w-[37.5%]">
-                    StoreKing
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+            <AppTable size="sm" fixedLayout minWidth="600px">
+              <AppTable.Header>
+                <TableHeader headers={comparisonHeaders} noBg />
+              </AppTable.Header>
+              <AppTable.Body>
                 {comparisonData.map((row, i) => (
-                  <tr
-                    key={i}
-                    className="tw:border-b tw:border-gray-100 last:tw:border-0"
-                  >
-                    <td className="tw:py-3 tw:px-4 tw:font-medium tw:text-gray-700">
+                  <AppTable.Row key={i}>
+                    <AppTable.Cell className="tw:font-medium tw:text-gray-700">
                       {row.category}
-                    </td>
-                    <td className="tw:py-3 tw:px-4">
+                    </AppTable.Cell>
+                    <AppTable.Cell>
                       <div className="tw:flex tw:items-start tw:gap-2 tw:text-gray-500">
                         <XCircle className="tw:w-4 tw:h-4 tw:text-red-400 tw:mt-0.5 tw:shrink-0" />
                         <span>{row.other}</span>
                       </div>
-                    </td>
-                    <td className="tw:py-3 tw:px-4">
+                    </AppTable.Cell>
+                    <AppTable.Cell>
                       <div className="tw:flex tw:items-start tw:gap-2 tw:text-gray-700">
                         <CheckCircle className="tw:w-4 tw:h-4 tw:text-emerald-500 tw:mt-0.5 tw:shrink-0" />
                         <span>{row.storeking}</span>
                       </div>
-                    </td>
-                  </tr>
+                    </AppTable.Cell>
+                  </AppTable.Row>
                 ))}
-              </tbody>
-            </table>
+              </AppTable.Body>
+            </AppTable>
           </div>
         </AppCard>
 

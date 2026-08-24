@@ -41,19 +41,11 @@ export const prepareParams = (
     const gte = startOfDay(start);
     const lte = endOfDay(end);
 
-    if (filter.activeTab === "handedover") {
-      // For handed over, filter by settledOn
-      params.filter.settledOn = {
-        $gte: gte,
-        $lte: lte,
-      };
-    } else {
-      // For other tabs, filter by orderDate
-      params.filter.orderDate = {
-        $gte: gte,
-        $lte: lte,
-      };
-    }
+    // For handed over, filter by settledOn
+    params.filter.settledOn = {
+      $gte: gte,
+      $lte: lte,
+    };
   }
 
   if (filter.status && filter.status !== "All") {

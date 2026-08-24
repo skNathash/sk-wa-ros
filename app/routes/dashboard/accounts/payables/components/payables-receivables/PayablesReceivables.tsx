@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { debounce } from "lodash";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Search } from "lucide-react";
 import { AppInput } from "~/components/core/form/AppInput";
-import { AppSelect } from "~/components/core/form/AppSelect";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
 import useScreenView from "~/hooks/useScreenView";
 import type { PaginationState } from "~/types/CommonTypes";
@@ -12,11 +11,17 @@ import DesktopView from "./components/DesktopView";
 import MobileView from "./components/MobileView";
 import AppCard from "~/components/core/card/AppCard";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
+import RecordPaymentModal from "~/shared/accounts/modals/RecordPaymentModal";
+import ShareService from "~/services/ShareService";
+import CommonService from "~/services/CommonService";
+import type { PayableReceivableEntityType } from "~/types/CommonTypes";
 
 const PayablesReceivables = ({
   type,
+  partyType = "all",
 }: {
   type: "payables" | "receivables";
+  partyType?: string;
 }) => {
   const { isMobile } = useScreenView();
   const [viewType, setViewType] = useState<"list" | "card">(
@@ -28,6 +33,17 @@ const PayablesReceivables = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
 
+  // Record-payment modal is driven from the row "Pay" action; it self-fetches
+  // party + outstanding from the entityId/type we hand it.
+  const [payModal, setPayModal] = useState<{ show: boolean; item: any }>({
+    show: false,
+    item: null,
+  });
+
+  // Payables → we owe the party, so we make a payout; receivables → we collect.
+  const paymentType: "receivePayment" | "makePayout" =
+    type === "payables" ? "makePayout" : "receivePayment";
+
   // Refs
   const paginationRef = useRef<PaginationState>({
     activePage: 1,
@@ -38,18 +54,10 @@ const PayablesReceivables = ({
   });
   const filterRef = useRef<any>({});
 
-  const partyTypeOptions = [
-    { value: "all", label: "All Parties" },
-    { value: "customer", label: "Customer" },
-    { value: "vendor", label: "Vendor" },
-    { value: "franchise", label: "Retailer" },
-  ];
-
   // Form for search
-  const { register, getValues, control } = useForm({
+  const { register, getValues } = useForm({
     defaultValues: {
       search: "",
-      partyType: "all",
     },
   });
 
@@ -125,15 +133,46 @@ const PayablesReceivables = ({
     }
   }, [loadingMore, hasMoreData]);
 
-  // Initial load
+  // Initial load + react to tab/party filter changes
   useEffect(() => {
     filterRef.current = {
       ...filterRef.current,
       type,
       search: getValues("search"),
+      "partyDetails.type": partyType === "all" ? undefined : partyType,
     };
     applyFilter();
-  }, [type, getValues, applyFilter]);
+  }, [type, partyType, getValues, applyFilter]);
+
+  const handlePay = useCallback((item: any) => {
+    if (!item?.partyId) return;
+    setPayModal({ show: true, item });
+  }, []);
+
+  const handlePayCallback = useCallback(
+    (result: { action: string; data?: any }) => {
+      setPayModal({ show: false, item: null });
+      if (result.action === "success") {
+        applyFilter();
+      }
+    },
+    [applyFilter],
+  );
+
+  const handleNotify = useCallback(
+    (item: any) => {
+      const amountText = CommonService.formattedAmount(
+        item.outstandingAmount,
+        2,
+      );
+      const msg =
+        type === "receivables"
+          ? `Hi ${item.name || ""}, this is a gentle reminder that ₹${amountText} is pending against your account. Kindly clear it at your earliest convenience. Thank you.`
+          : `Hi ${item.name || ""}, this is regarding the outstanding amount of ₹${amountText} on your account.`;
+      ShareService.share({ msg, phone: item.mobile });
+    },
+    [type],
+  );
 
   const viewProps = {
     type,
@@ -143,6 +182,8 @@ const PayablesReceivables = ({
     hasMoreData,
     loadMore,
     pagination: paginationRef.current,
+    onPay: handlePay,
+    onNotify: handleNotify,
   };
 
   return (
@@ -156,26 +197,6 @@ const PayablesReceivables = ({
           className="tw:w-full"
           leftIcon={<Search className="tw:text-gray-500" size={16} />}
         />
-        <Controller
-          name="partyType"
-          control={control}
-          render={({ field }) => (
-            <AppSelect
-              options={partyTypeOptions}
-              placeholder="Party Type"
-              value={field.value}
-              onChange={(value: string) => {
-                field.onChange(value);
-                filterRef.current = {
-                  ...filterRef.current,
-                  "partyDetails.type": value || undefined,
-                };
-                applyFilter();
-              }}
-              className="tw:w-48"
-            />
-          )}
-        />
       </div>
 
       <div className="tw:flex tw:items-center tw:justify-between">
@@ -187,12 +208,7 @@ const PayablesReceivables = ({
             fwSize="sm"
           />
         </div>
-        <ViewToggle
-          viewType={viewType}
-          callback={setViewType}
-          hideInMobile={false}
-          showOnlyIcon
-        />
+        <ViewToggle viewType={viewType} callback={setViewType} showOnlyIcon />
       </div>
 
       <div>
@@ -204,6 +220,15 @@ const PayablesReceivables = ({
           </AppCard>
         )}
       </div>
+
+      <RecordPaymentModal
+        show={payModal.show}
+        callback={handlePayCallback}
+        entityId={payModal.item?.partyId || ""}
+        entityType={payModal.item?.type as PayableReceivableEntityType}
+        paymentType={paymentType}
+        hideTabs
+      />
     </>
   );
 };

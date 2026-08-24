@@ -43,6 +43,7 @@ const AppLink = ({
       tabIndex={0}
       className={`tw:underline tw:text-left tw:cursor-pointer ${className}`}
       onClick={onClick}
+      title={title}
     >
       {children}
     </a>

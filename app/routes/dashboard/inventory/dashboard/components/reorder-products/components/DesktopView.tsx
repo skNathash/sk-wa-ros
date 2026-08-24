@@ -17,15 +17,10 @@ import {
   toHeaderSort,
   type SortValue,
 } from "~/components/feature/utility/sort/SortPopover";
-import {
-  formatReserveQty,
-  isLooseStockUom,
-  type InventoryRiskItem,
-} from "../../../helper";
-import type { InventoryRiskType } from "../helper";
+import type { InventoryRiskRow, InventoryRiskType } from "../helper";
 
 type Props = {
-  data: InventoryRiskItem[];
+  data: InventoryRiskRow[];
   loading: boolean;
   loadMore: () => void;
   loadingMore: boolean;
@@ -208,160 +203,151 @@ const DesktopView = ({
         {loading ? (
           <TableSkeletonLoader cols={headers.length} rows={10} />
         ) : (
-          data.map((p, idx) => {
-            const rank = idx + 1;
-
-            return (
-              <AppTable.Row
-                key={idx}
-                className={idx % 2 === 0 ? "tw:bg-white" : "tw:bg-slate-50/60"}
-              >
-                <AppTable.Cell>
-                  <div className="tw:text-center">{rank}</div>
-                </AppTable.Cell>
-                <AppTable.Cell>
-                  <AppLink
-                    asLink
-                    href={`/dashboard/inventory/products/view/${p.dealId}`}
-                  >
-                    <div className="tw:line-clamp-2">{p.dealName}</div>
-                  </AppLink>
-                  <div className="tw:text-xs tw:text-gray-500">
-                    {p.dealRefId}
-                  </div>
-                </AppTable.Cell>
-                {showSales && (
-                  <>
-                    <AppTable.Cell className="tw:text-center">
-                      <PeriodCell
-                        qty={p.salesAnalytics?.last7Days?.quantity}
-                        value={p.salesAnalytics?.last7Days?.value}
-                        isLooseQty={isLooseStockUom(p.selectedStockUom)}
-                      />
-                    </AppTable.Cell>
-                    <AppTable.Cell className="tw:text-center">
-                      <PeriodCell
-                        qty={p.salesAnalytics?.last15Days?.quantity}
-                        value={p.salesAnalytics?.last15Days?.value}
-                        isLooseQty={isLooseStockUom(p.selectedStockUom)}
-                      />
-                    </AppTable.Cell>
-                    <AppTable.Cell className="tw:text-center">
-                      <AppPopover
-                        triggerContent={
-                          <span className="tw:cursor-pointer">
-                            <PeriodCell
-                              qty={p.salesAnalytics?.last30Days?.quantity}
-                              value={p.salesAnalytics?.last30Days?.value}
-                              isLooseQty={isLooseStockUom(p.selectedStockUom)}
-                              showMore
-                            />
-                          </span>
-                        }
-                      >
-                        <DealSummaryPopover
-                          salesAnalytics={p.salesAnalytics as any}
-                        />
-                      </AppPopover>
-                    </AppTable.Cell>
-                  </>
-                )}
-                {isReorder && (
+          data.map((p, idx) => (
+            <AppTable.Row
+              key={p._key}
+              className={idx % 2 === 0 ? "tw:bg-white" : "tw:bg-slate-50/60"}
+            >
+              <AppTable.Cell>
+                <div className="tw:text-center">{idx + 1}</div>
+              </AppTable.Cell>
+              <AppTable.Cell>
+                <AppLink
+                  asLink
+                  href={`/dashboard/inventory/products/view/${p.dealId}`}
+                >
+                  <div className="tw:line-clamp-2">{p.dealName}</div>
+                </AppLink>
+                <div className="tw:text-xs tw:text-gray-500">{p.dealRefId}</div>
+              </AppTable.Cell>
+              {showSales && (
+                <>
                   <AppTable.Cell className="tw:text-center">
-                    {p.lastOrderDate ? (
-                      <span className="tw:inline-flex tw:flex-col tw:items-center tw:leading-tight">
-                        <DateFormat
-                          value={p.lastOrderDate}
-                          formatStr="dd MMM yyyy"
-                          className="tw:font-semibold tw:text-slate-700"
-                        />
-                        <span className="tw:text-[11px] tw:text-slate-500">
-                          <Amount value={p.lastOrderValue ?? 0} />
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="tw:text-slate-400">-</span>
-                    )}
+                    <PeriodCell
+                      qty={p._sales7Qty}
+                      value={p._sales7Value}
+                      isLooseQty={p._isLooseQty}
+                    />
                   </AppTable.Cell>
-                )}
-                <AppTable.Cell className="tw:text-center">
-                  <div className="tw:inline-flex tw:flex-col tw:items-center tw:gap-1">
-                    {type === "reserve" ? (
-                      <span className="tw:font-semibold tw:text-amber-700">
-                        {formatReserveQty(
-                          p.totalReserveQty ?? 0,
-                          p.selectedStockUom,
-                        )}
-                      </span>
-                    ) : (
-                      <span className="tw:font-semibold tw:text-emerald-700">
-                        <DisplayQty
-                          qty={p.stockQty ?? 0}
-                          isLooseQty={isLooseStockUom(p.selectedStockUom)}
-                        />
-                      </span>
-                    )}
-                    <AppButton
-                      size="small"
-                      color="primary"
-                      noShadow
-                      className="tw:h-6 tw:px-2.5 tw:py-0 tw:text-[11px] tw:font-medium"
-                      onClick={() =>
-                        callback({
-                          action: "buyNow",
-                          data: { dealId: p.dealId },
-                        })
+                  <AppTable.Cell className="tw:text-center">
+                    <PeriodCell
+                      qty={p._sales15Qty}
+                      value={p._sales15Value}
+                      isLooseQty={p._isLooseQty}
+                    />
+                  </AppTable.Cell>
+                  <AppTable.Cell className="tw:text-center">
+                    <AppPopover
+                      triggerContent={
+                        <span className="tw:cursor-pointer">
+                          <PeriodCell
+                            qty={p._sales30Qty}
+                            value={p._sales30Value}
+                            isLooseQty={p._isLooseQty}
+                            showMore
+                          />
+                        </span>
                       }
                     >
-                      Buy Now
-                    </AppButton>
-                  </div>
+                      <DealSummaryPopover
+                        salesAnalytics={p.salesAnalytics as any}
+                      />
+                    </AppPopover>
+                  </AppTable.Cell>
+                </>
+              )}
+              {isReorder && (
+                <AppTable.Cell className="tw:text-center">
+                  {p.lastOrderDate ? (
+                    <span className="tw:inline-flex tw:flex-col tw:items-center tw:leading-tight">
+                      <DateFormat
+                        value={p.lastOrderDate}
+                        formatStr="dd MMM yyyy"
+                        className="tw:font-semibold tw:text-slate-700"
+                      />
+                      <span className="tw:text-[11px] tw:text-slate-500">
+                        <Amount value={p._lastOrderValue} />
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="tw:text-slate-400">-</span>
+                  )}
                 </AppTable.Cell>
-                <AppTable.Cell>
-                  <AppLink
+              )}
+              <AppTable.Cell className="tw:text-center">
+                <div className="tw:inline-flex tw:flex-col tw:items-center tw:gap-1">
+                  {type === "reserve" ? (
+                    <span className="tw:font-semibold tw:text-amber-700">
+                      {p._reserveQtyLabel}
+                    </span>
+                  ) : (
+                    <span className="tw:font-semibold tw:text-emerald-700">
+                      <DisplayQty
+                        qty={p._stockQty}
+                        isLooseQty={p._isLooseQty}
+                      />
+                    </span>
+                  )}
+                  <AppButton
+                    size="small"
+                    color="primary"
+                    noShadow
+                    className="tw:h-6 tw:px-2.5 tw:py-0 tw:text-[11px] tw:font-medium"
                     onClick={() =>
                       callback({
-                        action: "menu",
-                        data: { id: p.menuRefId, name: p.menuName },
+                        action: "buyNow",
+                        data: { dealId: p.dealId },
                       })
                     }
                   >
-                    <span className="tw:text-xs tw:line-clamp-2">
-                      {p.menuName}
-                    </span>
-                  </AppLink>
-                </AppTable.Cell>
-                <AppTable.Cell>
-                  <AppLink
-                    onClick={() =>
-                      callback({
-                        action: "category",
-                        data: { id: p.categoryRefId, name: p.categoryName },
-                      })
-                    }
-                  >
-                    <span className="tw:text-xs tw:line-clamp-2">
-                      {p.categoryName}
-                    </span>
-                  </AppLink>
-                </AppTable.Cell>
-                <AppTable.Cell>
-                  <AppLink
-                    onClick={() =>
-                      callback({
-                        action: "brand",
-                        data: { id: p.brandRefId, name: p.brandName },
-                      })
-                    }
-                  >
-                    <span className="tw:text-xs tw:line-clamp-2">
-                      {p.brandName}
-                    </span>
-                  </AppLink>
-                </AppTable.Cell>
-              </AppTable.Row>
-            );
-          })
+                    Buy Now
+                  </AppButton>
+                </div>
+              </AppTable.Cell>
+              <AppTable.Cell>
+                <AppLink
+                  onClick={() =>
+                    callback({
+                      action: "menu",
+                      data: { id: p.menuRefId, name: p.menuName },
+                    })
+                  }
+                >
+                  <span className="tw:text-xs tw:line-clamp-2">
+                    {p.menuName}
+                  </span>
+                </AppLink>
+              </AppTable.Cell>
+              <AppTable.Cell>
+                <AppLink
+                  onClick={() =>
+                    callback({
+                      action: "category",
+                      data: { id: p.categoryRefId, name: p.categoryName },
+                    })
+                  }
+                >
+                  <span className="tw:text-xs tw:line-clamp-2">
+                    {p.categoryName}
+                  </span>
+                </AppLink>
+              </AppTable.Cell>
+              <AppTable.Cell>
+                <AppLink
+                  onClick={() =>
+                    callback({
+                      action: "brand",
+                      data: { id: p.brandRefId, name: p.brandName },
+                    })
+                  }
+                >
+                  <span className="tw:text-xs tw:line-clamp-2">
+                    {p.brandName}
+                  </span>
+                </AppLink>
+              </AppTable.Cell>
+            </AppTable.Row>
+          ))
         )}
 
         {showLoadMore && !loading && data.length > 0 && (

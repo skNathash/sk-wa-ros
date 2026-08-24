@@ -120,13 +120,13 @@ const DesktopView: React.FC<DesktopViewProps> = ({
                   <AppLink
                     href={row.sourceRedirectionUrl}
                     asLink={true}
-                    className="tw:bg-gray-100 tw:text-gray-500 tw:px-2 tw:py-1 tw:rounded-md hover:tw:bg-gray-200 tw:transition-colors"
+                    className="tw:text-xs tw:text-gray-500 hover:tw:text-gray-700 tw:transition-colors"
                   >
-                    <code>{row.sourceReference}</code>
+                    <code className="tw:text-xs">{row.sourceReference}</code>
                   </AppLink>
                 ) : (
-                  <span className="tw:bg-gray-100 tw:text-gray-500 tw:px-2 tw:py-1 tw:rounded-md">
-                    <code>{row.sourceReference}</code>
+                  <span className="tw:text-xs tw:text-gray-500">
+                    <code className="tw:text-xs">{row.sourceReference}</code>
                   </span>
                 )}
               </AppTable.Cell>

@@ -10,7 +10,7 @@ const Dashboard = () => {
   const appNav = useAppNav();
 
   useEffect(() => {
-    appNav.replace("/pos/billing");
+    appNav.replace("/dashboard/main");
   }, []);
 
   return <></>;

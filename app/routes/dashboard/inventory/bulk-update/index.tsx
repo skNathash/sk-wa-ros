@@ -4,14 +4,19 @@ import {
   IndianRupee,
   Package,
   PackagePlus,
-  CheckCircle2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import AppBreadcrumbs from "~/components/core/breadcrumbs/AppBreadcrumbs";
 import AppHeader from "~/components/core/header/AppHeader";
 import Rbac from "~/components/core/rbac/Rbac";
 import useAppNav from "~/hooks/useAppNav";
+import useTheme from "~/hooks/useTheme";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import InventoryTab from "../components/tab/InventoryTab";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import CatalogSidePane from "~/shared/inventory/components/catalog-side-pane/CatalogSidePane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -25,10 +30,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const BulkUpdate = () => {
   const appNav = useAppNav();
+  const { t } = useTranslation(["common"]);
+  const theme = useTheme();
+  const isTheme2 = theme === "theme-2";
 
   const bulkOptions = [
     {
-      title: "Packaging",
+      title: "Sell By (Unit/Innercase/Case/Ladi)",
       description: "Change case and inner-case packing for products.",
       hint: "For pack setup",
       icon: <Package className="tw:w-5 tw:h-5 tw:text-blue-500" />,
@@ -102,56 +110,100 @@ const BulkUpdate = () => {
   return (
     <>
       <AppHeader title="Bulk Update" />
-      <div className="page-bg app-page tw:px-3 tw:pt-3 tw:pb-2 sm:tw:px-4 sm:tw:pt-4 sm:tw:pb-3">
-        <div className="app-container tw:space-y-3">
-          <div className="tw:space-y-1.5">
-            <AppBreadcrumbs data={breadcrumbs} className="tw:!mb-0" />
-            <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2">
-              <span className="tw:inline-block tw:max-w-2xl tw:text-xs tw:leading-5 tw:text-slate-500">
-                Choose a task and open the right bulk screen right away.
-              </span>
+      <div className="page-bg app-page page-padding">
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        <SectionTabs
+          sectionKey="catalog"
+          activeTab="my-catalog"
+          noShadow
+          sticky
+        />
+
+        <div className="section-layout section-layout--tight">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="my-catalog"
+                title={t("manageCatalog", { ns: "menu" })}
+              />
             </div>
-          </div>
+          </aside>
 
-          <InventoryTab activeTab="bulk-update" />
-
-          <div className="tw:space-y-2">
-            <div className="tw:grid tw:grid-cols-1 tw:gap-3 lg:tw:grid-cols-2">
-              {bulkOptions.map((option) => (
-                <Rbac roles={[option.rbacKey]} key={option.title}>
-                  <button
-                    type="button"
-                    onClick={() => handleOptionClick(option.path)}
-                    aria-label={`Open ${option.title}`}
-                    className={`tw:group tw:flex tw:cursor-pointer tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-slate-200 tw:bg-gradient-to-br ${option.accent} tw:p-2.5 tw:text-left tw:shadow-sm tw:transition-all tw:duration-200 hover:tw:-translate-y-0.5 hover:tw:border-sky-200 hover:tw:shadow-md focus-visible:tw:outline-none focus-visible:tw:ring-2 focus-visible:tw:ring-sky-500 focus-visible:tw:ring-offset-2 sm:tw:p-3`}
-                  >
-                    <div className="tw:flex tw:items-start tw:gap-3">
-                      <div className="tw:flex tw:min-w-0 tw:flex-1 tw:items-start tw:gap-3">
-                        <div
-                          className={`tw:flex tw:h-10 tw:w-10 tw:flex-shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:shadow-sm tw:transition-transform tw:group-hover:tw:scale-105 ${option.iconWrap}`}
-                        >
-                          {option.icon}
-                        </div>
-
-                        <div className="tw:min-w-0 tw:flex-1 tw:space-y-1">
-                          <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-1.5">
-                            <h3 className="tw:text-sm tw:font-semibold tw:text-slate-900">
-                              {option.title}
-                            </h3>
-                            <span className="tw:inline-flex tw:items-center tw:rounded-full tw:border tw:border-slate-200 tw:bg-white/80 tw:px-2 tw:py-0.5 tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-slate-500">
-                              {option.hint}
-                            </span>
-                          </div>
-                          <p className="tw:text-xs tw:leading-5 tw:text-slate-600">
-                            {option.description}
-                          </p>
-                        </div>
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              {/* Main column — spans the full grid (the side pane only exists
+                  in theme-2 desktop, where the CSS lifts it out of the grid
+                  into the fixed list pane; see AppPane / theme-2.css). */}
+              <AppPaneMain className="tw:lg:col-span-12">
+                <div className="tw:space-y-3">
+                  {/* Breadcrumb + page hint — the theme-2 pane header carries
+                      this context instead, so it's dropped there. */}
+                  {!isTheme2 && (
+                    <div className="tw:space-y-1.5">
+                      <AppBreadcrumbs data={breadcrumbs} className="tw:!mb-0" />
+                      <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2">
+                        <span className="tw:inline-block tw:max-w-2xl tw:text-xs tw:leading-5 tw:text-slate-500">
+                          Choose a task and open the right bulk screen right
+                          away.
+                        </span>
                       </div>
-                      <ArrowRight className="tw:h-[18px] tw:w-[18px] tw:flex-shrink-0 tw:text-slate-300 tw:transition-transform tw:duration-200 tw:group-hover:tw:translate-x-1 tw:group-hover:tw:text-slate-500" />
                     </div>
-                  </button>
-                </Rbac>
-              ))}
+                  )}
+
+                  <InventoryTab
+                    activeTab="bulk-update"
+                    className="hide-in-theme-2"
+                  />
+                  <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:lg:grid-cols-2">
+                    {bulkOptions.map((option) => (
+                      <Rbac roles={[option.rbacKey]} key={option.title}>
+                        <button
+                          type="button"
+                          onClick={() => handleOptionClick(option.path)}
+                          aria-label={`Open ${option.title}`}
+                          className={`tw:group tw:relative tw:flex tw:h-full tw:w-full tw:cursor-pointer tw:flex-col tw:overflow-hidden tw:rounded-2xl tw:border tw:border-slate-200 tw:bg-gradient-to-br ${option.accent} tw:p-3.5 tw:text-left tw:shadow-sm tw:transition-all tw:duration-200 tw:hover:-translate-y-0.5 tw:hover:border-sky-200 tw:hover:shadow-md tw:focus-visible:outline-none tw:focus-visible:ring-2 tw:focus-visible:ring-sky-500 tw:focus-visible:ring-offset-2`}
+                        >
+                          <div className="tw:flex tw:w-full tw:items-start tw:gap-3">
+                            <div
+                              className={`tw:flex tw:h-10 tw:w-10 tw:flex-shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:shadow-sm tw:transition-transform tw:duration-200 tw:group-hover:scale-105 ${option.iconWrap}`}
+                            >
+                              {option.icon}
+                            </div>
+
+                            <div className="tw:min-w-0 tw:flex-1">
+                              <h3 className="tw:truncate tw:text-sm tw:font-semibold tw:text-slate-900">
+                                {option.title}
+                              </h3>
+                              <p className="tw:mt-1 tw:text-xs tw:leading-5 tw:text-slate-600">
+                                {option.description}
+                              </p>
+                            </div>
+
+                            <ArrowRight className="tw:mt-0.5 tw:h-[18px] tw:w-[18px] tw:flex-shrink-0 tw:text-slate-300 tw:transition-transform tw:duration-200 tw:group-hover:translate-x-1 tw:group-hover:text-slate-500" />
+                          </div>
+
+                          <span className="tw:mt-3 tw:inline-flex tw:w-fit tw:items-center tw:gap-1 tw:rounded-full tw:border tw:border-slate-200 tw:bg-white/80 tw:px-2 tw:py-0.5 tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-slate-500">
+                            {option.hint}
+                          </span>
+                        </button>
+                      </Rbac>
+                    ))}
+                  </div>
+                </div>
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed catalog
+                  list pane beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <CatalogSidePane
+                  scopeLabel="Bulk Update"
+                  showInventoryValue={false}
+                  showStockAlerts={false}
+                />
+              </AppPaneSide>
             </div>
           </div>
         </div>

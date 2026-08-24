@@ -206,9 +206,9 @@ const DeliverRoute = ({
     <div className="tw:space-y-4">
       {/* Loading State */}
       {loading && (
-        <div className="tw:flex tw:flex-col tw:justify-center tw:items-center tw:h-32 tw:bg-primary/5 tw:rounded-xl tw:border tw:border-primary/20">
-          <Loader2 className="tw:w-6 tw:h-6 tw:text-primary tw:animate-spin tw:mb-2" />
-          <p className="tw:text-sm tw:text-primary tw:font-medium">
+        <div className="tw:flex tw:flex-col tw:justify-center tw:items-center tw:h-32 tw:bg-blue-50 tw:rounded-lg tw:border tw:border-blue-200">
+          <Loader2 className="tw:w-6 tw:h-6 tw:text-blue-600 tw:animate-spin tw:mb-2" />
+          <p className="tw:text-sm tw:text-blue-700 tw:font-medium">
             Loading delivery routes...
           </p>
         </div>
@@ -216,20 +216,20 @@ const DeliverRoute = ({
 
       {/* Route Selected State */}
       {!loading && routeData?.deliveryDate && (
-        <div className="wa-incart tw:border-2 tw:border-transparent tw:rounded-xl tw:p-4 tw:space-y-3">
+        <div className="tw:bg-linear-to-br tw:from-green-50 tw:to-emerald-50 tw:border-2 tw:border-green-300 tw:rounded-lg tw:p-4 tw:space-y-3">
           <div className="tw:flex tw:items-center tw:gap-2">
-            <CheckCircle2 className="tw:w-5 tw:h-5 tw:shrink-0" />
-            <h3 className="tw:text-sm tw:font-semibold">
+            <CheckCircle2 className="tw:w-5 tw:h-5 tw:text-green-600 tw:shrink-0" />
+            <h3 className="tw:text-sm tw:font-semibold tw:text-green-900">
               Delivery Route Selected
             </h3>
           </div>
 
           <div className="tw:space-y-2 tw:ml-7">
             <div className="tw:flex tw:items-start tw:gap-2">
-              <MapPin className="tw:w-4 tw:h-4 tw:mt-0.5 tw:shrink-0" />
+              <MapPin className="tw:w-4 tw:h-4 tw:text-green-600 tw:mt-0.5 tw:shrink-0" />
               <div>
-                <p className="tw:text-xs tw:opacity-80">Route</p>
-                <p className="tw:text-sm tw:font-semibold">
+                <p className="tw:text-xs tw:text-green-700">Route</p>
+                <p className="tw:text-sm tw:font-semibold tw:text-green-900">
                   {routeData.description ||
                     routeData.routeCode ||
                     "Not specified"}
@@ -238,10 +238,12 @@ const DeliverRoute = ({
             </div>
 
             <div className="tw:flex tw:items-start tw:gap-2">
-              <Package className="tw:w-4 tw:h-4 tw:mt-0.5 tw:shrink-0" />
+              <Package className="tw:w-4 tw:h-4 tw:text-green-600 tw:mt-0.5 tw:shrink-0" />
               <div>
-                <p className="tw:text-xs tw:opacity-80">Expected Delivery</p>
-                <p className="wa-mono tw:text-sm tw:font-semibold">
+                <p className="tw:text-xs tw:text-green-700">
+                  Expected Delivery
+                </p>
+                <p className="tw:text-sm tw:font-semibold tw:text-green-900">
                   <DateFormat
                     value={routeData.deliveryDate}
                     formatStr="EEEE, dd MMM yyyy"
@@ -252,8 +254,7 @@ const DeliverRoute = ({
           </div>
           <div className="tw:flex tw:justify-end">
             <button
-              type="button"
-              className="tw:text-xs tw:font-medium tw:underline tw:cursor-pointer tw:hover:opacity-70"
+              className="tw:text-xs tw:text-blue-600 tw:font-medium"
               onClick={() => setShowSelector(true)}
               disabled={processing}
             >
@@ -265,7 +266,7 @@ const DeliverRoute = ({
 
       {/* No Route Found State */}
       {!loading && !routeData && (
-        <div className="tw:bg-amber-50 tw:border-2 tw:border-amber-300 tw:rounded-xl tw:p-4 tw:space-y-2 tw:flex tw:items-start tw:gap-3">
+        <div className="tw:bg-amber-50 tw:border-2 tw:border-amber-300 tw:rounded-lg tw:p-4 tw:space-y-2 tw:flex tw:items-start tw:gap-3">
           <AlertCircle className="tw:w-5 tw:h-5 tw:text-amber-600 tw:shrink-0 tw:mt-0.5" />
           <div>
             <p className="tw:text-sm tw:font-semibold tw:text-amber-900">
@@ -281,15 +282,15 @@ const DeliverRoute = ({
 
       {/* Route Selection Area - shown only when no route OR when explicitly changing */}
       {!loading && (!routeData || showSelector) && (
-        <div className="tw:space-y-3 tw:border tw:border-border tw:rounded-xl tw:p-4 tw:bg-muted">
+        <div className="tw:space-y-3 tw:border tw:border-gray-300 tw:rounded-lg tw:p-4 tw:bg-gray-50">
           <div className="tw:flex tw:items-center tw:gap-2">
-            <MapPin className="tw:w-5 tw:h-5 tw:text-primary" />
-            <h3 className="tw:text-sm tw:font-semibold tw:text-foreground">
+            <MapPin className="tw:w-5 tw:h-5 tw:text-blue-600" />
+            <h3 className="tw:text-sm tw:font-semibold tw:text-gray-900">
               Select a Delivery Route
             </h3>
           </div>
 
-          <p className="tw:text-xs tw:text-muted-foreground tw:ml-7">
+          <p className="tw:text-xs tw:text-gray-600 tw:ml-7">
             Choose from available routes to set the estimated delivery date for
             this order.
           </p>
@@ -306,8 +307,7 @@ const DeliverRoute = ({
           {routeData && (
             <div className="tw:flex tw:justify-end">
               <button
-                type="button"
-                className="tw:text-xs tw:text-muted-foreground tw:cursor-pointer tw:hover:text-foreground"
+                className="tw:text-xs tw:text-gray-600"
                 onClick={() => setShowSelector(false)}
                 disabled={processing}
               >

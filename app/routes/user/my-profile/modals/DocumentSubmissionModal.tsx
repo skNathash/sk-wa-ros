@@ -20,6 +20,8 @@ interface DocumentSubmissionModalProps {
   onClose: () => void;
   title?: string;
   data?: any;
+  /** Proof container to preselect when the modal opens (defaults to address). */
+  defaultProofType?: string;
 }
 
 type FormData = {
@@ -41,6 +43,7 @@ const DocumentSubmissionModal: React.FC<DocumentSubmissionModalProps> = ({
   callback,
   title = "Submit Document",
   data,
+  defaultProofType = "address",
 }) => {
   const {
     register,
@@ -361,7 +364,7 @@ const DocumentSubmissionModal: React.FC<DocumentSubmissionModalProps> = ({
     if (show) {
       // Reset form to defaults
       reset({
-        proofType: "address",
+        proofType: defaultProofType,
         documentType: "",
         referenceNo: "",
         frontImg: "",
@@ -369,7 +372,7 @@ const DocumentSubmissionModal: React.FC<DocumentSubmissionModalProps> = ({
       });
 
       // Load document types for the default proof type
-      fetchDocsForProofType("address");
+      fetchDocsForProofType(defaultProofType);
       // ensure back-face flag is reset
       setShowBackFace(false);
     }

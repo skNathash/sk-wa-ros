@@ -1,8 +1,11 @@
-import { startOfDay, endOfDay } from "date-fns";
+import { startOfDay, endOfDay, format } from "date-fns";
 import AuthService from "~/services/AuthService";
+import CommonService from "~/services/CommonService";
+import LogisticsService from "~/services/LogisticsService";
 import OmsService from "~/services/OmsService";
 import SellerService from "~/services/SellerService";
 import type { PaginationState } from "~/types/CommonTypes";
+import type { DispatchSummaryTile } from "./components/theme2/helper";
 
 // Prepare params for API/data filtering
 export const prepareParams = (
@@ -64,4 +67,66 @@ export async function getCount(params: Record<string, any>) {
     p
   );
   return response?.data?.data || 0;
+}
+
+/** API wants plain local timestamps — no zone suffix. */
+const toApiDate = (date: Date) => format(date, "yyyy-MM-dd'T'HH:mm:ss");
+
+/**
+ * Delivery counters for the theme-2 dispatch summary strip, for the given day
+ * (today when no date is passed). Returns the tiles ready to print.
+ * Endpoint: GET sales/shipment/fetch?outputType=summary
+ */
+export async function getDispatchSummary(
+  date: Date = new Date()
+): Promise<DispatchSummaryTile[]> {
+  const response = await LogisticsService.fetchShipments({
+    outputType: "summary",
+    filter: {
+      franchiseId: AuthService.getLoggedInUserId() || "",
+      deliveredFrom: toApiDate(startOfDay(date)),
+      deliveredTo: toApiDate(endOfDay(date)),
+    },
+  });
+
+  const summary = response?.data?.data;
+  if (!summary) return [];
+
+  return [
+    {
+      key: "ready",
+      label: "Ready",
+      value: CommonService.commaSeparated(summary.ready),
+      caption: "waiting to be handed over",
+      tone: "neutral",
+    },
+    {
+      key: "handoff",
+      label: "Handoff",
+      value: CommonService.commaSeparated(summary.handoff),
+      caption: "with the runner, yet to move",
+      tone: "amber",
+    },
+    {
+      key: "onRoute",
+      label: "On route",
+      value: CommonService.commaSeparated(summary.onRoute),
+      caption: "out for delivery now",
+      tone: "blue",
+    },
+    {
+      key: "codOnRoute",
+      label: "COD on route",
+      value: `₹${CommonService.formattedAmount(summary.codOnRoute)}`,
+      caption: `${summary.codCollections} collections due`,
+      tone: "teal",
+    },
+    {
+      key: "delivered",
+      label: "Delivered",
+      value: CommonService.commaSeparated(summary.delivered),
+      caption: "closed today",
+      tone: "purple",
+    },
+  ];
 }

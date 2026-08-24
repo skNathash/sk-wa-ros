@@ -11,12 +11,12 @@ import useAppToast from "~/hooks/useAppToast";
 import useScreenView from "~/hooks/useScreenView";
 import AuthService from "~/services/AuthService";
 import CartService from "~/services/CartService";
+import { CustomerService } from "~/services/CustomerService";
 import FranchiseService from "~/services/FranchiseService";
 import LoyaltyPointService from "~/services/LoyaltyPointService";
 import PageAccessService from "~/services/PageAccessService";
 import PosService from "~/services/PosService";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import OtpVerification from "../billing/modals/b2b-checkout/components/OtpVerification";
 import CustomerAddress from "../billing/modals/checkout/components/customer/address/CustomerAddress";
 import SelectCustomer from "../billing/modals/checkout/components/customer/SelectCustomer";
@@ -43,6 +43,7 @@ const getSteps = (
   isB2C: boolean,
   assisted?: boolean,
   quickCheckout?: boolean,
+  preselectedCustomer?: boolean,
 ) => {
   // Quick-checkout B2B: the customer (retailer) is resolved from the cart,
   // so checkout is just payment → confirmation.
@@ -52,9 +53,11 @@ const getSteps = (
       { title: t("checkoutModal.steps.confirmation"), key: "confirmation" },
     ];
   }
-  const steps = [
-    { title: t("checkoutModal.steps.selectCustomer"), key: "customer" },
-  ];
+  // The customer came in on the URL (opened from a customer's page), so the
+  // select-customer step has nothing left to ask.
+  const steps = preselectedCustomer
+    ? ([] as { title: string; key: string }[])
+    : [{ title: t("checkoutModal.steps.selectCustomer"), key: "customer" }];
   if (isB2C) {
     steps.push({
       title: t("checkoutModal.steps.address", "Address"),
@@ -89,8 +92,12 @@ const B2cCheckoutPage = () => {
   const [searchParams] = useSearchParams();
   const cartId = searchParams.get("cartId") || "";
   const assisted = searchParams.get("assisted") === "true";
+  const customerIdInUrl = searchParams.get("customerId") || "";
 
   const [discountVal, setDiscountVal] = useState<number>(0);
+  // Customer handed over by the billing page (which itself got it from the
+  // customer's directory page) — the select-customer step is skipped entirely.
+  const hasPreselectedCustomer = !!customerIdInUrl;
   // Quick-checkout B2B cart: fulfills like B2C (stock debit, invoice,
   // Delivered) but the buyer is the retailer resolved from the cart.
   const quickCheckout = searchParams.get("quickCheckout") === "true";
@@ -112,7 +119,11 @@ const B2cCheckoutPage = () => {
   // Quick checkout: the buyer retailer resolved from the cart's customerInfo.
   const [retailer, setRetailer] = useState<any | null>(null);
   const [currentStep, setCurrentStep] = useState(
-    quickCheckout ? "payment" : "customer",
+    quickCheckout || hasPreselectedCustomer
+      ? assisted && !quickCheckout
+        ? "address"
+        : "payment"
+      : "customer",
   );
   const [orderPlacedModal, setOrderPlacedModal] = useState<{
     show: boolean;
@@ -203,7 +214,15 @@ const B2cCheckoutPage = () => {
 
   useEffect(() => {
     formMethods.reset();
-    setCurrentStep(quickCheckout ? "payment" : "customer");
+    setCurrentStep(
+      quickCheckout
+        ? "payment"
+        : hasPreselectedCustomer
+          ? assisted
+            ? "address"
+            : "payment"
+          : "customer",
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartId]);
 
@@ -216,6 +235,43 @@ const B2cCheckoutPage = () => {
     return "payment";
   };
 
+  const resolvePreselectedCustomer = useCallback(async () => {
+    if (quickCheckout || !customerIdInUrl) return;
+    try {
+      const resp = await CustomerService.getCustomer(customerIdInUrl);
+      const cust = resp?.data?.data;
+      if (cust?._id || cust?.customerId) {
+        if (!cust._id) cust._id = cust.customerId;
+        const holderId =
+          cust?.id || cust?._id || cust?.customerId || null;
+        if (holderId) {
+          try {
+            const pointsResp = await LoyaltyPointService.getHolderPoints(
+              "Customer",
+              holderId,
+            );
+            cust.points = pointsResp?.available ?? null;
+          } catch (err) {
+            cust.points = null;
+          }
+        }
+        formMethods.setValue("customer", cust);
+        formMethods.setValue("option", "b2c");
+        if (assisted) {
+          formMethods.setValue("paymentMethod", "paylater");
+        }
+        setCurrentStep(assisted ? "address" : "payment");
+      }
+    } catch (e) {
+      console.error("Error resolving preselected customer", e);
+    }
+  }, [customerIdInUrl, assisted, formMethods, quickCheckout]);
+
+  // Runs after the reset effect above so the resolved customer isn't wiped.
+  useEffect(() => {
+    resolvePreselectedCustomer();
+  }, [resolvePreselectedCustomer]);
+
   const handleStepChange = (stepKey: string) => setCurrentStep(stepKey);
 
   const handleCustomerCallback = (args: { action: string; data?: any }) => {
@@ -227,6 +283,11 @@ const B2cCheckoutPage = () => {
 
   const handleAddressCallback = (args: { action: string; data?: any }) => {
     if (args.action === "back") {
+      // With the customer fixed by the URL there is no step behind this one.
+      if (hasPreselectedCustomer) {
+        handleBackToCart();
+        return;
+      }
       handleStepChange("customer");
     } else if (args.action === "next") {
       if (assisted) {
@@ -240,8 +301,9 @@ const B2cCheckoutPage = () => {
 
   const handlePaymentCallback = (args: { action: string; data?: any }) => {
     if (args.action === "back") {
-      // Quick checkout has no customer step — back returns to the cart.
-      if (quickCheckout) {
+      // Quick checkout / preselected customer have no customer step — back
+      // returns to the cart.
+      if (quickCheckout || (hasPreselectedCustomer && !showAddressStep())) {
         handleBackToCart();
         return;
       }
@@ -621,6 +683,9 @@ const B2cCheckoutPage = () => {
       appNav.to(`/pos/billing`, {
         type: quickCheckout ? "b2b" : "b2c",
         ...(quickCheckout ? { quickCheckout: "true" } : {}),
+        ...(!quickCheckout && customerIdInUrl
+          ? { customerId: customerIdInUrl }
+          : {}),
         ...(assisted ? { assisted: "true" } : {}),
       });
     }
@@ -633,22 +698,34 @@ const B2cCheckoutPage = () => {
       ...(quickCheckout && retailerIdInUrl
         ? { retailerId: retailerIdInUrl }
         : {}),
+      ...(!quickCheckout && customerIdInUrl
+        ? { customerId: customerIdInUrl }
+        : {}),
       ...(assisted ? { assisted: "true" } : {}),
     });
   };
 
   const steps = useMemo(
-    () => getSteps(t, showAddressStep(), assisted, quickCheckout),
+    () =>
+      getSteps(
+        t,
+        showAddressStep(),
+        assisted,
+        quickCheckout,
+        hasPreselectedCustomer,
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, assisted, quickCheckout, formMethods.watch("option")],
+    [
+      t,
+      assisted,
+      quickCheckout,
+      hasPreselectedCustomer,
+      formMethods.watch("option"),
+    ],
   );
 
   const stepIndex = steps.findIndex((s) => s.key === currentStep);
   const safeStepIndex = stepIndex < 0 ? 0 : stepIndex;
-  const progressPct = Math.max(
-    0,
-    Math.min(100, ((safeStepIndex + 1) / steps.length) * 100),
-  );
   const nextStepTitle = steps[safeStepIndex + 1]?.title;
 
   const stepHelper: Record<string, string> = {
@@ -745,11 +822,10 @@ const B2cCheckoutPage = () => {
         }
       />
       <FormProvider {...formMethods}>
-        <div className="page-padding app-page page-bg">
+        {/* `pos-checkout` is the parent hook every style written for this page
+            hangs off (app/styles/pos-checkout.css). */}
+        <div className="pos-checkout page-padding app-page page-bg">
           <div className="app-container">
-            {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
-            <SectionTabs sectionKey="bill" activeTab="pos" noShadow sticky />
-
             <div className="section-layout">
               {/* Desktop-only left rail — section side menu. */}
               <aside className="section-menu-aside">
@@ -764,24 +840,24 @@ const B2cCheckoutPage = () => {
 
               <div className="section-content">
                 {/* Action bar */}
-                <div className="tw:flex tw:items-center tw:gap-2 tw:mb-2">
+                <div className="app-ck-backbar tw:flex tw:items-center tw:gap-2 tw:mb-2">
                   <button
                     type="button"
                     onClick={handleBackToCart}
-                    className="tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-medium tw:text-muted-foreground tw:cursor-pointer tw:px-2.5 tw:py-1 tw:rounded-full tw:hover:bg-muted tw:hover:text-foreground tw:transition-colors"
+                    className="app-ck-back tw:flex tw:items-center tw:gap-1.5 tw:text-sm tw:font-medium tw:text-gray-700 tw:cursor-pointer tw:px-2.5 tw:py-1 tw:rounded-md tw:hover:bg-gray-100 tw:transition-colors"
                   >
                     <ArrowLeft size={16} />
                     {t("backToCart", "Back to cart")}
                   </button>
                 </div>
 
-                <div className="tw:flex tw:flex-col tw:md:flex-row tw:md:gap-5">
+                <div className="app-checkout-body tw:flex tw:flex-col tw:md:flex-row tw:md:gap-5">
                   {/* Main content */}
                   <div className="tw:flex-1 tw:min-w-0">
                     {/* Stepper + step content as one connected surface */}
-                    <div className="tw:bg-card tw:rounded-xl tw:border tw:border-border tw:shadow-sm tw:overflow-hidden tw:mb-3">
+                    <div className="app-ck-card tw:bg-white tw:rounded-xl tw:border tw:border-gray-200 tw:shadow-sm tw:overflow-hidden tw:mb-3">
                       {/* Desktop stepper */}
-                      <div className="tw:hidden tw:md:block tw:px-5 tw:pt-4 tw:pb-2 tw:border-b tw:border-border tw:bg-muted/50">
+                      <div className="app-ck-steps-desktop tw:hidden tw:md:block tw:px-5 tw:pt-4 tw:pb-2 tw:border-b tw:border-gray-100 tw:bg-gray-50/50">
                         <AppSteps
                           steps={steps}
                           activeKey={currentStep}
@@ -790,41 +866,48 @@ const B2cCheckoutPage = () => {
                         />
                       </div>
 
-                      {/* Mobile step indicator */}
-                      <div className="tw:md:hidden tw:px-4 tw:pt-4 tw:pb-3 tw:border-b tw:border-border tw:bg-muted/50">
-                        <div className="tw:flex tw:items-baseline tw:justify-between tw:mb-2">
-                          <span className="wa-section-label tw:text-primary">
+                      {/* Mobile step indicator. The track is one segment per
+                          step rather than a single filled bar — the same
+                          read-at-a-glance idiom as a status ring, and it says
+                          how many steps are left without a second label. */}
+                      <div className="app-ck-steps tw:md:hidden tw:px-4 tw:pt-4 tw:pb-3 tw:border-b tw:border-gray-100 tw:bg-gray-50/50">
+                        <div className="app-ck-track">
+                          {steps.map((s, i) => (
+                            <span
+                              key={s.key}
+                              className={`app-ck-seg${
+                                i <= safeStepIndex ? " app-ck-seg-on" : ""
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <div className="app-ck-step-meta tw:flex tw:items-baseline tw:justify-between tw:mt-2">
+                          <span className="app-ck-step-count tw:text-[11px] tw:font-semibold tw:tracking-wide tw:uppercase tw:text-primary">
                             {t("step", "Step")} {safeStepIndex + 1} /{" "}
                             {steps.length}
                           </span>
                           {nextStepTitle && (
-                            <span className="tw:text-[11px] tw:text-muted-foreground tw:flex tw:items-center tw:gap-0.5">
+                            <span className="app-ck-step-next tw:text-[11px] tw:text-gray-500 tw:flex tw:items-center tw:gap-0.5">
                               {t("next", "Next")}
                               <ChevronRight size={12} />
                               {nextStepTitle}
                             </span>
                           )}
                         </div>
-                        <div className="tw:h-1.5 tw:bg-muted tw:rounded-full tw:overflow-hidden">
-                          <div
-                            className="tw:h-full tw:bg-primary tw:rounded-full tw:transition-all tw:duration-300"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
                       </div>
 
                       {/* Step header */}
-                      <div className="tw:px-4 tw:md:px-5 tw:pt-4 tw:pb-3 tw:border-b tw:border-border">
+                      <div className="app-ck-head tw:px-4 tw:md:px-5 tw:pt-4 tw:pb-3 tw:border-b tw:border-gray-100">
                         <div className="tw:flex tw:items-center tw:gap-3">
-                          <span className="tw:flex tw:items-center tw:justify-center tw:w-7 tw:h-7 tw:rounded-full tw:bg-primary tw:text-white tw:text-xs tw:font-semibold tw:shrink-0">
+                          <span className="app-ck-badge tw:flex tw:items-center tw:justify-center tw:w-7 tw:h-7 tw:rounded-full tw:bg-primary tw:text-white tw:text-xs tw:font-semibold tw:shrink-0">
                             {safeStepIndex + 1}
                           </span>
                           <div className="tw:min-w-0">
-                            <h2 className="tw:text-base tw:font-semibold tw:text-foreground tw:leading-tight">
+                            <h2 className="app-ck-title tw:text-base tw:font-semibold tw:text-gray-900 tw:leading-tight">
                               {steps[safeStepIndex]?.title}
                             </h2>
                             {stepHelper[currentStep] && (
-                              <p className="tw:text-xs tw:text-muted-foreground tw:mt-0.5">
+                              <p className="app-ck-help tw:text-xs tw:text-gray-500 tw:mt-0.5">
                                 {stepHelper[currentStep]}
                               </p>
                             )}
@@ -833,30 +916,30 @@ const B2cCheckoutPage = () => {
                       </div>
 
                       {/* Step body */}
-                      <div className="tw:p-4 tw:md:p-5">
+                      <div className="app-ck-body tw:p-4 tw:md:p-5">
                         {/* Quick checkout: show the buyer retailer resolved from the cart */}
                         {quickCheckout && retailer && (
-                          <div className="tw:border tw:border-border tw:rounded-xl tw:p-3 tw:bg-muted tw:mb-4">
+                          <div className="app-ck-retailer tw:border tw:rounded tw:p-3 tw:bg-gray-50 tw:mb-4">
                             <div className="tw:flex tw:justify-between tw:items-start">
                               <div>
-                                <div className="tw:font-semibold tw:text-sm tw:flex tw:items-center tw:gap-1 tw:text-foreground">
+                                <div className="tw:font-semibold tw:text-sm tw:flex tw:items-center tw:gap-1">
                                   <Building2
                                     size={18}
-                                    className="tw:text-muted-foreground"
+                                    className="tw:text-gray-800"
                                   />
                                   {retailer.name || "-"}
                                 </div>
-                                <div className="wa-mono tw:text-xs tw:text-muted-foreground tw:mt-1">
+                                <div className="tw:text-xs tw:text-gray-600 tw:mt-1">
                                   ID: {retailer.franchiseId || "-"}
                                 </div>
                               </div>
-                              <div className="wa-mono tw:text-right tw:text-xs tw:text-muted-foreground tw:flex tw:items-center tw:gap-1">
+                              <div className="tw:text-right tw:text-xs tw:text-gray-600 tw:flex tw:items-center tw:gap-1">
                                 <Phone size={12} />
                                 <div>{retailer.mobile || "-"}</div>
                               </div>
                             </div>
                             {retailer.formatAddress && (
-                              <div className="tw:text-xs tw:text-muted-foreground">
+                              <div className="tw:text-xs tw:text-gray-600">
                                 {retailer.formatAddress}
                               </div>
                             )}
@@ -879,8 +962,11 @@ const B2cCheckoutPage = () => {
                     )}
                   </div>
 
-                  {/* Desktop summary sidebar */}
-                  <div className="tw:hidden tw:md:block tw:md:w-1/3 tw:shrink-0">
+                  {/* Desktop summary sidebar. In theme-2 this column is lifted
+                      out of the flow into a fixed full-height pane welded to
+                      the right edge of the viewport (see pos-checkout.css);
+                      elsewhere it stays a sticky third of the row. */}
+                  <div className="app-osum-col tw:hidden tw:md:block tw:md:w-1/3 tw:shrink-0">
                     <div className="tw:sticky tw:top-20">
                       <CheckoutSummaryPanel
                         items={cart}

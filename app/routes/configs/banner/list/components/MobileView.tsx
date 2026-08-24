@@ -9,6 +9,7 @@ import KeyValue from "~/components/core/key-value/KeyValue";
 import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
 import Rbac from "~/components/core/rbac/Rbac";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
+import AuthService from "~/services/AuthService";
 
 const rbacRoles = {
   update: ["BANNER.BANNER-UPDATE"],
@@ -155,7 +156,10 @@ const MobileView: React.FC<MobileViewProps> = ({
             {/* Action */}
             <div className="tw:flex tw:justify-end tw:gap-2 tw:pt-2 tw:border-t tw:border-slate-100">
               {item?.status !== "Expired" && (
-                <Rbac roles={rbacRoles.update}>
+                <Rbac
+                  roles={rbacRoles.update}
+                  forceDisplay={AuthService.isMasterLogin()}
+                >
                   <AppButton
                     size="small"
                     fill="outline"

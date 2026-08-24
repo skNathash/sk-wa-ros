@@ -3,10 +3,33 @@
    one of the .page-bg-* modifier classes below, e.g.
    <div className="app-page page-bg page-bg-muted tw:p-4">. */
 
-.page-bg,
-.modal-bg {
+.page-bg {
   background-color: var(--page-bg, white);
   @apply tw:text-foreground;
+}
+
+/* Modals always paint white, in every theme. */
+.modal-bg {
+  background-color: white;
+  @apply tw:text-foreground;
+}
+
+/* Paints an element with the current page background (the `--page-bg` set by
+   the theme / `.page-bg-*` modifiers). Use on sticky bars and other blocks
+   that should blend with the page instead of forcing white. */
+.app-bg-page {
+  background-color: var(--page-bg, white);
+}
+
+/* The page tint has to reach past the `.app-page` box. That box is only as tall
+   as its own content, so whenever the scroll area runs taller than it — a fixed
+   side pane, over-scroll, a bar that is hidden at this breakpoint — the white
+   body
+   shows through as a white patch under the last card. Paint the scrolling
+   `main` with the same colour so the tint always covers the full viewport;
+   `main` is the flex child that stretches to the document height. */
+main:has(> .app-page.page-bg) {
+  background-color: var(--page-bg, white);
 }
 
 /* Per-page background overrides — add next to `page-bg`. */
@@ -20,5 +43,20 @@
   --page-bg: var(--accent);
 }
 .page-bg-secondary {
+  --page-bg: var(--secondary);
+}
+
+/* `--page-bg` is set on the page element, and custom properties don't cascade
+   upward — so mirror each modifier onto the scrolling `main` that wraps it. */
+main:has(> .app-page.page-bg-muted) {
+  --page-bg: var(--muted);
+}
+main:has(> .app-page.page-bg-theme) {
+  --page-bg: var(--background);
+}
+main:has(> .app-page.page-bg-accent) {
+  --page-bg: var(--accent);
+}
+main:has(> .app-page.page-bg-secondary) {
   --page-bg: var(--secondary);
 }

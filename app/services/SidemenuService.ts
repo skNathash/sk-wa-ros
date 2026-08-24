@@ -11,6 +11,7 @@ import {
   ListChecks,
   MapPin,
   Megaphone,
+  MessageSquarePlus,
   Network,
   Package,
   Settings,
@@ -24,8 +25,8 @@ import {
   Wallet,
 } from "lucide-react";
 import type { MenuItem, UserType } from "~/types/CommonTypes";
+import AccountsNavService from "./AccountsNavService";
 import AuthService from "./AuthService";
-import FranchiseService from "./FranchiseService";
 
 class SidemenuService {
   private static filterMenuItems(
@@ -180,16 +181,16 @@ class SidemenuService {
               },
             ],
           },
-          // {
-          //   label: "SK Barcode Generator",
-          //   langKey: "barcodeGenerator",
-          //   icon: Barcode,
-          //   path: "/dashboard/inventory/print-barcode",
-          //   allowed: ["SELLER", "BUYER", "MASTER_LOGIN"],
-          //   description: "Generate and print barcode labels",
-          //   rbac: ["INVENTORY.VIEW-INVENTORY"],
-          //   key: "barcodeGenerator",
-          // },
+          {
+            label: "SK Barcode Generator",
+            langKey: "barcodeGenerator",
+            icon: Barcode,
+            path: "/dashboard/inventory/print-barcode",
+            allowed: ["SELLER", "BUYER", "MASTER_LOGIN"],
+            description: "Generate and print barcode labels",
+            rbac: ["INVENTORY.VIEW-INVENTORY"],
+            key: "barcodeGenerator",
+          },
           {
             label: "Warehouse Location",
             langKey: "warehouseLocation",
@@ -388,7 +389,7 @@ class SidemenuService {
             label: "Account Summary",
             langKey: "accountSummary",
             icon: Wallet,
-            path: FranchiseService.getAccountSummaryLink(),
+            path: AccountsNavService.getAccountsRedirectUrl(),
             allowed: ["SELLER", "BUYER", "MASTER_LOGIN"],
             description: "Account summary and statements",
             rbac: ["ACCOUNTS.VIEW-STATEMENT"],
@@ -454,6 +455,15 @@ class SidemenuService {
             allowed: ["SELLER", "BUYER", "MASTER_LOGIN"],
             description: "Manage coupons",
             key: "coupons",
+          },
+          {
+            label: "WhatsApp Templates",
+            langKey: "whatsappTemplateRequests",
+            icon: MessageSquarePlus,
+            path: "/configs/whatsapp-template-request",
+            allowed: ["SELLER", "BUYER", "MASTER_LOGIN"],
+            description: "Request and track WhatsApp promotion templates",
+            key: "whatsappTemplateRequests",
           },
         ],
       },

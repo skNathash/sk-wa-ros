@@ -1,6 +1,6 @@
 import { produce } from "immer";
-import { Percent, Upload } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Zap } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
@@ -9,8 +9,6 @@ import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import { AppCheckbox } from "~/components/core/form";
 import AppHeader from "~/components/core/header/AppHeader";
-import LoadMoreButton from "~/components/core/load-more/LoadMoreButton";
-import NoData from "~/components/core/no-data/NoData";
 import PageDescription from "~/components/core/page-description/PageDescription";
 import PaginationSummary from "~/components/core/pagination/PaginationSummary";
 import ViewToggle from "~/components/feature/utility/view-toggle/ViewToggle";
@@ -22,29 +20,64 @@ import AuthService from "~/services/AuthService";
 import CommonService from "~/services/CommonService";
 import PageAccessService from "~/services/PageAccessService";
 import SellerCatalogService from "~/services/SellerCatalogService";
-import PriceConfigModal from "~/shared/catalog/modals/price-config/PriceConfigModal";
+import type { InlinePriceResult } from "~/shared/catalog/components/inline-price-edit/InlinePriceEdit";
+import PriceConfigModal, {
+  type PriceConfigGroup,
+} from "~/shared/catalog/modals/price-config/PriceConfigModal";
 import PriceSlabConfigModal from "~/shared/catalog/modals/price-slab-config/PriceSlabConfigModal";
-import SortBy from "~/shared/inventory/components/sort-by/SortBy";
+import SortPopover, {
+  fromHeaderSort,
+  type SortValue,
+} from "~/components/feature/utility/sort/SortPopover";
+import OnlinePriceOnAppToggle from "~/shared/configs/components/online-price-on-app/OnlinePriceOnAppToggle";
+import PricingSidePane from "~/shared/inventory/components/pricing-side-pane/PricingSidePane";
+import type { PricingFilterKey } from "~/shared/inventory/components/pricing-side-pane/helper";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
+import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
+// import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
 import type {
   BreadcrumbItem,
   PaginationState,
   SortProps,
   ViewToggleType,
 } from "~/types/CommonTypes";
-import ManagePriceTabs from "../../components/ManagePriceTabs";
 import ItemDetailModal from "../modals/ItemDetailModal";
+import BulkPriceModal from "../modals/bulk-price/BulkPriceModal";
+import B2BPriceTools, { ALL_GROUPS } from "./components/B2BPriceTools";
+import CategoryChips from "./components/CategoryChips";
 import DesktopView from "./components/DesktopView";
 import Filter from "./components/Filter";
-import Mobile from "./components/item/Mobile";
+import MarginSummaryCard from "./components/MarginSummaryCard";
+import MobileView from "./components/MobileView";
+import PricingFilterChips, {
+  type PricingFilterChipKey,
+} from "./components/PricingFilterChips";
+import PriceTabs from "~/shared/configs/components/price-tabs/PriceTabs";
+import PricingChannelCards from "~/shared/configs/components/pricing-channel-cards/PricingChannelCards";
+import PricingSummaryCards from "./components/PricingSummaryCards";
 import RspAppliedFilter from "./components/RspAppliedFilter";
-import type { FilterFormFields } from "./helper";
+import type {
+  FilterFormFields,
+  PriceGroupColumn,
+  PriceSummary,
+} from "./helper";
 import {
+  applyRowDecor,
   defaultBreadcrumbs,
   defaultPagination,
   getCount,
   getData,
+  getPriceComparisonSummary,
+  getPriceGroups,
+  getSummary,
   prepareFilters,
 } from "./helper";
+import {
+  applyPriceSummary,
+  computePricingStats,
+  getOnlineVerdict,
+  type PriceComparisonSummary,
+} from "./insights";
 
 export async function clientLoader() {
   return PageAccessService.canAccessPage(["CONFIGS.PRICING"]);
@@ -55,6 +88,8 @@ export async function clientLoader() {
 // sorting as the popover (and stays in sync with it).
 const HEADER_SORT_TO_GLOBAL: Record<string, { asc: string; desc: string }> = {
   dealName: { asc: "name-asc", desc: "name-desc" },
+  purchasePrice: { asc: "purchase-price-asc", desc: "purchase-price-desc" },
+  mrp: { asc: "mrp-asc", desc: "mrp-desc" },
   price: { asc: "price-asc", desc: "price-desc" },
   maxQty: { asc: "low-stock", desc: "high-stock" },
 };
@@ -67,6 +102,10 @@ const GLOBAL_TO_HEADER_SORT: Record<
 > = {
   "name-asc": { key: "dealName", value: "asc" },
   "name-desc": { key: "dealName", value: "desc" },
+  "purchase-price-asc": { key: "purchasePrice", value: "asc" },
+  "purchase-price-desc": { key: "purchasePrice", value: "desc" },
+  "mrp-asc": { key: "mrp", value: "asc" },
+  "mrp-desc": { key: "mrp", value: "desc" },
   "price-asc": { key: "price", value: "asc" },
   "price-desc": { key: "price", value: "desc" },
   "low-stock": { key: "maxQty", value: "asc" },
@@ -74,7 +113,7 @@ const GLOBAL_TO_HEADER_SORT: Record<
 };
 
 const Rsp = () => {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["common", "menu"]);
   const appToast = useAppToast();
 
   const isBuyer = AuthService.isBuyerUser() || AuthService.isSkBuyer();
@@ -83,7 +122,15 @@ const Rsp = () => {
   const { isMobile } = useScreenView();
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const type = searchParams.get("type") as "network" | "customer";
+  const rawType = searchParams.get("type");
+  // The pricing-gap chips ride on `type` alongside the channel — both narrow
+  // the whole catalog, and neither is a channel of its own, so they resolve
+  // back to the B2C sheet they filter.
+  const isLowMarginType = rawType === "lowMargin";
+  const isUnpricedType = rawType === "unpriced";
+  const type = (isLowMarginType || isUnpricedType ? "customer" : rawType) as
+    | "network"
+    | "customer";
 
   const effectiveType = type || "customer";
 
@@ -106,6 +153,7 @@ const Rsp = () => {
       isFixedPrice: false,
       isPriceSlab: false,
       globalSort: "name",
+      pricingFilter: "all" as PricingFilterChipKey,
     },
   });
 
@@ -116,25 +164,79 @@ const Rsp = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
   const [data, setData] = useState<any[]>([]);
+
+  // Catalogue-wide margin summary (price-comparison API) behind the summary
+  // cards — independent of the list filters, so it is fetched once per view.
+  const [priceSummary, setPriceSummary] =
+    useState<PriceComparisonSummary | null>(null);
   const [view, setView] = useState<ViewToggleType>("list");
 
+  // Stat-strip numbers for the filtered slice — refreshed alongside the list.
+  const [summary, setSummary] = useState<PriceSummary | null>(null);
+
+  // Buyer groups configured by this franchise — one price column per group on
+  // the B2B sheet. Empty on B2C, where a single price covers everyone.
+  const [priceGroups, setPriceGroups] = useState<PriceGroupColumn[]>([]);
+
+  // Read inside the inline-save handler, which stays stable across renders —
+  // a new group row needs its name and the state value would be stale there.
+  const priceGroupsRef = useRef<PriceGroupColumn[]>([]);
+  priceGroupsRef.current = priceGroups;
+
+  // Buyer group the B2B sheet is narrowed to. Every group price already comes
+  // down with the deal, so this only picks which group columns are drawn.
+  const [groupFilter, setGroupFilter] = useState<string>(ALL_GROUPS);
+
+  const visibleGroups = useMemo(
+    () =>
+      groupFilter === ALL_GROUPS
+        ? priceGroups
+        : priceGroups.filter((group) => group.id === groupFilter),
+    [priceGroups, groupFilter],
+  );
+
   const [sortPopoverOpen, setSortPopoverOpen] = useState(false);
+
+  // Mobile quick-chip: "above" filters the loaded page client-side to items
+  // priced above the cheapest online listing; category chips filter serverside.
+  const [quickChip, setQuickChip] = useState<"all" | "above">("all");
+
+  // Which pricing gap the theme-2 side pane is narrowing the list to.
+  const [paneFilter, setPaneFilter] = useState<PricingFilterKey>("all");
+
+  // Categories seen across loaded pages — feeds the mobile chip row and
+  // survives a category filter narrowing the next response.
+  const categoriesRef = useRef<Map<string, string>>(new Map());
 
   // Amazon/Flipkart benchmark prices are only available for electronics
   // franchises; the toggle lets them declutter the table when not needed.
   const isElectronicsFranchise = AuthService.isElectronicsFranchise();
-  const [showOnlinePrices, setShowOnlinePrices] =
-    useState(isElectronicsFranchise);
+  const [showOnlinePrices, setShowOnlinePrices] = useState(
+    isElectronicsFranchise,
+  );
 
   const [itemDetailModal, setItemDetailModal] = useState({
     show: false,
     data: null,
   });
-  const [rspManageModal, setRspManageModal] = useState({
+  const [rspManageModal, setRspManageModal] = useState<{
+    show: boolean;
+    type: "network" | "customer";
+    dealId: string | null;
+    // Set when a buyer-group price chip was clicked — the modal then edits
+    // that group's price instead of the deal-level one.
+    group?: PriceConfigGroup;
+  }>({
     show: false,
     type: effectiveType,
     dealId: null,
   });
+
+  // Rows picked for the bulk price setter. The full deal is kept (not just the
+  // id) so the setter can preview against MRP/cost and the apply can run after
+  // a filter change has dropped the row from `data`.
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [bulkModal, setBulkModal] = useState(false);
 
   const [bulkUploadModal, setBulkUploadModal] = useState<{
     show: boolean;
@@ -165,6 +267,12 @@ const Rsp = () => {
     undefined,
   );
 
+  // Everything in the URL — the list refetches whenever a filter changes.
+  const filterParamsKey = useMemo(
+    () => new URLSearchParams(searchParams).toString(),
+    [searchParams],
+  );
+
   useEffect(() => {
     const search = searchParams.get("search");
     const keys = searchParams.get("keys");
@@ -184,6 +292,7 @@ const Rsp = () => {
     const isFixedPrice = searchParams.get("isFixedPrice");
     const isPriceSlab = searchParams.get("isPriceSlab");
     const globalSort = searchParams.get("globalSort");
+    const pricingFilter = searchParams.get("pricingFilter");
 
     formMethods.setValue("search", search || "");
 
@@ -237,6 +346,23 @@ const Rsp = () => {
     formMethods.setValue("isFixedPrice", isFixedPrice === "true");
     formMethods.setValue("isPriceSlab", isPriceSlab === "true");
 
+    const validPricingFilter: PricingFilterChipKey =
+      pricingFilter === "unpriced" ||
+      pricingFilter === "low-margin" ||
+      pricingFilter === "out-of-stock" ||
+      pricingFilter === "new"
+        ? pricingFilter
+        : "all";
+    // The pricing gaps (unpriced / low margin) are served per channel — the
+    // endpoint judges them against `priceType` — so they carry over to the B2B
+    // sheet. The stock/new chips are B2C-only and are dropped there.
+    const carriesToB2B =
+      validPricingFilter === "unpriced" || validPricingFilter === "low-margin";
+    formMethods.setValue(
+      "pricingFilter",
+      effectiveType === "network" && !carriesToB2B ? "all" : validPricingFilter,
+    );
+
     // If `keys` is provided in the URL (comma-separated), populate the form `keys` array
     const keysParam = searchParams.get("keys");
     const keysFromUrl = keysParam
@@ -257,8 +383,27 @@ const Rsp = () => {
 
     formMethods.setValue("type", effectiveType);
 
+    // `type=lowMargin` is a server-side filter — show it as the active
+    // pricing-gap chip and pass it through to the API instead of filtering
+    // only the loaded page client-side.
+    if (isLowMarginType) {
+      formMethods.setValue("pricingFilter", "low-margin");
+      setPaneFilter("low-margin");
+    } else if (isUnpricedType) {
+      formMethods.setValue("pricingFilter", "unpriced");
+      setPaneFilter("unpriced");
+    } else {
+      // The pane chips read their active state off the URL too, so a link into
+      // a gap (or a reload on one) keeps the right chip lit.
+      setPaneFilter(
+        validPricingFilter === "unpriced" || validPricingFilter === "low-margin"
+          ? validPricingFilter
+          : "all",
+      );
+    }
+
     applyFilter();
-  }, [searchParams.toString(), formMethods]);
+  }, [filterParamsKey, formMethods, isLowMarginType, isUnpricedType]);
 
   useEffect(() => {
     if (effectiveType === "network") {
@@ -274,15 +419,85 @@ const Rsp = () => {
         }),
       );
     }
+    // A B2C selection cannot carry over into the B2B sheet — different price.
+    setSelectedItems([]);
     init();
   }, [type, isBuyer, t]);
+
+  // Remember every category seen so the chip row keeps offering categories
+  // even after one of them becomes the active (narrowing) filter.
+  useEffect(() => {
+    data.forEach((item) => {
+      const id = item?.category?._id;
+      const name = item?.category?.name;
+      if (id && name && !categoriesRef.current.has(id)) {
+        categoriesRef.current.set(id, name);
+      }
+    });
+  }, [data]);
+
+  const loadPriceSummary = useCallback(async () => {
+    try {
+      setPriceSummary(await getPriceComparisonSummary());
+    } catch (error) {
+      console.error("Error loading price summary:", error);
+      setPriceSummary(null);
+    }
+  }, []);
+
+  // Group price columns are a B2B-only concern.
+  const loadPriceGroups = useCallback(async () => {
+    if (effectiveType !== "network") {
+      setPriceGroups([]);
+      setGroupFilter(ALL_GROUPS);
+      return;
+    }
+    try {
+      const groups = await getPriceGroups();
+      setPriceGroups(groups);
+      // The filtered group can be gone after an edit deactivated or removed
+      // it — fall back to the full sheet rather than an empty column block.
+      setGroupFilter((current) =>
+        current === ALL_GROUPS || groups.some((group) => group.id === current)
+          ? current
+          : ALL_GROUPS,
+      );
+    } catch (error) {
+      console.error("Error loading price groups:", error);
+      setPriceGroups([]);
+    }
+  }, [effectiveType]);
+
+  // Stat strip for the current filtered slice. Kept separate from the list
+  // fetch so a price/discount edit can re-read it without reloading the rows.
+  const loadSummary = useCallback(async () => {
+    try {
+      const params = prepareFilters(
+        formMethods.getValues(),
+        paginationRef.current,
+        sortRef.current,
+      );
+      setSummary(await getSummary(params, effectiveType));
+    } catch (error) {
+      console.error("Error loading price summary:", error);
+      setSummary(null);
+    }
+  }, [effectiveType, formMethods]);
+
+  // Every price/discount write changes what the cards report — pull both the
+  // filtered stat strip and the catalogue-wide margin numbers again.
+  const refreshSummary = useCallback(() => {
+    loadSummary();
+    loadPriceSummary();
+  }, [loadSummary, loadPriceSummary]);
 
   const init = async () => {
     paginationRef.current = {
       ...defaultPagination,
     };
     applyFilter();
-    // loadSummary();
+    loadPriceSummary();
+    loadPriceGroups();
   };
 
   const applyFilter = useCallback(async () => {
@@ -307,8 +522,12 @@ const Rsp = () => {
       setData(response || []);
       setHasMoreData(response.length >= paginationRef.current.rowsPerPage);
 
+      // Stat strip reports on the same filtered slice — a failure here must not
+      // take the list down with it.
+      loadSummary();
+
       // Update pagination end number
-      const countResponse = await getCount(params);
+      const countResponse = await getCount(params, effectiveType);
       paginationRef.current.totalRecords = countResponse;
     } catch (error) {
       console.error("Error applying filter:", error);
@@ -317,7 +536,7 @@ const Rsp = () => {
     } finally {
       setLoading(false);
     }
-  }, [effectiveType]);
+  }, [effectiveType, loadSummary]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMoreData) {
@@ -378,6 +597,19 @@ const Rsp = () => {
       if (formData.isFixedPrice) params.isFixedPrice = "true";
       if (formData.isPriceSlab) params.isPriceSlab = "true";
 
+      if (
+        formData.pricingFilter &&
+        formData.pricingFilter !== "all" &&
+        ["unpriced", "low-margin", "out-of-stock", "new"].includes(
+          formData.pricingFilter,
+        )
+      ) {
+        // Every chip rides in the URL as `pricingFilter`, so the channel keeps
+        // its own `type` — the gaps are per channel (the endpoint judges them
+        // against `priceType`), and losing the channel would pin them to B2C.
+        params.pricingFilter = formData.pricingFilter;
+      }
+
       if (formData.category && formData.category.length > 0) {
         params.categoryId = formData.category[0].value.id;
         params.categoryName = formData.category[0].label;
@@ -416,6 +648,19 @@ const Rsp = () => {
   );
 
   const handleItemCallback = (action: { action: string; data?: any }) => {
+    // Opening the product is read-only, so it runs ahead of the write guard.
+    if (action.action === "viewDeal" && action.data) {
+      const url = `/dashboard/inventory/products/view/${
+        action.data._id || action.data.id
+      }/pricing`;
+      if (!isMobile) {
+        appNav.openInNewTab(url);
+      } else {
+        appNav.to(url);
+      }
+      return;
+    }
+
     if (
       AuthService.isMasterLogin() &&
       !AuthService.isMasterLoginWithFullAccess()
@@ -440,13 +685,24 @@ const Rsp = () => {
         type: effectiveType,
       });
     }
-    if (action.action === "viewDeal" && action.data) {
-      const url = `/dashboard/inventory/products/view/${action.data.id}`;
-      if (!isMobile) {
-        appNav.openInNewTab(url);
-      } else {
-        appNav.to(url);
-      }
+    // Buyer-group price chip — same modal, scoped to that group's B2B price.
+    if (action.action === "editGroupPrice" && action.data) {
+      const group = (action.data as any)._group;
+      const current = (action.data.networkGroupPrices || []).find(
+        (item: any) => item.id === group?.id,
+      );
+      setRspManageModal({
+        show: true,
+        dealId: action.data._id,
+        type: "network",
+        group: {
+          id: group?.id,
+          name: group?.name,
+          price: current?.price,
+          discount: current?.discount,
+          discountType: current?.discountType,
+        },
+      });
     }
     if (action.action === "editPriceSlab" && action.data) {
       const td = action.data
@@ -491,6 +747,74 @@ const Rsp = () => {
     }
   };
 
+  // The inline price field owns its own write and error toast; the screen only
+  // keeps the row in sync once a price actually landed. A fixed price is what
+  // the field writes, so the row's discount type follows.
+  const handlePriceResult = useCallback(
+    (result: InlinePriceResult) => {
+      if (result.action !== "saved") return;
+
+      setData(
+        produce((draft) => {
+          const i = draft.findIndex(
+            (item) => (item._id || item.id) === result.dealId,
+          );
+          if (i === -1) return;
+
+          // A buyer-group price only touches that group's entry — the deal's
+          // own B2B price is untouched.
+          if (result.groupId) {
+            const groups = draft[i].networkGroupPrices || [];
+            const g = groups.findIndex(
+              (group: any) => group.id === result.groupId,
+            );
+            const next = {
+              price: result.price,
+              discount: 0,
+              discountType: "Fixed",
+            };
+            if (g !== -1) {
+              groups[g] = { ...groups[g], ...next };
+            } else {
+              groups.push({
+                id: result.groupId,
+                name:
+                  priceGroupsRef.current.find((pg) => pg.id === result.groupId)
+                    ?.name || "",
+                type: "",
+                sellersCount: 0,
+                isActive: true,
+                ...next,
+              });
+            }
+            draft[i].networkGroupPrices = groups;
+            return;
+          }
+
+          if (result.type === "b2b") {
+            draft[i].b2bPrice = result.price;
+            draft[i].b2bDiscount = 0;
+            draft[i].b2bDiscountType = "Fixed";
+          } else {
+            draft[i].b2cPrice = result.price;
+            draft[i].b2cDiscount = 0;
+            draft[i].b2cDiscountType = "Fixed";
+          }
+          draft[i].isFixedPrice = true;
+          draft[i].fixedPrice = result.price;
+          // Margin label, tone and peer range are derived off the price and
+          // discount just written — re-derive them or the cell keeps printing
+          // what the last fetch computed.
+          applyRowDecor(draft[i], effectiveType);
+        }),
+      );
+
+      // The row is patched locally, so nothing else re-reads the stats.
+      refreshSummary();
+    },
+    [refreshSummary, effectiveType],
+  );
+
   const handleModalCallback = (action: { action: string; data?: any }) => {
     if (action.action === "close") {
       setItemDetailModal({
@@ -508,10 +832,14 @@ const Rsp = () => {
       show: false,
       dealId: null,
       type: effectiveType,
+      group: undefined,
     });
     if (action.action === "update" || action.action === "create") {
       if (action.action === "create") {
+        // The refetch carries the filtered stat strip with it; only the
+        // catalogue-wide margin numbers need pulling separately.
         applyFilter();
+        loadPriceSummary();
       }
       if (action.action === "update") {
         setData(
@@ -520,34 +848,68 @@ const Rsp = () => {
               (item) => item._id === action.data.dealId,
             );
             if (i !== -1) {
+              // A group price only touches that group's column.
+              if (action.data.groupId) {
+                const groups = draft[i].networkGroupPrices || [];
+                const g = groups.findIndex(
+                  (group: any) => group.id === action.data.groupId,
+                );
+                const next = {
+                  price: action.data.price,
+                  discount: action.data.discount || 0,
+                  discountType: action.data.isFixedPrice ? "Fixed" : "Normal",
+                };
+                if (g !== -1) {
+                  groups[g] = { ...groups[g], ...next };
+                } else {
+                  groups.push({
+                    id: action.data.groupId,
+                    name: rspManageModal.group?.name || "",
+                    type: "",
+                    sellersCount: 0,
+                    isActive: true,
+                    ...next,
+                  } as any);
+                }
+                draft[i].networkGroupPrices = groups;
+                return;
+              }
+              /* The modal hands back the discount as typed, so it can arrive
+                 as a string — the margin label and tone read it as a number. */
+              const discount = Number(action.data.discount) || 0;
+
               if (action.data.type === "network") {
                 draft[i].b2bPrice = action.data.price;
-                draft[i].b2bDiscount = action.data.discount;
+                draft[i].b2bDiscount = discount;
                 if (typeof action.data.isFixedPrice !== "undefined") {
                   draft[i].b2bDiscountType = action.data.isFixedPrice
                     ? "Fixed"
                     : "Normal";
                   draft[i].isFixedPrice = action.data.isFixedPrice;
                   draft[i].fixedPrice = action.data.fixedPrice || 0;
-                  // keep convenience key in sync for table view
-                  draft[i]._discountType = draft[i].b2bDiscountType;
                 }
               } else {
                 draft[i].b2cPrice = action.data.price;
-                draft[i].b2cDiscount = action.data.discount;
+                draft[i].b2cDiscount = discount;
                 if (typeof action.data.isFixedPrice !== "undefined") {
                   draft[i].b2cDiscountType = action.data.isFixedPrice
                     ? "Fixed"
                     : "Normal";
                   draft[i].isFixedPrice = action.data.isFixedPrice;
                   draft[i].fixedPrice = action.data.fixedPrice || 0;
-                  // keep convenience key in sync for table view
-                  draft[i]._discountType = draft[i].b2cDiscountType;
                 }
               }
+
+              /* Discount type, margin label/tone and the peer bar are all
+                 derived — re-derive them off the row that was just written so
+                 the cell reads right without a reload. */
+              applyRowDecor(draft[i], action.data.type);
             }
           }),
         );
+        // Only the row was patched — re-read the summary so the cards match
+        // the new price/discount.
+        refreshSummary();
       }
     }
   };
@@ -561,6 +923,7 @@ const Rsp = () => {
       products: [],
     });
     applyFilter();
+    loadPriceSummary();
   };
 
   const handlePriceSlabModalCallback = async (action: {
@@ -575,6 +938,9 @@ const Rsp = () => {
         editId: null,
         targetDetails: undefined,
       });
+
+      // Slab discounts feed the same margin numbers as any other discount.
+      refreshSummary();
 
       // If we have a reference deal from the modal opener, animate that row
       const ref = priceSlabModal.data;
@@ -636,20 +1002,6 @@ const Rsp = () => {
     }
   };
 
-  const appliedFilterCallback = (r: { action: string; data?: any }) => {
-    if (r.action === "remove") {
-      formMethods.setValue(r.data.key, r.data.config?.resetValue);
-      applyFilter();
-    }
-  };
-
-  const handlePricingTabChange = (tab: any) => {
-    if (isBuyer) return; // buyers should not be able to switch to network pricing
-    // reset priceMode to 'all' when switching tabs
-    formMethods.setValue("priceMode", "all");
-    appNav.replace(`/configs/rsp?type=${tab.key}`);
-  };
-
   // Column-header sort: translate the clicked column + direction into the
   // popover's `globalSort` value so both sort mechanisms share one source.
   const handleSort = (sort: SortProps) => {
@@ -661,19 +1013,50 @@ const Rsp = () => {
   const activeHeaderSort =
     GLOBAL_TO_HEADER_SORT[searchParams.get("globalSort") || ""];
 
-  const handleBulkUpload = () => {
-    if (
-      AuthService.isMasterLogin() &&
-      !AuthService.isMasterLoginWithFullAccess()
-    ) {
-      appToast.show({
-        msg: t("youAreNotAuthorizedToDoThisAction"),
-        color: "danger",
-      });
-      return;
-    }
-    appNav.to("/dashboard/bulk-upload/pricing");
-  };
+  // Watched (not read once) so the mobile Sort By popover ticks the option
+  // that is actually active, including one set from a column header.
+  const activeGlobalSort = formMethods.watch("globalSort") || "";
+
+  // Mobile sort — the same sortable columns the desktop sheet carries, so both
+  // views sort on the same fields through `HEADER_SORT_TO_GLOBAL`.
+  const mobileSortOptions = useMemo(
+    () => [
+      { key: "dealName", label: t("product") },
+      { key: "purchasePrice", label: t("purchasePrice") },
+      { key: "mrp", label: t("mrp") },
+      {
+        key: "price",
+        label: effectiveType === "network" ? t("b2bPrice") : t("b2cPrice"),
+      },
+      { key: "maxQty", label: t("stock") },
+    ],
+    [effectiveType, t],
+  );
+
+  const mobileSortValue = activeHeaderSort
+    ? fromHeaderSort(activeHeaderSort)
+    : undefined;
+
+  // Hands `handleSort` the exact payload a column-header click sends
+  // ({ key, value: "asc" | "desc" }), so mobile and desktop build the same
+  // `globalSort` and therefore the same API sort object.
+  const handleMobileSort = (sort: SortValue) =>
+    handleSort({ key: sort.key, value: sort.value === 1 ? "asc" : "desc" });
+
+  // Parked along with the Bulk Upload button in the quick-links row.
+  // const handleBulkUpload = () => {
+  //   if (
+  //     AuthService.isMasterLogin() &&
+  //     !AuthService.isMasterLoginWithFullAccess()
+  //   ) {
+  //     appToast.show({
+  //       msg: t("youAreNotAuthorizedToDoThisAction"),
+  //       color: "danger",
+  //     });
+  //     return;
+  //   }
+  //   appNav.to("/dashboard/bulk-upload/pricing");
+  // };
 
   const handleGlobalDiscount = () => {
     if (AuthService.isMasterLogin()) {
@@ -715,6 +1098,169 @@ const Rsp = () => {
     });
   };
 
+  // ——— Bulk price setter ————————————————————————————————————————————
+
+  // Ids drive the checkbox state, so previously picked rows stay checked when
+  // the list reloads (load more, filter change, re-fetch after an apply).
+  const selectedIds = useMemo(
+    () => new Set<string>(selectedItems.map((item) => item._id || item.id)),
+    [selectedItems],
+  );
+
+  const handleSelectChange = useCallback((item: any, checked: boolean) => {
+    const id = item._id || item.id;
+    setSelectedItems((prev) => {
+      if (!checked) {
+        return prev.filter((row) => (row._id || row.id) !== id);
+      }
+      if (prev.some((row) => (row._id || row.id) === id)) {
+        return prev;
+      }
+      return [...prev, item];
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedItems([]), []);
+
+  // The bar is always available, so the "nothing picked yet" case is answered
+  // with a toast instead of a disabled button.
+  const handleBulkSetterOpen = () => {
+    if (!selectedItems.length) {
+      appToast.show({
+        msg: "Select at least one product to set the price on.",
+        color: "warning",
+      });
+      return;
+    }
+    setBulkModal(true);
+  };
+
+  // The modal writes the prices itself — this only reacts to the outcome.
+  const handleBulkCallback = ({
+    action,
+  }: {
+    action: "applied" | "clear" | "close";
+  }) => {
+    if (action === "close") {
+      setBulkModal(false);
+      return;
+    }
+    if (action === "clear") {
+      clearSelection();
+      return;
+    }
+    if (action === "applied") {
+      setBulkModal(false);
+      clearSelection();
+      // Re-read so the rows below show the prices that were just written.
+      applyFilter();
+      loadPriceSummary();
+    }
+  };
+
+  // ——— Design-driven derived state ————————————————————————————————
+
+  const stats = useMemo(
+    () =>
+      applyPriceSummary(
+        computePricingStats(
+          data,
+          paginationRef.current.totalRecords,
+          effectiveType,
+        ),
+        priceSummary,
+      ),
+    [data, effectiveType, loading, priceSummary],
+  );
+
+  // "Above online" is the one chip with no API filter behind it, so it still
+  // narrows the loaded page client-side. The pricing gaps do not: unpriced
+  // (`type=defaultToMrp`) and low margin (`type=lowMargin`) are server filters,
+  // and re-deriving them here would drop rows the API deliberately returned —
+  // an unpriced deal comes back priced at MRP.
+  const displayData = useMemo(
+    () =>
+      quickChip === "above"
+        ? data.filter(
+            (item) => getOnlineVerdict(item, effectiveType)?.type === "high",
+          )
+        : data,
+    [data, quickChip, effectiveType],
+  );
+
+  // Header checkbox — covers exactly the rows currently listed.
+  const handleSelectAllChange = useCallback(
+    (checked: boolean) => {
+      if (!checked) {
+        const listedIds = new Set(
+          displayData.map((item) => item._id || item.id),
+        );
+        setSelectedItems((prev) =>
+          prev.filter((row) => !listedIds.has(row._id || row.id)),
+        );
+        return;
+      }
+      setSelectedItems((prev) => {
+        const next = [...prev];
+        displayData.forEach((item) => {
+          const id = item._id || item.id;
+          if (!next.some((row) => (row._id || row.id) === id)) {
+            next.push(item);
+          }
+        });
+        return next;
+      });
+    },
+    [displayData],
+  );
+
+  const chipCategories = useMemo(
+    () =>
+      Array.from(categoriesRef.current, ([id, name]) => ({ id, name })).slice(
+        0,
+        8,
+      ),
+    [data],
+  );
+
+  const activeChip =
+    quickChip === "above" ? "above" : searchParams.get("categoryId") || "all";
+
+  const handleChipSelect = (key: string) => {
+    if (key === "above") {
+      setQuickChip("above");
+      return;
+    }
+    setQuickChip("all");
+    if (key === "all") {
+      formMethods.setValue("category", []);
+    } else {
+      const name = categoriesRef.current.get(key) || "";
+      formMethods.setValue("category", [
+        { label: name, value: { id: key, name } },
+      ]);
+    }
+    handleFilterChange({ formData: formMethods.getValues() });
+  };
+
+  // Mobile pricing quick-filter strip — the chip writes `pricingFilter` into
+  // the URL, which the effect above reads back into the form on every change.
+  const activePricingFilter = formMethods.watch("pricingFilter") || "all";
+
+  const handlePricingFilterSelect = (key: PricingFilterChipKey) => {
+    if (key === activePricingFilter) return;
+    formMethods.setValue("pricingFilter", key);
+    handleFilterChange({ formData: formMethods.getValues() });
+  };
+
+  // The tabs and cards navigate themselves; the screen only clears the price filter so
+  // the new channel opens on the full list.
+  const handleChannelChange = () => formMethods.setValue("priceMode", "all");
+
+  const summaryCards = (
+    <PricingSummaryCards stats={stats} summary={summary} type={effectiveType} />
+  );
+
   return (
     <>
       <AppHeader
@@ -722,52 +1268,127 @@ const Rsp = () => {
         showAudioNote={true}
         audioNoteTitle="Manage Price"
         audioFeature="managePrice"
+        sectionKey="catalog"
+        activeTab="pricing"
+        mobileLead="menu"
       />
-      <div className="app-page tw:p-4 page-bg">
-        <div className="app-container">
-          <div className="tw:flex tw:justify-between tw:items-center">
-            <AppBreadcrumbs data={breadcrumbs} />
-          </div>
+      {/* `has-footer` reserves room for the fixed bulk bar. */}
+      <div className="app-page page-padding page-bg has-footer">
+        {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css). */}
+        {/* <SectionTabs sectionKey="catalog" activeTab="pricing" noShadow sticky /> */}
 
-          <PageDescription description="managePrice" className="tw:mb-4" />
+        <div className="section-layout">
+          {/* Desktop-only left rail — catalog section side menu. */}
+          <aside className="section-menu-aside">
+            <div className="tw:sticky tw:top-20">
+              <SectionMenu
+                sectionKey="catalog"
+                activeTab="pricing"
+                title={t("manageCatalog", { ns: "menu" })}
+              />
+            </div>
+          </aside>
 
-          <ManagePriceTabs
-            activeTab={effectiveType === "network" ? "b2b" : "b2c"}
-            className="tw:mb-4"
-          />
+          <div className="section-content app-container">
+            <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start theme-2-mobile-gap-top">
+              <AppPaneMain className="tw:lg:col-span-12">
+                {/* Dropped wholesale in theme-2 (both children are hidden
+                    there anyway) so the empty wrapper stops contributing a
+                    stack gap above the command bar. */}
+                <div className="hide-in-theme-2">
+                  <AppBreadcrumbs data={breadcrumbs} />
+                  <PageDescription description="managePrice" />
+                </div>
 
-          <AppCard noContentPadding={true}>
-            <div className="tw:px-4">
-              {/* <div className="tw:text-base tw:font-semibold tw:mb-4">
-                Pricing ({paginationRef.current.totalRecords} items)
-              </div> */}
-              <FormProvider {...formMethods}>
-                <Filter callback={handleFilterChange} />
-                <RspAppliedFilter onFilterChange={handleFilterChange} />
-                <div className="tw:mb-4 tw:mt-4 tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-end tw:flex-wrap">
-                  <div className="tw:flex-1 tw:hidden tw:md:block">
-                    <PaginationSummary
-                      paginationConfig={paginationRef.current}
-                      loadingTotalRecords={loading}
-                      loadedCount={data.length}
-                      fwSize="sm"
+                {/* Pricing command bar — one edge-to-edge white block holding
+                    the channel cards (B2C / B2B) above the underline tab
+                    row. */}
+                <div className="pricing-command-bar tw:-mt-6 tw:md:mt-0">
+                  <div className="tw:px-4 tw:md:pt-3 tw:py-2 tw:md:py-0">
+                    <PricingChannelCards
+                      activeKey={effectiveType}
+                      callback={handleChannelChange}
+                      // Compact tab row on mobile; full cards from md up.
+                      variant={isMobile ? "tab" : "card"}
+                      // The underline tab row below is desktop-only, so on
+                      // mobile the cards carry Trend watch as one more pill.
+                      viewTab="sheet"
                     />
                   </div>
-                  <div className="tw:flex tw:gap-2 tw:flex-wrap tw:items-center">
-                    <AppCheckbox
-                      label="Show online prices"
-                      size="xs"
-                      value={showOnlinePrices}
-                      onChange={setShowOnlinePrices}
-                      className="tw:flex tw:items-center tw:px-2.5 tw:py-1.5 tw:border tw:border-gray-200 tw:rounded-md tw:text-gray-600 tw:whitespace-nowrap"
+
+                  {isMobile ? (
+                    <>
+                      <div className="tw:px-4 tw:border-t tw:border-gray-200 tw:py-2">
+                        <FormProvider {...formMethods}>
+                          <Filter callback={handleFilterChange} />
+                        </FormProvider>
+
+                        {/* B2C only — the B2B sheet already carries a filter
+                            row of its own (groups), and two strips of chips
+                            stacked on a phone is one too many.
+                            The strip carries its own top margin — the row
+                            owns the spacing now, so cancel it. */}
+                        {effectiveType !== "network" && (
+                          <PricingFilterChips
+                            active={activePricingFilter}
+                            onSelect={handlePricingFilterSelect}
+                            className="tw:mt-2! tw:md:hidden"
+                          />
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+
+                  <PriceTabs
+                    type={effectiveType}
+                    activeTab="sheet"
+                    // Scheme / Price Slab live in the B2B row below, next to
+                    // the group filter they belong with.
+                    hiddenKeys={["b2bScheme", "priceSlab"]}
+                    className="tw:mt-1 tw:px-4 tw:hidden tw:md:block"
+                  />
+
+                  {/* B2B row — the two B2B-only screens plus the buyer-group
+                      filter. Mobile has no tab row above it, so this is also
+                      the way through to Scheme and Price Slab there. */}
+                  {effectiveType === "network" && (
+                    <B2BPriceTools
+                      groups={priceGroups}
+                      activeGroupId={groupFilter}
+                      onGroupChange={setGroupFilter}
+                      onGroupsChange={loadPriceGroups}
+                      className="tw:border-t tw:border-gray-200 tw:px-4 tw:py-2"
                     />
+                  )}
+                </div>
+
+                {/* Surfaced here (rather than only in Advanced Settings)
+                    because this is where online prices are being looked at:
+                    the sheet's online-price columns are a local view, this
+                    states what customers see on the CLUB APP. */}
+                {showOnlinePrices && <OnlinePriceOnAppToggle />}
+
+                {/* Quick links + bulk actions — parked for now.
+                <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2">
+                  <div className="tw:ml-auto tw:hidden tw:items-center tw:gap-2 tw:md:flex">
+                    <AppButton
+                      size="small"
+                      color="light"
+                      fill="outline"
+                      onClick={() => appNav.to("/configs/rsp/history")}
+                    >
+                      <Clock size={14} />
+                      History
+                    </AppButton>
                     <AppButton
                       size="small"
                       color="light"
                       fill="outline"
                       onClick={handleBulkUpload}
                     >
-                      <Upload size={16} />
+                      <Upload size={14} />
                       Bulk Upload
                     </AppButton>
                     <AppButton
@@ -776,139 +1397,219 @@ const Rsp = () => {
                       fill="outline"
                       onClick={handleGlobalDiscount}
                     >
-                      <Percent size={16} />
+                      <Percent size={14} />
                       Global Discount
                     </AppButton>
-                    <ViewToggle viewType={view} callback={setView} />
-                    <div>
-                      <SortBy
-                        globalSortValue={
-                          formMethods.getValues().globalSort || ""
-                        }
-                        open={sortPopoverOpen}
-                        onOpenChange={setSortPopoverOpen}
-                        onSelect={handleSortSelect}
-                      />
-                    </div>
                   </div>
                 </div>
-              </FormProvider>
-            </div>
+                */}
 
-            {isMobile || view === "card" ? (
-              <>
-                {loading ? (
-                  <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4 tw:md:mx-4">
-                    {Array.from({ length: 6 }).map((_, idx) => (
-                      <div
-                        key={idx}
-                        className="tw:bg-white tw:md:rounded-lg tw:border tw:border-gray-200 tw:animate-pulse"
-                      >
-                        <div className="tw:p-4">
-                          <div className="tw:flex tw:items-start tw:gap-3 tw:mb-3">
-                            <div className="tw:w-16 tw:h-16 tw:bg-gray-200 tw:rounded"></div>
-                            <div className="tw:flex-1">
-                              <div className="tw:h-4 tw:bg-gray-200 tw:rounded tw:mb-2 tw:w-3/4"></div>
-                              <div className="tw:h-3 tw:bg-gray-200 tw:rounded tw:w-1/2"></div>
-                            </div>
-                          </div>
-                          <div className="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:mb-3">
-                            <div className="tw:flex-1">
-                              <div className="tw:h-6 tw:bg-gray-200 tw:rounded tw:mb-1"></div>
-                              <div className="tw:h-3 tw:bg-gray-200 tw:rounded tw:w-20"></div>
-                            </div>
-                            <div className="tw:flex-1">
-                              <div className="tw:h-5 tw:bg-gray-200 tw:rounded tw:mb-1"></div>
-                              <div className="tw:h-3 tw:bg-gray-200 tw:rounded tw:w-24"></div>
-                            </div>
-                            <div className="tw:flex-1">
-                              <div className="tw:h-5 tw:bg-gray-200 tw:rounded tw:mb-1"></div>
-                              <div className="tw:h-3 tw:bg-gray-200 tw:rounded tw:w-16"></div>
-                            </div>
-                          </div>
+                <div className="tw:hidden tw:md:block">{summaryCards}</div>
+
+                {/* Filter block — its own compact card, separate from the
+                    sheet below so the table reads as one uninterrupted
+                    surface. */}
+                {/* `noPadding` (not `noContentPadding`) — the card's own
+                    vertical padding is what was adding the top/bottom air. */}
+                {!isMobile && (
+                  <AppCard noPadding className="tw:mb-2">
+                    <div className="tw:p-2">
+                      <FormProvider {...formMethods}>
+                        <Filter callback={handleFilterChange} />
+
+                        <RspAppliedFilter onFilterChange={handleFilterChange} />
+
+                        {/* Online-price toggle, card/list view toggle and Sort By
+                          are parked — the sheet now shows online prices by
+                          default and sorts from the column headers.
+                      <div className="tw:mt-2 tw:hidden tw:flex-wrap tw:items-center tw:justify-end tw:gap-2 tw:md:flex">
+                        <AppCheckbox
+                          label="Show online prices"
+                          size="xs"
+                          value={showOnlinePrices}
+                          onChange={setShowOnlinePrices}
+                          className="tw:flex tw:items-center tw:px-2 tw:py-1 tw:border tw:border-gray-200 tw:rounded-md tw:text-gray-600 tw:whitespace-nowrap"
+                        />
+                        <ViewToggle viewType={view} callback={setView} />
+                        <div>
+                          <SortBy
+                            globalSortValue={
+                              formMethods.getValues().globalSort || ""
+                            }
+                            open={sortPopoverOpen}
+                            onOpenChange={setSortPopoverOpen}
+                            onSelect={handleSortSelect}
+                          />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : !loading && data.length === 0 ? (
-                  <NoData />
-                ) : (
-                  <>
-                    <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4 tw:md:mx-4">
-                      {data.map((item, index) => (
-                        <Mobile
-                          key={item._id}
-                          item={item}
-                          callback={handleItemCallback}
-                          type={effectiveType}
-                          isFirst={index === 0}
-                          showOnlinePrices={showOnlinePrices}
-                        />
-                      ))}
+                      */}
+                      </FormProvider>
                     </div>
-                    {hasMoreData && !loading && data.length > 0 && (
-                      <LoadMoreButton
-                        loadMore={loadMore}
-                        loading={loadingMore}
-                        totalCount={paginationRef.current.totalRecords}
-                        loadedCount={data.length}
-                      />
-                    )}
-                  </>
+                  </AppCard>
                 )}
-              </>
-            ) : (
-              <DesktopView
-                data={data}
-                callback={handleItemCallback}
-                loading={loading}
-                type={effectiveType}
-                onSort={handleSort}
-                showOnlinePrices={showOnlinePrices}
-                sortKey={activeHeaderSort?.key || ""}
-                sortValue={activeHeaderSort?.value || "asc"}
-                showLoadMore={hasMoreData && !loading}
-                loadingMore={loadingMore}
-                loadMore={loadMore}
-                totalCount={paginationRef.current.totalRecords}
-                loadedCount={data.length}
-              />
-            )}
-          </AppCard>
 
+                {/* Count line sits between the filter card and the sheet, so
+                    the filter block stays purely about filtering. Mobile keeps
+                    it too — it is the only place the total is stated there,
+                    and it carries the sort trigger: the mobile list has no
+                    column headers to sort from. */}
+                <div className="tw:mb-2 tw:flex tw:items-center tw:justify-between tw:gap-2">
+                  <PaginationSummary
+                    paginationConfig={paginationRef.current}
+                    loadingTotalRecords={loading}
+                    loadedCount={data.length}
+                    fwSize="sm"
+                  />
+
+                  {isMobile && (
+                    <SortPopover
+                      options={mobileSortOptions}
+                      sortValue={mobileSortValue}
+                      onSort={handleMobileSort}
+                    />
+                  )}
+                </div>
+
+                {isMobile ? (
+                  <MobileView
+                    data={displayData}
+                    type={effectiveType}
+                    callback={handleItemCallback}
+                    onPriceResult={handlePriceResult}
+                    loading={loading}
+                    priceGroups={visibleGroups}
+                    focusGroup={
+                      groupFilter === ALL_GROUPS
+                        ? null
+                        : visibleGroups[0] || null
+                    }
+                    selectedIds={selectedIds}
+                    onSelectChange={handleSelectChange}
+                    showLoadMore={hasMoreData && quickChip !== "above"}
+                    loadingMore={loadingMore}
+                    loadMore={loadMore}
+                    totalCount={paginationRef.current.totalRecords}
+                    loadedCount={data.length}
+                  />
+                ) : (
+                  // The table keeps its own sticky header and scroll
+                  // container, so the card contributes no padding.
+                  <AppCard noPadding className="tw:mb-0">
+                    <DesktopView
+                      data={displayData}
+                      callback={handleItemCallback}
+                      onPriceResult={handlePriceResult}
+                      loading={loading}
+                      type={effectiveType}
+                      onSort={handleSort}
+                      showOnlinePrices={showOnlinePrices}
+                      priceGroups={visibleGroups}
+                      sortKey={activeHeaderSort?.key || ""}
+                      sortValue={activeHeaderSort?.value || "asc"}
+                      showLoadMore={
+                        hasMoreData && !loading && quickChip !== "above"
+                      }
+                      loadingMore={loadingMore}
+                      loadMore={loadMore}
+                      totalCount={paginationRef.current.totalRecords}
+                      loadedCount={data.length}
+                      selectedIds={selectedIds}
+                      onSelectChange={handleSelectChange}
+                      onSelectAllChange={handleSelectAllChange}
+                    />
+                  </AppCard>
+                )}
+              </AppPaneMain>
+
+              {/* Side column — only rendered while the theme-2 split layout is
+                  active (lg+), where the CSS re-homes it as the fixed list pane
+                  beside the icon rail. */}
+              <AppPaneSide className="app-pane-only">
+                <PricingSidePane
+                  priceType={effectiveType === "network" ? "b2b" : "b2c"}
+                  filter={paneFilter}
+                  onFilterChange={setPaneFilter}
+                />
+              </AppPaneSide>
+            </div>
+          </div>
+        </div>
+
+        {/* Bulk bar — always on the price sheet, mobile and desktop alike, so
+            the bulk flow is discoverable before anything is checked. */}
+        <div className="app-footer app-footer-fixed">
+          <div className="tw:flex tw:items-center tw:justify-between tw:gap-3">
+            <div className="tw:min-w-0">
+              <div className="tw:text-sm tw:font-bold tw:text-slate-900">
+                {selectedItems.length
+                  ? `${selectedItems.length} selected`
+                  : "Bulk price setter"}
+              </div>
+              {selectedItems.length ? (
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="tw:cursor-pointer tw:text-xs tw:font-medium tw:text-slate-500 tw:underline"
+                >
+                  Clear selection
+                </button>
+              ) : (
+                <div className="tw:text-xs tw:text-slate-500">
+                  Select products to change price on many SKUs at once
+                </div>
+              )}
+            </div>
+            <AppButton onClick={handleBulkSetterOpen}>
+              <Zap size={16} />
+              Set price
+            </AppButton>
+          </div>
+        </div>
+
+        <BulkPriceModal
+          show={bulkModal}
+          selected={selectedItems}
+          type={effectiveType}
+          callback={handleBulkCallback}
+        />
+
+        {/* Desktop only — on mobile a row taps straight through to the
+            product view instead of opening the config detail. */}
+        {!isMobile && (
           <ItemDetailModal
             show={itemDetailModal.show}
             data={itemDetailModal.data}
             callback={handleModalCallback}
             type={effectiveType}
           />
+        )}
 
-          <PriceConfigModal
-            show={rspManageModal.show}
-            type={rspManageModal.type || undefined}
-            callback={handleRspManageModalCallback}
-            dealId={rspManageModal.dealId || undefined}
-          />
+        <PriceConfigModal
+          show={rspManageModal.show}
+          type={rspManageModal.type || undefined}
+          callback={handleRspManageModalCallback}
+          dealId={rspManageModal.dealId || undefined}
+          group={rspManageModal.group}
+        />
 
-          <BulkUploadModal
-            show={bulkUploadModal.show}
-            callback={handleBulkUploadModalCallback}
-            type={effectiveType}
-            products={bulkUploadModal.products}
-          />
+        <BulkUploadModal
+          show={bulkUploadModal.show}
+          callback={handleBulkUploadModalCallback}
+          type={effectiveType}
+          products={bulkUploadModal.products}
+        />
 
-          <PriceSlabConfigModal
-            show={priceSlabModal.show}
-            editId={priceSlabModal.editId || undefined}
-            type="product"
-            targetDetails={priceSlabModal.targetDetails}
-            slabs={priceSlabModal.slabs}
-            callback={handlePriceSlabModalCallback}
-            channel={effectiveType === "network" ? "b2b" : "b2c"}
-            disableChannel={true}
-            hideTabs={false}
-          />
-        </div>
+        <PriceSlabConfigModal
+          show={priceSlabModal.show}
+          editId={priceSlabModal.editId || undefined}
+          type="product"
+          targetDetails={priceSlabModal.targetDetails}
+          slabs={priceSlabModal.slabs}
+          callback={handlePriceSlabModalCallback}
+          channel={effectiveType === "network" ? "b2b" : "b2c"}
+          disableChannel={true}
+          hideTabs={false}
+        />
       </div>
     </>
   );

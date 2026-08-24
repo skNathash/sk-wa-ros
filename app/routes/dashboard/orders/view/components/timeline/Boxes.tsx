@@ -43,7 +43,7 @@ const swiperConfig: SwiperOptions = {
 
 // Helper function to get badge variant based on status
 function getStatusVariant(
-  status: string
+  status: string,
 ): "success" | "primary" | "warning" | "danger" | "secondary" {
   const statusLower = status.toLowerCase();
 
@@ -107,7 +107,7 @@ const Boxes: React.FC<BoxesProps> = ({ orderId, className }) => {
 
         if (response.statusCode === 200 && response.data) {
           const transformedPackages = transformBoxesResponse(
-            response.data?.data || []
+            response.data?.data || [],
           );
 
           setPackages(transformedPackages);

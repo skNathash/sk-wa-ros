@@ -121,6 +121,7 @@ const DesktopView: React.FC<DesktopViewProps> = ({
         minWidth="1000px"
         containerStyle={containerStyle}
         stickyHeader
+        condensed
       >
         <AppTable.Header>
           <TableHeader

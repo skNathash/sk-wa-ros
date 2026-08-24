@@ -16,11 +16,11 @@ const LocationsListPopover: FC<Props> = ({ areas = [], className = "" }) => {
   const remaining = areas.length - visible.length;
 
   return (
-    <div className={`tw:flex tw:items-center tw:gap-2 ${className}`}>
+    <div className={`tw:flex tw:items-center tw:gap-1 ${className}`}>
       {visible.map((a, i) => (
         <span
           key={i}
-          className="tw:inline-flex tw:px-2 tw:py-0.5 tw:rounded tw:bg-blue-50 tw:text-blue-600 tw:text-[11px] tw:font-semibold tw:border tw:border-blue-100/50"
+          className="tw:inline-flex tw:px-1.5 tw:rounded tw:bg-blue-50 tw:text-blue-600 tw:text-[11px] tw:font-semibold tw:leading-5 tw:truncate tw:max-w-[110px]"
         >
           {a}
         </span>
@@ -37,7 +37,7 @@ const LocationsListPopover: FC<Props> = ({ areas = [], className = "" }) => {
           triggerContent={
             <button
               type="button"
-              className="tw:inline-flex tw:px-2 tw:py-0.5 tw:rounded tw:bg-gray-100 tw:text-gray-700 tw:text-[11px] tw:font-semibold tw:border tw:border-gray-200/50"
+              className="tw:inline-flex tw:px-1.5 tw:rounded tw:bg-gray-100 tw:text-gray-700 tw:text-[11px] tw:font-semibold tw:leading-5 tw:cursor-pointer"
               onClick={() => setOpen((s) => !s)}
             >
               +{remaining} more

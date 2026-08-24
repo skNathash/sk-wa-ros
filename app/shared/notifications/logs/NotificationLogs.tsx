@@ -1,8 +1,10 @@
+import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import AppCard from "~/components/core/card/AppCard";
 import AppTab from "~/components/core/tab/AppTab";
 import useScreenView from "~/hooks/useScreenView";
+import useTheme from "~/hooks/useTheme";
 import type {
   PaginationState,
   TabItem,
@@ -46,6 +48,7 @@ type NotificationLogsProps = {
   userId: string;
   type: "b2b" | "b2c";
   email?: string;
+  tabClassName?: string;
 };
 
 const NotificationLogs = ({
@@ -53,6 +56,7 @@ const NotificationLogs = ({
   userId,
   type,
   email,
+  tabClassName,
 }: NotificationLogsProps) => {
   const [activeTab, setActiveTab] = useState<TabItem["key"]>("whatsappGeneric");
   const formMethods = useForm({
@@ -62,6 +66,8 @@ const NotificationLogs = ({
   const { getValues, setValue } = formMethods;
 
   const { isMobile } = useScreenView();
+
+  const isTheme2 = useTheme() === "theme-2";
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -175,32 +181,48 @@ const NotificationLogs = ({
     applyFilter();
   }, [activeTab, mobileNo, userId, type]);
 
+  const summaryRow = (
+    <div className="tw:flex tw:items-center tw:justify-between">
+      <div>
+        <PaginationSummary
+          paginationConfig={paginationRef.current}
+          loadingTotalRecords={loading}
+          loadedCount={data.length}
+          fwSize="sm"
+        />
+      </div>
+      <div>
+        <ViewToggle viewType={view} callback={setView} />
+      </div>
+    </div>
+  );
+
   return (
     <>
+      {/* Channel switch, styled like every other page-level sub-nav (see the
+          bulk upload layout): theme-2 mobile gets the full-bleed underlined
+          tray pinned under the section bar, theme-2 desktop the pill band on
+          its own white strip, other themes the segmented control. */}
       <AppTab
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        className="tw:mb-4"
+        variant={isTheme2 ? (isMobile ? "underline" : "pills") : "tabs"}
+        className={clsx("tw:mb-4", tabClassName)}
+        scrollable={isTheme2 && isMobile}
       />
 
       <FormProvider {...formMethods}>
         <Filter callback={handleFilterChange} />
       </FormProvider>
 
-      <div className="tw:mb-4 tw:flex tw:items-center tw:justify-between">
-        <div>
-          <PaginationSummary
-            paginationConfig={paginationRef.current}
-            loadingTotalRecords={loading}
-            loadedCount={data.length}
-            fwSize="sm"
-          />
-        </div>
-        <div>
-          <ViewToggle viewType={view} callback={setView} />
-        </div>
-      </div>
+      {isMobile ? (
+        <div className="tw:mb-4">{summaryRow}</div>
+      ) : (
+        <AppCard className="tw:py-3" bodyClassName="tw:px-4">
+          {summaryRow}
+        </AppCard>
+      )}
 
       {isMobile || view === "card" ? (
         <MobileView

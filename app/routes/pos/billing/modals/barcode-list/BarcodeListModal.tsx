@@ -154,7 +154,7 @@ const BarcodeListModal: React.FC<BarcodeListModalProps> = ({
           placeholder="Search by Barcode or Deal Name ..."
           register={register}
           onChange={handleSearch}
-          leftIcon={<Search className="tw:text-muted-foreground" size={16} />}
+          leftIcon={<Search className="tw:text-gray-500" size={16} />}
           className="tw:mb-2 tw:mt-1"
         />
 
@@ -180,20 +180,20 @@ const BarcodeListModal: React.FC<BarcodeListModalProps> = ({
               role="button"
               tabIndex={0}
               onClick={() => handleSelect(item)}
-              className="tw:border tw:border-border tw:rounded-xl tw:p-3 tw:flex tw:justify-between tw:items-center tw:cursor-pointer tw:transition-colors tw:hover:border-primary/40 tw:hover:bg-muted/40"
+              className="tw:border tw:rounded tw:p-3 tw:flex tw:justify-between tw:items-center tw:cursor-pointer tw:hover:bg-gray-50"
             >
               <div>
-                <div className="wa-mono tw:font-semibold tw:text-sm tw:text-foreground">
+                <div className="tw:font-semibold tw:text-sm">
                   {item.barcode || "-"}
                 </div>
-                <div className="tw:text-xs tw:text-muted-foreground tw:mt-1">
+                <div className="tw:text-xs tw:text-gray-500 tw:mt-1">
                   {item.name || "-"}
                 </div>
               </div>
               {item.barcode && (
                 <button
                   onClick={(e) => handleCopy(item.barcode, e)}
-                  className="tw:p-1.5 tw:rounded-full tw:text-muted-foreground tw:hover:text-primary tw:hover:bg-primary/10 tw:cursor-pointer"
+                  className="tw:p-1.5 tw:rounded tw:text-gray-400 tw:hover:text-gray-600 tw:hover:bg-gray-100 tw:cursor-pointer"
                 >
                   <Copy size={14} />
                 </button>

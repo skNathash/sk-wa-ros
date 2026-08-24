@@ -19,7 +19,7 @@ const InvoiceProductModal = ({
   const { t } = useTranslation(["common"]);
   const totalAmount = products.reduce(
     (a: any, b: any) => a + b.price * b.quantity,
-    0
+    0,
   );
 
   const onClose = () => {
@@ -82,7 +82,8 @@ const InvoiceProductModal = ({
             <tr>
               <td colSpan={5}>
                 <div className="tw:flex tw:justify-end tw:gap-2 tw:py-2 tw:font-semibold">
-                  {t("totalAmount")}: <Amount value={totalAmount} decimalPlaces={2} />
+                  {t("totalAmount")}:{" "}
+                  <Amount value={totalAmount} decimalPlaces={2} />
                 </div>
               </td>
             </tr>

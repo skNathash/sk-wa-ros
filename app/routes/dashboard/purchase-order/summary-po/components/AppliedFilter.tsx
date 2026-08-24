@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import AppliedFilter from "~/components/core/applied-filters/AppliedFilter";
 import PurchaseOrderService from "~/services/PurchaseOrderService";
 import type { AppliedFilterLabel } from "~/types/CommonTypes";
-import { purchasedFromOptions } from "../helper";
 
 interface SummaryPoAppliedFilterProps {
   onFilterChange: (filters: { formData: any }) => void;
@@ -35,17 +34,6 @@ const SummaryPoAppliedFilter = ({
     return map;
   }, [t]);
 
-  // Create type label mapping
-  const typeLabelMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    purchasedFromOptions.forEach((option) => {
-      if (option.value !== "All") {
-        map[option.value] = option.label;
-      }
-    });
-    return map;
-  }, [watchedFilters.purchasedFrom]);
-
   // Transform filter values to show proper labels
   const transformFilterValues = useCallback(
     (formData: Record<string, any>): Record<string, any> => {
@@ -57,15 +45,9 @@ const SummaryPoAppliedFilter = ({
           statusLabelMap[transformed.status] || transformed.status;
       }
 
-      // Transform purchasedFrom (type) value to label
-      if (transformed.purchasedFrom && transformed.purchasedFrom !== "All") {
-        transformed.purchasedFrom =
-          typeLabelMap[transformed.purchasedFrom] || transformed.purchasedFrom;
-      }
-
       return transformed;
     },
-    [statusLabelMap, typeLabelMap]
+    [statusLabelMap]
   );
 
   // Filter mapping for the applied filter component
@@ -81,11 +63,6 @@ const SummaryPoAppliedFilter = ({
     },
     status: {
       label: t("status") || "Status",
-      resetValue: "All",
-      ignoreValue: "All", // Don't display filter when value is "All"
-    },
-    purchasedFrom: {
-      label: t("type") || "Type",
       resetValue: "All",
       ignoreValue: "All", // Don't display filter when value is "All"
     },

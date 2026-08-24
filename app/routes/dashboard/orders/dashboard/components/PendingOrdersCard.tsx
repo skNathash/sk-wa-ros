@@ -5,9 +5,11 @@ import AppButton from "~/components/core/button/AppButton";
 import AppCard from "~/components/core/card/AppCard";
 import Divider from "~/components/core/divider/Divider";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
+import useTheme from "~/hooks/useTheme";
 import OmsDashboardService from "~/services/OmsDashboardService";
 import { prepareParams } from "../helper";
 import OrdersListModal from "../modals/orders-list/OrdersListModal";
+import StatusCard from "./theme2/StatusCard";
 
 interface PendingOrdersCardProps {
   search: string;
@@ -39,6 +41,7 @@ const PendingOrdersCard: React.FC<PendingOrdersCardProps> = ({
   callback,
 }) => {
   const [loading, setLoading] = useState(true);
+  const isTheme2 = useTheme() === "theme-2";
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -129,47 +132,81 @@ const PendingOrdersCard: React.FC<PendingOrdersCardProps> = ({
 
   return (
     <>
-      <AppCard
-        title="Pending Orders"
-        icon={<ShoppingCart />}
-        iconClassName="tw:text-amber-500"
-        className="tw:mb-0"
-      >
-        <div className="tw:grid tw:grid-cols-2 tw:gap-1.5 tw:mb-2">
-          <StatItem
-            label="Total Orders"
-            value={loading ? <AppSpinner /> : summary.totalOrders}
-          />
-          <StatItem
-            label="Total Products"
-            value={loading ? <AppSpinner /> : summary.totalProducts}
-          />
-        </div>
+      {isTheme2 ? (
+        <StatusCard
+          title="Pending Orders"
+          icon={<ShoppingCart />}
+          iconWrapClass="tw:bg-amber-50 tw:text-amber-600"
+          loading={loading}
+          stats={[
+            {
+              label: "Total Orders",
+              value: summary.totalOrders,
+              barClass: "tw:bg-amber-500",
+            },
+            {
+              label: "Total Products",
+              value: summary.totalProducts,
+              barClass: "tw:bg-amber-300",
+            },
+          ]}
+          totalLabel="Total Value"
+          totalValue={Number(summary.totalValue)}
+          actions={[
+            {
+              label: "Pick orders",
+              onClick: onPickOrder,
+              disabled: summary.totalOrders === 0,
+            },
+          ]}
+        />
+      ) : (
+        <AppCard
+          title="Pending Orders"
+          icon={<ShoppingCart />}
+          iconClassName="tw:text-amber-500"
+          noPadding
+          headerClassName="tw:px-3 tw:pt-3"
+          className="tw:mb-0"
+        >
+          <div className="tw:px-3 tw:pb-3">
+            <div className="tw:grid tw:grid-cols-2 tw:gap-1.5 tw:mb-2">
+              <StatItem
+                label="Total Orders"
+                value={loading ? <AppSpinner /> : summary.totalOrders}
+              />
+              <StatItem
+                label="Total Products"
+                value={loading ? <AppSpinner /> : summary.totalProducts}
+              />
+            </div>
 
-        <div className="tw:flex tw:justify-between tw:items-center tw:px-1.5 tw:py-1.5 tw:bg-secondary/30 tw:rounded-md tw:mb-2">
-          <div className="tw:text-xs tw:text-muted-foreground tw:uppercase tw:tracking-wide tw:leading-tight">
-            Total Value
-          </div>
-          <div className="tw:text-sm tw:font-semibold tw:text-foreground">
-            {loading ? (
-              <AppSpinner />
-            ) : (
-              <Amount value={Number(summary.totalValue)} />
-            )}
-          </div>
-        </div>
+            <div className="tw:flex tw:justify-between tw:items-center tw:px-1.5 tw:py-1.5 tw:bg-secondary/30 tw:rounded-md tw:mb-2">
+              <div className="tw:text-xs tw:text-muted-foreground tw:uppercase tw:tracking-wide tw:leading-tight">
+                Total Value
+              </div>
+              <div className="tw:text-sm tw:font-semibold tw:text-foreground">
+                {loading ? (
+                  <AppSpinner />
+                ) : (
+                  <Amount value={Number(summary.totalValue)} />
+                )}
+              </div>
+            </div>
 
-        <div className="tw:flex tw:justify-end tw:gap-2">
-          <AppButton
-            onClick={onPickOrder}
-            color="primary"
-            size="small"
-            disabled={summary.totalOrders === 0}
-          >
-            Pick orders
-          </AppButton>
-        </div>
-      </AppCard>
+            <div className="tw:flex tw:justify-end tw:gap-2">
+              <AppButton
+                onClick={onPickOrder}
+                color="primary"
+                size="small"
+                disabled={summary.totalOrders === 0}
+              >
+                Pick orders
+              </AppButton>
+            </div>
+          </div>
+        </AppCard>
+      )}
 
       <OrdersListModal
         show={ordersListModal.show}

@@ -39,21 +39,22 @@ const Filter: React.FC<FilterProps> = ({ callback }) => {
   };
 
   return (
-    <div className="tw:flex tw:gap-2 tw:items-center tw:mb-3">
-      <div className="tw:flex-1">
+    <div className="tw:flex tw:gap-2 tw:items-center tw:mb-3 tw:w-full tw:bg-white tw:p-4 tw:md:bg-transparent tw:md:p-0 app-bleed-x tw:-mt-4 tw:md:mt-0">
+      <div className="tw:w-full">
         <AppInput
           name="search"
           label={undefined}
           placeholder="Search by route name"
           register={register}
           onChange={handleSearchChange}
+          className="tw:w-full"
           inputClassName="tw:w-full"
           size="sm"
           leftIcon={<Search className="tw:w-4 tw:h-4 tw:text-gray-400" />}
         />
       </div>
 
-      <div className="tw:w-48">
+      <div>
         <Controller
           name="status"
           control={control}

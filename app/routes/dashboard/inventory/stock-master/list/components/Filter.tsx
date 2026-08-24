@@ -73,7 +73,9 @@ const Filter = ({ callback }: FilterProps) => {
 
   return (
     <>
-      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4 tw:mb-4">
+      {/* No bottom margin — the sticky white strip wrapping this filter owns the
+          spacing below it (see the list page). */}
+      <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-3 tw:gap-4">
         <AppInput
           name="search"
           register={register}

@@ -1,12 +1,11 @@
 import { sub, subMonths } from "date-fns";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Receipt } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DayPickerProps } from "react-day-picker";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import AppCard from "~/components/core/card/AppCard";
-import FileUpload from "~/components/core/file-upload/FileUpload";
-import FileUploadedSlide from "~/components/core/file-upload/FileUploadedSlide";
+import InvoiceImageUploader from "./InvoiceImageUploader";
 import { AppSelect } from "~/components/core/form";
 import AppDateInput from "~/components/core/form/AppDateInput";
 import { AppInput } from "~/components/core/form/AppInput";
@@ -65,7 +64,7 @@ const PoInvoice: React.FC = () => {
 
   // Add uploaded file to invoice array
   const onInvoiceFileUpload = (fileObj: any) => {
-    const fileId = fileObj?._id || fileObj?.id || "";
+    const fileId = fileObj?._id || "";
     if (!fileId) return;
     setValue(
       "invoice.invoiceUpload",
@@ -83,7 +82,7 @@ const PoInvoice: React.FC = () => {
 
   // Add uploaded file to payment array
   const onPaymentFileUpload = (fileObj: any) => {
-    const fileId = fileObj?._id || fileObj?.id || "";
+    const fileId = fileObj?._id || "";
     if (!fileId) return;
     setValue(
       "invoice.paymentUpload",
@@ -100,58 +99,50 @@ const PoInvoice: React.FC = () => {
   };
 
   return (
+    // Stays inside the page gutter so it reads as the last bubble in the thread
+    // the product rows above form, rather than a full-bleed sheet.
     <AppCard
       title={t("poInvoice.invoiceAndPaymentDetails")}
-      className="tw:mb-6"
+      icon={<Receipt className="tw:w-4 tw:h-4 tw:text-primary" />}
+      className="app-msg-bubble tw:mb-6"
     >
-      <div className="tw:grid tw:grid-cols-2 tw:md:grid-cols-4 tw:gap-4 tw:mb-6">
-        <div className="tw:col-span-2 tw:md:col-span-1">
-          <AppInput
-            name="invoice.invoiceNumber"
-            label={t("poInvoice.invoiceNumber")}
-            register={register}
-            placeholder={t("poInvoice.enterInvoiceNumber")}
-            className="tw:mb-0 "
-            isRequired
-          />
-        </div>
-        <div>
-          <AppDateInput
-            label={t("poInvoice.invoiceDate")}
-            callback={(date) => setValue("invoice.invoiceDate", date)}
-            value={invoice?.invoiceDate}
-            dateConfig={invoiceDateConfig}
-            className="tw:mb-0"
-            isRequired
-          />
-        </div>
-        <div>
-          <AppInput
-            name="invoice.amount"
-            label={t("poInvoice.invoiceValue")}
-            register={register}
-            placeholder={t("poInvoice.enterInvoiceValue")}
-            className="tw:mb-0"
-            type="number"
-            isRequired
-          />
-        </div>
-        <div className="tw:md:col-span-4 tw:col-span-1">
-          <FileUpload
-            label={t("poInvoice.uploadInvoice")}
-            onFileUpload={onInvoiceFileUpload}
-            allowedExtensions={["jpg", "jpeg", "png"]}
-            note={<span>{t("poInvoice.onlyJpgJpegPngAllowed")}</span>}
-          />
-          {uploadedInvoiceFiles && uploadedInvoiceFiles.length > 0 && (
-            <div className="tw:mt-2">
-              <FileUploadedSlide
-                images={uploadedInvoiceFiles}
-                onRemove={handleRemoveInvoiceFile}
-              />
-            </div>
-          )}
-        </div>
+      <div className="tw:grid tw:grid-cols-1 tw:sm:grid-cols-2 tw:lg:grid-cols-3 tw:gap-4">
+        <AppInput
+          name="invoice.invoiceNumber"
+          label={t("poInvoice.invoiceNumber")}
+          register={register}
+          placeholder={t("poInvoice.enterInvoiceNumber")}
+          className="tw:mb-0"
+          isRequired
+        />
+        <AppDateInput
+          label={t("poInvoice.invoiceDate")}
+          callback={(date) => setValue("invoice.invoiceDate", date)}
+          value={invoice?.invoiceDate}
+          dateConfig={invoiceDateConfig}
+          className="tw:mb-0"
+          isRequired
+        />
+        <AppInput
+          name="invoice.amount"
+          label={t("poInvoice.invoiceValue")}
+          register={register}
+          placeholder={t("poInvoice.enterInvoiceValue")}
+          className="tw:mb-0"
+          type="number"
+          isRequired
+        />
+      </div>
+
+      {/* The attachment sits below a hairline so the form fields above read as
+          one block and the drop zone as its own step. */}
+      <div className="tw:mt-5 tw:pt-5 tw:border-t tw:border-border">
+        <InvoiceImageUploader
+          label={t("poInvoice.invoiceCopy")}
+          files={uploadedInvoiceFiles}
+          onFileUpload={onInvoiceFileUpload}
+          onRemove={handleRemoveInvoiceFile}
+        />
       </div>
       {/* <AppTab
         tabs={tabItems}
@@ -213,21 +204,13 @@ const PoInvoice: React.FC = () => {
               type="number"
             />
           </div>
-          <div className="tw:md:col-span-4 tw:col-span-1">
-            <FileUpload
+          <div className="tw:col-span-2 tw:md:col-span-4">
+            <InvoiceImageUploader
               label={t("poInvoice.uploadPaymentProof")}
+              files={uploadedPaymentFiles}
               onFileUpload={onPaymentFileUpload}
-              allowedExtensions={["jpg", "jpeg", "png"]}
-              note={<span>{t("poInvoice.onlyJpgJpegPngAllowed")}</span>}
+              onRemove={handleRemovePaymentFile}
             />
-            {uploadedPaymentFiles && uploadedPaymentFiles.length > 0 && (
-              <div className="tw:mt-2">
-                <FileUploadedSlide
-                  images={uploadedPaymentFiles}
-                  onRemove={handleRemovePaymentFile}
-                />
-              </div>
-            )}
           </div>
         </div>
       )}

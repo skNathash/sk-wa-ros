@@ -1,9 +1,9 @@
 import { produce } from "immer";
-import { Box, Copy, Package, Trash, Layers } from "lucide-react";
+import { Barcode, Copy, Trash, Layers } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Amount from "~/components/core/amount/Amount";
-import AppCard from "~/components/core/card/AppCard";
 import ImgRender from "~/components/core/img/ImgRender";
+import { buildTile } from "../../../item-pick/helper";
 import AppModal from "~/components/core/modal/AppModal";
 import NoData from "~/components/core/no-data/NoData";
 import AppSpinner from "~/components/core/Spinner/AppSpinner";
@@ -154,54 +154,51 @@ const ViewMovedProductsModal: React.FC<ViewMovedProductsModalProps> = ({
           </div>
         ) : (
           <div className="tw:space-y-3">
-            {/* Box details header & Summary */}
-            <div className="tw:bg-blue-50/50 tw:border tw:border-blue-100 tw:rounded-lg tw:p-3 tw:mb-3">
-              <div className="tw:flex tw:items-start tw:justify-between tw:gap-3 tw:mb-3">
-                <div className="tw:flex tw:items-center tw:gap-3 tw:min-w-0">
-                  <div className="tw:bg-blue-100 tw:text-blue-600 tw:p-2 tw:rounded-lg tw:shrink-0">
-                    <Box className="tw:w-4 tw:h-4" />
+            {/* Shipping-label plate: barcode glyph + box code on a dark
+                ground, copy action riding the plate. */}
+            <div className="tw:bg-gray-900 tw:rounded-xl tw:px-4 tw:py-3 tw:flex tw:items-center tw:justify-between tw:gap-3">
+              <div className="tw:flex tw:items-center tw:gap-3 tw:min-w-0">
+                <Barcode size={24} className="tw:text-emerald-400 tw:shrink-0" />
+                <div className="tw:min-w-0">
+                  <div className="tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-[0.14em] tw:text-emerald-500/80">
+                    Box Details
                   </div>
-                  <div className="tw:flex tw:flex-col tw:min-w-0">
-                    <span className="tw:text-xs tw:text-blue-600 tw:font-medium">
-                      Box Details
+                  <div className="tw:flex tw:items-center tw:gap-2 tw:min-w-0">
+                    <span className="tw:font-mono tw:text-sm tw:font-bold tw:tracking-wider tw:text-emerald-300 tw:truncate">
+                      #{box?.packageRefNo}
                     </span>
-                    <div className="tw:flex tw:items-center tw:gap-2">
-                      <span className="tw:text-sm tw:font-bold tw:text-gray-900 tw:truncate">
-                        #{box?.packageRefNo}
+                    {box?.name && (
+                      <span className="tw:text-xs tw:text-white/70 tw:truncate tw:border-l tw:border-white/20 tw:pl-2">
+                        {box.name}
                       </span>
-                      {box?.name && (
-                        <span className="tw:text-sm tw:text-gray-500 tw:truncate tw:border-l tw:border-blue-200 tw:pl-2">
-                          {box.name}
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-                <button
-                  onClick={handleCopyBoxId}
-                  className="tw:p-2 tw:text-gray-400 hover:tw:text-blue-600 hover:tw:bg-blue-100 tw:rounded-md tw:transition-colors"
-                  title="Copy Box ID"
-                >
-                  <Copy className="tw:w-4 tw:h-4" />
-                </button>
               </div>
+              <button
+                onClick={handleCopyBoxId}
+                className="tw:p-2 tw:rounded-full tw:text-emerald-300 tw:bg-white/10 hover:tw:bg-white/20 tw:transition-colors tw:shrink-0"
+                title="Copy Box ID"
+              >
+                <Copy className="tw:w-4 tw:h-4" />
+              </button>
+            </div>
 
-              <div className="tw:flex tw:items-center tw:bg-white tw:rounded-md tw:border tw:border-blue-100 tw:px-3 tw:py-2">
-                <div className="tw:flex-1 tw:flex tw:items-center tw:gap-2">
-                  <span className="tw:text-xs tw:text-gray-500">Products</span>
-                  <span className="tw:text-sm tw:font-bold tw:text-gray-900">
-                    {productCount}
-                  </span>
-                </div>
-                <div className="tw:w-px tw:h-4 tw:bg-gray-200 tw:mx-2"></div>
-                <div className="tw:flex-1 tw:flex tw:items-center tw:justify-end tw:gap-2">
-                  <span className="tw:text-xs tw:text-gray-500">
-                    Total Units
-                  </span>
-                  <span className="tw:text-sm tw:font-bold tw:text-gray-900">
-                    {unitCount}
-                  </span>
-                </div>
+            <div className="tw:flex tw:items-center tw:bg-gray-100 tw:rounded-xl tw:px-4 tw:py-2.5">
+              <div className="tw:flex-1 tw:flex tw:items-center tw:gap-2">
+                <span className="tw:text-xs tw:text-gray-500">Products</span>
+                <span className="tw:text-sm tw:font-extrabold tw:text-gray-900">
+                  {productCount}
+                </span>
+              </div>
+              <div className="tw:w-px tw:h-4 tw:bg-gray-300 tw:mx-2"></div>
+              <div className="tw:flex-1 tw:flex tw:items-center tw:justify-end tw:gap-2">
+                <span className="tw:text-xs tw:text-gray-500">
+                  Total Units
+                </span>
+                <span className="tw:text-sm tw:font-extrabold tw:text-gray-900">
+                  {unitCount}
+                </span>
               </div>
             </div>
 
@@ -218,32 +215,34 @@ const ViewMovedProductsModal: React.FC<ViewMovedProductsModalProps> = ({
               {items.length === 0 ? (
                 <NoData />
               ) : (
-                <>
-                  {items.map((p) => (
-                    <AppCard
-                      key={p.dealId}
-                      noPadding
-                      className="tw:overflow-hidden tw:mb-3 last:tw:mb-0"
-                      noShadow
-                    >
-                      <div className="tw:flex tw:items-start tw:gap-3 tw:p-3">
+                <div className="tw:rounded-2xl tw:border tw:border-gray-200 tw:bg-white tw:overflow-hidden tw:mt-2">
+                  {items.map((p) => {
+                    const tile = buildTile(p.dealName || "");
+                    return (
+                      <div
+                        key={p.dealId}
+                        className="tw:flex tw:items-start tw:gap-3 tw:px-3 tw:py-2.5 tw:border-b tw:border-gray-100 tw:last:border-b-0"
+                      >
                         <div className="tw:shrink-0">
                           {p.raw?.images && p.raw.images.length > 0 ? (
                             <ImgRender
                               assetId={p.raw.images[0]}
                               alt={p.dealName}
-                              className="tw:h-12 tw:w-12 tw:object-cover tw:rounded-md tw:border tw:border-gray-100"
+                              className="tw:h-9 tw:w-9 tw:object-cover tw:rounded-lg tw:border tw:border-gray-100"
                             />
                           ) : (
-                            <div className="tw:h-12 tw:w-12 tw:flex tw:items-center tw:justify-center tw:bg-gray-100 tw:rounded-md">
-                              <Package className="tw:text-gray-400 tw:w-6 tw:h-6" />
+                            <div
+                              className="op-tile"
+                              style={{ backgroundColor: tile.color }}
+                            >
+                              {tile.code}
                             </div>
                           )}
                         </div>
 
                         <div className="tw:flex-1 tw:min-w-0">
-                          <div className="tw:flex tw:items-start tw:justify-between tw:gap-2 tw:mb-1">
-                            <div className="tw:text-sm tw:font-medium tw:text-gray-900 tw:line-clamp-2">
+                          <div className="tw:flex tw:items-start tw:justify-between tw:gap-2">
+                            <div className="tw:text-sm tw:font-semibold tw:text-gray-900 tw:line-clamp-2">
                               {p.dealName}
                             </div>
                             <button
@@ -260,25 +259,23 @@ const ViewMovedProductsModal: React.FC<ViewMovedProductsModalProps> = ({
                             </button>
                           </div>
 
-                          <div className="tw:flex tw:items-center tw:justify-between tw:bg-gray-50 tw:rounded tw:px-2 tw:py-1 tw:mb-2">
-                            <span className="tw:text-xs tw:text-gray-500">
-                              Total Quantity
-                            </span>
-                            <span className="tw:text-xs tw:font-bold tw:text-gray-900">
+                          <div className="tw:flex tw:items-center tw:gap-1.5 tw:mt-0.5 tw:text-xs tw:text-gray-500">
+                            Total Quantity{" "}
+                            <span className="tw:font-semibold tw:text-gray-800">
                               {p.displaySummary || `${p.totalQty} Units`}
                             </span>
                           </div>
 
                           {p.mps && p.mps.length > 0 && (
-                            <div className="tw:space-y-1">
+                            <div className="tw:mt-1 tw:space-y-0.5">
                               {p.mps.map((m: any, idx: number) => (
                                 <div
                                   key={`${p.dealId}-mrp-${m.mrp}-${idx}`}
-                                  className="tw:flex tw:items-center tw:justify-between tw:text-xs tw:text-gray-600 tw:border-b tw:border-dashed tw:border-gray-100 last:tw:border-0 tw:pb-1 last:tw:pb-0"
+                                  className="tw:flex tw:items-center tw:justify-between tw:text-xs tw:text-gray-500"
                                 >
                                   <div className="tw:flex tw:items-center tw:gap-1">
                                     <span>MRP</span>
-                                    <span className="tw:font-medium text-gray-900">
+                                    <span className="tw:font-semibold tw:text-gray-800">
                                       <Amount
                                         value={Number(m.mrp) || 0}
                                         decimalPlaces={2}
@@ -286,7 +283,7 @@ const ViewMovedProductsModal: React.FC<ViewMovedProductsModalProps> = ({
                                     </span>
                                   </div>
                                   <span className="tw:font-medium">
-                                    {m.quantity} Units
+                                    × {m.quantity} Units
                                   </span>
                                 </div>
                               ))}
@@ -294,9 +291,9 @@ const ViewMovedProductsModal: React.FC<ViewMovedProductsModalProps> = ({
                           )}
                         </div>
                       </div>
-                    </AppCard>
-                  ))}
-                </>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

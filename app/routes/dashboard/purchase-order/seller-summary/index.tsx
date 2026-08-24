@@ -11,9 +11,12 @@ import useAppNav from "~/hooks/useAppNav";
 import type { BreadcrumbItem } from "~/types/CommonTypes";
 import PageHeader from "~/shared/page-header/PageHeader";
 import SectionMenu from "~/shared/navigation/section-menu/SectionMenu";
-import SectionTabs from "~/shared/navigation/section-tabs/SectionTabs";
+import PoSectionTabs from "~/shared/purchase-order/components/PoSectionTabs";
+import { AppPaneMain, AppPaneSide } from "~/shared/layout/app-pane/AppPane";
 import CreatePoFab from "~/shared/purchase-order/components/CreatePoFab";
 import PoActionButtons from "~/shared/purchase-order/components/PoActionButtons";
+import PurchaseOrderSidePane from "~/shared/purchase-order/components/purchase-order-side-pane/PurchaseOrderSidePane";
+import useTheme from "~/hooks/useTheme";
 import PoListTabs from "../components/tabs/PoListTabs";
 import Filter from "./components/Filter";
 import SummaryCard from "./components/SummaryCard";
@@ -38,6 +41,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const PurchaseOrderSummary = () => {
   const { t } = useTranslation(["common", "menu"]);
 
+  const isTheme2 = useTheme() === "theme-2";
   const appNav = useAppNav();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -193,22 +197,15 @@ const PurchaseOrderSummary = () => {
   return (
     <>
       <AppHeader
-        title={t("purchaseOrders")}
+        title={t("networkPurchase")}
         showAudioNote={true}
         audioNoteTitle={t("purchaseOrders")}
         audioFeature="order"
       />
       <div className="page-padding page-bg app-page has-footer theme-2-no-footer">
         <div className="app-container">
-          {/* Section tabs — only shown in theme-2 mobile view (see theme-2.css).
-              `sticky` pins them under the header and breaks out of the page
-              padding so the underline runs edge to edge. */}
-          <SectionTabs
-            sectionKey="supply"
-            activeTab="purchase-orders"
-            noShadow
-            sticky
-          />
+          {/* PO tab bar — theme-2 mobile only (see theme-2.css). */}
+          <PoSectionTabs outerClassName="tw:mb-3" />
 
           <div className="section-layout">
             {/* Desktop-only left rail — section side menu. */}
@@ -223,69 +220,83 @@ const PurchaseOrderSummary = () => {
             </aside>
 
             <div className="section-content">
-          <div className="theme-2-mobile-hide tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4 tw:gap-3">
-            <PageHeader
-              breadcrumbs={breadcrumbs}
-              title={t("networkPurchase")}
-              description="purchaseOrder"
-            />
+              <div className="tw:grid tw:grid-cols-12 tw:gap-4 tw:items-start">
+                <AppPaneMain className="tw:lg:col-span-12">
+                  <div className="theme-2-mobile-hide tw:flex tw:flex-col tw:md:flex-row tw:md:justify-between tw:md:items-center tw:mb-4 tw:gap-3">
+                    <PageHeader
+                      breadcrumbs={breadcrumbs}
+                      title={t("networkPurchase")}
+                      description="purchaseOrder"
+                    />
 
-            <PoActionButtons
-              getVendorParams={() =>
-                getQueryParamsFromForm(formMethods.getValues())
-              }
-            />
-          </div>
+                    <PoActionButtons
+                      getVendorParams={() =>
+                        getQueryParamsFromForm(formMethods.getValues())
+                      }
+                    />
+                  </div>
 
-          <PoListTabs activeTab="seller-orders" className="tw:mb-4" />
+                  {!isTheme2 && (
+                    <PoListTabs activeTab="seller-orders" className="tw:mb-4" />
+                  )}
 
-          <FormProvider {...formMethods}>
-            <Filter callback={handleFilter} />
-          </FormProvider>
+                  <FormProvider {...formMethods}>
+                    <Filter callback={handleFilter} />
+                  </FormProvider>
 
-          {/* Show selected vendor chip with remove icon when vendorInfo is set */}
-          {vendorInfo && vendorInfo?._id ? (
-            <div className="tw:mt-3 tw:flex tw:items-center tw:gap-2 tw:mb-4">
-              <div className="tw:text-sm tw:font-medium">
-                {t("selectedSeller")}
+                  {/* Show selected vendor chip with remove icon when vendorInfo is set */}
+                  {vendorInfo && vendorInfo?._id ? (
+                    <div className="tw:mt-3 tw:flex tw:items-center tw:gap-2 tw:mb-4">
+                      <div className="tw:text-sm tw:font-medium">
+                        {t("selectedSeller")}
+                      </div>
+                      <AppBadge
+                        variant="primary"
+                        showClose={true}
+                        onClose={clearSelectedVendor}
+                      >
+                        {vendorInfo.name}
+                      </AppBadge>
+                    </div>
+                  ) : null}
+
+                  <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-4">
+                    <SummaryCard
+                      title={t("overallSummary")}
+                      poValue={data?.overallSummary?.totalPOValue}
+                      totalPo={data?.overallSummary?.totalPO}
+                      totalVendors={data?.overallSummary?.totalVendors}
+                      type="total"
+                      description="Range applies"
+                      callback={handleSummaryCardCallback}
+                    />
+                    <SummaryCard
+                      title={t("notReceivedSummary")}
+                      poValue={data?.notReceivedSummary?.totalPOValue}
+                      totalPo={data?.notReceivedSummary?.totalPO}
+                      totalVendors={data?.notReceivedSummary?.totalVendors}
+                      type="notReceived"
+                      description="Range doesn't apply"
+                      callback={handleSummaryCardCallback}
+                    />
+                    <SummaryCard
+                      title={t("receivedSummary")}
+                      poValue={data?.receivedSummary?.totalPOValue}
+                      totalPo={data?.receivedSummary?.totalPO}
+                      totalVendors={data?.receivedSummary?.totalVendors}
+                      type="received"
+                      description="In the selected range"
+                      wide
+                      className="tw:md:col-span-2"
+                      callback={handleSummaryCardCallback}
+                    />
+                  </div>
+                </AppPaneMain>
+
+                <AppPaneSide className="app-pane-only">
+                  <PurchaseOrderSidePane />
+                </AppPaneSide>
               </div>
-              <AppBadge
-                variant="primary"
-                showClose={true}
-                onClose={clearSelectedVendor}
-              >
-                {vendorInfo.name}
-              </AppBadge>
-            </div>
-          ) : null}
-
-          <div className="tw:grid tw:grid-cols-1 tw:md:grid-cols-2 tw:gap-4 tw:mb-4">
-            <SummaryCard
-              title={t("overallSummary")}
-              poValue={data?.overallSummary?.totalPOValue}
-              totalPo={data?.overallSummary?.totalPO}
-              totalVendors={data?.overallSummary?.totalVendors}
-              type="total"
-              callback={handleSummaryCardCallback}
-            />
-            <SummaryCard
-              title={t("notReceivedSummary")}
-              poValue={data?.notReceivedSummary?.totalPOValue}
-              totalPo={data?.notReceivedSummary?.totalPO}
-              totalVendors={data?.notReceivedSummary?.totalVendors}
-              type="notReceived"
-              description={t("notReceivedDateRangeNote")}
-              callback={handleSummaryCardCallback}
-            />
-            <SummaryCard
-              title={t("receivedSummary")}
-              poValue={data?.receivedSummary?.totalPOValue}
-              totalPo={data?.receivedSummary?.totalPO}
-              totalVendors={data?.receivedSummary?.totalVendors}
-              type="received"
-              callback={handleSummaryCardCallback}
-            />
-          </div>
             </div>
           </div>
         </div>

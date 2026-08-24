@@ -1,4 +1,10 @@
-import { CalendarClock, CheckCheck, CheckCircle, Clock, XCircle } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCheck,
+  CheckCircle,
+  Clock,
+  XCircle,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AppButton from "~/components/core/button/AppButton";
 import DateFormat from "~/components/core/date/DateFormat";
@@ -103,7 +109,10 @@ const ShiplaterApproval = ({
   }
 
   return (
-    <AppCard noPadding className="tw:mb-3 tw:rounded-lg tw:border tw:border-amber-200/80 tw:bg-white tw:overflow-hidden tw:relative tw:shadow-sm">
+    <AppCard
+      noPadding
+      className="tw:mb-3 tw:rounded-lg tw:border tw:border-amber-200/80 tw:bg-white tw:overflow-hidden tw:relative tw:shadow-sm"
+    >
       <div className="tw:h-1 tw:bg-linear-to-r tw:from-amber-300 tw:via-orange-400 tw:to-amber-500" />
       <div
         className="tw:absolute tw:inset-0 tw:opacity-[0.035] tw:pointer-events-none"
@@ -130,7 +139,12 @@ const ShiplaterApproval = ({
             </p>
           </div>
           <div className="tw:flex tw:gap-1.5 tw:shrink-0 tw:sm:justify-end">
-            <AppButton color="danger" fill="outline" size="small" onClick={onReject}>
+            <AppButton
+              color="danger"
+              fill="outline"
+              size="small"
+              onClick={onReject}
+            >
               <XCircle size={14} />
               {t("reject")}
             </AppButton>

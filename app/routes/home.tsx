@@ -33,7 +33,7 @@ export default function Home() {
   }, [replace]);
 
   return (
-    <div className="tw:flex tw:justify-center tw:items-center tw:h-full tw:bg-white">
+    <div className="tw:flex tw:justify-center tw:items-center tw:min-h-dvh tw:bg-white">
       <ImgRender src="/ai/loader.gif" alt="StoreKing" className="tw:h-20" />
     </div>
   );

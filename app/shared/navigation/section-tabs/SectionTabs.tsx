@@ -6,8 +6,17 @@ import SectionTabService from "~/services/SectionTabService";
 import type { SectionTab, SectionTabKey, TabItem } from "~/types/CommonTypes";
 
 interface SectionTabsProps {
-  /** Which section's tabs to render (bill, business, supply, catalog). */
-  sectionKey: SectionTabKey;
+  /**
+   * Which section's tabs to render (bill, business, supply, catalog).
+   * Ignored when {@link tabs} is provided.
+   */
+  sectionKey?: SectionTabKey;
+  /**
+   * Explicit tab list, for callers that build their own tabs instead of
+   * pulling a configured section from {@link SectionTabService}. Takes
+   * precedence over {@link sectionKey}.
+   */
+  tabs?: SectionTab[];
   /** Key of the currently active tab. */
   activeTab: string;
   /**
@@ -28,10 +37,23 @@ interface SectionTabsProps {
    * runs edge to edge, and sticks immediately on scroll with no initial travel.
    */
   sticky?: boolean;
+  /**
+   * Leading/trailing inset of the tab track. Defaults to the page gutter
+   * (16px); pass 0 when the bar sits inside an already-padded block.
+   */
+  slideOffset?: number;
+  /**
+   * Scroll the tab track natively instead of mounting a swiper. Defaults to
+   * {@link sticky}: the sticky bar is full-bleed and sizes after mount, so the
+   * swiper measures its track too early there and can leave the active tab
+   * half-clipped at an edge. A native track has nothing to measure.
+   */
+  scrollable?: boolean;
 }
 
 const SectionTabs: React.FC<SectionTabsProps> = ({
   sectionKey,
+  tabs: tabsProp,
   activeTab,
   onTabChange,
   variant = "chips",
@@ -39,15 +61,18 @@ const SectionTabs: React.FC<SectionTabsProps> = ({
   outerClassName = "",
   noShadow = false,
   sticky = false,
+  slideOffset = 16,
+  scrollable,
 }) => {
   const appNav = useAppNav();
 
-  // Mobile scroller omits desktop-only tabs (e.g. Receive Stock); those show
-  // only in the desktop side rail (SectionMenu).
-  const sectionTabs = useMemo(
-    () => SectionTabService.getTabs(sectionKey).filter((tab) => !tab.desktopOnly),
-    [sectionKey],
-  );
+  // Mobile scroller omits desktop-only tabs; those show only in the desktop
+  // side rail (SectionMenu).
+  const sectionTabs = useMemo(() => {
+    const source =
+      tabsProp ?? (sectionKey ? SectionTabService.getTabs(sectionKey) : []);
+    return source.filter((tab) => !tab.desktopOnly);
+  }, [tabsProp, sectionKey]);
 
   const tabs: TabItem[] = useMemo(
     () =>
@@ -57,6 +82,10 @@ const SectionTabs: React.FC<SectionTabsProps> = ({
         langKey: tab.langKey,
         icon: tab.icon,
         rbac: tab.rbac,
+        className: tab.className,
+        // The rail shows the badge on the icon; the tab row shows it as a
+        // count pill, which only takes numbers.
+        count: typeof tab.badge === "number" ? tab.badge : undefined,
       })),
     [sectionTabs],
   );
@@ -81,7 +110,11 @@ const SectionTabs: React.FC<SectionTabsProps> = ({
       variant={variant}
       className={className}
       noShadow={noShadow}
-      slideOffset={sticky ? 16 : 0}
+      scrollable={scrollable ?? sticky}
+      // The bar itself has no side padding (so the track scrolls edge to edge);
+      // the swiper supplies the leading/trailing inset instead, keeping the
+      // first pill aligned with the page gutter while pills still scroll under it.
+      slideOffset={slideOffset}
     />
   );
 
@@ -89,9 +122,14 @@ const SectionTabs: React.FC<SectionTabsProps> = ({
 
   return (
     <div
-      className={clsx("theme-2-mobile-only section-menu-container", outerClassName)}
+      className={clsx(
+        "theme-2-mobile-only section-menu-container",
+        outerClassName,
+      )}
     >
-      {appTab}
+      {/* Styling seam only — the bar's surface + pill styling lives in
+          theme-2.css (`.section-menu-container`). */}
+      <div className="section-menu-track">{appTab}</div>
     </div>
   );
 };

@@ -132,6 +132,7 @@ const AddToCart: React.FC<{
         quantity: quantity,
         itemId: newItemId,
         cartId: newCartId,
+        sellerId: sellerId,
       });
     } else {
       toast.show({
@@ -222,7 +223,7 @@ const AddToCart: React.FC<{
       const newItemId = apiResponse?.data?.data?.itemId;
       const newCartId = apiResponse?.data?.data?.cartId;
       // Update local cart
-      CartService.addToCartLocal(dealId, cartQty);
+      CartService.addToCartLocal(dealId, cartQty, sellerId);
       callback({
         action: CART_ITEM_ADDED,
         data: {
@@ -241,6 +242,7 @@ const AddToCart: React.FC<{
         qty: cartQty,
         itemId: newItemId,
         cartId: newCartId,
+        sellerId: sellerId,
       });
     } else {
       toast.show({
@@ -268,6 +270,7 @@ const AddToCart: React.FC<{
       const formatted = d
         ? SellerCatalogService.formatProductResponse([d], {
             view: "buyer",
+            sellerId,
           })?.[0]
         : null;
 
@@ -299,7 +302,7 @@ const AddToCart: React.FC<{
         color: "success",
       });
       // Clear local cart
-      CartService.removeFromCart(dealId);
+      CartService.removeFromCart(dealId, sellerId);
       callback({
         action: CART_ITEM_REMOVED,
         data: {
@@ -310,6 +313,7 @@ const AddToCart: React.FC<{
 
       MiscService.createEvent(EVENTS.CART_ITEM_REMOVED, {
         dealId: dealId,
+        sellerId: sellerId,
       });
     } else {
       toast.show({
